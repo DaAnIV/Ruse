@@ -143,13 +143,18 @@ impl ObjectGraph {
         self.graph.remove_node(idx)
     }
 
-    pub fn set_field(&mut self, object: NodeIndex, field: PrimitiveValue, field_name: Arc<String>) {
+    pub fn set_field(&mut self, object: NodeIndex, field_name: Arc<String>, field: PrimitiveValue) {
         // Todo: Handle field being a pointer
         self.serialized = None;
         let node = self.graph.node_weight_mut(object).unwrap();
         let mut new_fields = (*node.fields).clone();
         new_fields.insert(field_name, field);
         node.fields = new_fields.into();
+    }
+
+    pub fn get_field(&self, object: NodeIndex, field_name: &Arc<String>) -> Option<&PrimitiveValue> {
+        let node = self.graph.node_weight(object).unwrap();
+        node.fields.get(field_name)
     }
 
     pub fn remove_field(&mut self, object: NodeIndex, field_name: &Arc<String>) {
@@ -184,6 +189,11 @@ impl ObjectGraph {
         new_pointers.remove(&field_name);
         node.pointers = new_pointers.into();
         self.graph.remove_edge(idx)
+    }
+
+    pub fn get_neighbor(&self, object: NodeIndex, field_name: &Arc<String>) -> Option<NodeIndex> {
+        let node = self.graph.node_weight(object).unwrap();
+        node.get_neighbor(field_name)
     }
 
     pub fn node_weight(&self, a: NodeIndex) -> Option<&ObjectData> {

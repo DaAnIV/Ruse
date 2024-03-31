@@ -24,7 +24,7 @@ impl TryFrom<usize> for ValueType {
             1 => Ok(ValueType::Bool),
             2 => Ok(ValueType::String),
             3 => Ok(ValueType::Number),
-            _ => Err(())
+            _ => Err(()),
         }
     }
 }
@@ -64,6 +64,21 @@ pub enum Location {
 pub struct LocValue {
     pub loc: Location,
     pub val: Value,
+}
+
+impl ObjectValue {
+    pub fn get_field_value(&self, field_name: &Arc<String>) -> Option<Value> {
+        match self.graph.get_field(self.node, &field_name) {
+            Some(val) => Some(Value::Primitive(val.clone())),
+            None => match self.graph.get_neighbor(self.node, &field_name) {
+                Some(neighbor) => Some(Value::Object(ObjectValue {
+                    graph: self.graph.clone(),
+                    node: neighbor,
+                })),
+                None => None,
+            },
+        }
+    }
 }
 
 impl Value {

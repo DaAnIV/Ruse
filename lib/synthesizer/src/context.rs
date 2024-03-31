@@ -37,7 +37,7 @@ impl Context {
                 let mut new_graph = match new_val {
                     Value::Primitive(p) => {
                         let mut new_graph = (*obj_val.graph).clone();
-                        new_graph.set_field(l.node, p, l.field.clone());
+                        new_graph.set_field(l.node, l.field.clone(), p);
                         new_graph
                     }
                     Value::Object(_o) => todo!(),
