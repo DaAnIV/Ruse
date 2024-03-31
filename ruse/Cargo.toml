@@ -1,0 +1,15 @@
+[package]
+name = "ruse"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rand = "*"
+ruse_ts_interpreter = { path = "../lib/ts_interpreter" }
+ruse_object_graph = { path = "../lib/object_graph" }
+
+swc = "*"
+swc_common = {version = "*", features = ["tty-emitter"]}
+swc_ecma_parser = "*"
+swc_ecma_ast = "*"
+swc_visit = "*"

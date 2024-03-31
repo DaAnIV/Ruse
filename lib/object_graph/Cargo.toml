@@ -1,0 +1,19 @@
+[package]
+name = "ruse_object_graph"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+petgraph = "^0.6.2"
+petgraph-gen = "0.1.3"
+rand = "^0.8.5"
+bitcode = { version = "*", features = ["derive"] }
+
+[dev-dependencies]
+criterion = "*"
+
+[[bench]]
+name = "benches"
+harness = false
