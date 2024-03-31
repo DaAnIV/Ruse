@@ -1,0 +1,22 @@
+[package]
+name = "ruse_synthesizer"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ruse_object_graph = { path = "../object_graph" }
+
+petgraph = "^0.6.2"
+
+swc = "*"
+swc_common = {version = "*", features = ["tty-emitter"]}
+swc_ecma_parser = "*"
+swc_ecma_ast = "*"
+swc_visit = "*"
+
+[dev-dependencies]
+criterion = "*"
+
+[[bench]]
+name = "benches"
+harness = false
