@@ -1,6 +1,10 @@
-use std::{collections::HashMap, hash::{DefaultHasher, Hash, Hasher}, sync::Arc};
-
-use crate::value::{Location, Value};
+use crate::value::{LocValue, Location, Value, VarLoc};
+use ruse_object_graph::ObjectGraph;
+use std::{
+    collections::HashMap,
+    hash::{DefaultHasher, Hash, Hasher},
+    sync::Arc,
+};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Context {
@@ -9,54 +13,104 @@ pub struct Context {
 }
 
 impl Context {
-    pub fn new(values: HashMap<Arc<String>, Value>) -> Self {
-        let mut hasher = DefaultHasher::new();
-        for (k, v) in &values {
-            k.hash(&mut hasher);
-            v.hash(&mut hasher);
-        }
+    pub fn with_values(values: HashMap<Arc<String>, Value>) -> Self {
         Self {
+            hash: Self::get_hash_for_values(&values),
             values: values.into(),
-            hash: hasher.finish()
         }
     }
 
-    pub fn update_value(&self, loc: &Location, new_val: Value) -> Context {
-        if loc.is_temp() {
-            return self.clone();
+    fn get_hash_for_values(values: &HashMap<Arc<String>, Value>) -> u64 {
+        let mut hasher = DefaultHasher::new();
+        for (k, v) in values {
+            k.hash(&mut hasher);
+            v.hash(&mut hasher);
         }
+        hasher.finish()
+    }
 
-        let mut new_values = (*self.values).clone();
+    fn set_values(&mut self, values: HashMap<Arc<String>, Value>) {
+        let new_hash = Self::get_hash_for_values(&values);
+        let arc_values = values.into();
 
-        match &loc {
+        self.hash = new_hash;
+        self.values = arc_values;
+    }
+
+    pub fn temp_value(&self, val: Value) -> LocValue {
+        LocValue {
+            val: val,
+            loc: Location::Temp,
+        }
+    }
+
+    pub fn get_var_loc_value(&self, var: &Arc<String>) -> LocValue {
+        LocValue {
+            val: self.values[var].clone(),
+            loc: Location::Var(VarLoc { var: var.clone() }),
+        }
+    }
+
+    pub fn get_loc_value(&self, val: Value, loc: Location) -> LocValue {
+        return LocValue { val: val, loc: loc };
+    }
+
+    pub fn update_value(&mut self, new_val: &Value, loc: &Location) {
+        match loc {
             Location::Var(l) => {
-                new_values.insert(l.var.clone(), new_val);
+                debug_assert!(self.values.contains_key(&l.var));
+                assert!(new_val.is_primitive());
+                assert!(self.values[&l.var].val_type() == new_val.val_type());
+
+                let mut new_values = (*self.values).clone();
+                new_values.insert(l.var.clone(), new_val.clone());
+
+                self.set_values(new_values);
             }
             Location::ObjectField(l) => {
-                let obj_val = new_values[&l.var].obj().unwrap();
+                debug_assert!(self.values.contains_key(&l.var));
+
+                let obj_val = self.values[&l.var].obj().unwrap();
                 let mut new_graph = match new_val {
                     Value::Primitive(p) => {
+                        assert!(obj_val.graph.get_field(l.node, &l.field).is_some());
                         let mut new_graph = (*obj_val.graph).clone();
-                        new_graph.set_field(l.node, l.field.clone(), p);
+                        new_graph.set_field(l.node, l.field.clone(), p.clone());
                         new_graph
                     }
-                    Value::Object(_o) => todo!(),
+                    Value::Object(o) => {
+                        let (mut new_graph, nodes_map) =
+                            ObjectGraph::union(&[obj_val.graph.clone(), o.graph.clone()]);
+                        new_graph.add_edge(
+                            nodes_map[&(Arc::as_ptr(&obj_val.graph) as u64, l.node)],
+                            nodes_map[&(Arc::as_ptr(&o.graph) as u64, o.node)],
+                            &l.field,
+                        );
+                        new_graph
+                    }
                 };
                 new_graph
                     .generate_serialized_data()
                     .expect("Failed to serialize new graph");
+
+                let graph_ptr = Arc::new(new_graph);
+
+                let mut new_values = (*self.values).clone();
+                for (root_name, root_idx) in graph_ptr.roots() {
+                    if let Some(root_var) = new_values.get_mut(root_name) {
+                        let root_obj_val = root_var.mut_obj().unwrap();
+                        root_obj_val.node = *root_idx;
+                        root_obj_val.graph = graph_ptr.clone();
+                    }
+                }
+
+                self.set_values(new_values);
             }
-            Location::Temp => unreachable!(),
-        };
-
-        Context::new(new_values)
+            Location::Temp => return,
+        }
     }
 
-    pub fn get_var_value(&self, var: &Arc<String>) -> Value {
-        self.values[var].clone()
-    }
-
-    pub fn get_keys<'a>(&'a self) -> Box<dyn Iterator<Item = &Arc<String>>+'a> {
+    pub fn get_keys<'a>(&'a self) -> Box<dyn Iterator<Item = &Arc<String>> + 'a> {
         Box::new(self.values.keys())
     }
 }

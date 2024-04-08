@@ -1,7 +1,7 @@
 use ruse_object_graph::{Cache, Number, PrimitiveValue};
 use ruse_synthesizer::opcode::SynthesizerExprOpcode;
 use ruse_synthesizer::{context::*, vbool, vnum};
-use ruse_synthesizer::{temp_val, value::*};
+use ruse_synthesizer::value::*;
 
 use swc_common::DUMMY_SP;
 use swc_ecma_ast as ast;
@@ -44,9 +44,9 @@ impl UnaryOp {
 }
 
 impl SynthesizerExprOpcode<TsExprAst> for UnaryOp {
-    fn eval(&self, ctx: &Context, args: &[&LocValue], _cache: &mut Cache) -> (Context, LocValue) {
+    fn eval(&self, ctx: &mut Context, args: &[&LocValue], _cache: &mut Cache) -> LocValue {
         debug_assert_eq!(args.len(), 1);
-        let res = match &args[0].val {
+        let res = match &args[0].val() {
             Value::Primitive(p) => match p {
                 PrimitiveValue::Number(n) => self.eval_unary_num(n),
                 PrimitiveValue::Bool(b) => self.eval_unary_bool(*b),
@@ -55,7 +55,7 @@ impl SynthesizerExprOpcode<TsExprAst> for UnaryOp {
             Value::Object(_) => todo!(),
         };
 
-        (ctx.clone(), temp_val!(res))
+        ctx.temp_value(res)
     }
 
     fn arg_types(&self) -> &[ValueType] {
@@ -85,24 +85,21 @@ impl UpdateOp {
 }
 
 impl SynthesizerExprOpcode<TsExprAst> for UpdateOp {
-    fn eval(&self, ctx: &Context, args: &[&LocValue], _cache: &mut Cache) -> (Context, LocValue) {
+    fn eval(&self, ctx: &mut Context, args: &[&LocValue], _cache: &mut Cache) -> LocValue {
         debug_assert_eq!(args.len(), 1);
 
-        let n = args[0].val.primitive().unwrap().number().unwrap();
+        let n = args[0].val().primitive().unwrap().number().unwrap();
 
         let res = match self.op {
             ast::UpdateOp::PlusPlus => vnum!(Number(n.0 + 1f64)),
             ast::UpdateOp::MinusMinus => vnum!(Number(n.0 - 1f64)),
         };
 
-        let new_ctx = match args[0].loc.is_temp() {
-            true => ctx.clone(),
-            false => ctx.update_value(&args[0].loc, res.clone()),
-        };
+        ctx.update_value(&res.clone(), &args[0].loc());
 
         match self.prefix {
-            true => (new_ctx, temp_val!(res)),
-            false => (new_ctx, args[0].clone()),
+            true => ctx.temp_value(res),
+            false => ctx.temp_value(args[0].val().clone())
         }
     }
 

@@ -25,7 +25,7 @@ fn concat_strings(c: &mut Criterion) {
             BatchSize::PerIteration,
         )
     });
-    group.bench_function("concat_with_format", |b| {
+    group.bench_function("concat_with_clone_and_push", |b| {
         b.iter_batched(
             || (str1.to_string(), str2.to_string()),
             |(s1, s2)| {
@@ -36,7 +36,7 @@ fn concat_strings(c: &mut Criterion) {
             BatchSize::PerIteration,
         )
     });
-    group.bench_function("concat_with_clone_and_push", |b| {
+    group.bench_function("concat_with_format", |b| {
         b.iter_batched(
             || (str1.to_string(), str2.to_string()),
             |(s1, s2)| {

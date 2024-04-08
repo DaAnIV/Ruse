@@ -21,7 +21,7 @@ pub struct ArrayLitOp {
 }
 
 impl SynthesizerExprOpcode<TsExprAst> for LitOp {
-    fn eval(&self, ctx: &Context, args: &[&LocValue], _: &mut Cache) -> (Context, LocValue) {
+    fn eval(&self, ctx: &mut Context, args: &[&LocValue], _: &mut Cache) -> LocValue {
         debug_assert_eq!(args.len(), 0);
         let val = match self {
             LitOp::Null => Value::Primitive(PrimitiveValue::Null),
@@ -30,13 +30,7 @@ impl SynthesizerExprOpcode<TsExprAst> for LitOp {
             LitOp::Num(n) => vnum!(*n),
         };
 
-        (
-            ctx.clone(),
-            LocValue {
-                loc: Location::Temp,
-                val: val,
-            },
-        )
+        ctx.temp_value(val)
     }
 
     fn to_ast(&self, children: &Vec<TsExprAst>) -> TsExprAst {
@@ -69,28 +63,27 @@ impl SynthesizerExprOpcode<TsExprAst> for LitOp {
 }
 
 impl SynthesizerExprOpcode<TsExprAst> for ArrayLitOp {
-    fn eval(&self, ctx: &Context, args: &[&LocValue], cache: &mut Cache) -> (Context, LocValue) {
+    fn eval(&self, ctx: &mut Context, args: &[&LocValue], cache: &mut Cache) -> LocValue {
         let mut fields = FieldsMap::new();
-        let mut graphs = vec![];
         let mut seen_graphs = HashMap::new();
         let mut obj_keys = vec![];
 
         for (i, val) in (0..self.size).zip(args) {
             visit_field(
-                &val.val,
+                &val.val(),
                 &mut fields,
                 scached!(cache; i.to_string()),
                 &mut seen_graphs,
-                &mut graphs,
-                cache,
                 &mut obj_keys,
             );
         }
 
-        (
-            ctx.clone(),
-            create_out_object(graphs, cache, fields, obj_keys),
-        )
+        ctx.temp_value(create_out_object(
+            seen_graphs.into_values().collect(),
+            cache,
+            fields,
+            &obj_keys,
+        ))
     }
 
     fn to_ast(&self, children: &Vec<TsExprAst>) -> TsExprAst {
@@ -116,33 +109,30 @@ impl SynthesizerExprOpcode<TsExprAst> for ArrayLitOp {
 }
 
 fn create_out_object(
-    graphs: Vec<ObjectGraph>,
+    graphs: Vec<Arc<ObjectGraph>>,
     cache: &mut Cache,
     fields: FieldsMap,
-    obj_keys: Vec<(Arc<String>, Arc<String>)>,
-) -> LocValue {
-    let mut out = ObjectGraph::union(&graphs);
+    obj_keys: &Vec<(Arc<String>, (u64, NodeIndex))>,
+) -> Value {
+    let (mut out, nodes_map) = ObjectGraph::union(&graphs);
 
-    let root = out.add_root(str_cached!(cache; "out"), ObjectData::new(fields.into()));
-    for (key, tmp_key) in &obj_keys {
-        out.add_edge(root, out.get_root(tmp_key), key.clone());
-        out.remove_root(tmp_key)
+    let root = out.add_root(cache.temp_string(), ObjectData::new(fields.into()));
+    for (key, old_node) in obj_keys {
+        out.add_edge(root, nodes_map[old_node], &key);
     }
 
-    LocValue {
-        loc: Location::Temp,
-        val: vobj!(out.into(), root),
-    }
+    out.generate_serialized_data()
+        .expect("Failed to serialize new graph");
+
+    vobj!(out.into(), root)
 }
 
 fn visit_field(
     val: &Value,
     fields: &mut FieldsMap,
     key: Arc<String>,
-    seen_graphs: &mut HashMap<u64, usize>,
-    graphs: &mut Vec<ObjectGraph>,
-    cache: &mut Cache,
-    obj_keys: &mut Vec<(Arc<String>, Arc<String>)>,
+    seen_graphs: &mut HashMap<u64, Arc<ObjectGraph>>,
+    obj_keys: &mut Vec<(Arc<String>, (u64, NodeIndex))>,
 ) {
     match val {
         Value::Primitive(p) => {
@@ -150,19 +140,10 @@ fn visit_field(
         }
         Value::Object(o) => {
             let ptr = Arc::as_ptr(&o.graph) as u64;
-            let new_graph = match seen_graphs.get(&ptr) {
-                Some(i) => &mut graphs[*i],
-                None => {
-                    let tmp = (*o.graph).clone();
-                    graphs.push(tmp);
-                    let i = graphs.len() - 1;
-                    seen_graphs.insert(ptr, i);
-                    &mut graphs[i]
-                }
+            if seen_graphs.contains_key(&ptr) {
+                seen_graphs.insert(ptr, o.graph.clone());
             };
-            let tmp_key = scached!(cache; format!("____tmp_{key}"));
-            new_graph.set_as_root(tmp_key.clone(), o.node);
-            obj_keys.push((key, tmp_key));
+            obj_keys.push((key.clone(), (ptr, o.node)));
         }
     };
 }

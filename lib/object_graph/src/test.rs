@@ -50,8 +50,8 @@ mod tests {
         let n13 = g1.add_node(ObjectData::new(
             fields!((field_name_c.clone(), PrimitiveValue::Number(6u64.into()))),
         ));
-        g1.add_edge(n11, n12, str_cached!(cache; "12"));
-        g1.add_edge(n11, n13, str_cached!(cache; "13"));
+        g1.add_edge(n11, n12, &str_cached!(cache; "12"));
+        g1.add_edge(n11, n13, &str_cached!(cache; "13"));
 
         let mut g2 = ObjectGraph::new();
         let n22: NodeIndex = g2.add_node(ObjectData::new(
@@ -60,11 +60,11 @@ mod tests {
         let n21 = g2.add_root(root_name.clone(), ObjectData::new(
             fields!((field_name_a.clone(), PrimitiveValue::Number(3u64.into()))),
         ));
-        g2.add_edge(n21, n22, str_cached!(cache; "12"));
+        g2.add_edge(n21, n22, &str_cached!(cache; "12"));
         let n23 = g2.add_node(ObjectData::new(
             fields!((field_name_c.clone(), PrimitiveValue::Number(6u64.into()))),
         ));
-        g2.add_edge(n21, n23, str_cached!(cache; "13"));
+        g2.add_edge(n21, n23, &str_cached!(cache; "13"));
 
         g1.generate_serialized_data()
             .expect("Failed to serialize g1");
@@ -114,7 +114,7 @@ mod tests {
         let n2 = graph.add_node(ObjectData::new(
             fields!((field_name.clone(), PrimitiveValue::Number(4u64.into()))),
         ));
-        graph.add_edge(n1, n2, str_cached!(cache; "c"));
+        graph.add_edge(n1, n2, &str_cached!(cache; "c"));
         graph
             .generate_serialized_data()
             .expect("Failed to serialize graph");

@@ -18,7 +18,7 @@ where
     depth: u32,
     out_type: Option<ValueType>,
     
-    pre_ctx: Option<[Context; N]>,
+    pre_ctx: [Context; N],
     post_ctx: Option<[Context; N]>,
     out_value: Option<[LocValue; N]>
 }
@@ -64,10 +64,12 @@ where
     T: ExprAst,
 {
     pub fn with_opcode_and_children(opcode: Arc<dyn SynthesizerExprOpcode<T>>, children: Vec<Arc<SubProgram<T, N>>>) -> Self {
+        assert!(children.len() > 0);
         debug_assert!(verify_children(&opcode, &children));
 
         let size = (&children).into_iter().fold(0, |acc, x| acc + x.size) + 1;
         let depth = (&children).into_iter().fold(0, |acc, x| max(acc, x.depth)) + 1;
+        let pre_ctx = children[0].pre_ctx().clone();
 
         Self {
             opcode: opcode,
@@ -77,20 +79,34 @@ where
             depth: depth,
 
             out_type: None,
-            pre_ctx: None,
+            pre_ctx: pre_ctx,
             post_ctx: None,
             out_value: None
         }
     }
 
+    pub fn with_opcode_and_context(opcode: Arc<dyn SynthesizerExprOpcode<T>>, context: &[Context; N]) -> Self {
+        Self {
+            opcode: opcode,
+            children: vec![],
+
+            size: 1,
+            depth: 1,
+
+            out_type: None,
+            pre_ctx: context.clone(),
+            post_ctx: None,
+            out_value: None
+        }    
+    }
+
     pub fn evaluate(&mut self, cache: &mut Cache) {
         let mut out_type: Option<ValueType> = None;
-        let mut pre_ctx = Vec::with_capacity(N);
         let mut post_ctx = Vec::with_capacity(N);
         let mut out_value = Vec::with_capacity(N);
 
         for i in 0..N {
-            let ctx = &self.children[0].pre_ctx()[0];
+            let mut out_ctx = self.pre_ctx[i].clone();
             
             // Gather arguments
             let mut args = Vec::<&LocValue>::with_capacity(self.children.len());
@@ -99,17 +115,15 @@ where
             }
 
             // Evaluate and verify the output type is consistent
-            let (out_ctx, out_val) = self.opcode.eval(ctx, &args, cache);
+            let out_val = self.opcode.eval(&mut out_ctx, &args, cache);
             assert!(out_type.is_none() || out_type.unwrap() == out_val.val.val_type());
             let _ = out_type.get_or_insert(out_val.val.val_type());
 
-            pre_ctx.push(ctx.clone());
             post_ctx.push(out_ctx);
             out_value.push(out_val);
         }
 
         self.out_type = out_type;
-        self.pre_ctx = Some(pre_ctx.try_into().unwrap());
         self.post_ctx = Some(post_ctx.try_into().unwrap());
         self.out_value = Some(out_value.try_into().unwrap());
     }
@@ -140,7 +154,7 @@ where
     
     #[inline]
     pub fn pre_ctx(&self) -> &[Context; N] {
-        self.pre_ctx.as_ref().unwrap()
+        &self.pre_ctx
     }
 
     #[inline]

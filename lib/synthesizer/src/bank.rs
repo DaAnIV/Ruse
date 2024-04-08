@@ -7,7 +7,7 @@ use crate::{
     value::{LocValue, ValueType},
 };
 
-pub type ProgIterator<'a, T, const N: usize> = Box<dyn Iterator<Item = Arc<SubProgram<T, N>>> + 'a>;
+pub type ProgIterator<'a, T, const N: usize> = Box<dyn Iterator<Item = &'a Arc<SubProgram<T, N>>> + 'a>;
 
 // The bank is hierarchical
 // size-> [pre_context] -> out_type -> [out_value] -> sub_prog
@@ -54,7 +54,7 @@ impl<T: ExprAst + Default, const N: usize> ProgBank<T, N> {
             return Box::new(iter::empty());
         }
 
-        Box::new(value_map.unwrap().values().map(|x| x.clone()))
+        Box::new(value_map.unwrap().values())
     }
 
     #[inline]

@@ -1,7 +1,7 @@
 use bitcode;
 use petgraph::stable_graph::StableDiGraph;
 use std::collections::hash_map::DefaultHasher;
-use std::collections::{BTreeMap, HashMap, VecDeque};
+use std::collections::{BTreeMap, HashMap, VecDeque, HashSet};
 use std::fmt::Debug;
 use std::hash::{Hash, Hasher};
 use std::iter::zip;
@@ -110,13 +110,19 @@ impl ObjectGraph {
         new_node
     }
 
-    pub fn union(graphs: &[ObjectGraph]) -> ObjectGraph {
+    pub fn union(graphs: &[Arc<ObjectGraph>]) -> (ObjectGraph, HashMap<(u64, NodeIndex), NodeIndex>) {
+        let mut seen_graphs = HashSet::with_capacity(graphs.len());
         let mut seen = HashMap::new();
         let mut pointers = vec![];
         let mut q = VecDeque::new();
-        let mut out = graphs[0].clone();
+        let mut out = (*graphs[0]).clone();
 
+        seen_graphs.insert(Arc::as_ptr(&graphs[0]) as u64);
+        
         for g in graphs.iter().skip(1) {
+            if !seen_graphs.insert(Arc::as_ptr(g) as u64) {
+                continue;
+            }
             for r in &g.roots {
                 if out.roots.contains_key(r.0) {
                     debug_assert!(Self::slow_equal_roots((g, r.1), (&out, &out.roots[r.0])))
@@ -132,10 +138,10 @@ impl ObjectGraph {
         }
 
         for (new_source, old_target, name) in pointers {
-            out.add_edge(new_source, seen[&old_target], name);
+            out.add_edge(new_source, seen[&old_target], &name);
         }
 
-        out
+        (out, seen)
     }
 
     pub fn remove_node(&mut self, idx: NodeIndex) -> Option<ObjectData> {
@@ -169,7 +175,7 @@ impl ObjectGraph {
         &mut self,
         object: NodeIndex,
         field: NodeIndex,
-        field_name: Arc<String>,
+        field_name: &Arc<String>,
     ) -> EdgeIndex {
         self.serialized = None;
         let edge = self.graph.add_edge(object, field, field_name.clone());
@@ -226,6 +232,10 @@ impl ObjectGraph {
 
     pub fn get_root(&self, r: &Arc<String>) -> NodeIndex {
         self.roots[r]
+    }
+
+    pub fn roots<'a>(&'a self) -> Box<dyn Iterator<Item=(&Arc<String>, &NodeIndex)>+'a> {
+        Box::new(self.roots.iter())
     }
 
     pub fn node_count(&self) -> usize {

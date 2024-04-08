@@ -48,7 +48,7 @@ impl<'a, T: ExprAst + Default, const N: usize> ArgIterator<'a, T, N> {
                 return false;
             }
             self.iters.push(iter);
-            self.cur.push(item.unwrap());
+            self.cur.push(item.unwrap().clone());
             return true;
         }
 
@@ -69,7 +69,7 @@ impl<'a, T: ExprAst + Default, const N: usize> ArgIterator<'a, T, N> {
                 continue;
             }
 
-            self.cur.push(item.clone().unwrap());
+            self.cur.push(item.unwrap().clone());
             self.iters.push(iter);
 
             if self.fill_iterators(i + 1, self.remaining_size[i], item.unwrap().post_ctx()) {

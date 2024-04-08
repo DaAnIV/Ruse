@@ -62,8 +62,8 @@ pub enum Location {
 
 #[derive(PartialEq, Eq, Debug, Clone, Hash)]
 pub struct LocValue {
-    pub loc: Location,
-    pub val: Value,
+    pub(crate) loc: Location,
+    pub(crate) val: Value,
 }
 
 impl ObjectValue {
@@ -91,6 +91,13 @@ impl Value {
     }
 
     pub fn obj(&self) -> Option<&ObjectValue> {
+        match self {
+            Value::Object(v) => Some(v),
+            _ => None,
+        }
+    }
+
+    pub fn mut_obj(&mut self) -> Option<&mut ObjectValue> {
         match self {
             Value::Object(v) => Some(v),
             _ => None,
@@ -140,6 +147,17 @@ impl Location {
     }
 }
 
+impl LocValue {
+    #[inline]
+    pub fn val(&self) -> &Value {
+        &self.val
+    }
+    #[inline]
+    pub fn loc(&self) -> &Location {
+        &self.loc
+    }
+}
+
 #[macro_export]
 macro_rules! vbool {
     ($e:expr) => {
@@ -178,15 +196,5 @@ macro_rules! vobj {
             graph: $g,
             node: $r,
         })
-    };
-}
-
-#[macro_export]
-macro_rules! temp_val {
-    ($v:expr) => {
-        $crate::value::LocValue {
-            loc: $crate::value::Location::Temp,
-            val: $v,
-        }
     };
 }

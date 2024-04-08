@@ -21,17 +21,17 @@ impl MemberOp {
 }
 
 impl SynthesizerExprOpcode<TsExprAst> for MemberOp {
-    fn eval(&self, ctx: &Context, args: &[&LocValue], cache: &mut Cache) -> (Context, LocValue) {
+    fn eval(&self, ctx: &mut Context, args: &[&LocValue], cache: &mut Cache) -> LocValue {
         debug_assert_eq!(args.len(), 2);
 
-        let obj = args[0].val.obj().unwrap();
-        let field_name = match args[1].val.primitive().unwrap() {
+        let obj = args[0].val().obj().unwrap();
+        let field_name = match args[1].val().primitive().unwrap() {
             PrimitiveValue::Number(n) => scached!(cache; n.to_string()),
             PrimitiveValue::String(s) => s.clone(),
             _ => unreachable!(),
         };
         let val = obj.get_field_value(&field_name).unwrap();
-        let loc = match &args[0].loc {
+        let loc = match &args[0].loc() {
             Location::Temp => Location::Temp,
             Location::Var(l) => Location::ObjectField(ObjectFieldLoc {
                 var: l.var.clone(),
@@ -45,7 +45,7 @@ impl SynthesizerExprOpcode<TsExprAst> for MemberOp {
             }),
         };
 
-        (ctx.clone(), LocValue { val: val, loc: loc })
+        ctx.get_loc_value(val, loc)
     }
 
     fn to_ast(&self, children: &Vec<TsExprAst>) -> TsExprAst {

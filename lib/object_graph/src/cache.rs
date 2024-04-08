@@ -1,14 +1,22 @@
-use std::{collections::HashSet, sync::Arc};
+use std::{collections::HashSet, sync::{Arc, atomic}};
 
 pub struct Cache {
     strings: HashSet<Arc<String>>,
 }
+
+static TEMP: atomic::AtomicU64 = atomic::AtomicU64::new(0);
 
 impl Cache {
     pub fn new() -> Self {
         Cache {
             strings: Default::default(),
         }
+    }
+
+    pub fn temp_string(&mut self) -> Arc<String> {
+        let val = TEMP.fetch_add(1, atomic::Ordering::Relaxed);
+        let str = format!("____temp_str_{val}");
+        self.get_or_insert_string(str)
     }
 
     pub fn get_or_insert_str(&mut self, str: &str) -> Arc<String> {

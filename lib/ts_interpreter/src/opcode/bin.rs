@@ -1,6 +1,6 @@
 use ruse_object_graph::{Cache, Number, PrimitiveValue};
 use ruse_synthesizer::opcode::SynthesizerExprOpcode;
-use ruse_synthesizer::{temp_val, value::*};
+use ruse_synthesizer::value::*;
 use ruse_synthesizer::{context::*, vbool, vnum, vstring};
 
 use swc_common::DUMMY_SP;
@@ -92,12 +92,12 @@ impl BinOp {
 }
 
 impl SynthesizerExprOpcode<TsExprAst> for BinOp {
-    fn eval(&self, ctx: &Context, args: &[&LocValue], cache: &mut Cache) -> (Context, LocValue) {
+    fn eval(&self, ctx: &mut Context, args: &[&LocValue], cache: &mut Cache) -> LocValue {
         debug_assert_eq!(args.len(), 2);
-        debug_assert_eq!(args[0].val.val_type(), self.arg_types[0]);
-        debug_assert_eq!(args[1].val.val_type(), self.arg_types[1]);
+        debug_assert_eq!(args[0].val().val_type(), self.arg_types[0]);
+        debug_assert_eq!(args[1].val().val_type(), self.arg_types[1]);
 
-        let val = match (&args[0].val, &args[1].val) {
+        let val = match (&args[0].val(), &args[1].val()) {
             (Value::Primitive(p1), Value::Primitive(p2)) => match (p1, p2) {
                 (PrimitiveValue::Number(n1), PrimitiveValue::Number(n2)) => {
                     self.eval_bin_num(n1, n2)
@@ -115,7 +115,7 @@ impl SynthesizerExprOpcode<TsExprAst> for BinOp {
             _ => panic!("Unexpected binary args"),
         };
 
-        (ctx.clone(), temp_val!(val))
+        ctx.temp_value(val)
     }
 
     fn to_ast(&self, children: &Vec<TsExprAst>) -> TsExprAst {

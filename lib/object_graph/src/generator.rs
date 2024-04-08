@@ -58,7 +58,7 @@ fn graph_to_random_object_graph<R: Rng + ?Sized>(
         let object = map.get(&edge.source()).unwrap();
         let field = map.get(&edge.target()).unwrap();
         let edge_name = scached!(cache; format!("{}_{}", object.index(), field.index()));
-        graph.add_edge(*object, *field, edge_name);
+        graph.add_edge(*object, *field, &edge_name);
     }
 
     return graph;
