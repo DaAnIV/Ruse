@@ -1,7 +1,8 @@
 use criterion::*;
+use rand::seq::IteratorRandom;
 
 use std::iter::zip;
-use rand::{rngs::StdRng, seq::IteratorRandom, SeedableRng};
+use rand::{rngs::StdRng, SeedableRng};
 use ruse_object_graph::*;
 use ruse_object_graph::generator::*;
 
@@ -111,19 +112,19 @@ fn graph_almost_eq(c: &mut Criterion) {
     let mut g1 = random_gnp_object_graph(&mut cache, &mut rng, 1000, 1f64 / f64::sqrt(1000f64));
     let mut g2 = g1.clone();
 
-    let remove = g2.graph.edge_indices().choose_multiple(&mut rng, 10);
+    let remove = g2.edge_indices().choose_multiple(&mut rng, 10);
 
     for ei in remove {
         g2.remove_edge(ei);
     }
     while g2.edge_count() != g1.edge_count() {
-        let add = zip(g2.graph.node_indices(), g2.graph.node_indices())
+        let add = zip(g2.node_indices(), g2.node_indices())
             .choose_multiple(&mut rng, g1.edge_count() - g2.edge_count());
         for (s, t) in add {
-            if g2.graph.contains_edge(s, t) {
+            if g2.contains_edge(s, t) {
                 continue;
             }
-            g2.add_edge(s, t, scached!(cache; format!("{}_{}", s.index(), t.index())));
+            g2.add_edge(s, t, &scached!(cache; format!("{}_{}", s.index(), t.index())));
         }
     }
 

@@ -1,22 +1,13 @@
 use criterion::*;
 
 use dashmap;
-use rand::{rngs::StdRng, seq::IteratorRandom, SeedableRng};
+use rand::{rngs::StdRng, SeedableRng};
 use rayon::{self, iter::{IntoParallelRefIterator, ParallelIterator}};
-use rupsyse::object_graph::*;
-use std::{borrow::BorrowMut, collections::{HashMap, HashSet}, iter::zip, sync::Arc, thread::sleep, time};
-use std::cell::Cell;
+use ruse_object_graph::{ObjectGraph, Cache};
+use ruse_object_graph::generator::*;
+use std::{collections::HashSet, sync::Arc};
 
 const SEED: u64 = 100;
-
-macro_rules! assert_err {
-    ($expression:expr, $($pattern:tt)+) => {
-        match $expression {
-            $($pattern)+ => (),
-            ref e => panic!("expected `{}` but got `{:?}`", stringify!($($pattern)+), e),
-        }
-    }
-}
 
 // const RANGE: [usize; 8] = [10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000];
 

@@ -17,7 +17,3 @@ swc_visit = "*"
 
 [dev-dependencies]
 criterion = "*"
-
-[[bench]]
-name = "benches"
-harness = false

@@ -1,5 +1,5 @@
 use bitcode;
-use petgraph::stable_graph::StableDiGraph;
+use petgraph::stable_graph::{StableDiGraph, NodeIndices, EdgeIndices};
 use std::collections::hash_map::DefaultHasher;
 use std::collections::{BTreeMap, HashMap, VecDeque, HashSet};
 use std::fmt::Debug;
@@ -19,7 +19,7 @@ pub type GraphType = StableDiGraph<ObjectData, Arc<String>>;
 pub type RootsMap = BTreeMap<Arc<String>, NodeIndex>;
 
 pub struct ObjectGraph {
-    pub(super) graph: GraphType,
+    pub(crate) graph: GraphType,
     pub(crate) roots: RootsMap,
 
     serialized_buffer: bitcode::Buffer,
@@ -314,6 +314,21 @@ impl ObjectGraph {
                 p.1 = seen[&old_idx];
             }
         });
+    }
+
+    #[inline]
+    pub fn node_indices(&self) -> NodeIndices<ObjectData> {
+        self.graph.node_indices()
+    }
+
+    #[inline]
+    pub fn edge_indices(&self) -> EdgeIndices<Arc<String>> {
+        self.graph.edge_indices()
+    }
+
+    #[inline]
+    pub fn contains_edge(&self, a: NodeIndex, b: NodeIndex) -> bool {
+        self.graph.contains_edge(a, b)
     }
 }
 
