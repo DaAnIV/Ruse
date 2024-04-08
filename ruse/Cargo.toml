@@ -5,8 +5,10 @@ edition = "2021"
 
 [dependencies]
 rand = "*"
-ruse_ts_interpreter = { path = "../lib/ts_interpreter" }
 ruse_object_graph = { path = "../lib/object_graph" }
+ruse_ts_interpreter = { path = "../lib/ts_interpreter" }
+ruse_synthesizer = { path = "../lib/synthesizer" }
+ruse_ts_synthesizer = { path = "../lib/ts_synthesizer" }
 
 swc = "*"
 swc_common = {version = "*", features = ["tty-emitter"]}

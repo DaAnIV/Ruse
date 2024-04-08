@@ -25,15 +25,15 @@ impl BinOp {
             ast::BinaryOp::Gt => vbool!(n1 > n2),
             ast::BinaryOp::GtEq => vbool!(n1 >= n2),
             ast::BinaryOp::LShift => {
-                let res = (n1.0.floor() as i64) << (n1.0.floor() as u64);
+                let res = (n1.0.floor() as i64).overflowing_shl(n1.0.floor() as u32).0;
                 vnum!(Number::from(res))
             }
             ast::BinaryOp::RShift => {
-                let res = (n1.0.floor() as i64) >> (n1.0.floor() as u64);
+                let res = (n1.0.floor() as i64).overflowing_shr(n1.0.floor() as u32).0;
                 vnum!(Number::from(res))
             }
             ast::BinaryOp::ZeroFillRShift => {
-                let res = (n1.0.floor() as u64) >> (n1.0.floor() as u64);
+                let res = (n1.0.floor() as u64).overflowing_shr(n1.0.floor() as u32).0;
                 vnum!(Number::from(res))
             }
             ast::BinaryOp::Add => vnum!(Number::from(n1.0 + n2.0)),

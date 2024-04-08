@@ -1,33 +1,49 @@
 use ruse_object_graph::Cache;
 
 use crate::{
-    arg_iter::ArgIterator, bank::*, context::Context, opcode::{ExprAst, SynthesizerExprOpcode}, prog::SubProgram
+    arg_iter::ArgIterator,
+    bank::*,
+    context::Context,
+    opcode::{ExprAst, SynthesizerExprOpcode},
+    prog::SubProgram,
 };
-use std::sync::Arc;
+use std::{collections::HashSet, sync::Arc};
 
 pub type OpcodesList<T> = Vec<Arc<dyn SynthesizerExprOpcode<T>>>;
+
+#[derive(Default)]
+pub struct Statistics {
+    pub generated: u64,
+    pub bank_size: u64,
+}
 
 pub struct Synthesizer<T: ExprAst + Default, const N: usize> {
     bank: ProgBank<T, N>,
     init_opcodes: OpcodesList<T>,
     composite_opcodes: OpcodesList<T>,
+    found_contexts: HashSet<[Context; N]>,
+    statistics: Statistics
 }
 
 impl<T: ExprAst + Default, const N: usize> Synthesizer<T, N> {
     pub fn with_context_and_opcodes(
         start_context: [Context; N],
         opcodes: OpcodesList<T>,
-        cache: &mut Cache
+        cache: &mut Cache,
     ) -> Self {
-        let (init_opcodes, composite_opcodes) = opcodes.into_iter().partition(|x| x.arg_types().len() == 0);
+        let (init_opcodes, composite_opcodes) =
+            opcodes.into_iter().partition(|x| x.arg_types().len() == 0);
 
         let mut new_obj = Self {
             bank: Default::default(),
             init_opcodes: init_opcodes,
             composite_opcodes: composite_opcodes,
+            found_contexts: HashSet::new(),
+            statistics: Default::default()
         };
 
         new_obj.init_context(&start_context, cache);
+        new_obj.found_contexts.insert(start_context);
         new_obj
     }
 
@@ -44,9 +60,12 @@ impl<T: ExprAst + Default, const N: usize> Synthesizer<T, N> {
     fn init_context(&mut self, ctx: &[Context; N], cache: &mut Cache) {
         let mut type_map = new_type_map::<T, N>();
         for op in &self.init_opcodes {
-            let mut p = SubProgram::<T, N>::with_opcode_and_children(op.clone(), vec![]);
+            let mut p = SubProgram::<T, N>::with_opcode_and_context(op.clone(), ctx);
             p.evaluate(cache);
-            Self::insert_program_to_type_map(&mut type_map, p.into());
+            self.statistics.generated += 1;
+            if Self::insert_program_to_type_map(&mut type_map, p.into()) {
+                self.statistics.bank_size += 1;
+            }
         }
         let mut context_map = ContextMap::<T, N>::new();
         context_map.insert(ctx.clone(), type_map);
@@ -55,18 +74,35 @@ impl<T: ExprAst + Default, const N: usize> Synthesizer<T, N> {
 
     pub fn synthesize_for_size(&mut self, ctx: &[Context; N], n: usize, cache: &mut Cache) {
         let mut type_map = new_type_map::<T, N>();
+        let mut found_contexts = HashSet::<[Context; N]>::new();
 
         for op in &self.composite_opcodes {
+            if op.arg_types().len() >= n { continue; }
             for args in ArgIterator::new(&self.bank, ctx, n - 1, op.arg_types()) {
                 let mut p = SubProgram::with_opcode_and_children(op.clone(), args);
                 p.evaluate(cache);
-                Self::insert_program_to_type_map(&mut type_map, p.into());
+                self.statistics.generated += 1;
+                found_contexts.insert(p.post_ctx().clone());
+                if Self::insert_program_to_type_map(&mut type_map, p.into()) {
+                    self.statistics.bank_size += 1;
+                }
             }
         }
 
         let mut context_map = ContextMap::<T, N>::new();
         context_map.insert(ctx.clone(), type_map);
         self.bank.insert(n, context_map);
+
+        for ctx in found_contexts.iter() {
+            if self.found_contexts.insert(ctx.clone()) {
+                self.init_context(ctx, cache)
+            }
+        }
+    }
+
+    #[inline]
+    pub fn statistics(&self) -> &Statistics {
+        &self.statistics
     }
 }
 

@@ -27,7 +27,7 @@ fn verify_children<T: ExprAst, const N: usize>(opcode: &Arc<dyn SynthesizerExprO
     let pre_context = &children[0].pre_ctx()[0];
 
     // Verify all of the examples start from the same pre context keys
-    if children[0].pre_ctx().into_iter().any(|x| {
+    if !children[0].pre_ctx().into_iter().any(|x| {
         for (a, b) in x.get_keys().zip(pre_context.get_keys()) {
             if a != b { return false; }
         }

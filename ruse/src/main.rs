@@ -2,6 +2,7 @@
 // use rustpython_parser as parser;
 use std::process::ExitCode;
 
+use object_graph::{str_cached, Number};
 use rand::{rngs::StdRng, SeedableRng};
 
 // mod helpers;
@@ -9,20 +10,22 @@ use rand::{rngs::StdRng, SeedableRng};
 // use ruse_ts_interpreter as ts_interpreter;
 // mod synthesizer;
 use ruse_object_graph as object_graph;
+use ruse_synthesizer::{context::Context, vnum};
+use ruse_ts_synthesizer::*;
 
-use std::sync::Arc;
-use swc::PrintArgs;
-// use swc::ecmascript::ast::ModuleItem;
+// use std::sync::Arc;
+// use swc::PrintArgs;
+// // use swc::ecmascript::ast::ModuleItem;
+// // use swc_common::{
+// //     errors::{ColorConfig, Handler},
+// //     FileName, SourceMap,
+// // };
 // use swc_common::{
 //     errors::{ColorConfig, Handler},
 //     FileName, SourceMap,
 // };
-use swc_common::{
-    errors::{ColorConfig, Handler},
-    FileName, SourceMap
-};
-use swc_ecma_parser::{Syntax, TsConfig};
-use swc_ecma_ast;
+// use swc_ecma_ast;
+// use swc_ecma_parser::{Syntax, TsConfig};
 
 const RANGE: [usize; 8] = [5, 10, 20, 50, 100, 200, 500, 1000];
 
@@ -54,6 +57,36 @@ fn get_serialized_graphs_from_range(
 }
 
 fn main() -> ExitCode {
+    let mut cache = object_graph::Cache::new();
+    let ctx = [
+        Context::with_values([
+            (str_cached!(cache; "x"), vnum!(Number::from(4u64))),
+            (str_cached!(cache; "y"), vnum!(Number::from(2u64))),
+        ].into()),
+        Context::with_values([
+            (str_cached!(cache; "x"), vnum!(Number::from(5u64))),
+            (str_cached!(cache; "y"), vnum!(Number::from(3u64))),
+        ].into()),
+    ];
+    let opcodes = construct_opcode_list(
+        &[str_cached!(cache; "x"), str_cached!(cache; "y")],
+        &[-1f64, 1f64],
+        &ALL_BIN_NUM_OPCODES,
+        &ALL_UNARY_NUM_OPCODES,
+        false,
+        &[],
+        &[],
+        &[],
+    );
+    let mut synthesizer = TsSynthesizer::with_context_and_opcodes(ctx.clone(), opcodes, &mut cache);
+
+    println!("1: Generated: {}, Bank Size: {}", synthesizer.statistics().generated, synthesizer.statistics().bank_size);
+
+    for i in 2..=10 {
+        synthesizer.synthesize_for_size(&ctx, i, &mut cache);
+        println!("{}: Generated: {}, Bank Size: {}", i, synthesizer.statistics().generated, synthesizer.statistics().bank_size);
+    }
+
     // let mut cache = object_graph::Cache::new();
     // let mut rng = StdRng::from_entropy();
 
@@ -68,26 +101,27 @@ fn main() -> ExitCode {
     //     println!("Graph with {} nodes {} edges, serialized size is {}", g.node_count(), g.edge_count(), g.serialized.as_ref().unwrap().len());
     // }
 
-    let cm = Arc::<SourceMap>::default();
-    let handler = Handler::with_tty_emitter(ColorConfig::Auto, true, false, Some(cm.clone()));
-    let c = swc::Compiler::new(cm.clone());
+    // let cm = Arc::<SourceMap>::default();
+    // let handler = Handler::with_tty_emitter(ColorConfig::Auto, true, false, Some(cm.clone()));
+    // let c = swc::Compiler::new(cm.clone());
 
-    let fm = cm.new_source_file(
-        FileName::Custom("test.js".into()),
-        "let helloWorld = \"Hello World\";".to_string(),
-    );
+    // let fm = cm.new_source_file(
+    //     FileName::Custom("test.js".into()),
+    //     "let helloWorld = \"Hello World\";".to_string(),
+    // );
 
-    let ast = c.parse_js(
-        fm,
-        &handler,
-        swc_ecma_ast::EsVersion::Es2022,
-        Syntax::Typescript(TsConfig::default()),
-        swc::config::IsModule::Bool(false),
-        None,
-    ).expect("Failed to parse");
+    // let ast = c
+    //     .parse_js(
+    //         fm,
+    //         &handler,
+    //         swc_ecma_ast::EsVersion::Es2022,
+    //         Syntax::Typescript(TsConfig::default()),
+    //         swc::config::IsModule::Bool(false),
+    //         None,
+    //     )
+    //     .expect("Failed to parse");
 
-    println!("{:?}", c.print(&ast, PrintArgs::default()));
-
+    // println!("{:?}", c.print(&ast, PrintArgs::default()));
     // dbg!(ast);
     // let ast = parser::parse(r#"((x + 5) / (y.func()))"#, parser::Mode::Expression, "<embedded>").unwrap();
     // let expr = interpreter::Expr {

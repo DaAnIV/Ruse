@@ -26,7 +26,7 @@ impl<'a, T: ExprAst + Default, const N: usize> ArgIterator<'a, T, N> {
             cur: Default::default(),
             iters: Default::default(),
             iter_sizes: vec![0; arg_types.len() - 1],
-            remaining_size: vec![0; arg_types.len() - 1],
+            remaining_size: vec![0; arg_types.len()],
             arg_types: arg_types.to_vec(),
             ended: false,
         };
@@ -37,11 +37,11 @@ impl<'a, T: ExprAst + Default, const N: usize> ArgIterator<'a, T, N> {
     }
 
     fn fill_iterators(&mut self, i: usize, n: usize, ctx: &[Context; N]) -> bool {
-        if i == self.arg_types.len() - 1 {
+        if i == self.arg_types.len() {
             return true;
         }
 
-        if i == self.arg_types.len() - 2 {
+        if i == self.arg_types.len() - 1 {
             let mut iter = self.bank.progs(n, self.arg_types[i], ctx);
             let item = iter.next();
             if item.is_none() {
@@ -53,14 +53,16 @@ impl<'a, T: ExprAst + Default, const N: usize> ArgIterator<'a, T, N> {
         }
 
         if self.iter_sizes[i] == 0 {
-            self.iter_sizes[i] = n - (self.arg_types.len() - i);
+            self.iter_sizes[i] = n - (self.arg_types.len() - i - 1);
+        } else {
+            self.iter_sizes[i] -= 1;            
         }
 
         loop {
-            self.iter_sizes[i] -= 1;
             if self.iter_sizes[i] == 0 {
                 return false;
             }
+
             self.remaining_size[i] = n - self.iter_sizes[i];
 
             let mut iter = self.bank.progs(self.iter_sizes[i], self.arg_types[i], ctx);
@@ -78,6 +80,8 @@ impl<'a, T: ExprAst + Default, const N: usize> ArgIterator<'a, T, N> {
             
             self.iters.pop();
             self.cur.pop();
+
+            self.iter_sizes[i] -= 1;
         }
     }
 

@@ -1,4 +1,5 @@
 use ruse_object_graph::{NodeIndex, ObjectGraph, PrimitiveValue};
+use core::fmt;
 use std::sync::Arc;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -155,6 +156,31 @@ impl LocValue {
     #[inline]
     pub fn loc(&self) -> &Location {
         &self.loc
+    }
+}
+
+impl fmt::Display for ValueType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ValueType::Number => f.write_str("Number"),
+            ValueType::Bool => f.write_str("Bool"),
+            ValueType::String => f.write_str("String"),
+            ValueType::Object => f.write_str("Object"),
+        }
+    }
+}
+
+impl fmt::Display for Value {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match &self {
+            Value::Primitive(p) => match p {
+                PrimitiveValue::Number(n) => f.write_str(n.0.to_string().as_str()),
+                PrimitiveValue::Bool(b) => f.write_str(b.to_string().as_str()),
+                PrimitiveValue::String(s) => f.write_fmt(format_args!("\"{}\"", s.as_str())),
+                PrimitiveValue::Null => f.write_str("Null"),
+            },
+            Value::Object(_) => todo!(),
+        }
     }
 }
 
