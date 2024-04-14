@@ -13,7 +13,7 @@ use ruse_object_graph as object_graph;
 use ruse_synthesizer::{context::Context, vnum};
 use ruse_ts_synthesizer::*;
 
-// use std::sync::Arc;
+use std::sync::Arc;
 // use swc::PrintArgs;
 // // use swc::ecmascript::ast::ModuleItem;
 // // use swc_common::{
@@ -58,16 +58,22 @@ fn get_serialized_graphs_from_range(
 
 fn main() -> ExitCode {
     let mut cache = object_graph::Cache::new();
-    let ctx = [
-        Context::with_values([
-            (str_cached!(cache; "x"), vnum!(Number::from(4u64))),
-            (str_cached!(cache; "y"), vnum!(Number::from(2u64))),
-        ].into()),
-        Context::with_values([
-            (str_cached!(cache; "x"), vnum!(Number::from(5u64))),
-            (str_cached!(cache; "y"), vnum!(Number::from(3u64))),
-        ].into()),
-    ];
+    let ctx = Arc::new([
+        Context::with_values(
+            [
+                (str_cached!(cache; "x"), vnum!(Number::from(4u64))),
+                (str_cached!(cache; "y"), vnum!(Number::from(2u64))),
+            ]
+            .into(),
+        ),
+        Context::with_values(
+            [
+                (str_cached!(cache; "x"), vnum!(Number::from(5u64))),
+                (str_cached!(cache; "y"), vnum!(Number::from(3u64))),
+            ]
+            .into(),
+        ),
+    ]);
     let opcodes = construct_opcode_list(
         &[str_cached!(cache; "x"), str_cached!(cache; "y")],
         &[-1f64, 1f64],
@@ -80,11 +86,20 @@ fn main() -> ExitCode {
     );
     let mut synthesizer = TsSynthesizer::with_context_and_opcodes(ctx.clone(), opcodes, &mut cache);
 
-    println!("1: Generated: {}, Bank Size: {}", synthesizer.statistics().generated, synthesizer.statistics().bank_size);
+    println!(
+        "1: Generated: {}, Bank Size: {}",
+        synthesizer.statistics().generated,
+        synthesizer.statistics().bank_size
+    );
 
     for i in 2..=10 {
         synthesizer.synthesize_for_size(&ctx, i, &mut cache);
-        println!("{}: Generated: {}, Bank Size: {}", i, synthesizer.statistics().generated, synthesizer.statistics().bank_size);
+        println!(
+            "{}: Generated: {}, Bank Size: {}",
+            i,
+            synthesizer.statistics().generated,
+            synthesizer.statistics().bank_size
+        );
     }
 
     // let mut cache = object_graph::Cache::new();

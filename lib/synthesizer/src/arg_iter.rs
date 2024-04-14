@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
-    bank::{ProgBank, ProgIterator}, context::Context, opcode::ExprAst, prog::SubProgram, value::ValueType,
+    bank::{ProgBank, ProgIterator, ContextArray}, opcode::ExprAst, prog::SubProgram, value::ValueType,
 };
 
 pub struct ArgIterator<'a, T: ExprAst + Default, const N: usize> {
@@ -17,7 +17,7 @@ pub struct ArgIterator<'a, T: ExprAst + Default, const N: usize> {
 impl<'a, T: ExprAst + Default, const N: usize> ArgIterator<'a, T, N> {
     pub fn new(
         bank: &'a ProgBank<T, N>,
-        ctx: &[Context; N],
+        ctx: &ContextArray<N>,
         n: usize,
         arg_types: &'a [ValueType],
     ) -> Self {
@@ -36,7 +36,7 @@ impl<'a, T: ExprAst + Default, const N: usize> ArgIterator<'a, T, N> {
         return iter;
     }
 
-    fn fill_iterators(&mut self, i: usize, n: usize, ctx: &[Context; N]) -> bool {
+    fn fill_iterators(&mut self, i: usize, n: usize, ctx: &ContextArray<N>) -> bool {
         if i == self.arg_types.len() {
             return true;
         }

@@ -1,4 +1,4 @@
-use std::{collections::HashMap, iter, sync::Arc};
+use std::{collections::{HashMap, HashSet}, iter, sync::Arc};
 
 use crate::{
     context::Context,
@@ -7,31 +7,31 @@ use crate::{
     value::{LocValue, ValueType},
 };
 
+pub type ContextArray<const N: usize> =  Arc<[Context; N]>;
+pub type ValueArray<const N: usize> =  Arc<[LocValue; N]>;
+
 pub type ProgIterator<'a, T, const N: usize> = Box<dyn Iterator<Item = &'a Arc<SubProgram<T, N>>> + 'a>;
 
 // The bank is hierarchical
 // size-> [pre_context] -> out_type -> [out_value] -> sub_prog
 
-pub type ValueMap<T, const N: usize> = HashMap<[LocValue; N], Arc<SubProgram<T, N>>>;
+pub type ValueMap<T, const N: usize> = HashMap<ValueArray<N>, Arc<SubProgram<T, N>>>;
 
-pub type TypeMap<T, const N: usize> = HashMap<ValueType, ValueMap<T, N>>;
+pub type TypeMap<T, const N: usize> = [ValueMap<T, N>; ValueType::range()];
 
-pub type ContextMap<T, const N: usize> = HashMap<[Context; N], TypeMap<T, N>>;
+type ContextMap<T, const N: usize> = HashMap<ContextArray<N>, TypeMap<T, N>>;
 type SizeMap<T, const N: usize> = HashMap<usize, ContextMap<T, N>>;
 
+pub type OutputsMap<const N: usize> = [HashSet<(ContextArray<N>, ValueArray<N>)>; ValueType::range()];
+
 pub fn new_type_map<T: ExprAst, const N: usize>() -> TypeMap<T, N> {
-    let mut new_obj = TypeMap::<T, N>::with_capacity(ValueType::range());
-
-    for i in 0..ValueType::range() {
-        new_obj.insert(i.try_into().unwrap(), Default::default());
-    }
-
-    new_obj
+    TypeMap::<T, N>::default()
 }
 
 #[derive(Default)]
 pub struct ProgBank<T: ExprAst + Default, const N: usize> {
     bank: SizeMap<T, N>,
+    existing_outputs: OutputsMap<N>,
 }
 
 impl<T: ExprAst + Default, const N: usize> ProgBank<T, N> {
@@ -39,7 +39,7 @@ impl<T: ExprAst + Default, const N: usize> ProgBank<T, N> {
         &'a self,
         size: usize,
         value_type: ValueType,
-        ctx: &[Context; N],
+        ctx: &ContextArray<N>,
     ) -> ProgIterator<'a, T,N> {
         let ctx_map = self.bank.get(&size);
         if ctx_map.is_none() {
@@ -49,16 +49,30 @@ impl<T: ExprAst + Default, const N: usize> ProgBank<T, N> {
         if type_map.is_none() {
             return Box::new(iter::empty());
         }
-        let value_map = type_map.unwrap().get(&value_type);
-        if value_map.is_none() {
-            return Box::new(iter::empty());
-        }
+        let value_map = &type_map.unwrap()[value_type as usize];
 
-        Box::new(value_map.unwrap().values())
+        Box::new(value_map.values())
+    }
+
+    pub fn output_exists(&self, p: &Arc<SubProgram<T, N>>) -> bool {
+        self.existing_outputs[p.out_type() as usize].contains(&(p.post_ctx().clone(), p.out_value().clone()))
     }
 
     #[inline]
-    pub fn insert(&mut self, size: usize, ctx_map: ContextMap<T, N>) {
-        self.bank.insert(size, ctx_map);
+    pub fn insert(&mut self, size: usize, ctx: ContextArray<N>, type_map: TypeMap<T, N>) {
+        let ctx_map = match self.bank.get_mut(&size) {
+            Some(m) => m,
+            None => {
+                let m = ContextMap::new();
+                self.bank.insert(size, m);
+                unsafe { self.bank.get_mut(&size).unwrap_unchecked() }
+            }
+        };
+        for i in 0..ValueType::range() {
+            type_map[i].values().for_each(|v| {
+                self.existing_outputs[i].insert((v.post_ctx().clone(), v.out_value().clone()));
+            });
+        }
+        ctx_map.insert(ctx, type_map);
     }
 }

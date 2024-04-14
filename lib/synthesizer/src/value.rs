@@ -11,7 +11,7 @@ pub enum ValueType {
 }
 
 impl ValueType {
-    pub fn range() -> usize {
+    pub const fn range() -> usize {
         return ValueType::Object as usize;
     }
 }

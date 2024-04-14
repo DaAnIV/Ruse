@@ -3,7 +3,6 @@ use ruse_object_graph::Cache;
 use crate::{
     arg_iter::ArgIterator,
     bank::*,
-    context::Context,
     opcode::{ExprAst, SynthesizerExprOpcode},
     prog::SubProgram,
 };
@@ -21,13 +20,13 @@ pub struct Synthesizer<T: ExprAst + Default, const N: usize> {
     bank: ProgBank<T, N>,
     init_opcodes: OpcodesList<T>,
     composite_opcodes: OpcodesList<T>,
-    found_contexts: HashSet<[Context; N]>,
+    found_contexts: HashSet<ContextArray<N>>,
     statistics: Statistics
 }
 
 impl<T: ExprAst + Default, const N: usize> Synthesizer<T, N> {
     pub fn with_context_and_opcodes(
-        start_context: [Context; N],
+        start_context: ContextArray<N>,
         opcodes: OpcodesList<T>,
         cache: &mut Cache,
     ) -> Self {
@@ -47,9 +46,9 @@ impl<T: ExprAst + Default, const N: usize> Synthesizer<T, N> {
         new_obj
     }
 
-    fn insert_program_to_type_map(type_map: &mut TypeMap<T, N>, p: Arc<SubProgram<T, N>>) -> bool {
-        let value_map = type_map.get_mut(&p.out_type()).unwrap();
-        if !value_map.contains_key(p.out_value()) {
+    fn insert_program_to_type_map(&self, type_map: &mut TypeMap<T, N>, p: Arc<SubProgram<T, N>>) -> bool {
+        let value_map = &mut type_map[p.out_type() as usize];
+        if !value_map.contains_key(p.out_value()) && !self.bank.output_exists(&p) {
             value_map.insert(p.out_value().clone(), p);
             return true;
         }
@@ -57,24 +56,23 @@ impl<T: ExprAst + Default, const N: usize> Synthesizer<T, N> {
         return false;
     }
 
-    fn init_context(&mut self, ctx: &[Context; N], cache: &mut Cache) {
+    fn init_context(&mut self, ctx: &ContextArray<N>, cache: &mut Cache) {
         let mut type_map = new_type_map::<T, N>();
         for op in &self.init_opcodes {
             let mut p = SubProgram::<T, N>::with_opcode_and_context(op.clone(), ctx);
             p.evaluate(cache);
             self.statistics.generated += 1;
-            if Self::insert_program_to_type_map(&mut type_map, p.into()) {
+            if self.insert_program_to_type_map(&mut type_map, p.into()) {
                 self.statistics.bank_size += 1;
             }
         }
-        let mut context_map = ContextMap::<T, N>::new();
-        context_map.insert(ctx.clone(), type_map);
-        self.bank.insert(1, context_map);
+
+        self.bank.insert(1, ctx.clone(), type_map);
     }
 
-    pub fn synthesize_for_size(&mut self, ctx: &[Context; N], n: usize, cache: &mut Cache) {
+    pub fn synthesize_for_size(&mut self, ctx: &ContextArray<N>, n: usize, cache: &mut Cache) {
         let mut type_map = new_type_map::<T, N>();
-        let mut found_contexts = HashSet::<[Context; N]>::new();
+        let mut found_contexts = HashSet::<ContextArray<N>>::new();
 
         for op in &self.composite_opcodes {
             if op.arg_types().len() >= n { continue; }
@@ -83,15 +81,13 @@ impl<T: ExprAst + Default, const N: usize> Synthesizer<T, N> {
                 p.evaluate(cache);
                 self.statistics.generated += 1;
                 found_contexts.insert(p.post_ctx().clone());
-                if Self::insert_program_to_type_map(&mut type_map, p.into()) {
+                if self.insert_program_to_type_map(&mut type_map, p.into()) {
                     self.statistics.bank_size += 1;
                 }
             }
         }
 
-        let mut context_map = ContextMap::<T, N>::new();
-        context_map.insert(ctx.clone(), type_map);
-        self.bank.insert(n, context_map);
+        self.bank.insert(n, ctx.clone(), type_map);
 
         for ctx in found_contexts.iter() {
             if self.found_contexts.insert(ctx.clone()) {

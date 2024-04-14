@@ -3,6 +3,7 @@ use ruse_object_graph as object_graph;
 use ruse_object_graph::*;
 use ruse_synthesizer::{context::Context, vnum};
 use ruse_ts_synthesizer::*;
+use std::sync::Arc;
 
 fn simple_synthesize_1(c: &mut Criterion) {
     let mut group = c.benchmark_group("simple_synthesize_1");
@@ -13,7 +14,7 @@ fn simple_synthesize_1(c: &mut Criterion) {
             b.iter_batched(
                 || {                    
                     let mut cache = object_graph::Cache::new();
-                    let ctx = [
+                    let ctx = Arc::new([
                         Context::with_values(
                             [
                                 (str_cached!(cache; "x"), vnum!(Number::from(4u64))),
@@ -28,7 +29,7 @@ fn simple_synthesize_1(c: &mut Criterion) {
                             ]
                             .into(),
                         ),
-                    ];
+                    ]);
                     let opcodes = construct_opcode_list(
                         &[str_cached!(cache; "x"), str_cached!(cache; "y")],
                         &[-1f64, 1f64],

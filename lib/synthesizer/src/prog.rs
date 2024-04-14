@@ -3,7 +3,8 @@ use std::sync::Arc;
 
 use ruse_object_graph::Cache;
 
-use crate::context::*;
+use crate::bank::ContextArray;
+use crate::bank::ValueArray;
 use crate::opcode::*;
 use crate::value::*;
 
@@ -18,16 +19,16 @@ where
     depth: u32,
     out_type: Option<ValueType>,
     
-    pre_ctx: [Context; N],
-    post_ctx: Option<[Context; N]>,
-    out_value: Option<[LocValue; N]>
+    pre_ctx: ContextArray<N>,
+    post_ctx: Option<ContextArray<N>>,
+    out_value: Option<ValueArray<N>>
 }
 
 fn verify_children<T: ExprAst, const N: usize>(opcode: &Arc<dyn SynthesizerExprOpcode<T>>, children: &[Arc<SubProgram<T, N>>]) -> bool {
     let pre_context = &children[0].pre_ctx()[0];
 
     // Verify all of the examples start from the same pre context keys
-    if !children[0].pre_ctx().into_iter().any(|x| {
+    if !children[0].pre_ctx().iter().any(|x| {
         for (a, b) in x.get_keys().zip(pre_context.get_keys()) {
             if a != b { return false; }
         }
@@ -50,7 +51,7 @@ fn verify_children<T: ExprAst, const N: usize>(opcode: &Arc<dyn SynthesizerExprO
     for i in 1..children.len() {
         let prev = &children[i-1];
         let cur = &children[i];
-        if prev.post_ctx().into_iter().zip(cur.pre_ctx().into_iter())
+        if prev.post_ctx().iter().zip(cur.pre_ctx().iter())
             .any(|(post, pre)| post != pre) {
             return false;
         }
@@ -85,7 +86,7 @@ where
         }
     }
 
-    pub fn with_opcode_and_context(opcode: Arc<dyn SynthesizerExprOpcode<T>>, context: &[Context; N]) -> Self {
+    pub fn with_opcode_and_context(opcode: Arc<dyn SynthesizerExprOpcode<T>>, context: &ContextArray<N>) -> Self {
         Self {
             opcode: opcode,
             children: vec![],
@@ -124,8 +125,8 @@ where
         }
 
         self.out_type = out_type;
-        self.post_ctx = Some(post_ctx.try_into().unwrap());
-        self.out_value = Some(out_value.try_into().unwrap());
+        self.post_ctx = Some(Arc::new(post_ctx.try_into().unwrap()));
+        self.out_value = Some(Arc::new(out_value.try_into().unwrap()));
     }
 
     pub fn get_ast(&self) -> T {
@@ -153,17 +154,17 @@ where
     }
     
     #[inline]
-    pub fn pre_ctx(&self) -> &[Context; N] {
+    pub fn pre_ctx(&self) -> &ContextArray<N> {
         &self.pre_ctx
     }
 
     #[inline]
-    pub fn post_ctx(&self) -> &[Context; N] {
+    pub fn post_ctx(&self) -> &ContextArray<N> {
         self.post_ctx.as_ref().unwrap()
     }
 
     #[inline]
-    pub fn out_value(&self) -> &[LocValue; N] {
+    pub fn out_value(&self) -> &ValueArray<N> {
         self.out_value.as_ref().unwrap()
     }
 }
