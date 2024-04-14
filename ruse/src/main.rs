@@ -10,7 +10,11 @@ use rand::{rngs::StdRng, SeedableRng};
 // use ruse_ts_interpreter as ts_interpreter;
 // mod synthesizer;
 use ruse_object_graph as object_graph;
-use ruse_synthesizer::{context::Context, vnum};
+use ruse_synthesizer::{
+    context::Context,
+    value::ValueType,
+    vnum,
+};
 use ruse_ts_synthesizer::*;
 
 use std::sync::Arc;
@@ -74,6 +78,9 @@ fn main() -> ExitCode {
             .into(),
         ),
     ]);
+
+    let expected_outputs = [Number::from(25u64), Number::from(36u64)];
+    
     let opcodes = construct_opcode_list(
         &[str_cached!(cache; "x"), str_cached!(cache; "y")],
         &[-1f64, 1f64],
@@ -94,7 +101,33 @@ fn main() -> ExitCode {
     );
 
     for i in 2..=10 {
-        synthesizer.synthesize_for_size(&ctx, i, &cache);
+        if let Some(p) = synthesizer.synthesize_for_size(
+            &ctx,
+            i,
+            &cache,
+            |x| {
+                if x.out_type() != ValueType::Number {
+                    return false;
+                }
+                for (v, e) in x.out_value().iter().zip(expected_outputs) {
+                    let v_num = unsafe { v.val().number_value().unwrap_unchecked() };
+                    if v_num != e {
+                        return false;
+                    }
+                }
+                return true;
+            },
+            |_| true,
+        ) {
+            println!(
+                "{}: Generated: {}, Bank Size: {}",
+                i,
+                synthesizer.statistics().generated,
+                synthesizer.statistics().bank_size
+            );
+            println!("Found p = {{{}}}", p.get_code());
+            break;
+        }
         println!(
             "{}: Generated: {}, Bank Size: {}",
             i,

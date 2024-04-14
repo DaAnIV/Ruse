@@ -21,7 +21,7 @@ pub struct Synthesizer<T: ExprAst + Default, const N: usize> {
     init_opcodes: OpcodesList<T>,
     composite_opcodes: OpcodesList<T>,
     found_contexts: HashSet<ContextArray<N>>,
-    statistics: Statistics
+    statistics: Statistics,
 }
 
 impl<T: ExprAst + Default, const N: usize> Synthesizer<T, N> {
@@ -38,7 +38,7 @@ impl<T: ExprAst + Default, const N: usize> Synthesizer<T, N> {
             init_opcodes: init_opcodes,
             composite_opcodes: composite_opcodes,
             found_contexts: HashSet::new(),
-            statistics: Default::default()
+            statistics: Default::default(),
         };
 
         new_obj.init_context(&start_context, cache);
@@ -46,7 +46,11 @@ impl<T: ExprAst + Default, const N: usize> Synthesizer<T, N> {
         new_obj
     }
 
-    fn insert_program_to_type_map(&self, type_map: &mut TypeMap<T, N>, p: Arc<SubProgram<T, N>>) -> bool {
+    fn insert_program_to_type_map(
+        &self,
+        type_map: &mut TypeMap<T, N>,
+        p: Arc<SubProgram<T, N>>,
+    ) -> bool {
         let value_map = &mut type_map[p.out_type() as usize];
         if !value_map.contains_key(p.out_value()) && !self.bank.output_exists(&p) {
             value_map.insert(p.out_value().clone(), p);
@@ -70,19 +74,44 @@ impl<T: ExprAst + Default, const N: usize> Synthesizer<T, N> {
         self.bank.insert(1, ctx.clone(), type_map);
     }
 
-    pub fn synthesize_for_size(&mut self, ctx: &ContextArray<N>, n: usize, cache: &Cache) {
+    pub fn synthesize_for_size<F, V>(
+        &mut self,
+        ctx: &ContextArray<N>,
+        n: usize,
+        cache: &Cache,
+        predicate: F,
+        valid: V,
+    ) -> Option<Arc<SubProgram<T, N>>>
+    where
+        F: Fn(&Arc<SubProgram<T, N>>) -> bool,
+        V: Fn(&Arc<SubProgram<T, N>>) -> bool,
+    {
         let mut type_map = new_type_map::<T, N>();
         let mut found_contexts = HashSet::<ContextArray<N>>::new();
 
+        let mut found_prog = None;
+
         for op in &self.composite_opcodes {
-            if op.arg_types().len() >= n { continue; }
+            if op.arg_types().len() >= n {
+                continue;
+            }
             for args in ArgIterator::new(&self.bank, ctx, n - 1, op.arg_types()) {
                 let mut p = SubProgram::with_opcode_and_children(op.clone(), args);
                 p.evaluate(cache);
+                let p_arc = Arc::new(p);
+
+                if !valid(&p_arc) {
+                    continue;
+                }
+
                 self.statistics.generated += 1;
-                found_contexts.insert(p.post_ctx().clone());
-                if self.insert_program_to_type_map(&mut type_map, p.into()) {
+                found_contexts.insert(p_arc.post_ctx().clone());
+                if self.insert_program_to_type_map(&mut type_map, p_arc.clone()) {
                     self.statistics.bank_size += 1;
+                }
+                if predicate(&p_arc) {
+                    found_prog = Some(p_arc);
+                    break;
                 }
             }
         }
@@ -94,6 +123,8 @@ impl<T: ExprAst + Default, const N: usize> Synthesizer<T, N> {
                 self.init_context(ctx, cache)
             }
         }
+
+        found_prog
     }
 
     #[inline]

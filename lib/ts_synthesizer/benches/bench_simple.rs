@@ -51,7 +51,7 @@ fn simple_synthesize_1(c: &mut Criterion) {
                 },
                 |(mut synthesizer, ctx, cache)| {
                     for i in 2..=i {
-                        synthesizer.synthesize_for_size(&ctx, i, &cache);
+                        synthesizer.synthesize_for_size(&ctx, i, &cache, |_| false, |_| true);
                     }
                 },
                 BatchSize::PerIteration

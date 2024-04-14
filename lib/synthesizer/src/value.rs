@@ -1,4 +1,4 @@
-use ruse_object_graph::{NodeIndex, ObjectGraph, PrimitiveValue};
+use ruse_object_graph::{NodeIndex, Number, ObjectGraph, PrimitiveValue};
 use core::fmt;
 use std::sync::Arc;
 
@@ -108,6 +108,27 @@ impl Value {
     pub fn primitive(&self) -> Option<&PrimitiveValue> {
         match self {
             Value::Primitive(p) => Some(p),
+            _ => None,
+        }
+    }
+
+    pub fn number_value(&self) -> Option<Number> {
+        match self {
+            Value::Primitive(p) => p.number(),
+            _ => None,
+        }
+    }
+
+    pub fn bool_value(&self) -> Option<bool> {
+        match self {
+            Value::Primitive(p) => p.bool(),
+            _ => None,
+        }
+    }
+
+    pub fn string_value(&self) -> Option<Arc<String>> {
+        match self {
+            Value::Primitive(p) => p.string(),
             _ => None,
         }
     }
