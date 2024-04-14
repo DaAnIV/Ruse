@@ -33,6 +33,11 @@ pub const ALL_UNARY_NUM_OPCODES: [ast::UnaryOp; 3] = [
     ast::UnaryOp::Tilde,
 ];
 
+pub const ALL_UPDATE_NUM_OPCODES: [ast::UpdateOp; 2] = [
+    ast::UpdateOp::MinusMinus,
+    ast::UpdateOp::PlusPlus,
+];
+
 pub const ALL_BIN_BOOL_OPCODES: [ast::BinaryOp; 9] = [
     ast::BinaryOp::EqEq,
     ast::BinaryOp::NotEq,
@@ -54,6 +59,7 @@ pub fn construct_opcode_list(
     num_literals: &[f64],
     bin_num_opcodes: &[ast::BinaryOp],
     unary_num_opcodes: &[ast::UnaryOp],
+    update_num_opcodes: &[ast::UpdateOp],
     add_bool_lit: bool,
     bin_bool_opcodes: &[ast::BinaryOp],
     unary_bool_opcodes: &[ast::UnaryOp],
@@ -82,6 +88,11 @@ pub fn construct_opcode_list(
         let op = Arc::new(opcode::UnaryOp::new(*op, ValueType::Number));
         opcodes.push(op);
     }
+    for op in update_num_opcodes {
+        let op = Arc::new(opcode::UpdateOp::new(*op, true));
+        opcodes.push(op);
+    }
+
 
     // Add bool literals and opcodes
     if add_bool_lit {

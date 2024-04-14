@@ -79,6 +79,7 @@ fn main() -> ExitCode {
         &[-1f64, 1f64],
         &ALL_BIN_NUM_OPCODES,
         &ALL_UNARY_NUM_OPCODES,
+        &ALL_UPDATE_NUM_OPCODES,
         false,
         &[],
         &[],
