@@ -124,8 +124,8 @@ impl SynthesizerExprOpcode<TsExprAst> for BinOp {
         let expr = ast::BinExpr {
             span: DUMMY_SP,
             op: self.op,
-            left: children[0].node.to_owned(),
-            right: children[1].node.to_owned()
+            left: children[0].get_paren_expr(),
+            right: children[1].get_paren_expr(),
         };
 
         ast::Expr::Bin(expr).into()

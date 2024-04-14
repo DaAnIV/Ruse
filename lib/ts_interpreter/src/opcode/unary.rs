@@ -68,7 +68,7 @@ impl SynthesizerExprOpcode<TsExprAst> for UnaryOp {
         let expr = ast::UnaryExpr {
             span: DUMMY_SP,
             op: self.op,
-            arg: children[0].node.to_owned(),
+            arg: children[0].get_paren_expr(),
         };
 
         ast::Expr::Unary(expr).into()
@@ -113,7 +113,7 @@ impl SynthesizerExprOpcode<TsExprAst> for UpdateOp {
         let expr = ast::UpdateExpr {
             span: DUMMY_SP,
             op: self.op,
-            arg: children[0].node.to_owned(),
+            arg: children[0].get_paren_expr(),
             prefix: self.prefix
         };
 

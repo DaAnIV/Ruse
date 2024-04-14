@@ -53,10 +53,10 @@ impl SynthesizerExprOpcode<TsExprAst> for MemberOp {
 
         let expr = ast::MemberExpr {
             span: DUMMY_SP,
-            obj: children[0].node.to_owned(),
+            obj: children[0].get_paren_expr(),
             prop: ast::MemberProp::Computed(ast::ComputedPropName {
                 span: DUMMY_SP,
-                expr: children[1].node.to_owned(),
+                expr: children[1].get_paren_expr(),
             }),
         };
 
