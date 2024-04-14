@@ -101,7 +101,7 @@ where
         }    
     }
 
-    pub fn evaluate(&mut self, cache: &mut Cache) {
+    pub fn evaluate(&mut self, cache: &Cache) {
         let mut out_type: Option<ValueType> = None;
         let mut post_ctx = Vec::with_capacity(N);
         let mut out_value = Vec::with_capacity(N);

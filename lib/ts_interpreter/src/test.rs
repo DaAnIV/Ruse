@@ -13,7 +13,7 @@ mod tests {
 
     #[test]
     fn add_numbers() {
-        let mut cache = Cache::new();
+        let cache = Cache::new();
         let mut ctx = context::Context::with_values(Default::default());
         let evaluator = BinOp {
             op: ast::BinaryOp::Add,
@@ -24,14 +24,14 @@ mod tests {
         let out = evaluator.eval(
             &mut ctx,
             &args,
-            &mut cache,
+            &cache,
         );
         assert_eq!(out.val(), &vnum!(Number::from(7u64)));
     }
 
     #[test]
     fn add_strings() {
-        let mut cache = Cache::new();
+        let cache = Cache::new();
         let mut ctx = context::Context::with_values(Default::default());
         let evaluator = BinOp {
             op: ast::BinaryOp::Add,
@@ -43,14 +43,14 @@ mod tests {
         let out = evaluator.eval(
             &mut ctx,
             &args,
-            &mut cache,
+            &cache,
         );
         assert_eq!(out.val(), &vstr!(cache; "ab"));
     }
 
     #[test]
     fn ident() {
-        let mut cache = Cache::new();
+        let cache = Cache::new();
         let mut ctx = context::Context::with_values(HashMap::from([
             (str_cached!(cache; "x"), vnum!(Number::from(7u64)))
         ]));
@@ -60,14 +60,14 @@ mod tests {
         let out = evaluator.eval(
             &mut ctx,
             &[],
-            &mut cache,
+            &cache,
         );
         assert_eq!(out.val(), &vnum!(Number::from(7u64)));
     }
 
     #[test]
     fn prefix_plus_plus() {
-        let mut cache = Cache::new();
+        let cache = Cache::new();
         let mut ctx = context::Context::with_values(HashMap::from([
             (str_cached!(cache; "x"), vnum!(Number::from(7u64)))
         ]));
@@ -81,14 +81,14 @@ mod tests {
         let x_val = id.eval(
             &mut ctx,
             &[],
-            &mut cache,
+            &cache,
         );
 
         let mut new_ctx = ctx.clone();
         let out = op.eval(
             &mut new_ctx,
             &[&x_val],
-            &mut cache,
+            &cache,
         );
         assert_eq!(ctx.get_var_loc_value(&id.name).val(), &vnum!(Number::from(7u64)));
         assert_eq!(x_val.val(), &vnum!(Number::from(7u64)));
@@ -100,7 +100,7 @@ mod tests {
 
     #[test]
     fn postfix_plus_plus() {
-        let mut cache = Cache::new();
+        let cache = Cache::new();
         let mut ctx = context::Context::with_values(HashMap::from([
             (str_cached!(cache; "x"), vnum!(Number::from(7u64)))
         ]));
@@ -114,14 +114,14 @@ mod tests {
         let x_val = id.eval(
             &mut ctx,
             &[],
-            &mut cache,
+            &cache,
         );
 
         let mut new_ctx = ctx.clone();
         let out = op.eval(
             &mut new_ctx,
             &[&x_val],
-            &mut cache,
+            &cache,
         );
         assert_eq!(ctx.get_var_loc_value(&id.name).val(), &vnum!(Number::from(7u64)));
         assert_eq!(x_val.val(), &vnum!(Number::from(7u64)));

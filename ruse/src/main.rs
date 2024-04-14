@@ -57,7 +57,7 @@ fn get_serialized_graphs_from_range(
 }
 
 fn main() -> ExitCode {
-    let mut cache = object_graph::Cache::new();
+    let cache = object_graph::Cache::new();
     let ctx = Arc::new([
         Context::with_values(
             [
@@ -84,7 +84,7 @@ fn main() -> ExitCode {
         &[],
         &[],
     );
-    let mut synthesizer = TsSynthesizer::with_context_and_opcodes(ctx.clone(), opcodes, &mut cache);
+    let mut synthesizer = TsSynthesizer::with_context_and_opcodes(ctx.clone(), opcodes, &cache);
 
     println!(
         "1: Generated: {}, Bank Size: {}",
@@ -93,7 +93,7 @@ fn main() -> ExitCode {
     );
 
     for i in 2..=10 {
-        synthesizer.synthesize_for_size(&ctx, i, &mut cache);
+        synthesizer.synthesize_for_size(&ctx, i, &cache);
         println!(
             "{}: Generated: {}, Bank Size: {}",
             i,
@@ -102,16 +102,16 @@ fn main() -> ExitCode {
         );
     }
 
-    // let mut cache = object_graph::Cache::new();
+    // let cache = object_graph::Cache::new();
     // let mut rng = StdRng::from_entropy();
 
-    // let mut g1 = object_graph::random_gnp_object_graph(&mut cache, &mut rng, 1000, 0.03);
+    // let mut g1 = object_graph::random_gnp_object_graph(&cache, &mut rng, 1000, 0.03);
     // let mut g2 = g1.clone();
     // g1.generate_serialized_data().expect("Failed to serialize g1");
     // g2.generate_serialized_data().expect("Failed to serialize g2");
     // assert_eq!(g1, g2, "Graphs are not equal");
 
-    // let graphs = get_serialized_graphs_from_range(&mut cache);
+    // let graphs = get_serialized_graphs_from_range(&cache);
     // for g in graphs.iter() {
     //     println!("Graph with {} nodes {} edges, serialized size is {}", g.node_count(), g.edge_count(), g.serialized.as_ref().unwrap().len());
     // }

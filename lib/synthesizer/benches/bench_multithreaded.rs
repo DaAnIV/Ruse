@@ -11,7 +11,7 @@ const SEED: u64 = 100;
 
 // const RANGE: [usize; 8] = [10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000];
 
-// fn get_graphs_from_range(cache: &mut Cache) -> Vec<ObjectGraph> {
+// fn get_graphs_from_range(cache: &Cache) -> Vec<ObjectGraph> {
 //     let mut graphs = Vec::with_capacity(RANGE.len());
 //     for n in RANGE {
 //         let mut rng = StdRng::seed_from_u64(SEED);
@@ -25,7 +25,7 @@ const SEED: u64 = 100;
 //     return graphs;
 // }
 
-// fn get_serialized_graphs_from_range(cache: &mut Cache) -> Vec<ObjectGraph> {
+// fn get_serialized_graphs_from_range(cache: &Cache) -> Vec<ObjectGraph> {
 //     let mut graphs = get_graphs_from_range(cache);
 //     for g in &mut graphs {
 //         g.generate_serialized_data()
@@ -35,11 +35,11 @@ const SEED: u64 = 100;
 // }
 
 fn hash_insertion(c: &mut Criterion) {
-    let mut cache = Cache::new();
+    let cache = Cache::new();
     let mut rng = StdRng::seed_from_u64(SEED);
 
     let graphs: Vec<Arc<ObjectGraph>> = (0..10000).map(|_| {
-        let mut g = random_gnm_object_graph(&mut cache, &mut rng, 20, 40);
+        let mut g = random_gnm_object_graph(&cache, &mut rng, 20, 40);
         g.generate_serialized_data().expect("Failed to serialize data");
         Arc::new(g)
     }).collect();

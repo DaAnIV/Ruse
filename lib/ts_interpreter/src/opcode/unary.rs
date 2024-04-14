@@ -44,7 +44,7 @@ impl UnaryOp {
 }
 
 impl SynthesizerExprOpcode<TsExprAst> for UnaryOp {
-    fn eval(&self, ctx: &mut Context, args: &[&LocValue], _cache: &mut Cache) -> LocValue {
+    fn eval(&self, ctx: &mut Context, args: &[&LocValue], _cache: &Cache) -> LocValue {
         debug_assert_eq!(args.len(), 1);
         let res = match &args[0].val() {
             Value::Primitive(p) => match p {
@@ -85,7 +85,7 @@ impl UpdateOp {
 }
 
 impl SynthesizerExprOpcode<TsExprAst> for UpdateOp {
-    fn eval(&self, ctx: &mut Context, args: &[&LocValue], _cache: &mut Cache) -> LocValue {
+    fn eval(&self, ctx: &mut Context, args: &[&LocValue], _cache: &Cache) -> LocValue {
         debug_assert_eq!(args.len(), 1);
 
         let n = args[0].val().primitive().unwrap().number().unwrap();

@@ -19,7 +19,7 @@ macro_rules! assert_err {
 
 const RANGE: [usize; 8] = [5, 10, 20, 50, 100, 200, 500, 1000];
 
-fn get_graphs_from_range(cache: &mut Cache) -> Vec<ObjectGraph> {
+fn get_graphs_from_range(cache: &Cache) -> Vec<ObjectGraph> {
     let mut graphs = Vec::with_capacity(RANGE.len());
     for n in RANGE {
         let mut rng = StdRng::seed_from_u64(SEED);
@@ -28,7 +28,7 @@ fn get_graphs_from_range(cache: &mut Cache) -> Vec<ObjectGraph> {
     return graphs;
 }
 
-fn get_serialized_graphs_from_range(cache: &mut Cache) -> Vec<ObjectGraph> {
+fn get_serialized_graphs_from_range(cache: &Cache) -> Vec<ObjectGraph> {
     let mut graphs = get_graphs_from_range(cache);
     for g in &mut graphs {
         g.generate_serialized_data().expect("Failed to serialize graph");
@@ -37,8 +37,8 @@ fn get_serialized_graphs_from_range(cache: &mut Cache) -> Vec<ObjectGraph> {
 }
 
 fn graph_serialize(c: &mut Criterion) {
-    let mut cache = Cache::new();
-    let mut graphs = get_graphs_from_range(&mut cache);
+    let cache = Cache::new();
+    let mut graphs = get_graphs_from_range(&cache);
 
     let mut group = c.benchmark_group("serialize_graph");
 
@@ -54,8 +54,8 @@ fn graph_serialize(c: &mut Criterion) {
 }
 
 fn graph_clone(c: &mut Criterion) {
-    let mut cache = Cache::new();
-    let mut graphs = get_graphs_from_range(&mut cache);
+    let cache = Cache::new();
+    let mut graphs = get_graphs_from_range(&cache);
 
     let mut group = c.benchmark_group("clone_graph");
 
@@ -71,8 +71,8 @@ fn graph_clone(c: &mut Criterion) {
 }
 
 fn graph_clone_and_serialize(c: &mut Criterion) {
-    let mut cache = Cache::new();
-    let mut graphs = get_graphs_from_range(&mut cache);
+    let cache = Cache::new();
+    let mut graphs = get_graphs_from_range(&cache);
 
     let mut group = c.benchmark_group("clone_and_serialize_graph");
 
@@ -89,8 +89,8 @@ fn graph_clone_and_serialize(c: &mut Criterion) {
 }
 
 fn graph_eq(c: &mut Criterion) {
-    let mut cache = Cache::new();
-    let mut graphs1 = get_serialized_graphs_from_range(&mut cache);
+    let cache = Cache::new();
+    let mut graphs1 = get_serialized_graphs_from_range(&cache);
     let mut graphs2 = graphs1.clone();
 
     let mut group = c.benchmark_group("graph_eq");
@@ -107,9 +107,9 @@ fn graph_eq(c: &mut Criterion) {
 }
 
 fn graph_almost_eq(c: &mut Criterion) {
-    let mut cache = Cache::new();
+    let cache = Cache::new();
     let mut rng = StdRng::seed_from_u64(SEED);
-    let mut g1 = random_gnp_object_graph(&mut cache, &mut rng, 1000, 1f64 / f64::sqrt(1000f64));
+    let mut g1 = random_gnp_object_graph(&cache, &mut rng, 1000, 1f64 / f64::sqrt(1000f64));
     let mut g2 = g1.clone();
 
     let remove = g2.edge_indices().choose_multiple(&mut rng, 10);
@@ -138,11 +138,11 @@ fn graph_almost_eq(c: &mut Criterion) {
 }
 
 fn graph_ne(c: &mut Criterion) {
-    let mut cache = Cache::new();
+    let cache = Cache::new();
     let mut rng = StdRng::seed_from_u64(SEED);
 
-    let mut g1 = random_gnp_object_graph(&mut cache, &mut rng, 1000, 1f64 / f64::sqrt(1000f64));
-    let mut g2 = random_gnp_object_graph(&mut cache, &mut rng, 1000, 1f64 / f64::sqrt(1000f64));
+    let mut g1 = random_gnp_object_graph(&cache, &mut rng, 1000, 1f64 / f64::sqrt(1000f64));
+    let mut g2 = random_gnp_object_graph(&cache, &mut rng, 1000, 1f64 / f64::sqrt(1000f64));
 
     g1.generate_serialized_data().expect("Failed to serialize g1");
     g2.generate_serialized_data().expect("Failed to serialize g2");

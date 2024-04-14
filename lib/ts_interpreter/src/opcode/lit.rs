@@ -21,7 +21,7 @@ pub struct ArrayLitOp {
 }
 
 impl SynthesizerExprOpcode<TsExprAst> for LitOp {
-    fn eval(&self, ctx: &mut Context, args: &[&LocValue], _: &mut Cache) -> LocValue {
+    fn eval(&self, ctx: &mut Context, args: &[&LocValue], _: &Cache) -> LocValue {
         debug_assert_eq!(args.len(), 0);
         let val = match self {
             LitOp::Null => Value::Primitive(PrimitiveValue::Null),
@@ -63,7 +63,7 @@ impl SynthesizerExprOpcode<TsExprAst> for LitOp {
 }
 
 impl SynthesizerExprOpcode<TsExprAst> for ArrayLitOp {
-    fn eval(&self, ctx: &mut Context, args: &[&LocValue], cache: &mut Cache) -> LocValue {
+    fn eval(&self, ctx: &mut Context, args: &[&LocValue], cache: &Cache) -> LocValue {
         let mut fields = FieldsMap::new();
         let mut seen_graphs = HashMap::new();
         let mut obj_keys = vec![];
@@ -110,7 +110,7 @@ impl SynthesizerExprOpcode<TsExprAst> for ArrayLitOp {
 
 fn create_out_object(
     graphs: Vec<Arc<ObjectGraph>>,
-    cache: &mut Cache,
+    cache: &Cache,
     fields: FieldsMap,
     obj_keys: &Vec<(Arc<String>, (u64, NodeIndex))>,
 ) -> Value {

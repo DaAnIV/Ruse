@@ -19,10 +19,10 @@ mod tests {
 
     #[test]
     fn eq_random_graphs() {
-        let mut cache = Cache::new();
+        let cache = Cache::new();
         let mut rng = StdRng::seed_from_u64(SEED);
 
-        let mut g1 = random_gnp_object_graph(&mut cache, &mut rng, 10, 0.5);
+        let mut g1 = random_gnp_object_graph(&cache, &mut rng, 10, 0.5);
         let mut g2 = g1.clone();
         g1.generate_serialized_data()
             .expect("Failed to serialize g1");
@@ -33,7 +33,7 @@ mod tests {
 
     #[test]
     fn eq_graphs() {
-        let mut cache = Cache::new();
+        let cache = Cache::new();
 
         let root_name = str_cached!(cache; "root");
         let field_name_a = str_cached!(cache; "a");
@@ -75,10 +75,10 @@ mod tests {
 
     #[test]
     fn eq_random_graphs_serialized_data() {
-        let mut cache = Cache::new();
+        let cache = Cache::new();
         let mut rng = StdRng::seed_from_u64(SEED);
 
-        let mut g1 = random_gnp_object_graph(&mut cache, &mut rng, 10, 0.5);
+        let mut g1 = random_gnp_object_graph(&cache, &mut rng, 10, 0.5);
         let mut g2 = g1.clone();
         g1.generate_serialized_data()
             .expect("Failed to serialize g1");
@@ -89,12 +89,12 @@ mod tests {
 
     #[test]
     fn eq_graphs_2_rng() {
-        let mut cache = Cache::new();
+        let cache = Cache::new();
 
         let mut rng1 = StdRng::seed_from_u64(SEED);
-        let mut g1 = random_gnp_object_graph(&mut cache, &mut rng1, 10, 0.5);
+        let mut g1 = random_gnp_object_graph(&cache, &mut rng1, 10, 0.5);
         let mut rng2 = StdRng::seed_from_u64(SEED);
-        let mut g2 = random_gnp_object_graph(&mut cache, &mut rng2, 10, 0.5);
+        let mut g2 = random_gnp_object_graph(&cache, &mut rng2, 10, 0.5);
         g1.generate_serialized_data()
             .expect("Failed to serialize g1");
         g2.generate_serialized_data()
@@ -104,7 +104,7 @@ mod tests {
 
     #[test]
     fn print_graph() {
-        let mut cache = Cache::new();
+        let cache = Cache::new();
 
         let mut graph = ObjectGraph::new();
         let field_name = str_cached!(cache; "a");
@@ -125,11 +125,11 @@ mod tests {
 
     #[test]
     fn serialize_graph() {
-        let mut cache = Cache::new();
+        let cache = Cache::new();
         let mut rng = StdRng::seed_from_u64(SEED);
 
         let n = 10;
-        let mut g = random_gnp_object_graph(&mut cache, &mut rng, n.try_into().unwrap(), 0.5);
+        let mut g = random_gnp_object_graph(&cache, &mut rng, n.try_into().unwrap(), 0.5);
         assert_err!(g.generate_serialized_data(), Ok(()));
         println!("{:?}", Dot::new(&g.graph));
         println!("{:?}", g.serialized.unwrap());

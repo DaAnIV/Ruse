@@ -26,7 +26,7 @@ fn generate_random_str<R: Rng + ?Sized>(max_size: usize, rng: &mut R) -> String 
 }
 
 fn graph_to_random_object_graph<R: Rng + ?Sized>(
-    cache: &mut Cache,
+    cache: &Cache,
     rng: &mut R,
     base: DiGraph<(), ()>
 ) -> ObjectGraph {
@@ -65,7 +65,7 @@ fn graph_to_random_object_graph<R: Rng + ?Sized>(
 }
 
 pub fn random_gnp_object_graph<R: Rng + ?Sized>(
-    cache: &mut Cache,
+    cache: &Cache,
     rng: &mut R,
     n: usize,
     p: f64,
@@ -75,7 +75,7 @@ pub fn random_gnp_object_graph<R: Rng + ?Sized>(
 }
 
 pub fn random_gnm_object_graph<R: Rng + ?Sized>(
-    cache: &mut Cache,
+    cache: &Cache,
     rng: &mut R,
     n: usize,
     m: usize,

@@ -21,7 +21,7 @@ impl MemberOp {
 }
 
 impl SynthesizerExprOpcode<TsExprAst> for MemberOp {
-    fn eval(&self, ctx: &mut Context, args: &[&LocValue], cache: &mut Cache) -> LocValue {
+    fn eval(&self, ctx: &mut Context, args: &[&LocValue], cache: &Cache) -> LocValue {
         debug_assert_eq!(args.len(), 2);
 
         let obj = args[0].val().obj().unwrap();

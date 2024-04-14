@@ -13,7 +13,7 @@ fn simple_synthesize_1(c: &mut Criterion) {
         group.bench_function(format!("Synthesize {:0>4}", i), |b| {
             b.iter_batched(
                 || {                    
-                    let mut cache = object_graph::Cache::new();
+                    let cache = object_graph::Cache::new();
                     let ctx = Arc::new([
                         Context::with_values(
                             [
@@ -44,13 +44,13 @@ fn simple_synthesize_1(c: &mut Criterion) {
                     let synthesizer = TsSynthesizer::with_context_and_opcodes(
                         ctx.clone(),
                         opcodes.clone(),
-                        &mut cache,
+                        &cache,
                     );
                     (synthesizer, ctx, cache)
                 },
-                |(mut synthesizer, ctx, mut cache)| {
+                |(mut synthesizer, ctx, cache)| {
                     for i in 2..=i {
-                        synthesizer.synthesize_for_size(&ctx, i, &mut cache);
+                        synthesizer.synthesize_for_size(&ctx, i, &cache);
                     }
                 },
                 BatchSize::PerIteration

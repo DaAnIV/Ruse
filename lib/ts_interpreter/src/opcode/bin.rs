@@ -70,7 +70,7 @@ impl BinOp {
         }
     }
 
-    fn eval_bin_str(&self, s1: &String, s2: &String, cache: &mut Cache) -> Value {
+    fn eval_bin_str(&self, s1: &String, s2: &String, cache: &Cache) -> Value {
         match self.op {
             ast::BinaryOp::EqEq => vbool!(s1 == s2),
             ast::BinaryOp::NotEq => vbool!(s1 != s2),
@@ -92,7 +92,7 @@ impl BinOp {
 }
 
 impl SynthesizerExprOpcode<TsExprAst> for BinOp {
-    fn eval(&self, ctx: &mut Context, args: &[&LocValue], cache: &mut Cache) -> LocValue {
+    fn eval(&self, ctx: &mut Context, args: &[&LocValue], cache: &Cache) -> LocValue {
         debug_assert_eq!(args.len(), 2);
         debug_assert_eq!(args[0].val().val_type(), self.arg_types[0]);
         debug_assert_eq!(args[1].val().val_type(), self.arg_types[1]);

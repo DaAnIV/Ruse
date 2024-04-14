@@ -28,7 +28,7 @@ impl<T: ExprAst + Default, const N: usize> Synthesizer<T, N> {
     pub fn with_context_and_opcodes(
         start_context: ContextArray<N>,
         opcodes: OpcodesList<T>,
-        cache: &mut Cache,
+        cache: &Cache,
     ) -> Self {
         let (init_opcodes, composite_opcodes) =
             opcodes.into_iter().partition(|x| x.arg_types().len() == 0);
@@ -56,7 +56,7 @@ impl<T: ExprAst + Default, const N: usize> Synthesizer<T, N> {
         return false;
     }
 
-    fn init_context(&mut self, ctx: &ContextArray<N>, cache: &mut Cache) {
+    fn init_context(&mut self, ctx: &ContextArray<N>, cache: &Cache) {
         let mut type_map = new_type_map::<T, N>();
         for op in &self.init_opcodes {
             let mut p = SubProgram::<T, N>::with_opcode_and_context(op.clone(), ctx);
@@ -70,7 +70,7 @@ impl<T: ExprAst + Default, const N: usize> Synthesizer<T, N> {
         self.bank.insert(1, ctx.clone(), type_map);
     }
 
-    pub fn synthesize_for_size(&mut self, ctx: &ContextArray<N>, n: usize, cache: &mut Cache) {
+    pub fn synthesize_for_size(&mut self, ctx: &ContextArray<N>, n: usize, cache: &Cache) {
         let mut type_map = new_type_map::<T, N>();
         let mut found_contexts = HashSet::<ContextArray<N>>::new();
 
