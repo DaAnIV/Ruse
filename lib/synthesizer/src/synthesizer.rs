@@ -6,14 +6,29 @@ use crate::{
     opcode::{ExprAst, SynthesizerExprOpcode},
     prog::SubProgram,
 };
-use std::{collections::HashSet, sync::Arc};
+use std::{
+    collections::HashSet,
+    sync::{atomic::*, Arc},
+};
 
 pub type OpcodesList<T> = Vec<Arc<dyn SynthesizerExprOpcode<T>>>;
 
 #[derive(Default)]
 pub struct Statistics {
-    pub generated: u64,
-    pub bank_size: u64,
+    generated: AtomicU64,
+    bank_size: AtomicU64,
+}
+
+impl Statistics {
+    #[inline]
+    pub fn generated(&self) -> u64 {
+        self.generated.load(Ordering::Relaxed)
+    }
+
+    #[inline]
+    pub fn bank_size(&self) -> u64 {
+        self.bank_size.load(Ordering::Relaxed)
+    }
 }
 
 pub struct Synthesizer<T: ExprAst + Default, const N: usize> {
@@ -28,7 +43,6 @@ impl<T: ExprAst + Default, const N: usize> Synthesizer<T, N> {
     pub fn with_context_and_opcodes(
         start_context: ContextArray<N>,
         opcodes: OpcodesList<T>,
-        cache: &Cache,
     ) -> Self {
         let (init_opcodes, composite_opcodes) =
             opcodes.into_iter().partition(|x| x.arg_types().len() == 0);
@@ -41,7 +55,6 @@ impl<T: ExprAst + Default, const N: usize> Synthesizer<T, N> {
             statistics: Default::default(),
         };
 
-        new_obj.init_context(&start_context, cache);
         new_obj.found_contexts.insert(start_context);
         new_obj
     }
@@ -64,10 +77,11 @@ impl<T: ExprAst + Default, const N: usize> Synthesizer<T, N> {
         let mut type_map = new_type_map::<T, N>();
         for op in &self.init_opcodes {
             let mut p = SubProgram::<T, N>::with_opcode_and_context(op.clone(), ctx);
-            p.evaluate(cache);
-            self.statistics.generated += 1;
+            Self::evaluate_program(&mut p, cache);
+
+            self.statistics.generated.fetch_add(1, Ordering::Relaxed);
             if self.insert_program_to_type_map(&mut type_map, p.into()) {
-                self.statistics.bank_size += 1;
+                self.statistics.bank_size.fetch_add(1, Ordering::Relaxed);
             }
         }
 
@@ -91,27 +105,41 @@ impl<T: ExprAst + Default, const N: usize> Synthesizer<T, N> {
 
         let mut found_prog = None;
 
-        for op in &self.composite_opcodes {
-            if op.arg_types().len() >= n {
-                continue;
-            }
-            for args in ArgIterator::new(&self.bank, ctx, n - 1, op.arg_types()) {
-                let mut p = SubProgram::with_opcode_and_children(op.clone(), args);
-                p.evaluate(cache);
-                let p_arc = Arc::new(p);
-
-                if !valid(&p_arc) {
+        if n == 1 {
+            for op in &self.init_opcodes {
+                let p = Self::get_program_from_init_opcode(op.clone(), ctx, &cache);
+                if !self.check_and_insert_program(
+                    p.clone(),
+                    &mut type_map,
+                    &mut found_contexts,
+                    &valid,
+                ) {
                     continue;
                 }
-
-                self.statistics.generated += 1;
-                found_contexts.insert(p_arc.post_ctx().clone());
-                if self.insert_program_to_type_map(&mut type_map, p_arc.clone()) {
-                    self.statistics.bank_size += 1;
-                }
-                if predicate(&p_arc) {
-                    found_prog = Some(p_arc);
+                if predicate(&p) {
+                    found_prog = Some(p);
                     break;
+                }
+            }
+        } else {
+            for op in &self.composite_opcodes {
+                if op.arg_types().len() >= n {
+                    continue;
+                }
+                for args in ArgIterator::new(&self.bank, ctx, n - 1, op.arg_types()) {
+                    let p = Self::get_program_from_composite_opcode(op.clone(), args, &cache);
+                    if !self.check_and_insert_program(
+                        p.clone(),
+                        &mut type_map,
+                        &mut found_contexts,
+                        &valid,
+                    ) {
+                        continue;
+                    }
+                    if predicate(&p) {
+                        found_prog = Some(p);
+                        break;
+                    }
                 }
             }
         }
@@ -127,16 +155,62 @@ impl<T: ExprAst + Default, const N: usize> Synthesizer<T, N> {
         found_prog
     }
 
+    fn evaluate_program(p: &mut Arc<SubProgram<T, N>>, cache: &Cache) {
+        unsafe { Arc::get_mut(p).unwrap_unchecked() }.evaluate(cache);
+    }
+
+    fn get_program_from_composite_opcode(
+        op: Arc<dyn SynthesizerExprOpcode<T>>,
+        args: Vec<Arc<SubProgram<T, N>>>,
+        cache: &Cache,
+    ) -> Arc<SubProgram<T, N>> {
+        debug_assert!(op.arg_types().len() > 0);
+
+        let mut p = SubProgram::with_opcode_and_children(op.clone(), args);
+        Self::evaluate_program(&mut p, cache);
+
+        p
+    }
+
+    fn get_program_from_init_opcode(
+        op: Arc<dyn SynthesizerExprOpcode<T>>,
+        ctx: &ContextArray<N>,
+        cache: &Cache,
+    ) -> Arc<SubProgram<T, N>> {
+        debug_assert!(op.arg_types().len() == 0);
+
+        let mut p = SubProgram::with_opcode_and_context(op.clone(), ctx);
+        Self::evaluate_program(&mut p, cache);
+
+        p
+    }
+
+    fn check_and_insert_program<V>(
+        &self,
+        p: Arc<SubProgram<T, N>>,
+        type_map: &mut TypeMap<T, N>,
+        found_contexts: &mut HashSet<ContextArray<N>>,
+        valid: V,
+    ) -> bool
+    where
+        V: Fn(&Arc<SubProgram<T, N>>) -> bool,
+    {
+        if !valid(&p) {
+            return false;
+        }
+        self.statistics.generated.fetch_add(1, Ordering::Relaxed);
+        found_contexts.insert(p.post_ctx().clone());
+
+        if self.insert_program_to_type_map(type_map, p.clone()) {
+            self.statistics.bank_size.fetch_add(1, Ordering::Relaxed);
+
+            return true;
+        }
+        return false;
+    }
+
     #[inline]
     pub fn statistics(&self) -> &Statistics {
         &self.statistics
-    }
-}
-
-impl<T: ExprAst + Default, const N: usize> Iterator for Synthesizer<T, N> {
-    type Item = SubProgram<T, N>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        todo!()
     }
 }

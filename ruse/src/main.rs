@@ -92,15 +92,9 @@ fn main() -> ExitCode {
         &[],
         &[],
     );
-    let mut synthesizer = TsSynthesizer::with_context_and_opcodes(ctx.clone(), opcodes, &cache);
+    let mut synthesizer = TsSynthesizer::with_context_and_opcodes(ctx.clone(), opcodes);
 
-    println!(
-        "1: Generated: {}, Bank Size: {}",
-        synthesizer.statistics().generated,
-        synthesizer.statistics().bank_size
-    );
-
-    for i in 2..=10 {
+    for i in 1..=10 {
         if let Some(p) = synthesizer.synthesize_for_size(
             &ctx,
             i,
@@ -122,8 +116,8 @@ fn main() -> ExitCode {
             println!(
                 "{}: Generated: {}, Bank Size: {}",
                 i,
-                synthesizer.statistics().generated,
-                synthesizer.statistics().bank_size
+                synthesizer.statistics().generated(),
+                synthesizer.statistics().bank_size()
             );
             println!("Found p = {{{}}}", p.get_code());
             break;
@@ -131,8 +125,8 @@ fn main() -> ExitCode {
         println!(
             "{}: Generated: {}, Bank Size: {}",
             i,
-            synthesizer.statistics().generated,
-            synthesizer.statistics().bank_size
+            synthesizer.statistics().generated(),
+            synthesizer.statistics().bank_size()
         );
     }
 

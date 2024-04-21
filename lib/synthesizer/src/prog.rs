@@ -10,7 +10,7 @@ use crate::value::*;
 
 pub struct SubProgram<T, const N: usize>
 where
-    T: ExprAst,    
+    T: ExprAst,
 {
     pub opcode: Arc<dyn SynthesizerExprOpcode<T>>,
     pub children: Vec<Arc<SubProgram<T, N>>>,
@@ -18,19 +18,24 @@ where
     size: u32,
     depth: u32,
     out_type: Option<ValueType>,
-    
+
     pre_ctx: ContextArray<N>,
     post_ctx: Option<ContextArray<N>>,
-    out_value: Option<ValueArray<N>>
+    out_value: Option<ValueArray<N>>,
 }
 
-fn verify_children<T: ExprAst, const N: usize>(opcode: &Arc<dyn SynthesizerExprOpcode<T>>, children: &[Arc<SubProgram<T, N>>]) -> bool {
+fn verify_children<T: ExprAst, const N: usize>(
+    opcode: &Arc<dyn SynthesizerExprOpcode<T>>,
+    children: &[Arc<SubProgram<T, N>>],
+) -> bool {
     let pre_context = &children[0].pre_ctx()[0];
 
     // Verify all of the examples start from the same pre context keys
     if !children[0].pre_ctx().iter().any(|x| {
         for (a, b) in x.get_keys().zip(pre_context.get_keys()) {
-            if a != b { return false; }
+            if a != b {
+                return false;
+            }
         }
         return true;
     }) {
@@ -43,16 +48,24 @@ fn verify_children<T: ExprAst, const N: usize>(opcode: &Arc<dyn SynthesizerExprO
     }
 
     // Verify the opcode arguments types match the children types
-    if children.into_iter().zip(opcode.arg_types().into_iter()).any(|(c, t)| c.out_type.unwrap() != *t) {
+    if children
+        .into_iter()
+        .zip(opcode.arg_types().into_iter())
+        .any(|(c, t)| c.out_type.unwrap() != *t)
+    {
         return false;
     }
 
     // Verify each children pre context is equal to the previous post context for all examples
     for i in 1..children.len() {
-        let prev = &children[i-1];
+        let prev = &children[i - 1];
         let cur = &children[i];
-        if prev.post_ctx().iter().zip(cur.pre_ctx().iter())
-            .any(|(post, pre)| post != pre) {
+        if prev
+            .post_ctx()
+            .iter()
+            .zip(cur.pre_ctx().iter())
+            .any(|(post, pre)| post != pre)
+        {
             return false;
         }
     }
@@ -64,7 +77,10 @@ impl<T, const N: usize> SubProgram<T, N>
 where
     T: ExprAst,
 {
-    pub fn with_opcode_and_children(opcode: Arc<dyn SynthesizerExprOpcode<T>>, children: Vec<Arc<SubProgram<T, N>>>) -> Self {
+    pub fn with_opcode_and_children(
+        opcode: Arc<dyn SynthesizerExprOpcode<T>>,
+        children: Vec<Arc<SubProgram<T, N>>>,
+    ) -> Arc<Self> {
         assert!(children.len() > 0);
         debug_assert!(verify_children(&opcode, &children));
 
@@ -72,7 +88,7 @@ where
         let depth = (&children).into_iter().fold(0, |acc, x| max(acc, x.depth)) + 1;
         let pre_ctx = children[0].pre_ctx().clone();
 
-        Self {
+        Arc::new(Self {
             opcode: opcode,
             children: children,
 
@@ -82,12 +98,15 @@ where
             out_type: None,
             pre_ctx: pre_ctx,
             post_ctx: None,
-            out_value: None
-        }
+            out_value: None,
+        })
     }
 
-    pub fn with_opcode_and_context(opcode: Arc<dyn SynthesizerExprOpcode<T>>, context: &ContextArray<N>) -> Self {
-        Self {
+    pub fn with_opcode_and_context(
+        opcode: Arc<dyn SynthesizerExprOpcode<T>>,
+        context: &ContextArray<N>,
+    ) -> Arc<Self> {
+        Arc::new(Self {
             opcode: opcode,
             children: vec![],
 
@@ -97,8 +116,8 @@ where
             out_type: None,
             pre_ctx: context.clone(),
             post_ctx: None,
-            out_value: None
-        }    
+            out_value: None,
+        })
     }
 
     pub fn evaluate(&mut self, cache: &Cache) {
@@ -108,7 +127,7 @@ where
 
         for i in 0..N {
             let mut out_ctx = self.pre_ctx[i].clone();
-            
+
             // Gather arguments
             let mut args = Vec::<&LocValue>::with_capacity(self.children.len());
             for c in &self.children {
@@ -142,17 +161,17 @@ where
     pub fn size(&self) -> u32 {
         self.size
     }
-    
+
     #[inline]
     pub fn depth(&self) -> u32 {
         self.depth
     }
-    
+
     #[inline]
     pub fn out_type(&self) -> ValueType {
         self.out_type.unwrap()
     }
-    
+
     #[inline]
     pub fn pre_ctx(&self) -> &ContextArray<N> {
         &self.pre_ctx

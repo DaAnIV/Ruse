@@ -14,10 +14,9 @@ impl<const N: usize> TsSynthesizer<N> {
     pub fn with_context_and_opcodes(
         start_context: ContextArray<N>,
         opcodes: OpcodesList<TsExprAst>,
-        cache: &Cache,
     ) -> Self {
         Self {
-            0: Synthesizer::with_context_and_opcodes(start_context, opcodes, cache),
+            0: Synthesizer::with_context_and_opcodes(start_context, opcodes),
         }
     }
 
