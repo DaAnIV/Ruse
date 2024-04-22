@@ -1,15 +1,14 @@
 use crate::value::{LocValue, Location, Value, VarLoc};
 use ruse_object_graph::ObjectGraph;
 use std::{
-    collections::HashMap,
-    hash::{DefaultHasher, Hash, Hasher},
-    sync::Arc,
+    collections::HashMap, fmt::Display, hash::{DefaultHasher, Hash, Hasher}, sync::Arc
 };
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug)]
 pub struct Context {
     hash: u64,
     values: Arc<HashMap<Arc<String>, Value>>,
+    number_of_changes: usize,
 }
 
 impl Context {
@@ -17,7 +16,12 @@ impl Context {
         Self {
             hash: Self::get_hash_for_values(&values),
             values: values.into(),
+            number_of_changes: 0
         }
+    }
+
+    pub fn number_of_changes(&self) -> usize {
+        self.number_of_changes
     }
 
     fn get_hash_for_values(values: &HashMap<Arc<String>, Value>) -> u64 {
@@ -35,6 +39,7 @@ impl Context {
 
         self.hash = new_hash;
         self.values = arc_values;
+        self.number_of_changes += 1;
     }
 
     pub fn temp_value(&self, val: Value) -> LocValue {
@@ -118,5 +123,28 @@ impl Context {
 impl Hash for Context {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         state.write_u64(self.hash);
+    }
+}
+
+impl Eq for Context {}
+
+impl PartialEq for Context {
+    fn eq(&self, other: &Self) -> bool {
+        self.hash == other.hash && self.values == other.values
+    }
+}
+
+impl Display for Context {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut iter = self.values.iter();
+        let mut value = iter.next();
+        while let Some((k, v)) = value {
+            write!(f, "{} -> {}", k, v).expect("Failed to write");
+            value = iter.next();
+            if value.is_some() {
+                write!(f, ", ").expect("Failed to write");
+            }            
+        }
+        Ok(())
     }
 }

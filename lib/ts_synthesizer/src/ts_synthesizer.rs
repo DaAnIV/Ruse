@@ -21,10 +21,8 @@ impl<const N: usize> TsSynthesizer<N> {
     }
 
     #[inline]
-    pub fn synthesize_for_size<F, V>(
+    pub fn run_iteration<F, V>(
         &mut self,
-        ctx: &ContextArray<N>,
-        n: usize,
         cache: &Cache,
         predicate: F,
         valid: V,
@@ -33,7 +31,7 @@ impl<const N: usize> TsSynthesizer<N> {
         F: Fn(&Arc<SubProgram<TsExprAst, N>>) -> bool,
         V: Fn(&Arc<SubProgram<TsExprAst, N>>) -> bool,
     {
-        self.0.synthesize_for_size(ctx, n, cache, predicate, valid)
+        self.0.run_iteration(cache, predicate, valid)
     }
 
     #[inline]

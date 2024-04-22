@@ -79,7 +79,7 @@ fn main() -> ExitCode {
         ),
     ]);
 
-    let expected_outputs = [Number::from(25u64), Number::from(36u64)];
+    let expected_outputs = [Number::from(225u64), Number::from(576u64)];
     
     let opcodes = construct_opcode_list(
         &[str_cached!(cache; "x"), str_cached!(cache; "y")],
@@ -94,15 +94,17 @@ fn main() -> ExitCode {
     );
     let mut synthesizer = TsSynthesizer::with_context_and_opcodes(ctx.clone(), opcodes);
 
-    for i in 1..=10 {
-        if let Some(p) = synthesizer.synthesize_for_size(
-            &ctx,
-            i,
+    for i in 1..=5 {
+        if let Some(p) = synthesizer.run_iteration(
             &cache,
             |x| {
                 if x.out_type() != ValueType::Number {
                     return false;
                 }
+                let x_var = x.post_ctx()[0].get_var_loc_value(&str_cached!(cache; "x"));
+                let y_var = x.post_ctx()[0].get_var_loc_value(&str_cached!(cache; "y"));
+                if x_var.val() != &vnum!(Number::from(5u64)) { return false; }
+                if y_var.val() != &vnum!(Number::from(3u64)) { return false; }
                 for (v, e) in x.out_value().iter().zip(expected_outputs) {
                     let v_num = unsafe { v.val().number_value().unwrap_unchecked() };
                     if v_num != e {
@@ -111,22 +113,29 @@ fn main() -> ExitCode {
                 }
                 return true;
             },
-            |_| true,
+            |x| {
+                if x.out_type() == ValueType::Number {
+                    println!("({}) {{ {} }} ({}, {})", x.pre_ctx()[0], x.get_code(), x.out_value()[0].val().number_value().unwrap(), x.post_ctx()[0]);
+                    return x.out_value().iter().all(|v| {
+                        let n = v.val().number_value().unwrap().0;
+                        return n.is_finite() && n.abs() < 1000f64;
+                    })
+                }
+                return true;
+            },
         ) {
             println!(
-                "{}: Generated: {}, Bank Size: {}",
+                "{}: statistics: {}",
                 i,
-                synthesizer.statistics().generated(),
-                synthesizer.statistics().bank_size()
+                synthesizer.statistics()
             );
             println!("Found p = {{{}}}", p.get_code());
             break;
         }
         println!(
-            "{}: Generated: {}, Bank Size: {}",
+            "{}: statistics: {}",
             i,
-            synthesizer.statistics().generated(),
-            synthesizer.statistics().bank_size()
+            synthesizer.statistics()
         );
     }
 

@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use swc_ecma_ast as ast;
 
-pub const ALL_BIN_NUM_OPCODES: [ast::BinaryOp; 19] = [
+pub const ALL_BIN_NUM_OPCODES: [ast::BinaryOp; 19-4] = [
     ast::BinaryOp::NotEq,
     ast::BinaryOp::EqEqEq,
     ast::BinaryOp::NotEqEq,
@@ -13,9 +13,9 @@ pub const ALL_BIN_NUM_OPCODES: [ast::BinaryOp; 19] = [
     ast::BinaryOp::LtEq,
     ast::BinaryOp::Gt,
     ast::BinaryOp::GtEq,
-    ast::BinaryOp::LShift,
-    ast::BinaryOp::RShift,
-    ast::BinaryOp::ZeroFillRShift,
+    // ast::BinaryOp::LShift,
+    // ast::BinaryOp::RShift,
+    // ast::BinaryOp::ZeroFillRShift,
     ast::BinaryOp::Add,
     ast::BinaryOp::Sub,
     ast::BinaryOp::Mul,
@@ -24,7 +24,7 @@ pub const ALL_BIN_NUM_OPCODES: [ast::BinaryOp; 19] = [
     ast::BinaryOp::BitOr,
     ast::BinaryOp::BitXor,
     ast::BinaryOp::BitAnd,
-    ast::BinaryOp::Exp,
+    // ast::BinaryOp::Exp,
 ];
 
 pub const ALL_UNARY_NUM_OPCODES: [ast::UnaryOp; 3] = [

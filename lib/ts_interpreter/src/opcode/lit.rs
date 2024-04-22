@@ -10,12 +10,15 @@ use swc_ecma_ast as ast;
 
 use super::TsExprAst;
 
+#[derive(Debug)]
 pub enum LitOp {
     Null,
     Str(Arc<String>),
     Bool(bool),
     Num(Number),
 }
+
+#[derive(Debug)]
 pub struct ArrayLitOp {
     pub size: u32,
 }

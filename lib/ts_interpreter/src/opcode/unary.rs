@@ -8,11 +8,13 @@ use swc_ecma_ast as ast;
 
 use super::TsExprAst;
 
+#[derive(Debug)]
 pub struct UnaryOp {
     pub op: ast::UnaryOp,
     arg_types: [ValueType; 1],
 }
 
+#[derive(Debug)]
 pub struct UpdateOp {
     pub op: ast::UpdateOp,
     pub prefix: bool,

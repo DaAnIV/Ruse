@@ -1,4 +1,5 @@
 use std::cmp::max;
+use std::hash::Hash;
 use std::sync::Arc;
 
 use ruse_object_graph::Cache;
@@ -185,5 +186,33 @@ where
     #[inline]
     pub fn out_value(&self) -> &ValueArray<N> {
         self.out_value.as_ref().unwrap()
+    }
+}
+
+impl<T, const N: usize> Hash for SubProgram<T, N>
+where
+    T: ExprAst,
+{
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.pre_ctx().hash(state);
+        self.out_type().hash(state);
+        self.post_ctx().hash(state);
+        self.out_value().hash(state);
+    }
+}
+
+impl<T, const N: usize> Eq for SubProgram<T, N>
+where
+    T: ExprAst {}
+
+impl<T, const N: usize> PartialEq for SubProgram<T, N>
+where
+    T: ExprAst,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.out_type == other.out_type
+            && self.pre_ctx == other.pre_ctx
+            && self.post_ctx == other.post_ctx
+            && self.out_value == other.out_value
     }
 }

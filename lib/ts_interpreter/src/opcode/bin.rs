@@ -8,6 +8,7 @@ use swc_ecma_ast as ast;
 
 use super::TsExprAst;
 
+#[derive(Debug)]
 pub struct BinOp {
     pub op: ast::BinaryOp,
     pub arg_types: [ValueType; 2],

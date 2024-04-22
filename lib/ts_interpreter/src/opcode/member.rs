@@ -8,6 +8,7 @@ use swc_ecma_ast as ast;
 
 use super::TsExprAst;
 
+#[derive(Debug)]
 pub struct MemberOp {
     arg_types: [ValueType; 2],
 }

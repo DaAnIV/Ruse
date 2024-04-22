@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use crate::context::Context;
 
 use super::value::{LocValue, ValueType};
@@ -7,7 +9,7 @@ pub trait ExprAst {
     fn to_string(&self) -> String;
 }
 
-pub trait SynthesizerExprOpcode<T>
+pub trait SynthesizerExprOpcode<T>: Debug
 where T: ExprAst {
     fn arg_types(&self) -> &[ValueType];
 
