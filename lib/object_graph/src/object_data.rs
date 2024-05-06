@@ -65,6 +65,20 @@ impl From<usize> for Number {
     }
 }
 
+impl From<u32> for Number {
+    #[inline]
+    fn from(value: u32) -> Self {
+        Number(value as _)
+    }
+}
+
+impl From<i32> for Number {
+    #[inline]
+    fn from(value: i32) -> Self {
+        Number(value as _)
+    }
+}
+
 impl From<u64> for Number {
     #[inline]
     fn from(value: u64) -> Self {
@@ -83,6 +97,12 @@ impl From<Number> for u64 {
     #[inline]
     fn from(value: Number) -> u64 {
         value.0 as _
+    }
+}
+
+impl Default for Number {
+    fn default() -> Self {
+        Number::from(0u64)
     }
 }
 
