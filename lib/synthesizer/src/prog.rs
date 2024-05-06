@@ -1,4 +1,6 @@
 use std::cmp::max;
+use std::fmt::Debug;
+use std::fmt::Display;
 use std::hash::Hash;
 use std::sync::Arc;
 
@@ -214,3 +216,28 @@ where
             && self.out_value == other.out_value
     }
 }
+
+impl<T, const N: usize> Debug for SubProgram<T, N>
+where
+    T: ExprAst,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SubProgram")
+            .field("code", &self.get_code())
+            .field("out_type", &self.out_type)
+            .field("pre_ctx", &self.pre_ctx)
+            .field("post_ctx", &self.post_ctx)
+            .field("out_value", &self.out_value)
+            .finish()
+    }
+}
+
+impl<T, const N: usize> Display for SubProgram<T, N>
+where
+    T: ExprAst,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "({}) {{ {} }} ({}; {})", self.pre_ctx()[0], self.get_code(), self.out_value()[0].val(), self.post_ctx()[0])
+    }
+}
+
