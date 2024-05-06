@@ -2,9 +2,7 @@ use ruse_object_graph::Cache;
 
 use crate::{
     bank::*,
-    children_iter::ChildrenIterator,
-    opcode::{ExprAst, SynthesizerExprOpcode},
-    prog::SubProgram,
+    opcode::{ExprAst, ExprOpcode},
 };
 use std::{
     collections::HashSet,
@@ -12,7 +10,7 @@ use std::{
     sync::{atomic::*, Arc},
 };
 
-pub type OpcodesList<T> = Vec<Arc<dyn SynthesizerExprOpcode<T>>>;
+pub type OpcodesList<T> = Vec<Arc<dyn ExprOpcode<T>>>;
 
 #[derive(Default, Debug)]
 pub struct Statistics {
@@ -175,7 +173,7 @@ impl<T: ExprAst + Default, const N: usize, const MAX_DEPTH: usize> Synthesizer<T
 
     fn get_program_from_composite_opcode(
         &self,
-        op: Arc<dyn SynthesizerExprOpcode<T>>,
+        op: Arc<dyn ExprOpcode<T>>,
         args: Vec<Arc<SubProgram<T, N>>>,
         cache: &Cache,
     ) -> Arc<SubProgram<T, N>> {
@@ -189,7 +187,7 @@ impl<T: ExprAst + Default, const N: usize, const MAX_DEPTH: usize> Synthesizer<T
 
     fn get_program_from_init_opcode(
         &self,
-        op: Arc<dyn SynthesizerExprOpcode<T>>,
+        op: Arc<dyn ExprOpcode<T>>,
         ctx: &ContextArray<N>,
         cache: &Cache,
     ) -> Arc<SubProgram<T, N>> {

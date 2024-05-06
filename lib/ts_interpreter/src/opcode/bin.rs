@@ -1,5 +1,5 @@
 use ruse_object_graph::{Cache, Number, PrimitiveValue};
-use ruse_synthesizer::opcode::SynthesizerExprOpcode;
+use ruse_synthesizer::opcode::ExprOpcode;
 use ruse_synthesizer::value::*;
 use ruse_synthesizer::{context::*, vbool, vnum, vstring};
 
@@ -92,7 +92,7 @@ impl BinOp {
     }
 }
 
-impl SynthesizerExprOpcode<TsExprAst> for BinOp {
+impl ExprOpcode<TsExprAst> for BinOp {
     fn eval(&self, ctx: &mut Context, args: &[&LocValue], cache: &Cache) -> LocValue {
         debug_assert_eq!(args.len(), 2);
         debug_assert_eq!(args[0].val().val_type(), self.arg_types[0]);

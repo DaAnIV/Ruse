@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use ruse_object_graph::*;
 use ruse_synthesizer::context::*;
-use ruse_synthesizer::opcode::SynthesizerExprOpcode;
+use ruse_synthesizer::opcode::ExprOpcode;
 use ruse_synthesizer::value::*;
 use ruse_synthesizer::*;
 use swc_common::{util::take::Take, DUMMY_SP};
@@ -23,7 +23,7 @@ pub struct ArrayLitOp {
     pub size: u32,
 }
 
-impl SynthesizerExprOpcode<TsExprAst> for LitOp {
+impl ExprOpcode<TsExprAst> for LitOp {
     fn eval(&self, ctx: &mut Context, args: &[&LocValue], _: &Cache) -> LocValue {
         debug_assert_eq!(args.len(), 0);
         let val = match self {
@@ -65,7 +65,7 @@ impl SynthesizerExprOpcode<TsExprAst> for LitOp {
     }
 }
 
-impl SynthesizerExprOpcode<TsExprAst> for ArrayLitOp {
+impl ExprOpcode<TsExprAst> for ArrayLitOp {
     fn eval(&self, ctx: &mut Context, args: &[&LocValue], cache: &Cache) -> LocValue {
         let mut fields = FieldsMap::new();
         let mut seen_graphs = HashMap::new();

@@ -2,7 +2,7 @@
 mod tests {
     use std::collections::HashMap;
 
-    use ruse_synthesizer::opcode::SynthesizerExprOpcode;
+    use ruse_synthesizer::opcode::ExprOpcode;
     use ruse_synthesizer::value::{Location, ValueType, VarLoc};
     use swc_ecma_ast as ast;
 

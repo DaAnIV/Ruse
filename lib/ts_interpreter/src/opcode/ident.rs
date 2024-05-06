@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use ruse_object_graph::Cache;
 use ruse_synthesizer::context::*;
-use ruse_synthesizer::opcode::SynthesizerExprOpcode;
+use ruse_synthesizer::opcode::ExprOpcode;
 use ruse_synthesizer::value::*;
 
 use swc_common::DUMMY_SP;
@@ -15,7 +15,7 @@ pub struct IdentOp {
     pub name: Arc<String>,
 }
 
-impl SynthesizerExprOpcode<TsExprAst> for IdentOp {
+impl ExprOpcode<TsExprAst> for IdentOp {
     fn eval(&self, ctx: &mut Context, args: &[&LocValue], _cache: &Cache) -> LocValue {
         debug_assert_eq!(args.len(), 0);
 

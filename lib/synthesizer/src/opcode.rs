@@ -5,11 +5,11 @@ use crate::context::Context;
 use super::value::{LocValue, ValueType};
 use ruse_object_graph::Cache;
 
-pub trait ExprAst {
+pub trait ExprAst: 'static {
     fn to_string(&self) -> String;
 }
 
-pub trait SynthesizerExprOpcode<T>: Debug
+pub trait ExprOpcode<T>: Debug + Sync + Send
 where T: ExprAst {
     fn arg_types(&self) -> &[ValueType];
 

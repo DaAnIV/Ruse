@@ -1,5 +1,5 @@
 use ruse_object_graph::{Cache, Number, PrimitiveValue};
-use ruse_synthesizer::opcode::SynthesizerExprOpcode;
+use ruse_synthesizer::opcode::ExprOpcode;
 use ruse_synthesizer::{context::*, vbool, vnum};
 use ruse_synthesizer::value::*;
 
@@ -45,7 +45,7 @@ impl UnaryOp {
     }
 }
 
-impl SynthesizerExprOpcode<TsExprAst> for UnaryOp {
+impl ExprOpcode<TsExprAst> for UnaryOp {
     fn eval(&self, ctx: &mut Context, args: &[&LocValue], _cache: &Cache) -> LocValue {
         debug_assert_eq!(args.len(), 1);
         let res = match &args[0].val() {
@@ -86,7 +86,7 @@ impl UpdateOp {
     }
 }
 
-impl SynthesizerExprOpcode<TsExprAst> for UpdateOp {
+impl ExprOpcode<TsExprAst> for UpdateOp {
     fn eval(&self, ctx: &mut Context, args: &[&LocValue], _cache: &Cache) -> LocValue {
         debug_assert_eq!(args.len(), 1);
 

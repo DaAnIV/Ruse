@@ -1,6 +1,6 @@
 use ruse_object_graph::{scached, Cache, PrimitiveValue};
 use ruse_synthesizer::context::*;
-use ruse_synthesizer::opcode::SynthesizerExprOpcode;
+use ruse_synthesizer::opcode::ExprOpcode;
 use ruse_synthesizer::value::*;
 
 use swc_common::DUMMY_SP;
@@ -21,7 +21,7 @@ impl MemberOp {
     }
 }
 
-impl SynthesizerExprOpcode<TsExprAst> for MemberOp {
+impl ExprOpcode<TsExprAst> for MemberOp {
     fn eval(&self, ctx: &mut Context, args: &[&LocValue], cache: &Cache) -> LocValue {
         debug_assert_eq!(args.len(), 2);
 

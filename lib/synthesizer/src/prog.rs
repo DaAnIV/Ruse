@@ -13,7 +13,7 @@ pub struct SubProgram<T, const N: usize>
 where
     T: ExprAst,
 {
-    pub opcode: Arc<dyn SynthesizerExprOpcode<T>>,
+    pub opcode: Arc<dyn ExprOpcode<T>>,
     pub children: Vec<Arc<SubProgram<T, N>>>,
 
     size: u32,
@@ -26,7 +26,7 @@ where
 }
 
 fn verify_children<T: ExprAst, const N: usize>(
-    opcode: &Arc<dyn SynthesizerExprOpcode<T>>,
+    opcode: &Arc<dyn ExprOpcode<T>>,
     children: &[Arc<SubProgram<T, N>>],
 ) -> bool {
     let pre_context = &children[0].pre_ctx()[0];
@@ -79,7 +79,7 @@ where
     T: ExprAst,
 {
     pub fn with_opcode_and_children(
-        opcode: Arc<dyn SynthesizerExprOpcode<T>>,
+        opcode: Arc<dyn ExprOpcode<T>>,
         children: Vec<Arc<SubProgram<T, N>>>,
     ) -> Arc<Self> {
         assert!(children.len() > 0);
@@ -104,7 +104,7 @@ where
     }
 
     pub fn with_opcode_and_context(
-        opcode: Arc<dyn SynthesizerExprOpcode<T>>,
+        opcode: Arc<dyn ExprOpcode<T>>,
         context: &ContextArray<N>,
     ) -> Arc<Self> {
         Arc::new(Self {
@@ -201,9 +201,7 @@ where
     }
 }
 
-impl<T, const N: usize> Eq for SubProgram<T, N>
-where
-    T: ExprAst {}
+impl<T, const N: usize> Eq for SubProgram<T, N> where T: ExprAst {}
 
 impl<T, const N: usize> PartialEq for SubProgram<T, N>
 where
