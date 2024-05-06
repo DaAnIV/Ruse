@@ -7,13 +7,13 @@ use std::sync::Arc;
 
 fn simple_synthesize_1(c: &mut Criterion) {
     let mut group = c.benchmark_group("simple_synthesize_1");
-
-    for i in 2..=10 {
-        group.throughput(Throughput::Elements(i as u64));
+    let mut rt_builder = tokio::runtime::Builder::new_multi_thread();
+    let rt = rt_builder.build().expect("test");
+    for i in 0..4 {
         group.bench_function(format!("Synthesize {:0>4}", i), |b| {
-            b.iter_batched(
-                || {                    
-                    let cache = object_graph::Cache::new();
+            b.to_async(&rt).iter_batched(
+                || {
+                    let cache = Arc::new(object_graph::Cache::new());
                     let ctx = Arc::new([
                         Context::with_values(
                             [
@@ -34,7 +34,7 @@ fn simple_synthesize_1(c: &mut Criterion) {
                         &[str_cached!(cache; "x"), str_cached!(cache; "y")],
                         &[-1f64, 1f64],
                         &ALL_BIN_NUM_OPCODES,
-                        &ALL_UNARY_NUM_OPCODES,
+                        &[],
                         &ALL_UPDATE_NUM_OPCODES,
                         false,
                         &[],
@@ -42,19 +42,21 @@ fn simple_synthesize_1(c: &mut Criterion) {
                         &[],
                     );
 
-                    let synthesizer = TsSynthesizer::with_context_and_opcodes(
-                        ctx.clone(),
+                    let synthesizer = TsSynthesizer::new(
+                        ctx,
                         opcodes.clone(),
-                        &cache,
+                        Box::new(|_| false),
+                        Box::new(|_| true),
+                        2,
                     );
-                    (synthesizer, ctx, cache)
+                    (synthesizer, cache)
                 },
-                |(mut synthesizer, ctx, cache)| {
-                    for i in 2..=i {
-                        synthesizer.synthesize_for_size(&ctx, i, &cache, |_| false, |_| true);
+                |(synthesizer, cache)| async move {
+                    for _j in 0..=i {
+                        synthesizer.run_iteration(&cache).await;
                     }
                 },
-                BatchSize::PerIteration
+                BatchSize::PerIteration,
             )
         });
     }

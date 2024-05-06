@@ -1,8 +1,8 @@
 use criterion::*;
 
-use dashmap;
+// use dashmap;
 use rand::{rngs::StdRng, SeedableRng};
-use rayon::{self, iter::{IntoParallelRefIterator, ParallelIterator}};
+// use rayon::{self, iter::{IntoParallelRefIterator, ParallelIterator}};
 use ruse_object_graph::{ObjectGraph, Cache};
 use ruse_object_graph::generator::*;
 use std::{collections::HashSet, sync::Arc};
@@ -56,15 +56,15 @@ fn hash_insertion(c: &mut Criterion) {
         }, BatchSize::LargeInput)
     });
 
-    group.bench_function("parallel dashmap", |b| {
-        b.iter_batched(|| dashmap::DashSet::<Arc<ObjectGraph>>::new(), |dash_map| {
-            graphs.par_iter().for_each(|g| {
-                // sleep(time::Duration::from_nanos(1));
-                dash_map.insert(g.clone());
-            });
-            dash_map
-        }, BatchSize::LargeInput)
-    });
+    // group.bench_function("parallel dashmap", |b| {
+    //     b.iter_batched(|| dashmap::DashSet::<Arc<ObjectGraph>>::new(), |dash_map| {
+    //         graphs.par_iter().for_each(|g| {
+    //             // sleep(time::Duration::from_nanos(1));
+    //             dash_map.insert(g.clone());
+    //         });
+    //         dash_map
+    //     }, BatchSize::LargeInput)
+    // });
 
     group.finish();
 }

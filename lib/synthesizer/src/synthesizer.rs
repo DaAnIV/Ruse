@@ -1,173 +1,247 @@
+use dashmap::DashSet;
 use ruse_object_graph::Cache;
 
 use crate::{
     bank::*,
     opcode::{ExprAst, ExprOpcode},
+    prog::SubProgram, work_gatherer::WorkGather,
 };
 use std::{
-    collections::HashSet,
     fmt::Display,
     sync::{atomic::*, Arc},
 };
 
 pub type OpcodesList<T> = Vec<Arc<dyn ExprOpcode<T>>>;
 
+#[repr(usize)]
+#[derive(Clone, Copy, Debug)]
+pub enum StatisticsTypes {
+    Evaluated,
+    BankSize,
+    ContextSize,
+    MaxDepth,
+    MaxSize,
+    __MaxType,
+}
+
+impl StatisticsTypes {
+    fn iterator() -> impl Iterator<Item = StatisticsTypes> {
+        [
+            StatisticsTypes::Evaluated,
+            StatisticsTypes::BankSize,
+            StatisticsTypes::ContextSize,
+            StatisticsTypes::MaxDepth,
+            StatisticsTypes::MaxSize,
+        ]
+        .iter()
+        .copied()
+    }
+    const fn count() -> usize {
+        Self::__MaxType as usize
+    }
+}
+
 #[derive(Default, Debug)]
-pub struct Statistics {
-    generated: AtomicU64,
-    bank_size: AtomicU64,
-    context_count: AtomicU64,
+struct Statistics {
+    values: [AtomicU64; StatisticsTypes::count()],
+}
+
+#[derive(Debug)]
+pub struct CurrentStatistics {
+    values: Vec<u64>,
 }
 
 impl Statistics {
     #[inline]
-    pub fn generated(&self) -> u64 {
-        self.generated.load(Ordering::Relaxed)
+    pub fn get_value(&self, stype: StatisticsTypes) -> u64 {
+        self.values[stype as usize].load(Ordering::Relaxed)
     }
 
     #[inline]
-    pub fn bank_size(&self) -> u64 {
-        self.bank_size.load(Ordering::Relaxed)
+    pub fn inc_value(&self, stype: StatisticsTypes) {
+        self.values[stype as usize].fetch_add(1, Ordering::Relaxed);
     }
 
     #[inline]
-    pub fn context_count(&self) -> u64 {
-        self.context_count.load(Ordering::Relaxed)
+    pub fn max_value(&self, stype: StatisticsTypes, new_val: u64) {
+        self.values[stype as usize].fetch_max(new_val, Ordering::Relaxed);
+    }
+
+    #[inline]
+    pub fn current(&self) -> CurrentStatistics {
+        CurrentStatistics {
+            values: StatisticsTypes::iterator()
+                .map(|x| self.get_value(x))
+                .collect(),
+        }
     }
 }
 
-impl Display for Statistics {
+impl Display for CurrentStatistics {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "Generated: {}, bank size: {}, context count: {}",
-            self.generated(),
-            self.bank_size(),
-            self.context_count()
-        )
+        let mut comma_separated = String::new();
+        for stype in StatisticsTypes::iterator() {
+            comma_separated
+                .push_str(format!("{:?}: {}", stype, self.values[stype as usize]).as_str());
+            comma_separated.push_str(", ");
+        }
+        comma_separated.pop();
+        comma_separated.pop();
+        write!(f, "{}", comma_separated)
     }
 }
 
-pub struct Synthesizer<T: ExprAst + Default, const N: usize, const MAX_DEPTH: usize = 2> {
+pub type SynthesizerPredicate<T, const N: usize> =
+    Box<dyn Fn(&Arc<SubProgram<T, N>>) -> bool + Send + Sync>;
+
+pub struct Synthesizer<T: ExprAst + Default, const N: usize> {
     bank: ProgBank<T, N>,
     init_opcodes: OpcodesList<T>,
     composite_opcodes: OpcodesList<T>,
     start_context: ContextArray<N>,
-    found_contexts: HashSet<ContextArray<N>>,
+    found_contexts: DashSet<ContextArray<N>>,
+    max_context_depth: usize,
+
+    predicate: SynthesizerPredicate<T, N>,
+    valid: SynthesizerPredicate<T, N>,
 
     statistics: Statistics,
 }
 
-impl<T: ExprAst + Default, const N: usize, const MAX_DEPTH: usize> Synthesizer<T, N, MAX_DEPTH> {
-    pub fn with_context_and_opcodes(
+impl<T: ExprAst + Default, const N: usize> Synthesizer<T, N> {
+    pub fn new(
         start_context: ContextArray<N>,
         opcodes: OpcodesList<T>,
+        predicate: SynthesizerPredicate<T, N>,
+        valid: SynthesizerPredicate<T, N>,
+        max_context_depth: usize,
     ) -> Self {
         let (init_opcodes, composite_opcodes) =
             opcodes.into_iter().partition(|x| x.arg_types().len() == 0);
 
-        let mut new_obj = Self {
+        let new_obj = Self {
             bank: Default::default(),
             init_opcodes: init_opcodes,
             composite_opcodes: composite_opcodes,
             start_context: start_context.clone(),
-            found_contexts: HashSet::new(),
+            found_contexts: DashSet::new(),
+            max_context_depth: max_context_depth,
+            predicate: predicate,
+            valid: valid,
             statistics: Default::default(),
         };
 
         new_obj.found_contexts.insert(start_context);
-        new_obj
-            .statistics
-            .context_count
-            .fetch_add(1, Ordering::Relaxed);
+        new_obj.statistics.inc_value(StatisticsTypes::ContextSize);
         new_obj
     }
 
-    fn init_context(
-        &self,
-        iteration_map: &mut ContextMap<T, N>,
-        ctx: &ContextArray<N>,
-        cache: &Cache,
-    ) {
-        let mut type_map = new_type_map::<T, N>();
+    fn init_context(&self, iteration_map: &ContextMap<T, N>, ctx: &ContextArray<N>, cache: &Cache) {
+        let type_map = new_type_map::<T, N>();
         for op in &self.init_opcodes {
             let p = self.get_program_from_init_opcode(op.clone(), ctx, cache);
-
-            self.statistics.generated.fetch_add(1, Ordering::Relaxed);
             if type_map[p.out_type() as usize].insert(p) {
-                self.statistics.bank_size.fetch_add(1, Ordering::Relaxed);
+                self.statistics.inc_value(StatisticsTypes::BankSize);
             }
         }
 
-        self.statistics
-            .context_count
-            .fetch_add(1, Ordering::Relaxed);
+        self.statistics.inc_value(StatisticsTypes::ContextSize);
         iteration_map.insert(ctx, type_map);
     }
 
-    pub fn run_iteration<F, V>(
-        &mut self,
-        cache: &Cache,
-        predicate: F,
-        valid: V,
-    ) -> Option<Arc<SubProgram<T, N>>>
-    where
-        F: Fn(&Arc<SubProgram<T, N>>) -> bool,
-        V: Fn(&Arc<SubProgram<T, N>>) -> bool,
-    {
-        let iteration = self.bank.iteration_count();
-        let mut current_iteration_map: ContextMap<T, N> = Default::default();
+    fn create_work_gatherer(
+        this: Arc<Self>,
+        current_iteration_map: Arc<ContextMap<T, N>>,
+        cache: Arc<Cache>,
+    ) -> WorkGather<T, N> {
+        WorkGather::new(
+            Arc::new(
+                move |op: &Arc<dyn ExprOpcode<T>>, children: &Vec<Arc<SubProgram<T, N>>>| {
+                    let p = this.get_program_from_composite_opcode(
+                        op.clone(),
+                        children.clone(),
+                        cache.as_ref(),
+                    );
+                    if !this.check_and_insert_program(
+                        p.clone(),
+                        current_iteration_map.as_ref(),
+                    ) {
+                        return None;
+                    }
+                    // println!("Inserting {{{}}}[0] = {}", p.get_code(), p.out_value()[0].val());
+
+                    if this.found_contexts.insert(p.post_ctx().clone()) {
+                        // println!("{} initializes a new context {:?}", p.get_code(), p.post_ctx());
+                        this.init_context(
+                            current_iteration_map.as_ref(),
+                            p.post_ctx(),
+                            cache.as_ref(),
+                        );
+                    }
+                    if &this.start_context == p.pre_ctx() && (this.predicate)(&p) {
+                        return Some(p);
+                    }
+
+                    return None;
+                },
+            ),
+            1000,
+        )
+    }
+
+    pub async fn run_iteration(
+        this: &mut Arc<Self>,
+        cache: &Arc<Cache>
+    ) -> Option<Arc<SubProgram<T, N>>> {
+        let iteration = this.bank.iteration_count();
+        let current_iteration_map: Arc<ContextMap<T, N>> = Default::default();
 
         let mut found_prog = None;
 
         if iteration == 0 {
-            for op in &self.init_opcodes {
-                let p = self.get_program_from_init_opcode(op.clone(), &self.start_context, &cache);
-                if !self.check_and_insert_program(p.clone(), &valid, &mut current_iteration_map) {
+            for op in &this.init_opcodes {
+                let p = this.get_program_from_init_opcode(op.clone(), &this.start_context, cache);
+                if !this.check_and_insert_program(p.clone(), &current_iteration_map) {
                     continue;
                 }
-                if self.found_contexts.insert(p.post_ctx().clone()) {
+                if this.found_contexts.insert(p.post_ctx().clone()) {
                     // println!("{} initializes a new context", p.get_code());
-                    self.init_context(&mut current_iteration_map, p.post_ctx(), cache);
+                    this.init_context(&current_iteration_map, p.post_ctx(), cache);
                 }
-                if predicate(&p) {
+                if (this.predicate)(&p) {
                     found_prog = Some(p);
                     break;
                 }
             }
         } else {
-            for op in &self.composite_opcodes {
-                let children = ChildrenIterator::new(&self.bank, iteration, op.arg_types());
-                for args in children {
-                    let p = self.get_program_from_composite_opcode(op.clone(), args, &cache);
-                    if p.post_ctx()[0].number_of_changes() > MAX_DEPTH {
-                        continue;
-                    }
-                    if !self.check_and_insert_program(p.clone(), &valid, &mut current_iteration_map)
-                    {
-                        continue;
-                    }
-                    if self.found_contexts.insert(p.post_ctx().clone()) {
-                        // println!("{} initializes a new context {:?}", p.get_code(), p.post_ctx());
-                        self.init_context(&mut current_iteration_map, p.post_ctx(), cache);
-                    }
-
-                    if &self.start_context == p.pre_ctx() && predicate(&p) {
-                        found_prog = Some(p);
-                        break;
-                    }
-                }
+            let mut work_gatherer = Synthesizer::create_work_gatherer(
+                this.clone(),
+                current_iteration_map.clone(),
+                cache.clone(),
+            );
+            for op in &this.composite_opcodes {
+                work_gatherer.gather_work_for_next_iteration(&this.bank, op)
             }
+            found_prog = work_gatherer.wait_for_all_tasks().await;
         }
 
-        self.bank.insert(current_iteration_map);
+        Synthesizer::insert_iteration(this, current_iteration_map);
 
         found_prog
     }
 
+    fn insert_iteration(this: &mut Arc<Self>, current_iteration_map: Arc<ContextMap<T, N>>) {
+        unsafe {
+            Arc::get_mut(this)
+                .unwrap_unchecked()
+                .bank
+                .insert(current_iteration_map.into());
+        }
+    }
+
     fn evaluate_program(&self, p: &mut Arc<SubProgram<T, N>>, cache: &Cache) {
         unsafe { Arc::get_mut(p).unwrap_unchecked() }.evaluate(cache);
-        self.statistics.generated.fetch_add(1, Ordering::Relaxed);
+        self.statistics.inc_value(StatisticsTypes::Evaluated);
         // println!("{{{}}} generated", p.get_code());
     }
 
@@ -199,24 +273,35 @@ impl<T: ExprAst + Default, const N: usize, const MAX_DEPTH: usize> Synthesizer<T
         p
     }
 
-    fn check_and_insert_program<V>(
-        &self,
-        p: Arc<SubProgram<T, N>>,
-        valid: V,
-        iteration_map: &mut ContextMap<T, N>,
-    ) -> bool
-    where
-        V: Fn(&Arc<SubProgram<T, N>>) -> bool,
-    {
-        if self.bank.output_exists(&p) {
+    fn check_program(&self, p: &Arc<SubProgram<T, N>>) -> bool {
+        if p.post_ctx()[0].number_of_changes() > self.max_context_depth {
             return false;
         }
-        if !valid(&p) {
+        if self.bank.output_exists(p) {
+            return false;
+        }
+        if !(self.valid)(p) {
+            return false;
+        }
+
+        return true;
+    }
+
+    fn check_and_insert_program(
+        &self,
+        p: Arc<SubProgram<T, N>>,
+        iteration_map: &ContextMap<T, N>,
+    ) -> bool {
+        if !self.check_program(&p) {
             return false;
         }
 
         if iteration_map.insert_program(p.clone()) {
-            self.statistics.bank_size.fetch_add(1, Ordering::Relaxed);
+            self.statistics.inc_value(StatisticsTypes::BankSize);
+            self.statistics
+                .max_value(StatisticsTypes::MaxDepth, p.depth().into());
+            self.statistics
+                .max_value(StatisticsTypes::MaxSize, p.size().into());
 
             return true;
         }
@@ -224,7 +309,7 @@ impl<T: ExprAst + Default, const N: usize, const MAX_DEPTH: usize> Synthesizer<T
     }
 
     #[inline]
-    pub fn statistics(&self) -> &Statistics {
-        &self.statistics
+    pub fn statistics(&self) -> CurrentStatistics {
+        self.statistics.current()
     }
 }

@@ -7,9 +7,10 @@ edition = "2021"
 ruse_object_graph = { path = "../object_graph" }
 
 petgraph = "^0.6.2"
-rayon = "*"
-dashmap = "*"
+dashmap = { version = "*" }
 rand = "*"
+tokio = { version = "*", features = ["rt"] }
+itertools = "*"
 
 [dev-dependencies]
 criterion = "*"

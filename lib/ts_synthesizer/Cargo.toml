@@ -16,8 +16,10 @@ swc_ecma_parser = "*"
 swc_ecma_ast = "*"
 swc_visit = "*"
 
+tokio = {version = "*", features = ["rt-multi-thread", "sync", "time"]}
+
 [dev-dependencies]
-criterion = "*"
+criterion = { version = "*", features = ["async_tokio"] }
 
 [[bench]]
 name = "benches"

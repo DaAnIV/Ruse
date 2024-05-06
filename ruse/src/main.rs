@@ -1,6 +1,7 @@
 // use interpreter::{PreCondition, object_graph::ObjectNodeType};
 // use rustpython_parser as parser;
-use std::process::ExitCode;
+use std::{process::ExitCode, time::Instant};
+// use std::thread;
 
 use object_graph::{str_cached, Number};
 use rand::{rngs::StdRng, SeedableRng};
@@ -10,12 +11,17 @@ use rand::{rngs::StdRng, SeedableRng};
 // use ruse_ts_interpreter as ts_interpreter;
 // mod synthesizer;
 use ruse_object_graph as object_graph;
+// use ruse_synthesizer::opcode::ExprOpcode;
 use ruse_synthesizer::{
+    // bank::{ContextMap, ProgBank, WorkGather},
     context::Context,
+    // prog::SubProgram,
     value::ValueType,
     vnum,
 };
+// use ruse_ts_interpreter::opcode::{BinOp, LitOp, TsExprAst};
 use ruse_ts_synthesizer::*;
+// use swc_ecma_ast as ast;
 
 use std::sync::Arc;
 // use swc::PrintArgs;
@@ -60,8 +66,64 @@ fn get_serialized_graphs_from_range(
     return graphs;
 }
 
-fn main() -> ExitCode {
-    let cache = object_graph::Cache::new();
+// fn test_work_gatherer()
+// {
+//     unsafe { CACHE = Some(object_graph::Cache::new()) };
+//     let cache = unsafe { CACHE.as_ref().unwrap() };
+
+//     let ctx = Arc::new([
+//         Context::with_values(
+//             [
+//                 (str_cached!(cache; "x"), vnum!(Number::from(4u64))),
+//                 (str_cached!(cache; "y"), vnum!(Number::from(2u64))),
+//             ]
+//             .into(),
+//         ),
+//         Context::with_values(
+//             [
+//                 (str_cached!(cache; "x"), vnum!(Number::from(5u64))),
+//                 (str_cached!(cache; "y"), vnum!(Number::from(3u64))),
+//             ]
+//             .into(),
+//         ),
+//     ]);
+
+//     let mut bank = ProgBank::<TsExprAst, 2>::default();
+//     for i in 0..3 {
+//         let opcode = Arc::new(LitOp::Num(Number::from(i as u64)));
+//         let mut ctx_map = ContextMap::<TsExprAst, 2>::default();
+//         let mut p = SubProgram::<TsExprAst, 2>::with_opcode_and_context(opcode, &ctx);
+//         unsafe { Arc::get_mut(&mut p).unwrap_unchecked() }.evaluate(cache);
+//         ctx_map.insert_program(p);
+//         bank.insert(ctx_map);
+//     }
+
+//     let bin_op: Arc<dyn ExprOpcode<TsExprAst>> = Arc::new(BinOp {
+//         op: ast::BinaryOp::Add,
+//         arg_types: [ValueType::Number, ValueType::Number],
+//     });
+
+//     let mut gatherer = WorkGather::new(
+//         |op: &Arc<dyn ExprOpcode<TsExprAst>>, children: &Vec<Arc<SubProgram<TsExprAst, 2>>>| {
+//             let cache = unsafe { CACHE.as_ref().unwrap() };
+//             let mut p =
+//                 SubProgram::<TsExprAst, 2>::with_opcode_and_children(op.clone(), children.clone());
+//             unsafe { Arc::get_mut(&mut p).unwrap_unchecked() }.evaluate(cache);
+//             println!("({:?}): {}", thread::current().id(), p);
+//             println!("");
+//         },
+//         3,
+//     );
+
+//     gatherer.gather_work_for_next_iteration(&bank, &bin_op);
+// }
+
+#[tokio::main]
+async fn main() -> ExitCode {
+    // test_work_gatherer();
+
+    let cache = Arc::new(object_graph::Cache::new());
+
     let ctx = Arc::new([
         Context::with_values(
             [
@@ -79,64 +141,69 @@ fn main() -> ExitCode {
         ),
     ]);
 
-    let expected_outputs = [Number::from(225u64), Number::from(576u64)];
-    
     let opcodes = construct_opcode_list(
         &[str_cached!(cache; "x"), str_cached!(cache; "y")],
         &[-1f64, 1f64],
         &ALL_BIN_NUM_OPCODES,
-        &ALL_UNARY_NUM_OPCODES,
+        &[],
         &ALL_UPDATE_NUM_OPCODES,
         false,
         &[],
         &[],
         &[],
     );
-    let mut synthesizer = TsSynthesizer::with_context_and_opcodes(ctx.clone(), opcodes);
-
-    for i in 1..=5 {
-        if let Some(p) = synthesizer.run_iteration(
-            &cache,
-            |x| {
-                if x.out_type() != ValueType::Number {
+    let synthesizer = TsSynthesizer::new(
+        ctx.clone(),
+        opcodes,
+        Box::new(|x| {
+            let expected_outputs = [Number::from(225), Number::from(576)];
+            if x.out_type() != ValueType::Number {
+                return false;
+            }
+            // let x_var = x.post_ctx()[0].get_var_loc_value(&str_cached!(cache; "x"));
+            // let y_var = x.post_ctx()[0].get_var_loc_value(&str_cached!(cache; "y"));
+            // if x_var.val() != &vnum!(Number::from(5u64)) { return false; }
+            // if y_var.val() != &vnum!(Number::from(3u64)) { return false; }
+            for (v, e) in x.out_value().iter().zip(expected_outputs) {
+                let v_num = unsafe { v.val().number_value().unwrap_unchecked() };
+                if v_num != e {
                     return false;
                 }
-                let x_var = x.post_ctx()[0].get_var_loc_value(&str_cached!(cache; "x"));
-                let y_var = x.post_ctx()[0].get_var_loc_value(&str_cached!(cache; "y"));
-                if x_var.val() != &vnum!(Number::from(5u64)) { return false; }
-                if y_var.val() != &vnum!(Number::from(3u64)) { return false; }
-                for (v, e) in x.out_value().iter().zip(expected_outputs) {
-                    let v_num = unsafe { v.val().number_value().unwrap_unchecked() };
-                    if v_num != e {
-                        return false;
-                    }
-                }
-                return true;
-            },
-            |x| {
-                if x.out_type() == ValueType::Number {
-                    println!("({}) {{ {} }} ({}, {})", x.pre_ctx()[0], x.get_code(), x.out_value()[0].val().number_value().unwrap(), x.post_ctx()[0]);
-                    return x.out_value().iter().all(|v| {
-                        let n = v.val().number_value().unwrap().0;
-                        return n.is_finite() && n.abs() < 1000f64;
-                    })
-                }
-                return true;
-            },
-        ) {
+            }
+            return true;
+        }),
+        Box::new(|x| {
+            if x.out_type() == ValueType::Number {
+                // println!("({}) {{ {} }} ({}, {})", x.pre_ctx()[0], x.get_code(), x.out_value()[0].val().number_value().unwrap(), x.post_ctx()[0]);
+                return x.out_value().iter().all(|v| {
+                    let n = v.val().number_value().unwrap().0;
+                    return n.is_finite() && n.abs() < 1000f64;
+                });
+            }
+            return true;
+        }),
+        3,
+    );
+
+    let start = Instant::now();
+    for i in 1..=5 {
+        let iteration_start = Instant::now();
+        let res = synthesizer.run_iteration(&cache).await;
+        println!(
+            "Iteration {} took {:.3}s",
+            i,
+            iteration_start.elapsed().as_secs_f32()
+        );
+        println!("statistics: {}", synthesizer.statistics());
+
+        if let Some(p) = res {
             println!(
-                "{}: statistics: {}",
-                i,
-                synthesizer.statistics()
+                "Found p = {{{}}} in {:.3}s",
+                p.get_code(),
+                start.elapsed().as_secs_f32()
             );
-            println!("Found p = {{{}}}", p.get_code());
             break;
         }
-        println!(
-            "{}: statistics: {}",
-            i,
-            synthesizer.statistics()
-        );
     }
 
     // let cache = object_graph::Cache::new();

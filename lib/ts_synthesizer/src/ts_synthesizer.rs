@@ -2,40 +2,46 @@ use ruse_object_graph::Cache;
 use ruse_synthesizer::{
     bank::ContextArray,
     prog::SubProgram,
-    synthesizer::{OpcodesList, Statistics, Synthesizer},
+    synthesizer::{CurrentStatistics, OpcodesList, Synthesizer, SynthesizerPredicate},
 };
 use ruse_ts_interpreter::opcode::TsExprAst;
 
 use std::sync::Arc;
 
-pub struct TsSynthesizer<const N: usize>(Synthesizer<TsExprAst, N>);
+pub struct TsSynthesizer<const N: usize> {
+    inner: Arc<Synthesizer<TsExprAst, N>>,
+}
 
 impl<const N: usize> TsSynthesizer<N> {
-    pub fn with_context_and_opcodes(
+    pub fn new(
         start_context: ContextArray<N>,
         opcodes: OpcodesList<TsExprAst>,
+        predicate: SynthesizerPredicate<TsExprAst, N>,
+        valid: SynthesizerPredicate<TsExprAst, N>,
+        max_context_depth: usize
     ) -> Self {
         Self {
-            0: Synthesizer::with_context_and_opcodes(start_context, opcodes),
+            inner: Arc::new(Synthesizer::new(
+                start_context,
+                opcodes,
+                predicate,
+                valid,
+                max_context_depth
+            )),
         }
     }
 
     #[inline]
-    pub fn run_iteration<F, V>(
-        &mut self,
-        cache: &Cache,
-        predicate: F,
-        valid: V,
+    pub async fn run_iteration(
+        &self,
+        cache: &Arc<Cache>,
     ) -> Option<Arc<SubProgram<TsExprAst, N>>>
-    where
-        F: Fn(&Arc<SubProgram<TsExprAst, N>>) -> bool,
-        V: Fn(&Arc<SubProgram<TsExprAst, N>>) -> bool,
     {
-        self.0.run_iteration(cache, predicate, valid)
+        Synthesizer::run_iteration(&mut self.inner.clone(), cache).await
     }
 
     #[inline]
-    pub fn statistics(&self) -> &Statistics {
-        &self.0.statistics()
+    pub fn statistics(&self) -> CurrentStatistics {
+        self.inner.statistics()
     }
 }
