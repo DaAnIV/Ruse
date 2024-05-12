@@ -142,13 +142,15 @@ pub type PointersMap = BTreeMap<Arc<String>, (EdgeIndex, NodeIndex)>;
 
 #[derive(Clone)]
 pub struct ObjectData {
+    pub obj_type: Arc<String>,
     pub fields: Arc<FieldsMap>,
     pub(super) pointers: Arc<PointersMap>,
 }
 
 impl ObjectData {
-    pub fn new(fields: Arc<FieldsMap>) -> Self {
+    pub fn new(obj_type: Arc<String>, fields: Arc<FieldsMap>) -> Self {
         ObjectData {
+            obj_type: obj_type,
             fields: fields,
             pointers: Default::default()
         }

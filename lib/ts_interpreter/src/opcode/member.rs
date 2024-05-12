@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use ruse_object_graph::{scached, Cache, PrimitiveValue};
 use ruse_synthesizer::context::*;
 use ruse_synthesizer::opcode::ExprOpcode;
@@ -14,9 +16,9 @@ pub struct MemberOp {
 }
 
 impl MemberOp {
-    pub fn new(field_access_type: ValueType) -> Self {
+    pub fn new(obj_type: Arc<String>, field_access_type: ValueType) -> Self {
         Self {
-            arg_types: [ValueType::Object, field_access_type],
+            arg_types: [ValueType::Object(obj_type), field_access_type],
         }
     }
 }

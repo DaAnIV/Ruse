@@ -1,33 +1,13 @@
-use ruse_object_graph::{NodeIndex, Number, ObjectGraph, PrimitiveValue};
 use core::fmt;
+use ruse_object_graph::{NodeIndex, Number, ObjectGraph, PrimitiveValue};
 use std::sync::Arc;
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub enum ValueType {
-    Number = 0,
+    Number,
     Bool,
     String,
-    Object,
-}
-
-impl ValueType {
-    pub const fn range() -> usize {
-        return ValueType::Object as usize;
-    }
-}
-
-impl TryFrom<usize> for ValueType {
-    type Error = ();
-
-    fn try_from(value: usize) -> Result<Self, Self::Error> {
-        match value {
-            0 => Ok(ValueType::Number),
-            1 => Ok(ValueType::Bool),
-            2 => Ok(ValueType::String),
-            3 => Ok(ValueType::Number),
-            _ => Err(()),
-        }
-    }
+    Object(Arc<String>),
 }
 
 #[derive(PartialEq, Eq, Debug, Clone, Hash)]
@@ -79,6 +59,10 @@ impl ObjectValue {
                 None => None,
             },
         }
+    }
+
+    pub fn obj_type(&self) -> Arc<String> {
+        self.graph.node_weight(self.node).unwrap().obj_type.clone()
     }
 }
 
@@ -141,7 +125,7 @@ impl Value {
                 PrimitiveValue::String(_) => ValueType::String,
                 PrimitiveValue::Null => todo!(),
             },
-            Value::Object(_) => ValueType::Object,
+            Value::Object(o) => ValueType::Object(o.obj_type()),
         }
     }
 }
@@ -186,7 +170,7 @@ impl fmt::Display for ValueType {
             ValueType::Number => f.write_str("Number"),
             ValueType::Bool => f.write_str("Bool"),
             ValueType::String => f.write_str("String"),
-            ValueType::Object => f.write_str("Object"),
+            ValueType::Object(o) => f.write_fmt(format_args!("Object({})", o.as_str())),
         }
     }
 }

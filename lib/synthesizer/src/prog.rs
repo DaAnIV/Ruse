@@ -54,7 +54,7 @@ fn verify_children<T: ExprAst, const N: usize>(
     if children
         .into_iter()
         .zip(opcode.arg_types().into_iter())
-        .any(|(c, t)| c.out_type.unwrap() != *t)
+        .any(|(c, t)| c.out_type.as_ref().unwrap() != t)
     {
         return false;
     }
@@ -139,14 +139,14 @@ where
 
             // Evaluate and verify the output type is consistent
             let out_val = self.opcode.eval(&mut out_ctx, &args, cache);
-            assert!(out_type.is_none() || out_type.unwrap() == out_val.val.val_type());
+            debug_assert!(out_type.is_none() || out_type == Some(out_val.val.val_type()));
             let _ = out_type.get_or_insert(out_val.val.val_type());
 
             post_ctx.push(out_ctx);
             out_value.push(out_val);
         }
 
-        self.out_type = out_type;
+        self.out_type = out_type.clone();
         self.post_ctx = Some(Arc::new(post_ctx.try_into().unwrap()));
         self.out_value = Some(Arc::new(out_value.try_into().unwrap()));
     }
@@ -172,7 +172,7 @@ where
 
     #[inline]
     pub fn out_type(&self) -> ValueType {
-        self.out_type.unwrap()
+        self.out_type.as_ref().unwrap().clone()
     }
 
     #[inline]

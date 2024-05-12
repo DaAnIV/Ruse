@@ -84,6 +84,7 @@ impl ExprOpcode<TsExprAst> for ArrayLitOp {
         ctx.temp_value(create_out_object(
             seen_graphs.into_values().collect(),
             cache,
+            str_cached!(cache; "Array"),
             fields,
             &obj_keys,
         ))
@@ -114,12 +115,13 @@ impl ExprOpcode<TsExprAst> for ArrayLitOp {
 fn create_out_object(
     graphs: Vec<Arc<ObjectGraph>>,
     cache: &Cache,
+    obj_type: Arc<String>,
     fields: FieldsMap,
     obj_keys: &Vec<(Arc<String>, (u64, NodeIndex))>,
 ) -> Value {
     let (mut out, nodes_map) = ObjectGraph::union(&graphs);
 
-    let root = out.add_root(cache.temp_string(), ObjectData::new(fields.into()));
+    let root = out.add_root(cache.temp_string(), ObjectData::new(obj_type, fields.into()));
     for (key, old_node) in obj_keys {
         out.add_edge(root, nodes_map[old_node], &key);
     }

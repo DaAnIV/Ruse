@@ -30,6 +30,7 @@ pub struct ObjectGraph {
 #[derive(bitcode::Encode)]
 struct SerializableNode {
     id: usize,
+    obj_type: Arc<String>,
     fields: Arc<FieldsMap>,
     pointers: Vec<(u64, usize)>,
 }
@@ -98,7 +99,7 @@ impl ObjectGraph {
         }
 
         let node = g.node_weight(n).unwrap();
-        let new_object_data = ObjectData::new(node.fields.clone());
+        let new_object_data = ObjectData::new(node.obj_type.clone(), node.fields.clone());
         let new_node = out.add_node(new_object_data);
 
         seen.insert((ptr, n), new_node);
@@ -288,6 +289,7 @@ impl ObjectGraph {
                 graph.nodes.push({
                     SerializableNode {
                         id: graph.nodes.len(),
+                        obj_type: node.obj_type.clone(),
                         fields: node.fields.clone(),
                         pointers: node
                             .pointers

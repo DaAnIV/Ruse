@@ -137,10 +137,10 @@ impl<T: ExprAst + Default, const N: usize> Synthesizer<T, N> {
     }
 
     fn init_context(&self, iteration_map: &ContextMap<T, N>, ctx: &ContextArray<N>, cache: &Cache) {
-        let type_map = new_type_map::<T, N>();
+        let type_map: TypeMap<T, N> = Default::default();
         for op in &self.init_opcodes {
             let p = self.get_program_from_init_opcode(op.clone(), ctx, cache);
-            if type_map[p.out_type() as usize].insert(p) {
+            if type_map.insert_program(p) {
                 self.statistics.inc_value(StatisticsTypes::BankSize);
             }
         }

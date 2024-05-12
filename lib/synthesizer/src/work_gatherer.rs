@@ -118,7 +118,9 @@ where
         let arg_types = op.arg_types();
         let mut children = Vec::with_capacity(arg_types.len());
         for t in bank.bank[iterations[0]].0.iter() {
-            for p in t[arg_types[0] as usize].iter() {
+            let values = t.0.get(&arg_types[0]);
+            if values.is_none() { continue; }
+            for p in unsafe { values.unwrap_unchecked().iter() } {
                 children.push(p.clone());
                 self.gather_work_for_iterations_with_progs(bank, op, iterations, &mut children);
                 children.pop();
@@ -140,7 +142,9 @@ where
 
         let ctx = children.last().unwrap().post_ctx();
         if let Some(type_map) = bank.bank[iterations[i]].get(ctx) {
-            for p in type_map[op.arg_types()[i] as usize].iter() {
+            let values = type_map.0.get(&op.arg_types()[i]);
+            if values.is_none() { return; }
+            for p in unsafe { values.unwrap_unchecked().iter() } {
                 children.push(p.clone());
                 self.gather_work_for_iterations_with_progs(bank, op, iterations, children);
                 children.pop();
