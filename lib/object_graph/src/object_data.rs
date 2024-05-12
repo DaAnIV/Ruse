@@ -1,10 +1,11 @@
-
-use std::fmt::{self, Display, Formatter};
-use std::{fmt::Debug, sync::Arc};
-use std::hash::{Hash, Hasher};
-use std::collections::BTreeMap;
-use petgraph::graph::{EdgeIndex, NodeIndex};
 use bitcode;
+use petgraph::graph::{EdgeIndex, NodeIndex};
+use std::collections::BTreeMap;
+use std::fmt::{self, Display, Formatter};
+use std::hash::{Hash, Hasher};
+use std::{fmt::Debug, sync::Arc};
+
+use crate::CachedString;
 
 #[derive(bitcode::Encode, Clone, Copy, Debug, PartialOrd)]
 pub struct Number(pub f64);
@@ -110,7 +111,7 @@ impl Default for Number {
 pub enum PrimitiveValue {
     Number(Number),
     Bool(bool),
-    String(Arc<String>),
+    String(CachedString),
     Null,
 }
 
@@ -118,45 +119,45 @@ impl PrimitiveValue {
     pub fn number(&self) -> Option<Number> {
         match self {
             PrimitiveValue::Number(n) => Some(n.clone()),
-            _ => None
+            _ => None,
         }
     }
 
     pub fn bool(&self) -> Option<bool> {
         match self {
             PrimitiveValue::Bool(b) => Some(b.clone()),
-            _ => None
+            _ => None,
         }
     }
 
-    pub fn string(&self) -> Option<Arc<String>> {
+    pub fn string(&self) -> Option<CachedString> {
         match self {
             PrimitiveValue::String(s) => Some(s.clone()),
-            _ => None
+            _ => None,
         }
     }
 }
 
-pub type FieldsMap = BTreeMap<Arc<String>, PrimitiveValue>;
-pub type PointersMap = BTreeMap<Arc<String>, (EdgeIndex, NodeIndex)>;
+pub type FieldsMap = BTreeMap<CachedString, PrimitiveValue>;
+pub type PointersMap = BTreeMap<CachedString, (EdgeIndex, NodeIndex)>;
 
 #[derive(Clone)]
 pub struct ObjectData {
-    pub obj_type: Arc<String>,
+    pub obj_type: CachedString,
     pub fields: Arc<FieldsMap>,
     pub(super) pointers: Arc<PointersMap>,
 }
 
 impl ObjectData {
-    pub fn new(obj_type: Arc<String>, fields: Arc<FieldsMap>) -> Self {
+    pub fn new(obj_type: CachedString, fields: Arc<FieldsMap>) -> Self {
         ObjectData {
             obj_type: obj_type,
             fields: fields,
-            pointers: Default::default()
+            pointers: Default::default(),
         }
     }
 
-    pub fn get_neighbor(&self, name: &Arc<String>) -> Option<NodeIndex> {
+    pub fn get_neighbor(&self, name: &CachedString) -> Option<NodeIndex> {
         Some(self.pointers.get(name)?.1)
     }
 }
@@ -172,7 +173,9 @@ impl Hash for ObjectData {
 
 impl Debug for ObjectData {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("ObjectData").field("fields", &self.fields).finish()
+        f.debug_struct("ObjectData")
+            .field("fields", &self.fields)
+            .finish()
     }
 }
 

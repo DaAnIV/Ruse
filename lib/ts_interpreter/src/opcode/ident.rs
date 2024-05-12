@@ -1,6 +1,4 @@
-use std::sync::Arc;
-
-use ruse_object_graph::Cache;
+use ruse_object_graph::{Cache, CachedString};
 use ruse_synthesizer::context::*;
 use ruse_synthesizer::opcode::ExprOpcode;
 use ruse_synthesizer::value::*;
@@ -12,7 +10,7 @@ use super::TsExprAst;
 
 #[derive(Debug)]
 pub struct IdentOp {
-    pub name: Arc<String>,
+    pub name: CachedString,
 }
 
 impl ExprOpcode<TsExprAst> for IdentOp {

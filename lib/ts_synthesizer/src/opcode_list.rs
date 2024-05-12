@@ -1,4 +1,4 @@
-use ruse_object_graph::Number;
+use ruse_object_graph::{CachedString, Number};
 use ruse_synthesizer::{synthesizer::OpcodesList, value::ValueType};
 use ruse_ts_interpreter::opcode::{self, TsExprAst};
 use std::sync::Arc;
@@ -54,7 +54,7 @@ pub const ALL_UNARY_BOOL_OPCODES: [ast::UnaryOp; 1] = [
 ];
 
 pub fn construct_opcode_list(
-    var_names: &[Arc<String>],
+    var_names: &[CachedString],
     num_literals: &[f64],
     bin_num_opcodes: &[ast::BinaryOp],
     unary_num_opcodes: &[ast::UnaryOp],
@@ -62,7 +62,7 @@ pub fn construct_opcode_list(
     add_bool_lit: bool,
     bin_bool_opcodes: &[ast::BinaryOp],
     unary_bool_opcodes: &[ast::UnaryOp],
-    string_literals: &[Arc<String>],
+    string_literals: &[CachedString],
 ) -> OpcodesList<TsExprAst> {
     let mut opcodes: OpcodesList<TsExprAst> = Vec::new();
 

@@ -1,7 +1,7 @@
 use bitcode;
-use petgraph::stable_graph::{StableDiGraph, NodeIndices, EdgeIndices};
+use petgraph::stable_graph::{EdgeIndices, NodeIndices, StableDiGraph};
 use std::collections::hash_map::DefaultHasher;
-use std::collections::{BTreeMap, HashMap, VecDeque, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
 use std::fmt::Debug;
 use std::hash::{Hash, Hasher};
 use std::iter::zip;
@@ -11,12 +11,12 @@ use std::sync::Arc;
 // Reexport
 pub use petgraph::graph::{EdgeIndex, NodeIndex};
 
-use crate::PrimitiveValue;
+use crate::{CachedString, PrimitiveValue};
 
 use super::{FieldsMap, ObjectData};
 
-pub type GraphType = StableDiGraph<ObjectData, Arc<String>>;
-pub type RootsMap = BTreeMap<Arc<String>, NodeIndex>;
+pub type GraphType = StableDiGraph<ObjectData, CachedString>;
+pub type RootsMap = BTreeMap<CachedString, NodeIndex>;
 
 pub struct ObjectGraph {
     pub(crate) graph: GraphType,
@@ -30,7 +30,7 @@ pub struct ObjectGraph {
 #[derive(bitcode::Encode)]
 struct SerializableNode {
     id: usize,
-    obj_type: Arc<String>,
+    obj_type: CachedString,
     fields: Arc<FieldsMap>,
     pointers: Vec<(u64, usize)>,
 }
@@ -90,7 +90,7 @@ impl ObjectGraph {
         n: NodeIndex,
         q: &mut VecDeque<NodeIndex>,
         seen: &mut HashMap<(u64, NodeIndex), NodeIndex>,
-        pointers: &mut Vec<(NodeIndex, (u64, NodeIndex), Arc<String>)>,
+        pointers: &mut Vec<(NodeIndex, (u64, NodeIndex), CachedString)>,
     ) -> NodeIndex {
         let ptr = ptr::addr_of!(g) as u64;
 
@@ -111,7 +111,9 @@ impl ObjectGraph {
         new_node
     }
 
-    pub fn union(graphs: &[Arc<ObjectGraph>]) -> (ObjectGraph, HashMap<(u64, NodeIndex), NodeIndex>) {
+    pub fn union(
+        graphs: &[Arc<ObjectGraph>],
+    ) -> (ObjectGraph, HashMap<(u64, NodeIndex), NodeIndex>) {
         let mut seen_graphs = HashSet::with_capacity(graphs.len());
         let mut seen = HashMap::new();
         let mut pointers = vec![];
@@ -119,7 +121,7 @@ impl ObjectGraph {
         let mut out = (*graphs[0]).clone();
 
         seen_graphs.insert(Arc::as_ptr(&graphs[0]) as u64);
-        
+
         for g in graphs.iter().skip(1) {
             if !seen_graphs.insert(Arc::as_ptr(g) as u64) {
                 continue;
@@ -150,7 +152,12 @@ impl ObjectGraph {
         self.graph.remove_node(idx)
     }
 
-    pub fn set_field(&mut self, object: NodeIndex, field_name: Arc<String>, field: PrimitiveValue) {
+    pub fn set_field(
+        &mut self,
+        object: NodeIndex,
+        field_name: CachedString,
+        field: PrimitiveValue,
+    ) {
         // Todo: Handle field being a pointer
         self.serialized = None;
         let node = self.graph.node_weight_mut(object).unwrap();
@@ -159,12 +166,16 @@ impl ObjectGraph {
         node.fields = new_fields.into();
     }
 
-    pub fn get_field(&self, object: NodeIndex, field_name: &Arc<String>) -> Option<&PrimitiveValue> {
+    pub fn get_field(
+        &self,
+        object: NodeIndex,
+        field_name: &CachedString,
+    ) -> Option<&PrimitiveValue> {
         let node = self.graph.node_weight(object).unwrap();
         node.fields.get(field_name)
     }
 
-    pub fn remove_field(&mut self, object: NodeIndex, field_name: &Arc<String>) {
+    pub fn remove_field(&mut self, object: NodeIndex, field_name: &CachedString) {
         self.serialized = None;
         let node = self.graph.node_weight_mut(object).unwrap();
         let mut new_fields = (*node.fields).clone();
@@ -176,7 +187,7 @@ impl ObjectGraph {
         &mut self,
         object: NodeIndex,
         field: NodeIndex,
-        field_name: &Arc<String>,
+        field_name: &CachedString,
     ) -> EdgeIndex {
         self.serialized = None;
         let edge = self.graph.add_edge(object, field, field_name.clone());
@@ -187,7 +198,7 @@ impl ObjectGraph {
         return edge;
     }
 
-    pub fn remove_edge(&mut self, idx: EdgeIndex) -> Option<Arc<String>> {
+    pub fn remove_edge(&mut self, idx: EdgeIndex) -> Option<CachedString> {
         self.serialized = None;
         let (node_idx, _) = self.graph.edge_endpoints(idx)?;
         let field_name = self.edge_weight(idx).unwrap().clone();
@@ -198,7 +209,7 @@ impl ObjectGraph {
         self.graph.remove_edge(idx)
     }
 
-    pub fn get_neighbor(&self, object: NodeIndex, field_name: &Arc<String>) -> Option<NodeIndex> {
+    pub fn get_neighbor(&self, object: NodeIndex, field_name: &CachedString) -> Option<NodeIndex> {
         let node = self.graph.node_weight(object).unwrap();
         node.get_neighbor(field_name)
     }
@@ -207,35 +218,35 @@ impl ObjectGraph {
         self.graph.node_weight(a)
     }
 
-    pub fn edge_weight(&self, a: EdgeIndex) -> Option<Arc<String>> {
+    pub fn edge_weight(&self, a: EdgeIndex) -> Option<CachedString> {
         match self.graph.edge_weight(a) {
             Some(e) => Some(e.clone()),
             None => None,
         }
     }
 
-    pub fn add_root(&mut self, r: Arc<String>, data: ObjectData) -> NodeIndex {
+    pub fn add_root(&mut self, r: CachedString, data: ObjectData) -> NodeIndex {
         self.serialized = None;
         let index = self.add_node(data);
         self.roots.insert(r, index);
         return index;
     }
 
-    pub fn set_as_root(&mut self, r: Arc<String>, index: NodeIndex) {
+    pub fn set_as_root(&mut self, r: CachedString, index: NodeIndex) {
         self.serialized = None;
         self.roots.insert(r, index);
     }
 
-    pub fn remove_root(&mut self, r: &Arc<String>) {
+    pub fn remove_root(&mut self, r: &CachedString) {
         self.serialized = None;
         self.roots.remove(r);
     }
 
-    pub fn get_root(&self, r: &Arc<String>) -> NodeIndex {
+    pub fn get_root(&self, r: &CachedString) -> NodeIndex {
         self.roots[r]
     }
 
-    pub fn roots<'a>(&'a self) -> Box<dyn Iterator<Item=(&Arc<String>, &NodeIndex)>+'a> {
+    pub fn roots<'a>(&'a self) -> Box<dyn Iterator<Item = (&CachedString, &NodeIndex)> + 'a> {
         Box::new(self.roots.iter())
     }
 
@@ -324,7 +335,7 @@ impl ObjectGraph {
     }
 
     #[inline]
-    pub fn edge_indices(&self) -> EdgeIndices<Arc<String>> {
+    pub fn edge_indices(&self) -> EdgeIndices<CachedString> {
         self.graph.edge_indices()
     }
 
@@ -337,23 +348,19 @@ impl ObjectGraph {
 impl Clone for ObjectGraph {
     fn clone(&self) -> Self {
         match &self.serialized {
-            Some(s) => {
-                Self {
-                    graph: self.graph.clone(),
-                    roots: self.roots.clone(),
-                    serialized_buffer: bitcode::Buffer::with_capacity(s.len()),
-                    serialized: self.serialized.clone(),
-                    hash: 0,
-                }
+            Some(s) => Self {
+                graph: self.graph.clone(),
+                roots: self.roots.clone(),
+                serialized_buffer: bitcode::Buffer::with_capacity(s.len()),
+                serialized: self.serialized.clone(),
+                hash: 0,
             },
-            None => {
-                Self {
-                    graph: self.graph.clone(),
-                    roots: self.roots.clone(),
-                    serialized_buffer: Default::default(),
-                    serialized: None,
-                    hash: 0,
-                }
+            None => Self {
+                graph: self.graph.clone(),
+                roots: self.roots.clone(),
+                serialized_buffer: Default::default(),
+                serialized: None,
+                hash: 0,
             },
         }
     }

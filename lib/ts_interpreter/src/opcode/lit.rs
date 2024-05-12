@@ -13,7 +13,7 @@ use super::TsExprAst;
 #[derive(Debug)]
 pub enum LitOp {
     Null,
-    Str(Arc<String>),
+    Str(CachedString),
     Bool(bool),
     Num(Number),
 }
@@ -115,9 +115,9 @@ impl ExprOpcode<TsExprAst> for ArrayLitOp {
 fn create_out_object(
     graphs: Vec<Arc<ObjectGraph>>,
     cache: &Cache,
-    obj_type: Arc<String>,
+    obj_type: CachedString,
     fields: FieldsMap,
-    obj_keys: &Vec<(Arc<String>, (u64, NodeIndex))>,
+    obj_keys: &Vec<(CachedString, (u64, NodeIndex))>,
 ) -> Value {
     let (mut out, nodes_map) = ObjectGraph::union(&graphs);
 
@@ -135,9 +135,9 @@ fn create_out_object(
 fn visit_field(
     val: &Value,
     fields: &mut FieldsMap,
-    key: Arc<String>,
+    key: CachedString,
     seen_graphs: &mut HashMap<u64, Arc<ObjectGraph>>,
-    obj_keys: &mut Vec<(Arc<String>, (u64, NodeIndex))>,
+    obj_keys: &mut Vec<(CachedString, (u64, NodeIndex))>,
 ) {
     match val {
         Value::Primitive(p) => {

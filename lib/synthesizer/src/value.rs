@@ -1,5 +1,5 @@
 use core::fmt;
-use ruse_object_graph::{NodeIndex, Number, ObjectGraph, PrimitiveValue};
+use ruse_object_graph::{CachedString, NodeIndex, Number, ObjectGraph, PrimitiveValue};
 use std::sync::Arc;
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
@@ -7,7 +7,7 @@ pub enum ValueType {
     Number,
     Bool,
     String,
-    Object(Arc<String>),
+    Object(CachedString),
 }
 
 #[derive(PartialEq, Eq, Debug, Clone, Hash)]
@@ -24,14 +24,14 @@ pub enum Value {
 
 #[derive(PartialEq, Eq, Debug, Clone, Hash)]
 pub struct ObjectFieldLoc {
-    pub var: Arc<String>,
+    pub var: CachedString,
     pub node: NodeIndex,
-    pub field: Arc<String>,
+    pub field: CachedString,
 }
 
 #[derive(PartialEq, Eq, Debug, Clone, Hash)]
 pub struct VarLoc {
-    pub var: Arc<String>,
+    pub var: CachedString,
 }
 
 #[derive(PartialEq, Eq, Debug, Clone, Hash)]
@@ -48,7 +48,7 @@ pub struct LocValue {
 }
 
 impl ObjectValue {
-    pub fn get_field_value(&self, field_name: &Arc<String>) -> Option<Value> {
+    pub fn get_field_value(&self, field_name: &CachedString) -> Option<Value> {
         match self.graph.get_field(self.node, &field_name) {
             Some(val) => Some(Value::Primitive(val.clone())),
             None => match self.graph.get_neighbor(self.node, &field_name) {
@@ -61,7 +61,7 @@ impl ObjectValue {
         }
     }
 
-    pub fn obj_type(&self) -> Arc<String> {
+    pub fn obj_type(&self) -> CachedString {
         self.graph.node_weight(self.node).unwrap().obj_type.clone()
     }
 }
@@ -110,7 +110,7 @@ impl Value {
         }
     }
 
-    pub fn string_value(&self) -> Option<Arc<String>> {
+    pub fn string_value(&self) -> Option<CachedString> {
         match self {
             Value::Primitive(p) => p.string(),
             _ => None,

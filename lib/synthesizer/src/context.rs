@@ -1,5 +1,5 @@
 use crate::value::{LocValue, Location, Value, VarLoc};
-use ruse_object_graph::ObjectGraph;
+use ruse_object_graph::{CachedString, ObjectGraph};
 use std::{
     collections::HashMap, fmt::Display, hash::{DefaultHasher, Hash, Hasher}, sync::Arc
 };
@@ -7,12 +7,12 @@ use std::{
 #[derive(Clone, Debug)]
 pub struct Context {
     hash: u64,
-    values: Arc<HashMap<Arc<String>, Value>>,
+    values: Arc<HashMap<CachedString, Value>>,
     number_of_changes: usize,
 }
 
 impl Context {
-    pub fn with_values(values: HashMap<Arc<String>, Value>) -> Self {
+    pub fn with_values(values: HashMap<CachedString, Value>) -> Self {
         Self {
             hash: Self::get_hash_for_values(&values),
             values: values.into(),
@@ -24,7 +24,7 @@ impl Context {
         self.number_of_changes
     }
 
-    fn get_hash_for_values(values: &HashMap<Arc<String>, Value>) -> u64 {
+    fn get_hash_for_values(values: &HashMap<CachedString, Value>) -> u64 {
         let mut hasher = DefaultHasher::new();
         for (k, v) in values {
             k.hash(&mut hasher);
@@ -33,7 +33,7 @@ impl Context {
         hasher.finish()
     }
 
-    fn set_values(&mut self, values: HashMap<Arc<String>, Value>) {
+    fn set_values(&mut self, values: HashMap<CachedString, Value>) {
         let new_hash = Self::get_hash_for_values(&values);
         let arc_values = values.into();
 
@@ -49,7 +49,7 @@ impl Context {
         }
     }
 
-    pub fn get_var_loc_value(&self, var: &Arc<String>) -> LocValue {
+    pub fn get_var_loc_value(&self, var: &CachedString) -> LocValue {
         LocValue {
             val: self.values[var].clone(),
             loc: Location::Var(VarLoc { var: var.clone() }),
@@ -115,7 +115,7 @@ impl Context {
         }
     }
 
-    pub fn get_keys<'a>(&'a self) -> Box<dyn Iterator<Item = &Arc<String>> + 'a> {
+    pub fn get_keys<'a>(&'a self) -> Box<dyn Iterator<Item = &CachedString> + 'a> {
         Box::new(self.values.keys())
     }
 }
