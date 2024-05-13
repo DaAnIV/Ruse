@@ -6,7 +6,6 @@ use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
 use std::fmt::Debug;
 use std::hash::{Hash, Hasher};
 use std::iter::zip;
-use std::ptr;
 use std::sync::Arc;
 
 // Reexport
@@ -87,13 +86,13 @@ impl ObjectGraph {
 
     fn union_visit_node(
         out: &mut ObjectGraph,
-        g: &ObjectGraph,
+        g: &Arc<ObjectGraph>,
         n: NodeIndex,
         q: &mut VecDeque<NodeIndex>,
         seen: &mut HashMap<(u64, NodeIndex), NodeIndex>,
         pointers: &mut Vec<(NodeIndex, (u64, NodeIndex), CachedString)>,
     ) -> NodeIndex {
-        let ptr = ptr::addr_of!(g) as u64;
+        let ptr = Arc::as_ptr(g) as u64;
 
         if let Some(out_idx) = seen.get(&(ptr, n)) {
             return *out_idx;
@@ -121,7 +120,11 @@ impl ObjectGraph {
         let mut q = VecDeque::new();
         let mut out = (*graphs[0]).clone();
 
-        seen_graphs.insert(Arc::as_ptr(&graphs[0]) as u64);
+        let g0_ptr = Arc::as_ptr(&graphs[0]) as u64;
+        seen_graphs.insert(g0_ptr);
+        for r in &graphs[0].roots {
+            seen.insert((g0_ptr, *r.1), *r.1);
+        }
 
         for g in graphs.iter().skip(1) {
             if !seen_graphs.insert(Arc::as_ptr(g) as u64) {

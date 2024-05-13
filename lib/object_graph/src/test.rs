@@ -325,4 +325,57 @@ mod tests {
         println!("{:?}", Dot::new(&g.graph));
         println!("{:?}", g.serialized.unwrap());
     }
+
+    #[test]
+    fn graph_union() {
+        let cache = Cache::new();
+
+        let obj_name_a = str_cached!(&cache; "A");
+        let obj_name_b = str_cached!(&cache; "B");
+        let root_name_a = str_cached!(&cache; "root_a");
+        let root_name_b = str_cached!(&cache; "root_b");
+        let field_name_a = str_cached!(&cache; "a");
+        let field_name_b = str_cached!(&cache; "b");
+
+        let mut graph_a = ObjectGraph::new();
+        let mut graph_b = ObjectGraph::new();
+        let mut graph_ab = ObjectGraph::new();
+        graph_a.add_root(
+            root_name_a.clone(),
+            ObjectData::new(
+                obj_name_a.clone(),
+                fields!((field_name_a.clone(), PrimitiveValue::Number(6u64.into()))),
+            ),
+        );
+        graph_b.add_root(
+            root_name_b.clone(),
+            ObjectData::new(
+                obj_name_b.clone(),
+                fields!((field_name_b.clone(), PrimitiveValue::Number(5u64.into()))),
+            ),
+        );
+        graph_ab.add_root(
+            root_name_a.clone(),
+            ObjectData::new(
+                obj_name_a.clone(),
+                fields!((field_name_a.clone(), PrimitiveValue::Number(6u64.into()))),
+            ),
+        );
+        graph_ab.add_root(
+            root_name_b.clone(),
+            ObjectData::new(
+                obj_name_b.clone(),
+                fields!((field_name_b.clone(), PrimitiveValue::Number(5u64.into()))),
+            ),
+        );
+
+        let (mut graph_union, _nodes_map) = ObjectGraph::union(&[graph_a.into(), graph_b.into()]);
+        graph_ab
+            .generate_serialized_data()
+            .expect("Failed to serialize graph");
+        graph_union
+            .generate_serialized_data()
+            .expect("Failed to serialize graph");
+        assert_eq!(graph_union, graph_ab, "Graphs are not equal");
+    }
 }
