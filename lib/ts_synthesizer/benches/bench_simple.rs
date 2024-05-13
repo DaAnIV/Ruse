@@ -30,16 +30,18 @@ fn simple_synthesize_1(c: &mut Criterion) {
                             .into(),
                         ),
                     ]);
-                    let opcodes = construct_opcode_list(
+                    let mut opcodes = construct_opcode_list(
                         &[str_cached!(cache; "x"), str_cached!(cache; "y")],
                         &[-1f64, 1f64],
+                        &[],
+                        false,
+                    );
+
+                    add_num_opcodes(
+                        &mut opcodes,
                         &ALL_BIN_NUM_OPCODES,
                         &[],
                         &ALL_UPDATE_NUM_OPCODES,
-                        false,
-                        &[],
-                        &[],
-                        &[],
                     );
 
                     let synthesizer = TsSynthesizer::new(

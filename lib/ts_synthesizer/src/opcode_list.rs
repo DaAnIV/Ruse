@@ -53,16 +53,15 @@ pub const ALL_UNARY_BOOL_OPCODES: [ast::UnaryOp; 1] = [
     ast::UnaryOp::Bang,
 ];
 
+pub const ALL_BIN_STR_OPCODES: [ast::BinaryOp; 1] = [
+    ast::BinaryOp::Add,
+];
+
 pub fn construct_opcode_list(
     var_names: &[CachedString],
     num_literals: &[f64],
-    bin_num_opcodes: &[ast::BinaryOp],
-    unary_num_opcodes: &[ast::UnaryOp],
-    update_num_opcodes: &[ast::UpdateOp],
-    add_bool_lit: bool,
-    bin_bool_opcodes: &[ast::BinaryOp],
-    unary_bool_opcodes: &[ast::UnaryOp],
     string_literals: &[CachedString],
+    add_bool_lit: bool,
 ) -> OpcodesList<TsExprAst> {
     let mut opcodes: OpcodesList<TsExprAst> = Vec::new();
 
@@ -72,10 +71,32 @@ pub fn construct_opcode_list(
         opcodes.push(op);
     }
 
-    // Add number literals and opcodes
+    // Add number literals
     for n in num_literals {
         opcodes.push(Arc::new(opcode::LitOp::Num(Number(*n))));
     }
+
+    // Add bool literals
+    if add_bool_lit {
+        opcodes.push(Arc::new(opcode::LitOp::Bool(false)));
+        opcodes.push(Arc::new(opcode::LitOp::Bool(true)));
+    }
+
+    // Add string literals
+    for str in string_literals {
+        let op = Arc::new(opcode::LitOp::Str(str.clone()));
+        opcodes.push(op);
+    }
+
+    opcodes
+}
+
+pub fn add_num_opcodes(
+    opcodes: &mut OpcodesList<TsExprAst>,
+    bin_num_opcodes: &[ast::BinaryOp],
+    unary_num_opcodes: &[ast::UnaryOp],
+    update_num_opcodes: &[ast::UpdateOp],
+) {
     for op in bin_num_opcodes {
         let op = Arc::new(opcode::BinOp {
             arg_types: [ValueType::Number, ValueType::Number],
@@ -91,13 +112,13 @@ pub fn construct_opcode_list(
         let op = Arc::new(opcode::UpdateOp::new(*op, true));
         opcodes.push(op);
     }
+}
 
-
-    // Add bool literals and opcodes
-    if add_bool_lit {
-        opcodes.push(Arc::new(opcode::LitOp::Bool(false)));
-        opcodes.push(Arc::new(opcode::LitOp::Bool(true)));
-    }
+pub fn add_bool_opcodes(
+    opcodes:  &mut OpcodesList<TsExprAst>,
+    bin_bool_opcodes: &[ast::BinaryOp],
+    unary_bool_opcodes: &[ast::UnaryOp],
+) {
     for op in bin_bool_opcodes {
         let op = Arc::new(opcode::BinOp {
             arg_types: [ValueType::Bool, ValueType::Bool],
@@ -109,12 +130,17 @@ pub fn construct_opcode_list(
         let op = Arc::new(opcode::UnaryOp::new(*op, ValueType::Bool));
         opcodes.push(op);
     }
+}
 
-    // Add string literals
-    for str in string_literals {
-        let op = Arc::new(opcode::LitOp::Str(str.clone()));
+pub fn add_str_opcodes(
+    opcodes:  &mut OpcodesList<TsExprAst>,
+    str_bool_opcodes: &[ast::BinaryOp],
+) {
+    for op in str_bool_opcodes {
+        let op = Arc::new(opcode::BinOp {
+            arg_types: [ValueType::String, ValueType::String],
+            op: *op,
+        });
         opcodes.push(op);
     }
-
-    opcodes
 }
