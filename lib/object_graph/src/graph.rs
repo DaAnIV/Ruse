@@ -1,4 +1,5 @@
 use bitcode;
+use core::fmt;
 use petgraph::stable_graph::{EdgeIndices, NodeIndices, StableDiGraph};
 use std::collections::hash_map::DefaultHasher;
 use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
@@ -343,6 +344,53 @@ impl ObjectGraph {
     pub fn contains_edge(&self, a: NodeIndex, b: NodeIndex) -> bool {
         self.graph.contains_edge(a, b)
     }
+
+    pub fn fmt_node(&self, f: &mut fmt::Formatter<'_>, node: NodeIndex) -> fmt::Result {
+        self.fmt_node_with_indentation(f, node, 0)
+    }
+
+    fn fmt_node_with_indentation(
+        &self,
+        f: &mut fmt::Formatter<'_>,
+        node: NodeIndex,
+        indentation: usize,
+    ) -> fmt::Result {
+        self.fmt_node_with_indentation_and_name(f, node, "", indentation)
+    }
+
+    fn fmt_node_with_indentation_and_name(
+        &self,
+        f: &mut fmt::Formatter<'_>,
+        node: NodeIndex,
+        name: &str,
+        indentation: usize,
+    ) -> fmt::Result {
+        let indent_str = Self::indent_str(indentation);
+
+        let weight = self.node_weight(node).unwrap();
+
+        write!(f, "{}{} ", indent_str, weight.obj_type)?;
+        if !name.is_empty() {
+            write!(f, "{} ", name)?;
+        }
+        writeln!(f, "{{")?;
+        for (field_name, val) in weight.fields.iter() {
+            writeln!(f, " {}{}: {},", indent_str, field_name, val)?;
+        }
+        for (field_name, val) in weight.pointers.iter() {
+            self.fmt_node_with_indentation_and_name(f, val.1, field_name.as_str(), indentation + 1)?;
+        }
+
+        writeln!(f, "{}}}", indent_str)
+    }
+
+    fn indent_str(indentation: usize) -> String {
+        let mut indent_str = String::with_capacity(indentation);
+        for _ in 0..indentation {
+            indent_str.push(' ');
+        }
+        return indent_str;
+    }
 }
 
 impl Clone for ObjectGraph {
@@ -403,5 +451,17 @@ impl<'a> PartialEq for ObjectGraph {
             }
         }
         return self_buf == other_buf;
+    }
+}
+
+impl fmt::Display for ObjectGraph {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "{{")?;
+        for (name, node) in self.roots.iter() {
+            self.fmt_node_with_indentation_and_name(f, *node, name, 1)?;
+        }
+        writeln!(f, "}}")?;
+
+        Ok(())
     }
 }

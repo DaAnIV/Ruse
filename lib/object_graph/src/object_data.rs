@@ -138,6 +138,18 @@ impl PrimitiveValue {
     }
 }
 
+impl Display for PrimitiveValue {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            PrimitiveValue::Number(n) => write!(f, "{}", n),
+            PrimitiveValue::Bool(b) => write!(f, "{}", b),
+            PrimitiveValue::String(s) => write!(f, "\"{}\"", s),
+            PrimitiveValue::Null => write!(f, "Null")
+        }
+    }
+}
+
+
 pub type FieldsMap = BTreeMap<CachedString, PrimitiveValue>;
 pub type PointersMap = BTreeMap<CachedString, (EdgeIndex, NodeIndex)>;
 

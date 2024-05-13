@@ -178,13 +178,8 @@ impl fmt::Display for ValueType {
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self {
-            Value::Primitive(p) => match p {
-                PrimitiveValue::Number(n) => f.write_str(n.0.to_string().as_str()),
-                PrimitiveValue::Bool(b) => f.write_str(b.to_string().as_str()),
-                PrimitiveValue::String(s) => f.write_fmt(format_args!("\"{}\"", s.as_str())),
-                PrimitiveValue::Null => f.write_str("Null"),
-            },
-            Value::Object(_) => todo!(),
+            Value::Primitive(p) => write!(f, "{}", p),
+            Value::Object(o) => o.graph.fmt_node(f, o.node),
         }
     }
 }
