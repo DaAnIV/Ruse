@@ -49,10 +49,8 @@ where
             if let Ok(Some(p)) = res {
                 found_prog = Some(p);
                 self.tasks.abort_all();
-                break;
             }
         }
-        self.tasks.detach_all();
         return found_prog;
     }
 
