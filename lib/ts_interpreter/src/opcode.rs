@@ -26,7 +26,6 @@ impl TsExprAst {
                 span: DUMMY_SP,
             }.into(),
             ast::Expr::Assign(_) => todo!(),
-            ast::Expr::Member(_) => todo!(),
             ast::Expr::SuperProp(_) => todo!(),
             ast::Expr::Cond(_) => todo!(),
             ast::Expr::Call(_) => todo!(),

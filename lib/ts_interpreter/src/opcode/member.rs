@@ -1,4 +1,4 @@
-use ruse_object_graph::{scached, Cache, CachedString, PrimitiveValue};
+use ruse_object_graph::{Cache, CachedString};
 use ruse_synthesizer::context::*;
 use ruse_synthesizer::opcode::ExprOpcode;
 use ruse_synthesizer::value::*;
@@ -10,39 +10,36 @@ use super::TsExprAst;
 
 #[derive(Debug)]
 pub struct MemberOp {
-    arg_types: [ValueType; 2],
+    arg_types: [ValueType; 1],
+    field_name: CachedString,
 }
 
 impl MemberOp {
-    pub fn new(obj_type: CachedString, field_access_type: ValueType) -> Self {
+    pub fn new(obj_type: CachedString, field_name: CachedString) -> Self {
         Self {
-            arg_types: [ValueType::Object(obj_type), field_access_type],
+            arg_types: [ValueType::Object(obj_type)],
+            field_name: field_name,
         }
     }
 }
 
 impl ExprOpcode<TsExprAst> for MemberOp {
-    fn eval(&self, ctx: &mut Context, args: &[&LocValue], cache: &Cache) -> LocValue {
-        debug_assert_eq!(args.len(), 2);
+    fn eval(&self, ctx: &mut Context, args: &[&LocValue], _cache: &Cache) -> LocValue {
+        debug_assert_eq!(args.len(), 1);
 
         let obj = args[0].val().obj().unwrap();
-        let field_name = match args[1].val().primitive().unwrap() {
-            PrimitiveValue::Number(n) => scached!(cache; n.to_string()),
-            PrimitiveValue::String(s) => s.clone(),
-            _ => unreachable!(),
-        };
-        let val = obj.get_field_value(&field_name).unwrap();
+        let val = obj.get_field_value(&self.field_name).unwrap();
         let loc = match &args[0].loc() {
             Location::Temp => Location::Temp,
             Location::Var(l) => Location::ObjectField(ObjectFieldLoc {
                 var: l.var.clone(),
                 node: obj.node,
-                field: field_name.clone(),
+                field: self.field_name.clone(),
             }),
             Location::ObjectField(l) => Location::ObjectField(ObjectFieldLoc {
                 var: l.var.clone(),
                 node: obj.node,
-                field: field_name.clone(),
+                field: self.field_name.clone(),
             }),
         };
 
@@ -50,15 +47,12 @@ impl ExprOpcode<TsExprAst> for MemberOp {
     }
 
     fn to_ast(&self, children: &Vec<TsExprAst>) -> TsExprAst {
-        debug_assert_eq!(children.len(), 0);
+        debug_assert_eq!(children.len(), 1);
 
         let expr = ast::MemberExpr {
             span: DUMMY_SP,
             obj: children[0].get_paren_expr(),
-            prop: ast::MemberProp::Computed(ast::ComputedPropName {
-                span: DUMMY_SP,
-                expr: children[1].get_paren_expr(),
-            }),
+            prop: ast::MemberProp::Ident(ast::Ident::from(self.field_name.as_str())),
         };
 
         ast::Expr::Member(expr).into()

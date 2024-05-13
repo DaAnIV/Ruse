@@ -1,6 +1,6 @@
 // use interpreter::{PreCondition, object_graph::ObjectNodeType};
 // use rustpython_parser as parser;
-use std::{process::ExitCode, time::Instant};
+use std::{collections::HashMap, process::ExitCode, time::Instant};
 // use std::thread;
 
 use object_graph::{str_cached, Number};
@@ -15,10 +15,12 @@ use ruse_object_graph as object_graph;
 use ruse_synthesizer::{
     // bank::{ContextMap, ProgBank, WorkGather},
     context::Context,
-    // prog::SubProgram,
-    value::ValueType,
+    value::{Location, ValueType},
+    vbool,
     vnum,
+    vstr,
 };
+use ruse_ts_interpreter::ts_class::TsClass;
 // use ruse_ts_interpreter::opcode::{BinOp, LitOp, TsExprAst};
 use ruse_ts_synthesizer::*;
 // use swc_ecma_ast as ast;
@@ -118,10 +120,119 @@ fn get_serialized_graphs_from_range(
 //     gatherer.gather_work_for_next_iteration(&bank, &bin_op);
 // }
 
-#[tokio::main]
-async fn main() -> ExitCode {
-    // test_work_gatherer();
+async fn test_class_loader() {
+    let code1 = "class User {
+        constructor(public name: string, 
+                    public surname: string,
+                    public age: number,
+                    protected is_admin: bool) {}
+    }";
+    let code2 = "class UserPair {
+        constructor(public user1: User, 
+                    public user2: User) {}
+    }";
 
+    let cache = Arc::new(object_graph::Cache::new());
+    let user_class = TsClass::from_code(code1.to_string(), &cache).unwrap();
+    let user_pair_class = TsClass::from_code(code2.to_string(), &cache).unwrap();
+
+    let user1 = user_class.generate_object(
+        str_cached!(cache; "student1"),
+        HashMap::from([
+            (str_cached!(cache; "surname"), vstr!(cache; "Doe")),
+            (str_cached!(cache; "name"), vstr!(cache; "John")),
+            (str_cached!(cache; "age"), vnum!(Number::from(25))),
+            (str_cached!(cache; "is_admin"), vbool!(true)),
+        ]),
+    );
+
+    let user2 = user_class.generate_object(
+        str_cached!(cache; "student2"),
+        HashMap::from([
+            (str_cached!(cache; "name"), vstr!(cache; "Paul")),
+            (str_cached!(cache; "age"), vnum!(Number::from(27))),
+            (str_cached!(cache; "surname"), vstr!(cache; "Simon")),
+            (str_cached!(cache; "is_admin"), vbool!(false)),
+        ]),
+    );
+
+    let complex_user = user_pair_class.generate_object(
+        str_cached!(cache; "student_pair"),
+        HashMap::from([
+            (str_cached!(cache; "user1"), user1),
+            (str_cached!(cache; "user2"), user2),
+        ]),
+    );
+
+    println!("{}", complex_user);
+    let mut opcodes = construct_opcode_list(
+        &[str_cached!(cache; "x")],
+        &[-1f64, 1f64],
+        &[str_cached!(cache; " ")],
+        false,
+    );
+    add_num_opcodes(
+        &mut opcodes,
+        &ALL_BIN_NUM_OPCODES,
+        &[],
+        &ALL_UPDATE_NUM_OPCODES,
+    );
+    add_str_opcodes(&mut opcodes, &ALL_BIN_STR_OPCODES);
+    opcodes.extend(user_class.member_opcodes().clone());
+    opcodes.extend(user_pair_class.member_opcodes().clone());
+
+    let ctx = Arc::new([Context::with_values(
+        [(str_cached!(cache; "x"), complex_user)].into(),
+    )]);
+
+    let cache_clone = cache.clone();
+    let mut synthesizer = TsSynthesizer::new(
+        ctx.clone(),
+        opcodes,
+        Box::new(move |p| {
+            let expected_outputs = [str_cached!(cache_clone; "John Doe")];
+            if p.out_type() != ValueType::String {
+                return false;
+            }
+            if p.out_value()[0].loc() != &Location::Temp {
+                return false;
+            }
+            for (v, e) in p.out_value().iter().zip(expected_outputs) {
+                let v_str = unsafe { v.val().string_value().unwrap_unchecked() };
+                if v_str != e {
+                    return false;
+                }
+            }
+            return true;
+        }),
+        Box::new(|_p| true),
+        3,
+    );
+
+    let start = Instant::now();
+    for i in 1..=5 {
+        let iteration_start = Instant::now();
+        let res = synthesizer.run_iteration(&cache).await;
+        println!(
+            "Iteration {} took {:.3}s",
+            i,
+            iteration_start.elapsed().as_secs_f32()
+        );
+        println!("statistics: {}", synthesizer.statistics());
+
+        if let Some(p) = res {
+            println!(
+                "Found p = {{{}}} in {:.3}s",
+                p.get_code(),
+                start.elapsed().as_secs_f32()
+            );
+            break;
+        }
+    }
+}
+
+#[allow(dead_code)]
+async fn run_synthesizer() {
     let cache = Arc::new(object_graph::Cache::new());
 
     let ctx = Arc::new([
@@ -208,6 +319,15 @@ async fn main() -> ExitCode {
             break;
         }
     }
+}
+
+#[tokio::main]
+async fn main() -> ExitCode {
+    // test_work_gatherer();
+
+    // run_synthesizer().await;
+
+    test_class_loader().await;
 
     // let cache = object_graph::Cache::new();
     // let mut rng = StdRng::from_entropy();

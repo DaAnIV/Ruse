@@ -16,7 +16,7 @@ swc_ecma_parser = "*"
 swc_ecma_ast = "*"
 swc_visit = "*"
 
-tokio = {version = "*", features = ["rt-multi-thread", "sync", "time"]}
+tokio = {version = "*", features = ["rt-multi-thread", "sync", "time", "macros"]}
 
 [dev-dependencies]
 criterion = { version = "*", features = ["async_tokio"] }
