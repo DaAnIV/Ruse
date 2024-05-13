@@ -1,6 +1,8 @@
 use core::fmt;
-use ruse_object_graph::{CachedString, NodeIndex, Number, ObjectGraph, PrimitiveValue};
-use std::sync::Arc;
+use ruse_object_graph::{
+    CachedString, FieldsMap, NodeIndex, Number, ObjectData, ObjectGraph, PrimitiveValue,
+};
+use std::{collections::HashMap, sync::Arc};
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub enum ValueType {
@@ -127,6 +129,123 @@ impl Value {
             },
             Value::Object(o) => ValueType::Object(o.obj_type()),
         }
+    }
+
+    pub fn generate_simple_object_from_map(
+        root_name: CachedString,
+        obj_type: CachedString,
+        map: HashMap<CachedString, PrimitiveValue>,
+    ) -> Value {
+        let mut fields = FieldsMap::new();
+
+        for (key, val) in map {
+            fields.insert(key, val);
+        }
+
+        Self::create_simple_out_object(root_name, obj_type, fields)
+    }
+
+    pub fn generate_object_from_map(
+        root_name: CachedString,
+        obj_type: CachedString,
+        map: HashMap<CachedString, Value>,
+    ) -> Value {
+        let mut fields = FieldsMap::new();
+        let mut seen_graphs = HashMap::new();
+        let mut obj_keys = vec![];
+
+        for (key, val) in map {
+            Self::visit_field(val, &mut fields, key, &mut seen_graphs, &mut obj_keys);
+        }
+
+        if seen_graphs.len() == 0 {
+            Self::create_simple_out_object(root_name, obj_type, fields)
+        } else {
+            Self::create_out_object(
+                seen_graphs.into_values().collect(),
+                root_name,
+                obj_type,
+                fields,
+                &obj_keys,
+            )
+        }
+    }
+
+    fn visit_field(
+        val: Value,
+        fields: &mut FieldsMap,
+        key: CachedString,
+        seen_graphs: &mut HashMap<u64, Arc<ObjectGraph>>,
+        obj_keys: &mut Vec<(CachedString, (u64, NodeIndex))>,
+    ) {
+        match val {
+            Value::Primitive(p) => {
+                fields.insert(key, p);
+            }
+            Value::Object(o) => {
+                let ptr = Arc::as_ptr(&o.graph) as u64;
+                if !seen_graphs.contains_key(&ptr) {
+                    seen_graphs.insert(ptr, o.graph);
+                };
+                obj_keys.push((key, (ptr, o.node)));
+            }
+        };
+    }
+
+    fn create_out_object(
+        graphs: Vec<Arc<ObjectGraph>>,
+        root_name: CachedString,
+        obj_type: CachedString,
+        fields: FieldsMap,
+        obj_keys: &Vec<(CachedString, (u64, NodeIndex))>,
+    ) -> Value {
+        let (mut out, nodes_map) = ObjectGraph::union(&graphs);
+
+        let root = out.add_root(root_name, ObjectData::new(obj_type, fields.into()));
+        for (key, old_node) in obj_keys {
+            out.add_edge(root, nodes_map[old_node], &key);
+        }
+
+        out.generate_serialized_data()
+            .expect("Failed to serialize new graph");
+
+        ObjectValue {
+            graph: out.into(),
+            node: root,
+        }
+        .into()
+    }
+
+    fn create_simple_out_object(
+        root_name: CachedString,
+        obj_type: CachedString,
+        fields: FieldsMap,
+    ) -> Value {
+        let mut graph = ObjectGraph::new();
+
+        let root = graph.add_root(root_name, ObjectData::new(obj_type, fields.into()));
+
+        graph
+            .generate_serialized_data()
+            .expect("Failed to serialize new graph");
+
+        ObjectValue {
+            graph: graph.into(),
+            node: root,
+        }
+        .into()
+    }
+}
+
+impl From<ObjectValue> for Value {
+    fn from(value: ObjectValue) -> Self {
+        Value::Object(value)
+    }
+}
+
+impl From<PrimitiveValue> for Value {
+    fn from(value: PrimitiveValue) -> Self {
+        Value::Primitive(value)
     }
 }
 

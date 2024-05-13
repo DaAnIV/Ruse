@@ -1,5 +1,3 @@
-use std::{collections::HashMap, sync::Arc};
-
 use ruse_object_graph::*;
 use ruse_synthesizer::context::*;
 use ruse_synthesizer::opcode::ExprOpcode;
@@ -67,26 +65,15 @@ impl ExprOpcode<TsExprAst> for LitOp {
 
 impl ExprOpcode<TsExprAst> for ArrayLitOp {
     fn eval(&self, ctx: &mut Context, args: &[&LocValue], cache: &Cache) -> LocValue {
-        let mut fields = FieldsMap::new();
-        let mut seen_graphs = HashMap::new();
-        let mut obj_keys = vec![];
+        let kv_map = (0..self.size)
+            .zip(args)
+            .map(|(i, val)| (scached!(cache; i.to_string()), val.val().clone()))
+            .collect();
 
-        for (i, val) in (0..self.size).zip(args) {
-            visit_field(
-                &val.val(),
-                &mut fields,
-                scached!(cache; i.to_string()),
-                &mut seen_graphs,
-                &mut obj_keys,
-            );
-        }
-
-        ctx.temp_value(create_out_object(
-            seen_graphs.into_values().collect(),
-            cache,
+        ctx.temp_value(Value::generate_object_from_map(
+            cache.temp_string(),
             str_cached!(cache; "Array"),
-            fields,
-            &obj_keys,
+            kv_map,
         ))
     }
 
@@ -110,45 +97,4 @@ impl ExprOpcode<TsExprAst> for ArrayLitOp {
     fn arg_types(&self) -> &[ValueType] {
         &[]
     }
-}
-
-fn create_out_object(
-    graphs: Vec<Arc<ObjectGraph>>,
-    cache: &Cache,
-    obj_type: CachedString,
-    fields: FieldsMap,
-    obj_keys: &Vec<(CachedString, (u64, NodeIndex))>,
-) -> Value {
-    let (mut out, nodes_map) = ObjectGraph::union(&graphs);
-
-    let root = out.add_root(cache.temp_string(), ObjectData::new(obj_type, fields.into()));
-    for (key, old_node) in obj_keys {
-        out.add_edge(root, nodes_map[old_node], &key);
-    }
-
-    out.generate_serialized_data()
-        .expect("Failed to serialize new graph");
-
-    vobj!(out.into(), root)
-}
-
-fn visit_field(
-    val: &Value,
-    fields: &mut FieldsMap,
-    key: CachedString,
-    seen_graphs: &mut HashMap<u64, Arc<ObjectGraph>>,
-    obj_keys: &mut Vec<(CachedString, (u64, NodeIndex))>,
-) {
-    match val {
-        Value::Primitive(p) => {
-            fields.insert(key, p.clone());
-        }
-        Value::Object(o) => {
-            let ptr = Arc::as_ptr(&o.graph) as u64;
-            if seen_graphs.contains_key(&ptr) {
-                seen_graphs.insert(ptr, o.graph.clone());
-            };
-            obj_keys.push((key.clone(), (ptr, o.node)));
-        }
-    };
 }
