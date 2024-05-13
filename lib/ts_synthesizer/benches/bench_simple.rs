@@ -51,7 +51,7 @@ fn simple_synthesize_1(c: &mut Criterion) {
                     );
                     (synthesizer, cache)
                 },
-                |(synthesizer, cache)| async move {
+                |(mut synthesizer, cache)| async move {
                     for _j in 0..=i {
                         synthesizer.run_iteration(&cache).await;
                     }

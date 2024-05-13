@@ -152,7 +152,8 @@ async fn main() -> ExitCode {
         &[],
         &[],
     );
-    let synthesizer = TsSynthesizer::new(
+
+    let mut synthesizer = TsSynthesizer::new(
         ctx.clone(),
         opcodes,
         Box::new(|x| {

@@ -33,11 +33,11 @@ impl<const N: usize> TsSynthesizer<N> {
 
     #[inline]
     pub async fn run_iteration(
-        &self,
+        &mut self,
         cache: &Arc<Cache>,
     ) -> Option<Arc<SubProgram<TsExprAst, N>>>
     {
-        Synthesizer::run_iteration(&mut self.inner.clone(), cache).await
+        Synthesizer::run_iteration(&mut self.inner, cache).await
     }
 
     #[inline]
