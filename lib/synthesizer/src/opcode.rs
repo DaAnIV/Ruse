@@ -12,8 +12,9 @@ pub trait ExprAst: 'static + Default {
 pub trait ExprOpcode<T: ExprAst>: Debug + Sync + Send {
     fn arg_types(&self) -> &[ValueType];
 
-    // ctx is an in-out value. It should contain the pre context but eval can change it 
+    // post_ctx contains the post context of the last argument or the pre context if there are no arguments.
+    // It can be changed on mutating opcodes. 
     // For example: Think about the triplet - {x -> 3} ++x (4, {x -> 4})
-    fn eval(&self, ctx: &mut Context, args: &[&LocValue], cache: &Cache) -> Option<LocValue>;
+    fn eval(&self, args: &[&LocValue], post_ctx: &mut Context, cache: &Cache) -> Option<LocValue>;
     fn to_ast(&self, children: &Vec<T>) -> T;
 }

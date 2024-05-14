@@ -46,7 +46,7 @@ impl UnaryOp {
 }
 
 impl ExprOpcode<TsExprAst> for UnaryOp {
-    fn eval(&self, ctx: &mut Context, args: &[&LocValue], _cache: &Cache) -> Option<LocValue> {
+    fn eval(&self, args: &[&LocValue], post_ctx: &mut Context, _cache: &Cache) -> Option<LocValue> {
         debug_assert_eq!(args.len(), 1);
         let res = match &args[0].val() {
             Value::Primitive(p) => match p {
@@ -57,7 +57,7 @@ impl ExprOpcode<TsExprAst> for UnaryOp {
             Value::Object(_) => todo!(),
         };
 
-        Some(ctx.temp_value(res))
+        Some(post_ctx.temp_value(res))
     }
 
     fn arg_types(&self) -> &[ValueType] {
@@ -87,7 +87,7 @@ impl UpdateOp {
 }
 
 impl ExprOpcode<TsExprAst> for UpdateOp {
-    fn eval(&self, ctx: &mut Context, args: &[&LocValue], _cache: &Cache) -> Option<LocValue> {
+    fn eval(&self, args: &[&LocValue], post_ctx: &mut Context, _cache: &Cache) -> Option<LocValue> {
         debug_assert_eq!(args.len(), 1);
 
         if args[0].loc().is_temp() {
@@ -100,11 +100,11 @@ impl ExprOpcode<TsExprAst> for UpdateOp {
             ast::UpdateOp::MinusMinus => vnum!(Number(n.0 - 1f64)),
         };
 
-        ctx.update_value(&res.clone(), &args[0].loc());
+        post_ctx.update_value(&res.clone(), &args[0].loc());
 
         Some(match self.prefix {
-            true => ctx.temp_value(res),
-            false => ctx.temp_value(args[0].val().clone())
+            true => post_ctx.temp_value(res),
+            false => post_ctx.temp_value(args[0].val().clone())
         })
     }
 

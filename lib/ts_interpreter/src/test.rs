@@ -14,7 +14,8 @@ mod tests {
     #[test]
     fn add_numbers() {
         let cache = Cache::new();
-        let mut ctx = context::Context::with_values(Default::default());
+        let ctx = context::Context::with_values(Default::default());
+        let mut out_ctx = ctx.clone();
         let evaluator = BinOp {
             op: ast::BinaryOp::Add,
             arg_types: [ValueType::Number, ValueType::Number]
@@ -22,8 +23,8 @@ mod tests {
         
         let args = [&ctx.temp_value(vnum!(Number::from(3u64))), &ctx.temp_value(vnum!(Number::from(4u64)))];
         let out = evaluator.eval(
-            &mut ctx,
             &args,
+            &mut out_ctx,
             &cache,
         ).unwrap();
         assert_eq!(out.val(), &vnum!(Number::from(7u64)));
@@ -32,7 +33,8 @@ mod tests {
     #[test]
     fn add_strings() {
         let cache = Cache::new();
-        let mut ctx = context::Context::with_values(Default::default());
+        let ctx = context::Context::with_values(Default::default());
+        let mut out_ctx = ctx.clone();
         let evaluator = BinOp {
             op: ast::BinaryOp::Add,
             arg_types: [ValueType::String, ValueType::String]
@@ -41,8 +43,8 @@ mod tests {
         let args = [&ctx.temp_value(vstr!(cache; "a")), &ctx.temp_value(vstr!(cache; "b"))];
 
         let out = evaluator.eval(
-            &mut ctx,
             &args,
+            &mut out_ctx,
             &cache,
         ).unwrap();
         assert_eq!(out.val(), &vstr!(cache; "ab"));
@@ -51,15 +53,16 @@ mod tests {
     #[test]
     fn ident() {
         let cache = Cache::new();
-        let mut ctx = context::Context::with_values(HashMap::from([
+        let ctx = context::Context::with_values(HashMap::from([
             (str_cached!(cache; "x"), vnum!(Number::from(7u64)))
         ]));
+        let mut out_ctx = ctx.clone();
         let evaluator = IdentOp {
             name: str_cached!(cache; "x")
         };
         let out = evaluator.eval(
-            &mut ctx,
             &[],
+            &mut out_ctx,
             &cache,
         ).unwrap();
         assert_eq!(out.val(), &vnum!(Number::from(7u64)));
@@ -68,7 +71,7 @@ mod tests {
     #[test]
     fn prefix_plus_plus() {
         let cache = Cache::new();
-        let mut ctx = context::Context::with_values(HashMap::from([
+        let ctx = context::Context::with_values(HashMap::from([
             (str_cached!(cache; "x"), vnum!(Number::from(7u64)))
         ]));
         let id = IdentOp {
@@ -78,16 +81,17 @@ mod tests {
             op: ast::UpdateOp::PlusPlus,
             prefix: true
         };
+        let mut id_out_ctx = ctx.clone();
         let x_val = id.eval(
-            &mut ctx,
             &[],
+            &mut id_out_ctx,
             &cache,
         ).unwrap();
 
-        let mut new_ctx = ctx.clone();
+        let mut update_out_ctx = id_out_ctx.clone();
         let out = op.eval(
-            &mut new_ctx,
             &[&x_val],
+            &mut update_out_ctx,
             &cache,
         ).unwrap();
         assert_eq!(ctx.get_var_loc_value(&id.name).val(), &vnum!(Number::from(7u64)));
@@ -95,13 +99,13 @@ mod tests {
         assert_eq!(x_val.loc(), &Location::Var(VarLoc { var: id.name.clone() }));
         assert_eq!(out.val(), &vnum!(Number::from(8u64)));
         assert_eq!(out.loc(), &Location::Temp);
-        assert_eq!(new_ctx.get_var_loc_value(&id.name).val(), &vnum!(Number::from(8u64)));
+        assert_eq!(update_out_ctx.get_var_loc_value(&id.name).val(), &vnum!(Number::from(8u64)));
     }
 
     #[test]
     fn postfix_plus_plus() {
         let cache = Cache::new();
-        let mut ctx = context::Context::with_values(HashMap::from([
+        let ctx = context::Context::with_values(HashMap::from([
             (str_cached!(cache; "x"), vnum!(Number::from(7u64)))
         ]));
         let id = IdentOp {
@@ -111,16 +115,17 @@ mod tests {
             op: ast::UpdateOp::PlusPlus,
             prefix: false
         };
+        let mut id_out_ctx = ctx.clone();
         let x_val = id.eval(
-            &mut ctx,
             &[],
+            &mut id_out_ctx,
             &cache,
         ).unwrap();
 
-        let mut new_ctx = ctx.clone();
+        let mut update_out_ctx = id_out_ctx.clone();
         let out = op.eval(
-            &mut new_ctx,
             &[&x_val],
+            &mut update_out_ctx,
             &cache,
         ).unwrap();
         assert_eq!(ctx.get_var_loc_value(&id.name).val(), &vnum!(Number::from(7u64)));
@@ -128,6 +133,6 @@ mod tests {
         assert_eq!(x_val.loc(), &Location::Var(VarLoc { var: id.name.clone() }));
         assert_eq!(out.val(), &vnum!(Number::from(7u64)));
         assert_eq!(out.loc(), &Location::Temp);
-        assert_eq!(new_ctx.get_var_loc_value(&id.name).val(), &vnum!(Number::from(8u64)));
+        assert_eq!(update_out_ctx.get_var_loc_value(&id.name).val(), &vnum!(Number::from(8u64)));
     }
 }

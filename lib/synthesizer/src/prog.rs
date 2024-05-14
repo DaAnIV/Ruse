@@ -125,16 +125,19 @@ impl<T: ExprAst, const N: usize> SubProgram<T, N>
         let mut out_value = Vec::with_capacity(N);
 
         for i in 0..N {
-            let mut out_ctx = self.pre_ctx[i].clone();
-
             // Gather arguments
             let mut args = Vec::<&LocValue>::with_capacity(self.children.len());
             for c in &self.children {
                 args.push(&c.out_value()[i]);
             }
 
+            let mut out_ctx = match self.children.last() {
+                Some(last) => last.post_ctx()[i].clone(),
+                None => self.pre_ctx[i].clone()
+            };
+
             // Evaluate and verify the output type is consistent
-            match self.opcode.eval(&mut out_ctx, &args, cache) {
+            match self.opcode.eval(&args, &mut out_ctx, cache) {
                 Some(out_val) => {
                     debug_assert!(out_type.is_none() || out_type == Some(out_val.val.val_type()));
                     let _ = out_type.get_or_insert(out_val.val.val_type());

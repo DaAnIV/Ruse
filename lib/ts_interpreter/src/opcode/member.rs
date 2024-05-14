@@ -24,7 +24,7 @@ impl MemberOp {
 }
 
 impl ExprOpcode<TsExprAst> for MemberOp {
-    fn eval(&self, ctx: &mut Context, args: &[&LocValue], _cache: &Cache) -> Option<LocValue> {
+    fn eval(&self, args: &[&LocValue], post_ctx: &mut Context, _cache: &Cache) -> Option<LocValue> {
         debug_assert_eq!(args.len(), 1);
 
         let obj = args[0].val().obj().unwrap();
@@ -43,7 +43,7 @@ impl ExprOpcode<TsExprAst> for MemberOp {
             }),
         };
 
-        Some(ctx.get_loc_value(val, loc))
+        Some(post_ctx.get_loc_value(val, loc))
     }
 
     fn to_ast(&self, children: &Vec<TsExprAst>) -> TsExprAst {
