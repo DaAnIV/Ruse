@@ -5,12 +5,11 @@ use crate::context::Context;
 use super::value::{LocValue, ValueType};
 use ruse_object_graph::Cache;
 
-pub trait ExprAst: 'static {
+pub trait ExprAst: 'static + Default {
     fn to_string(&self) -> String;
 }
 
-pub trait ExprOpcode<T>: Debug + Sync + Send
-where T: ExprAst {
+pub trait ExprOpcode<T: ExprAst>: Debug + Sync + Send {
     fn arg_types(&self) -> &[ValueType];
 
     // ctx is an in-out value. It should contain the pre context but eval can change it 

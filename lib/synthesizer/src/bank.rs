@@ -23,7 +23,7 @@ pub type ValueSet<T, const N: usize> = DashSet<Arc<SubProgram<T, N>>>;
 #[derive(Default)]
 pub struct TypeMap<T: ExprAst, const N: usize>(pub(crate) DashMap<ValueType, ValueSet<T, N>>);
 
-impl<T: ExprAst + Default, const N: usize> TypeMap<T, N> {
+impl<T: ExprAst, const N: usize> TypeMap<T, N> {
     pub fn insert_program(&self, p: Arc<SubProgram<T, N>>) -> bool {
         let value_set = match self.0.get_mut(&p.out_type()) {
             Some(m) => m,
@@ -49,7 +49,7 @@ impl<T: ExprAst + Default, const N: usize> TypeMap<T, N> {
 pub struct ContextMap<T: ExprAst, const N: usize>(
     pub(crate) DashMap<ContextArray<N>, TypeMap<T, N>>,
 );
-impl<T: ExprAst + Default, const N: usize> ContextMap<T, N> {
+impl<T: ExprAst, const N: usize> ContextMap<T, N> {
     pub fn get(
         &self,
         ctx: &ContextArray<N>,
@@ -85,11 +85,11 @@ impl<T: ExprAst + Default, const N: usize> ContextMap<T, N> {
 }
 
 #[derive(Default)]
-pub struct ProgBank<T: ExprAst + Default, const N: usize> {
+pub struct ProgBank<T: ExprAst, const N: usize> {
     pub(crate) bank: Vec<Arc<ContextMap<T, N>>>,
 }
 
-impl<T: ExprAst + Default, const N: usize> ProgBank<T, N> {
+impl<T: ExprAst, const N: usize> ProgBank<T, N> {
     pub fn output_exists(&self, p: &Arc<SubProgram<T, N>>) -> bool {
         (&self.bank).into_iter().any(|ctx_map| ctx_map.contains(p))
     }

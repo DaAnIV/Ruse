@@ -11,9 +11,7 @@ use crate::bank::ValueArray;
 use crate::opcode::*;
 use crate::value::*;
 
-pub struct SubProgram<T, const N: usize>
-where
-    T: ExprAst,
+pub struct SubProgram<T: ExprAst, const N: usize>
 {
     pub opcode: Arc<dyn ExprOpcode<T>>,
     pub children: Vec<Arc<SubProgram<T, N>>>,
@@ -76,9 +74,7 @@ fn verify_children<T: ExprAst, const N: usize>(
     return true;
 }
 
-impl<T, const N: usize> SubProgram<T, N>
-where
-    T: ExprAst,
+impl<T: ExprAst, const N: usize> SubProgram<T, N>
 {
     pub fn with_opcode_and_children(
         opcode: Arc<dyn ExprOpcode<T>>,
@@ -191,9 +187,7 @@ where
     }
 }
 
-impl<T, const N: usize> Hash for SubProgram<T, N>
-where
-    T: ExprAst,
+impl<T: ExprAst, const N: usize> Hash for SubProgram<T, N>
 {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.pre_ctx().hash(state);
@@ -203,11 +197,9 @@ where
     }
 }
 
-impl<T, const N: usize> Eq for SubProgram<T, N> where T: ExprAst {}
+impl<T: ExprAst, const N: usize> Eq for SubProgram<T, N> {}
 
-impl<T, const N: usize> PartialEq for SubProgram<T, N>
-where
-    T: ExprAst,
+impl<T: ExprAst, const N: usize> PartialEq for SubProgram<T, N>
 {
     fn eq(&self, other: &Self) -> bool {
         self.out_type == other.out_type
@@ -217,9 +209,7 @@ where
     }
 }
 
-impl<T, const N: usize> Debug for SubProgram<T, N>
-where
-    T: ExprAst,
+impl<T: ExprAst, const N: usize> Debug for SubProgram<T, N>
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("SubProgram")
@@ -232,9 +222,7 @@ where
     }
 }
 
-impl<T, const N: usize> Display for SubProgram<T, N>
-where
-    T: ExprAst,
+impl<T: ExprAst, const N: usize> Display for SubProgram<T, N>
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "({}) {{ {} }} ({}; {})", self.pre_ctx()[0], self.get_code(), self.out_value()[0].val(), self.post_ctx()[0])

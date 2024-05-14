@@ -94,7 +94,7 @@ impl Display for CurrentStatistics {
 pub type SynthesizerPredicate<T, const N: usize> =
     Box<dyn Fn(&Arc<SubProgram<T, N>>) -> bool + Send + Sync>;
 
-pub struct Synthesizer<T: ExprAst + Default, const N: usize> {
+pub struct Synthesizer<T: ExprAst, const N: usize> {
     bank: ProgBank<T, N>,
     init_opcodes: OpcodesList<T>,
     composite_opcodes: OpcodesList<T>,
@@ -108,7 +108,8 @@ pub struct Synthesizer<T: ExprAst + Default, const N: usize> {
     statistics: Statistics,
 }
 
-impl<T: ExprAst + Default, const N: usize> Synthesizer<T, N> {
+
+impl<T: ExprAst, const N: usize> Synthesizer<T, N> {
     pub fn new(
         start_context: ContextArray<N>,
         opcodes: OpcodesList<T>,

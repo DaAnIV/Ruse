@@ -12,9 +12,7 @@ type WorkHandler<T, const N: usize> = Arc<
         + Sync
 >;
 
-pub struct WorkGather<T, const N: usize>
-where
-    T: ExprAst + Default,
+pub struct WorkGather<T: ExprAst, const N: usize>
 {
     chunk_size: usize,
     chunk: Box<Vec<Vec<Arc<SubProgram<T, N>>>>>,
@@ -22,9 +20,7 @@ where
     tasks: tokio::task::JoinSet<Option<Arc<SubProgram<T, N>>>>,
 }
 
-impl<T, const N: usize> WorkGather<T, N>
-where
-    T: ExprAst + Default,
+impl<T: ExprAst, const N: usize> WorkGather<T, N>
 {
     pub fn new(handler: WorkHandler<T, N>, chunk_size: usize) -> Self {
         Self {
