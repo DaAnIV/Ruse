@@ -25,7 +25,7 @@ mod tests {
             &mut ctx,
             &args,
             &cache,
-        );
+        ).unwrap();
         assert_eq!(out.val(), &vnum!(Number::from(7u64)));
     }
 
@@ -44,7 +44,7 @@ mod tests {
             &mut ctx,
             &args,
             &cache,
-        );
+        ).unwrap();
         assert_eq!(out.val(), &vstr!(cache; "ab"));
     }
 
@@ -61,7 +61,7 @@ mod tests {
             &mut ctx,
             &[],
             &cache,
-        );
+        ).unwrap();
         assert_eq!(out.val(), &vnum!(Number::from(7u64)));
     }
 
@@ -82,14 +82,14 @@ mod tests {
             &mut ctx,
             &[],
             &cache,
-        );
+        ).unwrap();
 
         let mut new_ctx = ctx.clone();
         let out = op.eval(
             &mut new_ctx,
             &[&x_val],
             &cache,
-        );
+        ).unwrap();
         assert_eq!(ctx.get_var_loc_value(&id.name).val(), &vnum!(Number::from(7u64)));
         assert_eq!(x_val.val(), &vnum!(Number::from(7u64)));
         assert_eq!(x_val.loc(), &Location::Var(VarLoc { var: id.name.clone() }));
@@ -115,14 +115,14 @@ mod tests {
             &mut ctx,
             &[],
             &cache,
-        );
+        ).unwrap();
 
         let mut new_ctx = ctx.clone();
         let out = op.eval(
             &mut new_ctx,
             &[&x_val],
             &cache,
-        );
+        ).unwrap();
         assert_eq!(ctx.get_var_loc_value(&id.name).val(), &vnum!(Number::from(7u64)));
         assert_eq!(x_val.val(), &vnum!(Number::from(7u64)));
         assert_eq!(x_val.loc(), &Location::Var(VarLoc { var: id.name.clone() }));

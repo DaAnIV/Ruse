@@ -140,7 +140,10 @@ impl<T: ExprAst, const N: usize> Synthesizer<T, N> {
     fn init_context(&self, iteration_map: &ContextMap<T, N>, ctx: &ContextArray<N>, cache: &Cache) {
         let type_map: TypeMap<T, N> = Default::default();
         for op in &self.init_opcodes {
-            let p = self.get_program_from_init_opcode(op.clone(), ctx, cache);
+            let p  = match self.get_program_from_init_opcode(op.clone(), ctx, cache) {
+                Some(p) => p,
+                None => continue
+            };
             if type_map.insert_program(p) {
                 self.statistics.inc_value(StatisticsTypes::BankSize);
             }
@@ -158,11 +161,14 @@ impl<T: ExprAst, const N: usize> Synthesizer<T, N> {
         WorkGather::new(
             Arc::new(
                 move |op: &Arc<dyn ExprOpcode<T>>, children: &Vec<Arc<SubProgram<T, N>>>| {
-                    let p = this.get_program_from_composite_opcode(
+                    let p = match this.get_program_from_composite_opcode(
                         op.clone(),
                         children.clone(),
                         cache.as_ref(),
-                    );
+                    ) {
+                        Some(p) => p,
+                        None => return None
+                    };
                     if !this.check_and_insert_program(
                         p.clone(),
                         current_iteration_map.as_ref(),
@@ -201,7 +207,10 @@ impl<T: ExprAst, const N: usize> Synthesizer<T, N> {
 
         if iteration == 0 {
             for op in &this.init_opcodes {
-                let p = this.get_program_from_init_opcode(op.clone(), &this.start_context, cache);
+                let p = match this.get_program_from_init_opcode(op.clone(), &this.start_context, cache) {
+                    Some(p) => p,
+                    None => continue
+                };
                 if !this.check_and_insert_program(p.clone(), &current_iteration_map) {
                     continue;
                 }
@@ -240,10 +249,9 @@ impl<T: ExprAst, const N: usize> Synthesizer<T, N> {
         }
     }
 
-    fn evaluate_program(&self, p: &mut Arc<SubProgram<T, N>>, cache: &Cache) {
-        unsafe { Arc::get_mut(p).unwrap_unchecked() }.evaluate(cache);
+    fn evaluate_program(&self, p: &mut Arc<SubProgram<T, N>>, cache: &Cache) -> bool {
         self.statistics.inc_value(StatisticsTypes::Evaluated);
-        // println!("{{{}}} generated", p.get_code());
+        unsafe { Arc::get_mut(p).unwrap_unchecked() }.evaluate(cache)
     }
 
     fn get_program_from_composite_opcode(
@@ -251,13 +259,14 @@ impl<T: ExprAst, const N: usize> Synthesizer<T, N> {
         op: Arc<dyn ExprOpcode<T>>,
         args: Vec<Arc<SubProgram<T, N>>>,
         cache: &Cache,
-    ) -> Arc<SubProgram<T, N>> {
+    ) -> Option<Arc<SubProgram<T, N>>> {
         debug_assert!(op.arg_types().len() > 0);
 
         let mut p = SubProgram::with_opcode_and_children(op.clone(), args);
-        self.evaluate_program(&mut p, cache);
-
-        p
+        match self.evaluate_program(&mut p, cache) {
+            true => Some(p),
+            false => None
+        }
     }
 
     fn get_program_from_init_opcode(
@@ -265,13 +274,14 @@ impl<T: ExprAst, const N: usize> Synthesizer<T, N> {
         op: Arc<dyn ExprOpcode<T>>,
         ctx: &ContextArray<N>,
         cache: &Cache,
-    ) -> Arc<SubProgram<T, N>> {
+    ) -> Option<Arc<SubProgram<T, N>>> {
         debug_assert!(op.arg_types().len() == 0);
 
         let mut p = SubProgram::with_opcode_and_context(op.clone(), ctx);
-        self.evaluate_program(&mut p, cache);
-
-        p
+        match self.evaluate_program(&mut p, cache) {
+            true => Some(p),
+            false => None
+        }
     }
 
     fn check_program(&self, p: &Arc<SubProgram<T, N>>) -> bool {

@@ -93,7 +93,7 @@ impl BinOp {
 }
 
 impl ExprOpcode<TsExprAst> for BinOp {
-    fn eval(&self, ctx: &mut Context, args: &[&LocValue], cache: &Cache) -> LocValue {
+    fn eval(&self, ctx: &mut Context, args: &[&LocValue], cache: &Cache) -> Option<LocValue> {
         debug_assert_eq!(args.len(), 2);
         debug_assert_eq!(args[0].val().val_type(), self.arg_types[0]);
         debug_assert_eq!(args[1].val().val_type(), self.arg_types[1]);
@@ -116,7 +116,7 @@ impl ExprOpcode<TsExprAst> for BinOp {
             _ => panic!("Unexpected binary args"),
         };
 
-        ctx.temp_value(val)
+        Some(ctx.temp_value(val))
     }
 
     fn to_ast(&self, children: &Vec<TsExprAst>) -> TsExprAst {

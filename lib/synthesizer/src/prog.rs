@@ -119,7 +119,7 @@ impl<T: ExprAst, const N: usize> SubProgram<T, N>
         })
     }
 
-    pub fn evaluate(&mut self, cache: &Cache) {
+    pub fn evaluate(&mut self, cache: &Cache) -> bool {
         let mut out_type: Option<ValueType> = None;
         let mut post_ctx = Vec::with_capacity(N);
         let mut out_value = Vec::with_capacity(N);
@@ -134,17 +134,23 @@ impl<T: ExprAst, const N: usize> SubProgram<T, N>
             }
 
             // Evaluate and verify the output type is consistent
-            let out_val = self.opcode.eval(&mut out_ctx, &args, cache);
-            debug_assert!(out_type.is_none() || out_type == Some(out_val.val.val_type()));
-            let _ = out_type.get_or_insert(out_val.val.val_type());
+            match self.opcode.eval(&mut out_ctx, &args, cache) {
+                Some(out_val) => {
+                    debug_assert!(out_type.is_none() || out_type == Some(out_val.val.val_type()));
+                    let _ = out_type.get_or_insert(out_val.val.val_type());
 
-            post_ctx.push(out_ctx);
-            out_value.push(out_val);
+                    post_ctx.push(out_ctx);
+                    out_value.push(out_val);
+                },
+                None => return false
+            };
         }
 
         self.out_type = out_type.clone();
         self.post_ctx = Some(Arc::new(post_ctx.try_into().unwrap()));
         self.out_value = Some(Arc::new(out_value.try_into().unwrap()));
+        
+        return true;
     }
 
     pub fn get_ast(&self) -> T {

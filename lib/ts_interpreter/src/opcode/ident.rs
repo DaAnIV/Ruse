@@ -14,10 +14,10 @@ pub struct IdentOp {
 }
 
 impl ExprOpcode<TsExprAst> for IdentOp {
-    fn eval(&self, ctx: &mut Context, args: &[&LocValue], _cache: &Cache) -> LocValue {
+    fn eval(&self, ctx: &mut Context, args: &[&LocValue], _cache: &Cache) -> Option<LocValue> {
         debug_assert_eq!(args.len(), 0);
 
-        ctx.get_var_loc_value(&self.name)
+        Some(ctx.get_var_loc_value(&self.name))
     }
 
     fn to_ast(&self, children: &Vec<TsExprAst>) -> TsExprAst {

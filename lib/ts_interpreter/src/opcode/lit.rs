@@ -22,7 +22,7 @@ pub struct ArrayLitOp {
 }
 
 impl ExprOpcode<TsExprAst> for LitOp {
-    fn eval(&self, ctx: &mut Context, args: &[&LocValue], _: &Cache) -> LocValue {
+    fn eval(&self, ctx: &mut Context, args: &[&LocValue], _: &Cache) -> Option<LocValue> {
         debug_assert_eq!(args.len(), 0);
         let val = match self {
             LitOp::Null => Value::Primitive(PrimitiveValue::Null),
@@ -31,7 +31,7 @@ impl ExprOpcode<TsExprAst> for LitOp {
             LitOp::Num(n) => vnum!(*n),
         };
 
-        ctx.temp_value(val)
+        Some(ctx.temp_value(val))
     }
 
     fn to_ast(&self, children: &Vec<TsExprAst>) -> TsExprAst {
@@ -64,17 +64,17 @@ impl ExprOpcode<TsExprAst> for LitOp {
 }
 
 impl ExprOpcode<TsExprAst> for ArrayLitOp {
-    fn eval(&self, ctx: &mut Context, args: &[&LocValue], cache: &Cache) -> LocValue {
+    fn eval(&self, ctx: &mut Context, args: &[&LocValue], cache: &Cache) -> Option<LocValue> {
         let kv_map = (0..self.size)
             .zip(args)
             .map(|(i, val)| (scached!(cache; i.to_string()), val.val().clone()))
             .collect();
 
-        ctx.temp_value(Value::generate_object_from_map(
+        Some(ctx.temp_value(Value::generate_object_from_map(
             cache.temp_string(),
             str_cached!(cache; "Array"),
             kv_map,
-        ))
+        )))
     }
 
     fn to_ast(&self, children: &Vec<TsExprAst>) -> TsExprAst {

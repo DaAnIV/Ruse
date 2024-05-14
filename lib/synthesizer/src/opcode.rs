@@ -14,6 +14,6 @@ pub trait ExprOpcode<T: ExprAst>: Debug + Sync + Send {
 
     // ctx is an in-out value. It should contain the pre context but eval can change it 
     // For example: Think about the triplet - {x -> 3} ++x (4, {x -> 4})
-    fn eval(&self, ctx: &mut Context, args: &[&LocValue], cache: &Cache) -> LocValue;
+    fn eval(&self, ctx: &mut Context, args: &[&LocValue], cache: &Cache) -> Option<LocValue>;
     fn to_ast(&self, children: &Vec<T>) -> T;
 }
