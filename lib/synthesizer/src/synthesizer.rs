@@ -3,7 +3,7 @@ use ruse_object_graph::Cache;
 
 use crate::{
     bank::*,
-    opcode::{ExprAst, ExprOpcode},
+    opcode::ExprOpcode,
     prog::SubProgram, work_gatherer::WorkGather,
 };
 use std::{
@@ -11,7 +11,7 @@ use std::{
     sync::{atomic::*, Arc},
 };
 
-pub type OpcodesList<T> = Vec<Arc<dyn ExprOpcode<T>>>;
+pub type OpcodesList = Vec<Arc<dyn ExprOpcode>>;
 
 #[repr(usize)]
 #[derive(Clone, Copy, Debug)]
@@ -91,30 +91,30 @@ impl Display for CurrentStatistics {
     }
 }
 
-pub type SynthesizerPredicate<T> =
-    Box<dyn Fn(&Arc<SubProgram<T>>) -> bool + Send + Sync>;
+pub type SynthesizerPredicate =
+    Box<dyn Fn(&Arc<SubProgram>) -> bool + Send + Sync>;
 
-pub struct Synthesizer<T: ExprAst> {
-    bank: ProgBank<T>,
-    init_opcodes: OpcodesList<T>,
-    composite_opcodes: OpcodesList<T>,
+pub struct Synthesizer {
+    bank: ProgBank,
+    init_opcodes: OpcodesList,
+    composite_opcodes: OpcodesList,
     start_context: ContextArray,
     found_contexts: DashSet<ContextArray>,
     max_context_depth: usize,
 
-    predicate: SynthesizerPredicate<T>,
-    valid: SynthesizerPredicate<T>,
+    predicate: SynthesizerPredicate,
+    valid: SynthesizerPredicate,
 
     statistics: Statistics,
 }
 
 
-impl<T: ExprAst> Synthesizer<T> {
+impl Synthesizer {
     pub fn new(
         start_context: ContextArray,
-        opcodes: OpcodesList<T>,
-        predicate: SynthesizerPredicate<T>,
-        valid: SynthesizerPredicate<T>,
+        opcodes: OpcodesList,
+        predicate: SynthesizerPredicate,
+        valid: SynthesizerPredicate,
         max_context_depth: usize,
     ) -> Self {
         let (init_opcodes, composite_opcodes) =
@@ -137,8 +137,8 @@ impl<T: ExprAst> Synthesizer<T> {
         new_obj
     }
 
-    fn init_context(&self, iteration_map: &ContextMap<T>, ctx: &ContextArray, cache: &Cache) {
-        let type_map: TypeMap<T> = Default::default();
+    fn init_context(&self, iteration_map: &ContextMap, ctx: &ContextArray, cache: &Cache) {
+        let type_map: TypeMap = Default::default();
         for op in &self.init_opcodes {
             let p  = match self.get_program_from_init_opcode(op.clone(), ctx, cache) {
                 Some(p) => p,
@@ -155,12 +155,12 @@ impl<T: ExprAst> Synthesizer<T> {
 
     fn create_work_gatherer(
         this: Arc<Self>,
-        current_iteration_map: Arc<ContextMap<T>>,
+        current_iteration_map: Arc<ContextMap>,
         cache: Arc<Cache>,
-    ) -> WorkGather<T> {
+    ) -> WorkGather {
         WorkGather::new(
             Arc::new(
-                move |op: &Arc<dyn ExprOpcode<T>>, children: &Vec<Arc<SubProgram<T>>>| {
+                move |op: &Arc<dyn ExprOpcode>, children: &Vec<Arc<SubProgram>>| {
                     let p = match this.get_program_from_composite_opcode(
                         op.clone(),
                         children.clone(),
@@ -199,9 +199,9 @@ impl<T: ExprAst> Synthesizer<T> {
     pub async fn run_iteration(
         this: &mut Arc<Self>,
         cache: &Arc<Cache>
-    ) -> Option<Arc<SubProgram<T>>> {
+    ) -> Option<Arc<SubProgram>> {
         let iteration = this.bank.iteration_count();
-        let current_iteration_map: Arc<ContextMap<T>> = Default::default();
+        let current_iteration_map: Arc<ContextMap> = Default::default();
 
         let mut found_prog = None;
 
@@ -240,7 +240,7 @@ impl<T: ExprAst> Synthesizer<T> {
         found_prog
     }
 
-    fn insert_iteration(this: &mut Arc<Self>, current_iteration_map: Arc<ContextMap<T>>) {
+    fn insert_iteration(this: &mut Arc<Self>, current_iteration_map: Arc<ContextMap>) {
         unsafe {
             Arc::get_mut(this)
                 .unwrap_unchecked()
@@ -249,17 +249,17 @@ impl<T: ExprAst> Synthesizer<T> {
         }
     }
 
-    fn evaluate_program(&self, p: &mut Arc<SubProgram<T>>, cache: &Cache) -> bool {
+    fn evaluate_program(&self, p: &mut Arc<SubProgram>, cache: &Cache) -> bool {
         self.statistics.inc_value(StatisticsTypes::Evaluated);
         unsafe { Arc::get_mut(p).unwrap_unchecked() }.evaluate(cache)
     }
 
     fn get_program_from_composite_opcode(
         &self,
-        op: Arc<dyn ExprOpcode<T>>,
-        args: Vec<Arc<SubProgram<T>>>,
+        op: Arc<dyn ExprOpcode>,
+        args: Vec<Arc<SubProgram>>,
         cache: &Cache,
-    ) -> Option<Arc<SubProgram<T>>> {
+    ) -> Option<Arc<SubProgram>> {
         debug_assert!(op.arg_types().len() > 0);
 
         let mut p = SubProgram::with_opcode_and_children(op.clone(), args);
@@ -271,10 +271,10 @@ impl<T: ExprAst> Synthesizer<T> {
 
     fn get_program_from_init_opcode(
         &self,
-        op: Arc<dyn ExprOpcode<T>>,
+        op: Arc<dyn ExprOpcode>,
         ctx: &ContextArray,
         cache: &Cache,
-    ) -> Option<Arc<SubProgram<T>>> {
+    ) -> Option<Arc<SubProgram>> {
         debug_assert!(op.arg_types().len() == 0);
 
         let mut p = SubProgram::with_opcode_and_context(op.clone(), ctx);
@@ -284,7 +284,7 @@ impl<T: ExprAst> Synthesizer<T> {
         }
     }
 
-    fn check_program(&self, p: &Arc<SubProgram<T>>) -> bool {
+    fn check_program(&self, p: &Arc<SubProgram>) -> bool {
         if p.post_ctx()[0].number_of_changes() > self.max_context_depth {
             return false;
         }
@@ -300,8 +300,8 @@ impl<T: ExprAst> Synthesizer<T> {
 
     fn check_and_insert_program(
         &self,
-        p: Arc<SubProgram<T>>,
-        iteration_map: &ContextMap<T>,
+        p: Arc<SubProgram>,
+        iteration_map: &ContextMap,
     ) -> bool {
         if !self.check_program(&p) {
             return false;

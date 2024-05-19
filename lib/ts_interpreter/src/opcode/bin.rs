@@ -1,5 +1,5 @@
 use ruse_object_graph::{Cache, Number, PrimitiveValue};
-use ruse_synthesizer::opcode::ExprOpcode;
+use ruse_synthesizer::opcode::{ExprAst, ExprOpcode};
 use ruse_synthesizer::value::*;
 use ruse_synthesizer::{context::*, vbool, vnum, vstring};
 
@@ -92,7 +92,7 @@ impl BinOp {
     }
 }
 
-impl ExprOpcode<TsExprAst> for BinOp {
+impl ExprOpcode for BinOp {
     fn eval(&self, args: &[&LocValue], post_ctx: &mut Context, cache: &Cache) -> Option<LocValue> {
         debug_assert_eq!(args.len(), 2);
         debug_assert_eq!(args[0].val().val_type(), self.arg_types[0]);
@@ -119,17 +119,17 @@ impl ExprOpcode<TsExprAst> for BinOp {
         Some(post_ctx.temp_value(val))
     }
 
-    fn to_ast(&self, children: &Vec<TsExprAst>) -> TsExprAst {
+    fn to_ast(&self, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst> {
         debug_assert_eq!(children.len(), 2);
 
         let expr = ast::BinExpr {
             span: DUMMY_SP,
             op: self.op,
-            left: children[0].get_paren_expr(),
-            right: children[1].get_paren_expr(),
+            left: TsExprAst::from(children[0].as_ref()).get_paren_expr(),
+            right: TsExprAst::from(children[1].as_ref()).get_paren_expr(),
         };
 
-        ast::Expr::Bin(expr).into()
+        TsExprAst::create(ast::Expr::Bin(expr))
     }
 
     fn arg_types(&self) -> &[ValueType] {

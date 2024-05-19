@@ -4,20 +4,19 @@ use ruse_synthesizer::{
     prog::SubProgram,
     synthesizer::{CurrentStatistics, OpcodesList, Synthesizer, SynthesizerPredicate},
 };
-use ruse_ts_interpreter::opcode::TsExprAst;
 
 use std::sync::Arc;
 
 pub struct TsSynthesizer {
-    inner: Arc<Synthesizer<TsExprAst>>,
+    inner: Arc<Synthesizer>,
 }
 
 impl TsSynthesizer {
     pub fn new(
         start_context: ContextArray,
-        opcodes: OpcodesList<TsExprAst>,
-        predicate: SynthesizerPredicate<TsExprAst>,
-        valid: SynthesizerPredicate<TsExprAst>,
+        opcodes: OpcodesList,
+        predicate: SynthesizerPredicate,
+        valid: SynthesizerPredicate,
         max_context_depth: usize
     ) -> Self {
         Self {
@@ -35,7 +34,7 @@ impl TsSynthesizer {
     pub async fn run_iteration(
         &mut self,
         cache: &Arc<Cache>,
-    ) -> Option<Arc<SubProgram<TsExprAst>>>
+    ) -> Option<Arc<SubProgram>>
     {
         Synthesizer::run_iteration(&mut self.inner, cache).await
     }

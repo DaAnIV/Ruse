@@ -1,6 +1,6 @@
 use ruse_object_graph::{Cache, CachedString};
 use ruse_synthesizer::context::*;
-use ruse_synthesizer::opcode::ExprOpcode;
+use ruse_synthesizer::opcode::{ExprAst, ExprOpcode};
 use ruse_synthesizer::value::*;
 
 use swc_common::DUMMY_SP;
@@ -13,14 +13,14 @@ pub struct IdentOp {
     pub name: CachedString,
 }
 
-impl ExprOpcode<TsExprAst> for IdentOp {
+impl ExprOpcode for IdentOp {
     fn eval(&self, args: &[&LocValue], post_ctx: &mut Context, _cache: &Cache) -> Option<LocValue> {
         debug_assert_eq!(args.len(), 0);
 
         Some(post_ctx.get_var_loc_value(&self.name))
     }
 
-    fn to_ast(&self, children: &Vec<TsExprAst>) -> TsExprAst {
+    fn to_ast(&self, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst> {
         debug_assert_eq!(children.len(), 0);
 
         let expr = ast::Ident {
@@ -29,7 +29,7 @@ impl ExprOpcode<TsExprAst> for IdentOp {
             optional: false,
         };
 
-        ast::Expr::Ident(expr).into()
+        TsExprAst::create(ast::Expr::Ident(expr))
     }
 
     fn arg_types(&self) -> &[ValueType] {

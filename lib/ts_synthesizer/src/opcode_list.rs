@@ -1,6 +1,6 @@
 use ruse_object_graph::{CachedString, Number};
 use ruse_synthesizer::{synthesizer::OpcodesList, value::ValueType};
-use ruse_ts_interpreter::opcode::{self, TsExprAst};
+use ruse_ts_interpreter::opcode;
 use std::sync::Arc;
 
 use swc_ecma_ast as ast;
@@ -62,8 +62,8 @@ pub fn construct_opcode_list(
     num_literals: &[f64],
     string_literals: &[CachedString],
     add_bool_lit: bool,
-) -> OpcodesList<TsExprAst> {
-    let mut opcodes: OpcodesList<TsExprAst> = Vec::new();
+) -> OpcodesList {
+    let mut opcodes: OpcodesList = Vec::new();
 
     // Add variable access
     for var in var_names {
@@ -92,7 +92,7 @@ pub fn construct_opcode_list(
 }
 
 pub fn add_num_opcodes(
-    opcodes: &mut OpcodesList<TsExprAst>,
+    opcodes: &mut OpcodesList,
     bin_num_opcodes: &[ast::BinaryOp],
     unary_num_opcodes: &[ast::UnaryOp],
     update_num_opcodes: &[ast::UpdateOp],
@@ -115,7 +115,7 @@ pub fn add_num_opcodes(
 }
 
 pub fn add_bool_opcodes(
-    opcodes:  &mut OpcodesList<TsExprAst>,
+    opcodes:  &mut OpcodesList,
     bin_bool_opcodes: &[ast::BinaryOp],
     unary_bool_opcodes: &[ast::UnaryOp],
 ) {
@@ -133,7 +133,7 @@ pub fn add_bool_opcodes(
 }
 
 pub fn add_str_opcodes(
-    opcodes:  &mut OpcodesList<TsExprAst>,
+    opcodes:  &mut OpcodesList,
     str_bool_opcodes: &[ast::BinaryOp],
 ) {
     for op in str_bool_opcodes {

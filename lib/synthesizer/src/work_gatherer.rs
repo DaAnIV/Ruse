@@ -2,27 +2,27 @@ use std::{mem::replace, sync::Arc};
 
 use crate::{
     bank::ProgBank,
-    opcode::{ExprAst, ExprOpcode},
+    opcode::ExprOpcode,
     prog::SubProgram,
 };
 
-type WorkHandler<T> = Arc<
-    dyn Fn(&Arc<dyn ExprOpcode<T>>, &Vec<Arc<SubProgram<T>>>) -> Option<Arc<SubProgram<T>>>
+type WorkHandler = Arc<
+    dyn Fn(&Arc<dyn ExprOpcode>, &Vec<Arc<SubProgram>>) -> Option<Arc<SubProgram>>
         + Send
         + Sync
 >;
 
-pub struct WorkGather<T: ExprAst>
+pub struct WorkGather
 {
     chunk_size: usize,
-    chunk: Box<Vec<Vec<Arc<SubProgram<T>>>>>,
-    handler: WorkHandler<T>,
-    tasks: tokio::task::JoinSet<Option<Arc<SubProgram<T>>>>,
+    chunk: Box<Vec<Vec<Arc<SubProgram>>>>,
+    handler: WorkHandler,
+    tasks: tokio::task::JoinSet<Option<Arc<SubProgram>>>,
 }
 
-impl<T: ExprAst> WorkGather<T>
+impl WorkGather
 {
-    pub fn new(handler: WorkHandler<T>, chunk_size: usize) -> Self {
+    pub fn new(handler: WorkHandler, chunk_size: usize) -> Self {
         Self {
             chunk_size: chunk_size,
             chunk: Vec::with_capacity(chunk_size).into(),
@@ -33,13 +33,13 @@ impl<T: ExprAst> WorkGather<T>
 
     pub fn gather_work_for_next_iteration(
         &mut self,
-        bank: &ProgBank<T>,
-        op: &Arc<dyn ExprOpcode<T>>,
+        bank: &ProgBank,
+        op: &Arc<dyn ExprOpcode>,
     ) {
         self.add_all_tasks(bank, op);
     }
 
-    pub async fn wait_for_all_tasks(&mut self) -> Option<Arc<SubProgram<T>>> {
+    pub async fn wait_for_all_tasks(&mut self) -> Option<Arc<SubProgram>> {
         let mut found_prog = None;
         while let Some(res) = self.tasks.join_next().await {
             if let Ok(Some(p)) = res {
@@ -50,7 +50,7 @@ impl<T: ExprAst> WorkGather<T>
         return found_prog;
     }
 
-    fn add_all_tasks(&mut self, bank: &ProgBank<T>, op: &Arc<dyn ExprOpcode<T>>) {
+    fn add_all_tasks(&mut self, bank: &ProgBank, op: &Arc<dyn ExprOpcode>) {
         for i in 0..op.arg_types().len() {
             self.gather_work_with_cutoff(bank, op, i);
         }
@@ -61,8 +61,8 @@ impl<T: ExprAst> WorkGather<T>
 
     fn gather_work_with_cutoff(
         &mut self,
-        bank: &ProgBank<T>,
-        op: &Arc<dyn ExprOpcode<T>>,
+        bank: &ProgBank,
+        op: &Arc<dyn ExprOpcode>,
         cutoff: usize,
     ) {
         let mut iterations = Vec::with_capacity(op.arg_types().len());
@@ -71,8 +71,8 @@ impl<T: ExprAst> WorkGather<T>
 
     fn gather_work_with_cutoff_and_iterations(
         &mut self,
-        bank: &ProgBank<T>,
-        op: &Arc<dyn ExprOpcode<T>>,
+        bank: &ProgBank,
+        op: &Arc<dyn ExprOpcode>,
         cutoff: usize,
         iterations: &mut Vec<usize>,
     ) {
@@ -105,8 +105,8 @@ impl<T: ExprAst> WorkGather<T>
 
     fn gather_work_for_iterations(
         &mut self,
-        bank: &ProgBank<T>,
-        op: &Arc<dyn ExprOpcode<T>>,
+        bank: &ProgBank,
+        op: &Arc<dyn ExprOpcode>,
         iterations: &[usize],
     ) {
         let arg_types = op.arg_types();
@@ -124,10 +124,10 @@ impl<T: ExprAst> WorkGather<T>
 
     fn gather_work_for_iterations_with_progs(
         &mut self,
-        bank: &ProgBank<T>,
-        op: &Arc<dyn ExprOpcode<T>>,
+        bank: &ProgBank,
+        op: &Arc<dyn ExprOpcode>,
         iterations: &[usize],
-        children: &mut Vec<Arc<SubProgram<T>>>,
+        children: &mut Vec<Arc<SubProgram>>,
     ) {
         let i = children.len();
         if i == op.arg_types().len() {
@@ -146,23 +146,23 @@ impl<T: ExprAst> WorkGather<T>
         }
     }
 
-    fn gather_work(&mut self, op: &Arc<dyn ExprOpcode<T>>, children: &Vec<Arc<SubProgram<T>>>) {
+    fn gather_work(&mut self, op: &Arc<dyn ExprOpcode>, children: &Vec<Arc<SubProgram>>) {
         self.chunk.push(children.clone());
         if self.chunk.len() == self.chunk_size {
             self.perform_work(op);
         }
     }
 
-    fn perform_work(&mut self, op: &Arc<dyn ExprOpcode<T>>) {
+    fn perform_work(&mut self, op: &Arc<dyn ExprOpcode>) {
         let chunk = replace(&mut self.chunk, Vec::with_capacity(self.chunk_size).into());
         WorkGather::spawn(&mut self.tasks, chunk, op.clone(), self.handler.clone());
     }
 
     fn spawn(
-        tasks: &mut tokio::task::JoinSet<Option<Arc<SubProgram<T>>>>,
-        chunk: Box<Vec<Vec<Arc<SubProgram<T>>>>>,
-        op: Arc<dyn ExprOpcode<T>>,
-        handler: WorkHandler<T>,
+        tasks: &mut tokio::task::JoinSet<Option<Arc<SubProgram>>>,
+        chunk: Box<Vec<Vec<Arc<SubProgram>>>>,
+        op: Arc<dyn ExprOpcode>,
+        handler: WorkHandler,
     ) {
         tasks.spawn(async move {
             for c in chunk.iter() {

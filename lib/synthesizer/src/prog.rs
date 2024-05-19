@@ -11,10 +11,10 @@ use crate::bank::ValueArray;
 use crate::opcode::*;
 use crate::value::*;
 
-pub struct SubProgram<T: ExprAst>
+pub struct SubProgram
 {
-    pub opcode: Arc<dyn ExprOpcode<T>>,
-    pub children: Vec<Arc<SubProgram<T>>>,
+    pub opcode: Arc<dyn ExprOpcode>,
+    pub children: Vec<Arc<SubProgram>>,
 
     size: u32,
     depth: u32,
@@ -25,9 +25,9 @@ pub struct SubProgram<T: ExprAst>
     out_value: Option<ValueArray>,
 }
 
-fn verify_children<T: ExprAst>(
-    opcode: &Arc<dyn ExprOpcode<T>>,
-    children: &[Arc<SubProgram<T>>],
+fn verify_children(
+    opcode: &Arc<dyn ExprOpcode>,
+    children: &[Arc<SubProgram>],
 ) -> bool {
     let pre_context = &children[0].pre_ctx()[0];
 
@@ -74,11 +74,11 @@ fn verify_children<T: ExprAst>(
     return true;
 }
 
-impl<T: ExprAst> SubProgram<T>
+impl SubProgram
 {
     pub fn with_opcode_and_children(
-        opcode: Arc<dyn ExprOpcode<T>>,
-        children: Vec<Arc<SubProgram<T>>>,
+        opcode: Arc<dyn ExprOpcode>,
+        children: Vec<Arc<SubProgram>>,
     ) -> Arc<Self> {
         assert!(children.len() > 0);
         debug_assert!(verify_children(&opcode, &children));
@@ -102,7 +102,7 @@ impl<T: ExprAst> SubProgram<T>
     }
 
     pub fn with_opcode_and_context(
-        opcode: Arc<dyn ExprOpcode<T>>,
+        opcode: Arc<dyn ExprOpcode>,
         context: &ContextArray,
     ) -> Arc<Self> {
         Arc::new(Self {
@@ -157,7 +157,7 @@ impl<T: ExprAst> SubProgram<T>
         return true;
     }
 
-    pub fn get_ast(&self) -> T {
+    pub fn get_ast(&self) -> Box<dyn ExprAst> {
         let child_asts = (&self.children).into_iter().map(|x| x.get_ast()).collect();
         self.opcode.to_ast(&child_asts)
     }
@@ -197,7 +197,7 @@ impl<T: ExprAst> SubProgram<T>
     }
 }
 
-impl<T: ExprAst> Hash for SubProgram<T>
+impl Hash for SubProgram
 {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.pre_ctx().hash(state);
@@ -207,9 +207,9 @@ impl<T: ExprAst> Hash for SubProgram<T>
     }
 }
 
-impl<T: ExprAst> Eq for SubProgram<T> {}
+impl Eq for SubProgram {}
 
-impl<T: ExprAst> PartialEq for SubProgram<T>
+impl PartialEq for SubProgram
 {
     fn eq(&self, other: &Self) -> bool {
         self.out_type == other.out_type
@@ -219,7 +219,7 @@ impl<T: ExprAst> PartialEq for SubProgram<T>
     }
 }
 
-impl<T: ExprAst> Debug for SubProgram<T>
+impl Debug for SubProgram
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("SubProgram")
@@ -232,7 +232,7 @@ impl<T: ExprAst> Debug for SubProgram<T>
     }
 }
 
-impl<T: ExprAst> Display for SubProgram<T>
+impl Display for SubProgram
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "({}) {{ {} }} ({}; {})", self.pre_ctx()[0], self.get_code(), self.out_value()[0].val(), self.post_ctx()[0])

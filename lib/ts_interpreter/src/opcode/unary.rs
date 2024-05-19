@@ -1,5 +1,5 @@
 use ruse_object_graph::{Cache, Number, PrimitiveValue};
-use ruse_synthesizer::opcode::ExprOpcode;
+use ruse_synthesizer::opcode::{ExprAst, ExprOpcode};
 use ruse_synthesizer::{context::*, vbool, vnum};
 use ruse_synthesizer::value::*;
 
@@ -45,7 +45,7 @@ impl UnaryOp {
     }
 }
 
-impl ExprOpcode<TsExprAst> for UnaryOp {
+impl ExprOpcode for UnaryOp {
     fn eval(&self, args: &[&LocValue], post_ctx: &mut Context, _cache: &Cache) -> Option<LocValue> {
         debug_assert_eq!(args.len(), 1);
         let res = match &args[0].val() {
@@ -64,16 +64,16 @@ impl ExprOpcode<TsExprAst> for UnaryOp {
         &self.arg_types
     }
 
-    fn to_ast(&self, children: &Vec<TsExprAst>) -> TsExprAst {
+    fn to_ast(&self, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst> {
         debug_assert_eq!(children.len(), 1);
 
         let expr = ast::UnaryExpr {
             span: DUMMY_SP,
             op: self.op,
-            arg: children[0].get_paren_expr(),
+            arg: TsExprAst::from(children[0].as_ref()).get_paren_expr(),
         };
 
-        ast::Expr::Unary(expr).into()
+        TsExprAst::create(ast::Expr::Unary(expr))
     }
 }
 
@@ -86,7 +86,7 @@ impl UpdateOp {
     }
 }
 
-impl ExprOpcode<TsExprAst> for UpdateOp {
+impl ExprOpcode for UpdateOp {
     fn eval(&self, args: &[&LocValue], post_ctx: &mut Context, _cache: &Cache) -> Option<LocValue> {
         debug_assert_eq!(args.len(), 1);
 
@@ -112,16 +112,16 @@ impl ExprOpcode<TsExprAst> for UpdateOp {
         &[ValueType::Number]
     }
 
-    fn to_ast(&self, children: &Vec<TsExprAst>) -> TsExprAst {
+    fn to_ast(&self, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst> {
         debug_assert_eq!(children.len(), 1);
 
         let expr = ast::UpdateExpr {
             span: DUMMY_SP,
             op: self.op,
-            arg: children[0].get_paren_expr(),
+            arg: TsExprAst::from(children[0].as_ref()).get_paren_expr(),
             prefix: self.prefix
         };
 
-        ast::Expr::Update(expr).into()
+        TsExprAst::create(ast::Expr::Update(expr))
     }
 }

@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{any::Any, sync::Arc};
 
 use ruse_synthesizer::opcode::ExprAst;
 use swc::PrintArgs;
@@ -10,6 +10,10 @@ pub struct TsExprAst {
 }
 
 impl TsExprAst {
+    pub fn create(node: ast::Expr) -> Box<dyn ExprAst> {
+        Box::new(Self { node: node.into() })
+    }
+
     pub fn get_paren_expr(&self) -> Box<ast::Expr> {
         let owned_node = self.node.to_owned();
         match *owned_node {
@@ -36,11 +40,9 @@ impl TsExprAst {
             _ => owned_node,
         }
     }
-}
 
-impl From<ast::Expr> for TsExprAst {
-    fn from(value: ast::Expr) -> Self {
-        TsExprAst { node: value.into() }
+    pub(crate) fn from(ast: &dyn ExprAst) -> &Self {
+        ast.as_any().downcast_ref().unwrap()
     }
 }
 
@@ -50,6 +52,10 @@ impl ExprAst for TsExprAst {
         c.print(&self.node, PrintArgs::default())
             .expect("Failed to get code")
             .code
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
 

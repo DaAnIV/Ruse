@@ -1,6 +1,6 @@
 use ruse_object_graph::{Cache, CachedString};
 use ruse_synthesizer::context::*;
-use ruse_synthesizer::opcode::ExprOpcode;
+use ruse_synthesizer::opcode::{ExprAst, ExprOpcode};
 use ruse_synthesizer::value::*;
 
 use swc_common::DUMMY_SP;
@@ -23,7 +23,7 @@ impl MemberOp {
     }
 }
 
-impl ExprOpcode<TsExprAst> for MemberOp {
+impl ExprOpcode for MemberOp {
     fn eval(&self, args: &[&LocValue], post_ctx: &mut Context, _cache: &Cache) -> Option<LocValue> {
         debug_assert_eq!(args.len(), 1);
 
@@ -46,16 +46,16 @@ impl ExprOpcode<TsExprAst> for MemberOp {
         Some(post_ctx.get_loc_value(val, loc))
     }
 
-    fn to_ast(&self, children: &Vec<TsExprAst>) -> TsExprAst {
+    fn to_ast(&self, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst> {
         debug_assert_eq!(children.len(), 1);
 
         let expr = ast::MemberExpr {
             span: DUMMY_SP,
-            obj: children[0].get_paren_expr(),
+            obj: TsExprAst::from(children[0].as_ref()).get_paren_expr(),
             prop: ast::MemberProp::Ident(ast::Ident::from(self.field_name.as_str())),
         };
 
-        ast::Expr::Member(expr).into()
+        TsExprAst::create(ast::Expr::Member(expr))
     }
 
     fn arg_types(&self) -> &[ValueType] {

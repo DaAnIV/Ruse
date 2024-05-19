@@ -1,20 +1,21 @@
-use std::fmt::Debug;
+use std::{any::Any, fmt::Debug};
 
 use crate::context::Context;
 
 use super::value::{LocValue, ValueType};
 use ruse_object_graph::Cache;
 
-pub trait ExprAst: 'static + Default {
+pub trait ExprAst: Any {
     fn to_string(&self) -> String;
+    fn as_any(&self) -> &dyn Any;
 }
 
-pub trait ExprOpcode<T: ExprAst>: Debug + Sync + Send {
+pub trait ExprOpcode: Debug + Sync + Send {
     fn arg_types(&self) -> &[ValueType];
 
     // post_ctx contains the post context of the last argument or the pre context if there are no arguments.
     // It can be changed on mutating opcodes. 
     // For example: Think about the triplet - {x -> 3} ++x (4, {x -> 4})
     fn eval(&self, args: &[&LocValue], post_ctx: &mut Context, cache: &Cache) -> Option<LocValue>;
-    fn to_ast(&self, children: &Vec<T>) -> T;
+    fn to_ast(&self, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst>;
 }

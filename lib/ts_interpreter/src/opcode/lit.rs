@@ -1,5 +1,5 @@
 use ruse_object_graph::*;
-use ruse_synthesizer::context::*;
+use ruse_synthesizer::{context::*, opcode::ExprAst};
 use ruse_synthesizer::opcode::ExprOpcode;
 use ruse_synthesizer::value::*;
 use ruse_synthesizer::*;
@@ -21,7 +21,7 @@ pub struct ArrayLitOp {
     pub size: u32,
 }
 
-impl ExprOpcode<TsExprAst> for LitOp {
+impl ExprOpcode for LitOp {
     fn eval(&self, args: &[&LocValue], post_ctx: &mut Context, _cache: &Cache) -> Option<LocValue> {
         debug_assert_eq!(args.len(), 0);
         let val = match self {
@@ -34,7 +34,7 @@ impl ExprOpcode<TsExprAst> for LitOp {
         Some(post_ctx.temp_value(val))
     }
 
-    fn to_ast(&self, children: &Vec<TsExprAst>) -> TsExprAst {
+    fn to_ast(&self, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst> {
         debug_assert_eq!(children.len(), 0);
 
         let expr = match self {
@@ -55,7 +55,7 @@ impl ExprOpcode<TsExprAst> for LitOp {
             }),
         };
 
-        ast::Expr::Lit(expr).into()
+        TsExprAst::create(ast::Expr::Lit(expr))
     }
 
     fn arg_types(&self) -> &[ValueType] {
@@ -63,7 +63,7 @@ impl ExprOpcode<TsExprAst> for LitOp {
     }
 }
 
-impl ExprOpcode<TsExprAst> for ArrayLitOp {
+impl ExprOpcode for ArrayLitOp {
     fn eval(&self, args: &[&LocValue], post_ctx: &mut Context, cache: &Cache) -> Option<LocValue> {
         let kv_map = (0..self.size)
             .zip(args)
@@ -77,7 +77,7 @@ impl ExprOpcode<TsExprAst> for ArrayLitOp {
         )))
     }
 
-    fn to_ast(&self, children: &Vec<TsExprAst>) -> TsExprAst {
+    fn to_ast(&self, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst> {
         let expr = ast::ArrayLit {
             span: DUMMY_SP,
             elems: children
@@ -85,13 +85,13 @@ impl ExprOpcode<TsExprAst> for ArrayLitOp {
                 .map(|x| {
                     Some(ast::ExprOrSpread {
                         spread: None,
-                        expr: x.node.to_owned(),
+                        expr: TsExprAst::from(x.as_ref()).node.to_owned(),
                     })
                 })
                 .collect(),
         };
 
-        ast::Expr::Array(expr).into()
+        TsExprAst::create(ast::Expr::Array(expr))
     }
 
     fn arg_types(&self) -> &[ValueType] {
