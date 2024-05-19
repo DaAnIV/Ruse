@@ -181,7 +181,7 @@ async fn test_class_loader() {
     opcodes.extend(user_class.member_opcodes().clone());
     opcodes.extend(user_pair_class.member_opcodes().clone());
 
-    let ctx = Arc::new([Context::with_values(
+    let ctx = Arc::new(vec![Context::with_values(
         [(str_cached!(cache; "x"), complex_user)].into(),
     )]);
 
@@ -231,11 +231,102 @@ async fn test_class_loader() {
     }
 }
 
+
+async fn run_mutating_primitive_field_in_object() {
+    let code = "class Point {
+        constructor(public x: number) {}
+    }";
+    let cache = Arc::new(object_graph::Cache::new());
+    let point_class = TsClass::from_code(code.to_string(), &cache).unwrap();
+
+    let point1 = point_class.generate_object(
+        str_cached!(cache; "p"),
+        HashMap::from([
+            (str_cached!(cache; "x"), vnum!(Number::from(4))),
+        ]),
+    );
+    let point2 = point_class.generate_object(
+        str_cached!(cache; "p"),
+        HashMap::from([
+            (str_cached!(cache; "x"), vnum!(Number::from(5))),
+        ]),
+    );
+
+    let mut opcodes = construct_opcode_list(
+        &[str_cached!(cache; "p")],
+        &[],
+        &[],
+        false,
+    );
+    add_num_opcodes(&mut opcodes, &[ast::BinaryOp::Add], &[], &[ast::UpdateOp::PlusPlus]);
+    opcodes.extend(point_class.member_opcodes().clone());
+
+    let ctx = Arc::new(vec![
+        Context::with_values([(str_cached!(cache; "p"), point1)].into()),
+        Context::with_values([(str_cached!(cache; "p"), point2)].into()),
+    ]);
+
+    let mut synthesizer = TsSynthesizer::new(
+        ctx.clone(),
+        opcodes,
+        Box::new(move |p| {
+            let expected_outputs = [
+                Number::from(10), Number::from(12)
+            ];
+            if p.out_type() != ValueType::Number {
+                return false;
+            }
+            if p.size() != 6 {
+                return false;
+            }
+            for (v, e) in p.out_value().iter().zip(expected_outputs) {
+                if v.loc() != &Location::Temp {
+                    return false;
+                }
+                let v_num = unsafe { v.val().number_value().unwrap_unchecked() };
+                if v_num != e {
+                    return false;
+                }
+            }
+            return true;
+        }),
+        Box::new(move |_p| true ),
+        3,
+    );
+
+    for i in 1..=5 {
+        let iteration_start = Instant::now();
+        println!("Starting iteration {}", i);
+        let res = synthesizer.run_iteration(&cache).await;
+        println!(
+            "Iteration {} took {:.3}s",
+            i,
+            iteration_start.elapsed().as_secs_f32()
+        );
+        println!("statistics: {}", synthesizer.statistics());
+        if let Some(p) = res {
+            println!("Found program {} = {}", p.get_code(), p.out_value()[0].val());
+            for c in p.children.iter() {
+                let p_var_before = c.pre_ctx()[0].get_var_loc_value(&str_cached!(cache; "p"));
+                let p_var_after = c.post_ctx()[0].get_var_loc_value(&str_cached!(cache; "p"));
+                println!("p = {}", p_var_before.val());
+                println!("{} = {}", c.get_code(), c.out_value()[0].val());
+                println!("p = {}", p_var_after.val());
+            }
+            // assert_eq!(p.get_code(), "(++p.x) + (p.x)");
+            return;
+        }
+        println!();
+    }
+
+    // assert!(false, "Failed to find program")
+}
+
 #[allow(dead_code)]
 async fn run_synthesizer() {
     let cache = Arc::new(object_graph::Cache::new());
 
-    let ctx = Arc::new([
+    let ctx = Arc::new(vec![
         Context::with_values(
             [
                 (str_cached!(cache; "x"), vnum!(Number::from(4u64))),
@@ -327,7 +418,7 @@ async fn main() -> ExitCode {
 
     // run_synthesizer().await;
 
-    test_class_loader().await;
+    run_mutating_primitive_field_in_object().await;
 
     // let cache = object_graph::Cache::new();
     // let mut rng = StdRng::from_entropy();

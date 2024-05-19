@@ -6,23 +6,23 @@ use crate::{
     prog::SubProgram,
 };
 
-type WorkHandler<T, const N: usize> = Arc<
-    dyn Fn(&Arc<dyn ExprOpcode<T>>, &Vec<Arc<SubProgram<T, N>>>) -> Option<Arc<SubProgram<T, N>>>
+type WorkHandler<T> = Arc<
+    dyn Fn(&Arc<dyn ExprOpcode<T>>, &Vec<Arc<SubProgram<T>>>) -> Option<Arc<SubProgram<T>>>
         + Send
         + Sync
 >;
 
-pub struct WorkGather<T: ExprAst, const N: usize>
+pub struct WorkGather<T: ExprAst>
 {
     chunk_size: usize,
-    chunk: Box<Vec<Vec<Arc<SubProgram<T, N>>>>>,
-    handler: WorkHandler<T, N>,
-    tasks: tokio::task::JoinSet<Option<Arc<SubProgram<T, N>>>>,
+    chunk: Box<Vec<Vec<Arc<SubProgram<T>>>>>,
+    handler: WorkHandler<T>,
+    tasks: tokio::task::JoinSet<Option<Arc<SubProgram<T>>>>,
 }
 
-impl<T: ExprAst, const N: usize> WorkGather<T, N>
+impl<T: ExprAst> WorkGather<T>
 {
-    pub fn new(handler: WorkHandler<T, N>, chunk_size: usize) -> Self {
+    pub fn new(handler: WorkHandler<T>, chunk_size: usize) -> Self {
         Self {
             chunk_size: chunk_size,
             chunk: Vec::with_capacity(chunk_size).into(),
@@ -33,13 +33,13 @@ impl<T: ExprAst, const N: usize> WorkGather<T, N>
 
     pub fn gather_work_for_next_iteration(
         &mut self,
-        bank: &ProgBank<T, N>,
+        bank: &ProgBank<T>,
         op: &Arc<dyn ExprOpcode<T>>,
     ) {
         self.add_all_tasks(bank, op);
     }
 
-    pub async fn wait_for_all_tasks(&mut self) -> Option<Arc<SubProgram<T, N>>> {
+    pub async fn wait_for_all_tasks(&mut self) -> Option<Arc<SubProgram<T>>> {
         let mut found_prog = None;
         while let Some(res) = self.tasks.join_next().await {
             if let Ok(Some(p)) = res {
@@ -50,7 +50,7 @@ impl<T: ExprAst, const N: usize> WorkGather<T, N>
         return found_prog;
     }
 
-    fn add_all_tasks(&mut self, bank: &ProgBank<T, N>, op: &Arc<dyn ExprOpcode<T>>) {
+    fn add_all_tasks(&mut self, bank: &ProgBank<T>, op: &Arc<dyn ExprOpcode<T>>) {
         for i in 0..op.arg_types().len() {
             self.gather_work_with_cutoff(bank, op, i);
         }
@@ -61,7 +61,7 @@ impl<T: ExprAst, const N: usize> WorkGather<T, N>
 
     fn gather_work_with_cutoff(
         &mut self,
-        bank: &ProgBank<T, N>,
+        bank: &ProgBank<T>,
         op: &Arc<dyn ExprOpcode<T>>,
         cutoff: usize,
     ) {
@@ -71,7 +71,7 @@ impl<T: ExprAst, const N: usize> WorkGather<T, N>
 
     fn gather_work_with_cutoff_and_iterations(
         &mut self,
-        bank: &ProgBank<T, N>,
+        bank: &ProgBank<T>,
         op: &Arc<dyn ExprOpcode<T>>,
         cutoff: usize,
         iterations: &mut Vec<usize>,
@@ -105,7 +105,7 @@ impl<T: ExprAst, const N: usize> WorkGather<T, N>
 
     fn gather_work_for_iterations(
         &mut self,
-        bank: &ProgBank<T, N>,
+        bank: &ProgBank<T>,
         op: &Arc<dyn ExprOpcode<T>>,
         iterations: &[usize],
     ) {
@@ -124,10 +124,10 @@ impl<T: ExprAst, const N: usize> WorkGather<T, N>
 
     fn gather_work_for_iterations_with_progs(
         &mut self,
-        bank: &ProgBank<T, N>,
+        bank: &ProgBank<T>,
         op: &Arc<dyn ExprOpcode<T>>,
         iterations: &[usize],
-        children: &mut Vec<Arc<SubProgram<T, N>>>,
+        children: &mut Vec<Arc<SubProgram<T>>>,
     ) {
         let i = children.len();
         if i == op.arg_types().len() {
@@ -146,7 +146,7 @@ impl<T: ExprAst, const N: usize> WorkGather<T, N>
         }
     }
 
-    fn gather_work(&mut self, op: &Arc<dyn ExprOpcode<T>>, children: &Vec<Arc<SubProgram<T, N>>>) {
+    fn gather_work(&mut self, op: &Arc<dyn ExprOpcode<T>>, children: &Vec<Arc<SubProgram<T>>>) {
         self.chunk.push(children.clone());
         if self.chunk.len() == self.chunk_size {
             self.perform_work(op);
@@ -159,10 +159,10 @@ impl<T: ExprAst, const N: usize> WorkGather<T, N>
     }
 
     fn spawn(
-        tasks: &mut tokio::task::JoinSet<Option<Arc<SubProgram<T, N>>>>,
-        chunk: Box<Vec<Vec<Arc<SubProgram<T, N>>>>>,
+        tasks: &mut tokio::task::JoinSet<Option<Arc<SubProgram<T>>>>,
+        chunk: Box<Vec<Vec<Arc<SubProgram<T>>>>>,
         op: Arc<dyn ExprOpcode<T>>,
-        handler: WorkHandler<T, N>,
+        handler: WorkHandler<T>,
     ) {
         tasks.spawn(async move {
             for c in chunk.iter() {

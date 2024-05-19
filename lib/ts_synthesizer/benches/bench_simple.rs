@@ -14,7 +14,7 @@ fn simple_synthesize_1(c: &mut Criterion) {
             b.to_async(&rt).iter_batched(
                 || {
                     let cache = Arc::new(object_graph::Cache::new());
-                    let ctx = Arc::new([
+                    let ctx = Arc::new(vec![
                         Context::with_values(
                             [
                                 (str_cached!(cache; "x"), vnum!(Number::from(4u64))),

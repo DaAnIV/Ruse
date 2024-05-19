@@ -47,7 +47,7 @@ mod tests {
         add_str_opcodes(&mut opcodes, &ALL_BIN_STR_OPCODES);
         opcodes.extend(user_class.member_opcodes().clone());
 
-        let ctx = Arc::new([
+        let ctx = Arc::new(vec![
             Context::with_values([(str_cached!(cache; "x"), user1)].into()),
             Context::with_values([(str_cached!(cache; "x"), user2)].into()),
         ]);
@@ -123,7 +123,7 @@ mod tests {
         add_num_opcodes(&mut opcodes, &[ast::BinaryOp::Add], &[], &[ast::UpdateOp::PlusPlus]);
         opcodes.extend(point_class.member_opcodes().clone());
 
-        let ctx = Arc::new([
+        let ctx = Arc::new(vec![
             Context::with_values([(str_cached!(cache; "p"), point1)].into()),
             Context::with_values([(str_cached!(cache; "p"), point2)].into()),
         ]);

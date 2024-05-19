@@ -9,22 +9,22 @@ use crate::{
     value::{LocValue, ValueType},
 };
 
-pub type ContextArray<const N: usize> = Arc<[Context; N]>;
-pub type ValueArray<const N: usize> = Arc<[LocValue; N]>;
+pub type ContextArray = Arc<Vec<Context>>;
+pub type ValueArray = Arc<Vec<LocValue>>;
 
-pub type ProgIterator<'a, T, const N: usize> =
-    Box<dyn Iterator<Item = &'a Arc<SubProgram<T, N>>> + 'a>;
+pub type ProgIterator<'a, T> =
+    Box<dyn Iterator<Item = &'a Arc<SubProgram<T>>> + 'a>;
 
 // The bank is hierarchical
 // iteration -> [pre_context] -> out_type -> sub_prog
 
-pub type ValueSet<T, const N: usize> = DashSet<Arc<SubProgram<T, N>>>;
+pub type ValueSet<T> = DashSet<Arc<SubProgram<T>>>;
 
 #[derive(Default)]
-pub struct TypeMap<T: ExprAst, const N: usize>(pub(crate) DashMap<ValueType, ValueSet<T, N>>);
+pub struct TypeMap<T: ExprAst>(pub(crate) DashMap<ValueType, ValueSet<T>>);
 
-impl<T: ExprAst, const N: usize> TypeMap<T, N> {
-    pub fn insert_program(&self, p: Arc<SubProgram<T, N>>) -> bool {
+impl<T: ExprAst> TypeMap<T> {
+    pub fn insert_program(&self, p: Arc<SubProgram<T>>) -> bool {
         let value_set = match self.0.get_mut(&p.out_type()) {
             Some(m) => m,
             None => {
@@ -37,7 +37,7 @@ impl<T: ExprAst, const N: usize> TypeMap<T, N> {
         value_set.insert(p)
     }
 
-    pub fn contains(&self, p: &Arc<SubProgram<T, N>>) -> bool {
+    pub fn contains(&self, p: &Arc<SubProgram<T>>) -> bool {
         match self.0.get(&p.out_type()) {
             None => false,
             Some(values) => values.contains(p),
@@ -46,18 +46,18 @@ impl<T: ExprAst, const N: usize> TypeMap<T, N> {
 }
 
 #[derive(Default)]
-pub struct ContextMap<T: ExprAst, const N: usize>(
-    pub(crate) DashMap<ContextArray<N>, TypeMap<T, N>>,
+pub struct ContextMap<T: ExprAst>(
+    pub(crate) DashMap<ContextArray, TypeMap<T>>,
 );
-impl<T: ExprAst, const N: usize> ContextMap<T, N> {
+impl<T: ExprAst> ContextMap<T> {
     pub fn get(
         &self,
-        ctx: &ContextArray<N>,
-    ) -> Option<dashmap::mapref::one::Ref<'_, ContextArray<N>, TypeMap<T, N>>> {
+        ctx: &ContextArray,
+    ) -> Option<dashmap::mapref::one::Ref<'_, ContextArray, TypeMap<T>>> {
         self.0.get(ctx)
     }
 
-    pub fn insert_program(&self, p: Arc<SubProgram<T, N>>) -> bool {
+    pub fn insert_program(&self, p: Arc<SubProgram<T>>) -> bool {
         let ctx = p.pre_ctx();
 
         let type_map = match self.0.get_mut(ctx) {
@@ -72,11 +72,11 @@ impl<T: ExprAst, const N: usize> ContextMap<T, N> {
         type_map.insert_program(p)
     }
 
-    pub fn insert(&self, ctx: &ContextArray<N>, map: TypeMap<T, N>) {
+    pub fn insert(&self, ctx: &ContextArray, map: TypeMap<T>) {
         self.0.insert(ctx.clone(), map);
     }
 
-    pub fn contains(&self, p: &Arc<SubProgram<T, N>>) -> bool {
+    pub fn contains(&self, p: &Arc<SubProgram<T>>) -> bool {
         match self.get(p.pre_ctx()) {
             None => false,
             Some(type_map) => type_map.contains(p),
@@ -85,21 +85,21 @@ impl<T: ExprAst, const N: usize> ContextMap<T, N> {
 }
 
 #[derive(Default)]
-pub struct ProgBank<T: ExprAst, const N: usize> {
-    pub(crate) bank: Vec<Arc<ContextMap<T, N>>>,
+pub struct ProgBank<T: ExprAst> {
+    pub(crate) bank: Vec<Arc<ContextMap<T>>>,
 }
 
-impl<T: ExprAst, const N: usize> ProgBank<T, N> {
-    pub fn output_exists(&self, p: &Arc<SubProgram<T, N>>) -> bool {
+impl<T: ExprAst> ProgBank<T> {
+    pub fn output_exists(&self, p: &Arc<SubProgram<T>>) -> bool {
         (&self.bank).into_iter().any(|ctx_map| ctx_map.contains(p))
     }
 
-    pub fn get(&self, iteration: usize) -> Option<&Arc<ContextMap<T, N>>> {
+    pub fn get(&self, iteration: usize) -> Option<&Arc<ContextMap<T>>> {
         self.bank.get(iteration)
     }
 
     #[inline]
-    pub fn insert(&mut self, ctx_map: Arc<ContextMap<T, N>>) {
+    pub fn insert(&mut self, ctx_map: Arc<ContextMap<T>>) {
         self.bank.push(ctx_map);
     }
 

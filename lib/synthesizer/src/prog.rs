@@ -11,23 +11,23 @@ use crate::bank::ValueArray;
 use crate::opcode::*;
 use crate::value::*;
 
-pub struct SubProgram<T: ExprAst, const N: usize>
+pub struct SubProgram<T: ExprAst>
 {
     pub opcode: Arc<dyn ExprOpcode<T>>,
-    pub children: Vec<Arc<SubProgram<T, N>>>,
+    pub children: Vec<Arc<SubProgram<T>>>,
 
     size: u32,
     depth: u32,
     out_type: Option<ValueType>,
 
-    pre_ctx: ContextArray<N>,
-    post_ctx: Option<ContextArray<N>>,
-    out_value: Option<ValueArray<N>>,
+    pre_ctx: ContextArray,
+    post_ctx: Option<ContextArray>,
+    out_value: Option<ValueArray>,
 }
 
-fn verify_children<T: ExprAst, const N: usize>(
+fn verify_children<T: ExprAst>(
     opcode: &Arc<dyn ExprOpcode<T>>,
-    children: &[Arc<SubProgram<T, N>>],
+    children: &[Arc<SubProgram<T>>],
 ) -> bool {
     let pre_context = &children[0].pre_ctx()[0];
 
@@ -74,11 +74,11 @@ fn verify_children<T: ExprAst, const N: usize>(
     return true;
 }
 
-impl<T: ExprAst, const N: usize> SubProgram<T, N>
+impl<T: ExprAst> SubProgram<T>
 {
     pub fn with_opcode_and_children(
         opcode: Arc<dyn ExprOpcode<T>>,
-        children: Vec<Arc<SubProgram<T, N>>>,
+        children: Vec<Arc<SubProgram<T>>>,
     ) -> Arc<Self> {
         assert!(children.len() > 0);
         debug_assert!(verify_children(&opcode, &children));
@@ -103,7 +103,7 @@ impl<T: ExprAst, const N: usize> SubProgram<T, N>
 
     pub fn with_opcode_and_context(
         opcode: Arc<dyn ExprOpcode<T>>,
-        context: &ContextArray<N>,
+        context: &ContextArray,
     ) -> Arc<Self> {
         Arc::new(Self {
             opcode: opcode,
@@ -121,10 +121,11 @@ impl<T: ExprAst, const N: usize> SubProgram<T, N>
 
     pub fn evaluate(&mut self, cache: &Cache) -> bool {
         let mut out_type: Option<ValueType> = None;
-        let mut post_ctx = Vec::with_capacity(N);
-        let mut out_value = Vec::with_capacity(N);
+        let examples_count = self.pre_ctx().len();
+        let mut post_ctx = Vec::with_capacity(examples_count);
+        let mut out_value = Vec::with_capacity(examples_count);
 
-        for i in 0..N {
+        for i in 0..examples_count {
             // Gather arguments
             let mut args = Vec::<&LocValue>::with_capacity(self.children.len());
             for c in &self.children {
@@ -181,22 +182,22 @@ impl<T: ExprAst, const N: usize> SubProgram<T, N>
     }
 
     #[inline]
-    pub fn pre_ctx(&self) -> &ContextArray<N> {
+    pub fn pre_ctx(&self) -> &ContextArray {
         &self.pre_ctx
     }
 
     #[inline]
-    pub fn post_ctx(&self) -> &ContextArray<N> {
+    pub fn post_ctx(&self) -> &ContextArray {
         self.post_ctx.as_ref().unwrap()
     }
 
     #[inline]
-    pub fn out_value(&self) -> &ValueArray<N> {
+    pub fn out_value(&self) -> &ValueArray {
         self.out_value.as_ref().unwrap()
     }
 }
 
-impl<T: ExprAst, const N: usize> Hash for SubProgram<T, N>
+impl<T: ExprAst> Hash for SubProgram<T>
 {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.pre_ctx().hash(state);
@@ -206,9 +207,9 @@ impl<T: ExprAst, const N: usize> Hash for SubProgram<T, N>
     }
 }
 
-impl<T: ExprAst, const N: usize> Eq for SubProgram<T, N> {}
+impl<T: ExprAst> Eq for SubProgram<T> {}
 
-impl<T: ExprAst, const N: usize> PartialEq for SubProgram<T, N>
+impl<T: ExprAst> PartialEq for SubProgram<T>
 {
     fn eq(&self, other: &Self) -> bool {
         self.out_type == other.out_type
@@ -218,7 +219,7 @@ impl<T: ExprAst, const N: usize> PartialEq for SubProgram<T, N>
     }
 }
 
-impl<T: ExprAst, const N: usize> Debug for SubProgram<T, N>
+impl<T: ExprAst> Debug for SubProgram<T>
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("SubProgram")
@@ -231,7 +232,7 @@ impl<T: ExprAst, const N: usize> Debug for SubProgram<T, N>
     }
 }
 
-impl<T: ExprAst, const N: usize> Display for SubProgram<T, N>
+impl<T: ExprAst> Display for SubProgram<T>
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "({}) {{ {} }} ({}; {})", self.pre_ctx()[0], self.get_code(), self.out_value()[0].val(), self.post_ctx()[0])

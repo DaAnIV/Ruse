@@ -8,16 +8,16 @@ use ruse_ts_interpreter::opcode::TsExprAst;
 
 use std::sync::Arc;
 
-pub struct TsSynthesizer<const N: usize> {
-    inner: Arc<Synthesizer<TsExprAst, N>>,
+pub struct TsSynthesizer {
+    inner: Arc<Synthesizer<TsExprAst>>,
 }
 
-impl<const N: usize> TsSynthesizer<N> {
+impl TsSynthesizer {
     pub fn new(
-        start_context: ContextArray<N>,
+        start_context: ContextArray,
         opcodes: OpcodesList<TsExprAst>,
-        predicate: SynthesizerPredicate<TsExprAst, N>,
-        valid: SynthesizerPredicate<TsExprAst, N>,
+        predicate: SynthesizerPredicate<TsExprAst>,
+        valid: SynthesizerPredicate<TsExprAst>,
         max_context_depth: usize
     ) -> Self {
         Self {
@@ -35,7 +35,7 @@ impl<const N: usize> TsSynthesizer<N> {
     pub async fn run_iteration(
         &mut self,
         cache: &Arc<Cache>,
-    ) -> Option<Arc<SubProgram<TsExprAst, N>>>
+    ) -> Option<Arc<SubProgram<TsExprAst>>>
     {
         Synthesizer::run_iteration(&mut self.inner, cache).await
     }
