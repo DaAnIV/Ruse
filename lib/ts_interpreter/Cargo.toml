@@ -17,5 +17,8 @@ swc_ecma_ast = "*"
 swc_visit = "*"
 anyhow = "*"
 
+boa_engine = "*"
+boa_gc = "*"
+
 [dev-dependencies]
 criterion = "*"

@@ -72,9 +72,11 @@ mod ident;
 mod lit;
 mod member;
 mod unary;
+mod function;
 
 pub use bin::*;
 pub use ident::*;
 pub use lit::*;
 pub use member::*;
 pub use unary::*;
+pub use function::*;

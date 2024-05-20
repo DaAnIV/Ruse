@@ -417,7 +417,172 @@ async fn run_synthesizer() {
     }
 }
 
-#[tokio::main]
+async fn test_js_object() {
+    let code1 = "class User {
+        constructor(public name: string, 
+                    public surname: string,
+                    public age: number,
+                    protected is_admin: bool) {}
+    }";
+    let code2 = "class UserPair {
+        constructor(public user1: User, 
+                    public user2: User) {}
+    }";
+
+    let mut boa_ctx = boa_engine::Context::default();
+    let cache = Arc::new(object_graph::Cache::new());
+    let mut classes = TsClasses::new();
+    let user_class_name = classes.add_class(code1.to_string(), &cache).unwrap();
+    let user_pair_class_name = classes.add_class(code2.to_string(), &cache).unwrap();
+
+    let user1 = classes.generate_object(
+        &user_class_name,
+        str_cached!(cache; "student1"),
+        HashMap::from([
+            (str_cached!(cache; "surname"), vstr!(cache; "Doe")),
+            (str_cached!(cache; "name"), vstr!(cache; "John")),
+            (str_cached!(cache; "age"), vnum!(Number::from(25))),
+            (str_cached!(cache; "is_admin"), vbool!(true)),
+        ]),
+    );
+
+    let user2 = classes.generate_object(
+        &user_class_name,
+        str_cached!(cache; "student2"),
+        HashMap::from([
+            (str_cached!(cache; "name"), vstr!(cache; "Paul")),
+            (str_cached!(cache; "age"), vnum!(Number::from(27))),
+            (str_cached!(cache; "surname"), vstr!(cache; "Simon")),
+            (str_cached!(cache; "is_admin"), vbool!(false)),
+        ]),
+    );
+
+    let complex_user = classes.generate_object(
+        &user_pair_class_name,
+        str_cached!(cache; "student_pair"),
+        HashMap::from([
+            (str_cached!(cache; "user1"), user1),
+            (str_cached!(cache; "user2"), user2),
+        ]),
+    );
+
+    let complex_user_value = complex_user.obj().unwrap().clone();
+    let js_obj = classes.generate_js_object(
+        &user_pair_class_name,
+        complex_user_value,
+        &mut boa_ctx,
+        &cache,
+    );
+    boa_ctx
+        .register_global_property(js_string!("up"), js_obj, Attribute::all())
+        .expect("Failed to register p");
+    let js_code = boa_engine::Source::from_bytes("up.user1.name + \" \" + up.user2.name");
+    match boa_ctx.eval(js_code) {
+        Ok(res) => {
+            println!("{:?}", res.to_string(&mut boa_ctx).unwrap());
+        }
+        Err(e) => {
+            // Pretty print the error
+            eprintln!("Uncaught {:?}", e);
+        }
+    };
+}
+
+
+async fn run_object_method() {
+    let code = "class Point {
+        constructor(public x: number, public y: number) {}
+
+        size() {
+            return (this.x ** 2 + this.y ** 2) ** 0.5;
+        }
+    }";
+    let cache = Arc::new(object_graph::Cache::new());
+    let mut classes = TsClasses::new();
+    let point_class_name = classes.add_class(code.to_string(), &cache).unwrap();
+
+    let point1 = classes.generate_object(
+        &point_class_name,
+        str_cached!(cache; "p"),
+        HashMap::from([(str_cached!(cache; "x"), vnum!(Number::from(3))), (str_cached!(cache; "y"), vnum!(Number::from(4)))]),
+    );
+    let point2 = classes.generate_object(
+        &point_class_name,
+        str_cached!(cache; "p"),
+        HashMap::from([(str_cached!(cache; "x"), vnum!(Number::from(5))), (str_cached!(cache; "y"), vnum!(Number::from(12)))]),
+    );
+
+    let mut opcodes = construct_opcode_list(&[str_cached!(cache; "p")], &[], &[], false);
+    // add_num_opcodes(
+    //     &mut opcodes,
+    //     &[ast::BinaryOp::Add],
+    //     &[],
+    //     &[ast::UpdateOp::PlusPlus],
+    // );
+    // opcodes.extend(classes.class_members_opcodes(&point_class_name));
+    opcodes.extend(classes.class_method_opcodes(&point_class_name));
+
+    let ctx = Arc::new(vec![
+        Context::with_values([(str_cached!(cache; "p"), point1)].into()),
+        Context::with_values([(str_cached!(cache; "p"), point2)].into()),
+    ]);
+
+    let mut synthesizer = TsSynthesizer::new(
+        ctx.clone(),
+        opcodes,
+        Box::new(move |p| {
+            let expected_outputs = [Number::from(5), Number::from(13)];
+            if p.out_type() != ValueType::Number {
+                return false;
+            }
+            for (v, e) in p.out_value().iter().zip(expected_outputs) {
+                if v.loc() != &Location::Temp {
+                    return false;
+                }
+                let v_num = unsafe { v.val().number_value().unwrap_unchecked() };
+                if v_num != e {
+                    return false;
+                }
+            }
+            return true;
+        }),
+        Box::new(move |_p| true),
+        3,
+    );
+
+    for i in 1..=5 {
+        let iteration_start = Instant::now();
+        println!("Starting iteration {}", i);
+        let res = synthesizer.run_iteration(&cache).await;
+        println!(
+            "Iteration {} took {:.3}s",
+            i,
+            iteration_start.elapsed().as_secs_f32()
+        );
+        println!("statistics: {}", synthesizer.statistics());
+        if let Some(p) = res {
+            println!(
+                "Found program {} = {}",
+                p.get_code(),
+                p.out_value()[0].val()
+            );
+            for c in p.children.iter() {
+                let p_var_before = c.pre_ctx()[0].get_var_loc_value(&str_cached!(cache; "p"));
+                let p_var_after = c.post_ctx()[0].get_var_loc_value(&str_cached!(cache; "p"));
+                println!("p = {}", p_var_before.val());
+                println!("{} = {}", c.get_code(), c.out_value()[0].val());
+                println!("p = {}", p_var_after.val());
+            }
+            // assert_eq!(p.get_code(), "(++p.x) + (p.x)");
+            return;
+        }
+        println!();
+    }
+
+    // assert!(false, "Failed to find program")
+}
+
+
 async fn main() -> ExitCode {
     // test_work_gatherer();
 

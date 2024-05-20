@@ -35,10 +35,9 @@ impl Context {
 
     fn set_values(&mut self, values: HashMap<CachedString, Value>) {
         let new_hash = Self::get_hash_for_values(&values);
-        let arc_values = values.into();
 
         self.hash = new_hash;
-        self.values = arc_values;
+        self.values = values.into();
         self.number_of_changes += 1;
     }
 

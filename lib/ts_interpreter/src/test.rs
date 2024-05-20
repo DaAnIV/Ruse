@@ -178,4 +178,122 @@ mod ts_class_tests {
         let name_field = user.get_field_value(&str_cached!(cache; "name")).unwrap();
         assert_eq!(name_field, vstr!(cache; "John"))
     }
+
+    #[test]
+    fn member_opcodes() {
+        let code = "class User {
+            constructor(public name: string, 
+                        public surname: string) {}
+        }";
+        let cache = Arc::new(Cache::new());
+        let mut classes = TsClasses::new();
+        let user_class_name = classes
+            .add_class(code.to_string(), &cache)
+            .expect("Failed to add User class");
+
+        let opcodes = classes.class_members_opcodes(&user_class_name);
+        assert_eq!(opcodes.len(), 2);
+        assert!(opcodes.iter().all(|op| {
+            op.arg_types().len() == 1
+                && op.arg_types()[0] == ValueType::Object(user_class_name.clone())
+        }));
+        // Need to check the opcodes are correct?
+    }
+
+    #[test]
+    fn simple_js_object_eval() {
+        let code = "class User {
+            constructor(public name: string, 
+                        public surname: string) {}
+        }";
+
+        let mut boa_ctx = boa_engine::Context::default();
+        let cache = Arc::new(Cache::new());
+        let mut classes = TsClasses::new();
+        let user_class_name = classes
+            .add_class(code.to_string(), &cache)
+            .expect("Failed to add User class");
+        let user = classes
+            .generate_object(
+                &user_class_name,
+                str_cached!(cache; "student"),
+                HashMap::from([
+                    (str_cached!(cache; "surname"), vstr!(cache; "Doe")),
+                    (str_cached!(cache; "name"), vstr!(cache; "John")),
+                ]),
+            )
+            .obj()
+            .unwrap()
+            .clone();
+        let js_user = classes.generate_js_object(&user_class_name, user, &mut boa_ctx, &cache);
+        boa_ctx
+            .register_global_property(js_string!("u"), js_user, Attribute::all())
+            .expect("Failed to register p");
+
+        let js_code = boa_engine::Source::from_bytes("u.name + \" \" + u.surname");
+        let res = boa_ctx.eval(js_code).unwrap();
+        assert!(res.is_string());
+        assert_eq!(res.as_string().unwrap(), &js_string!("John Doe"));
+    }
+
+    #[test]
+    fn complex_js_object_eval() {
+        let code1 = "class User {
+            constructor(public name: string, 
+                        public surname: string,
+                        public age: number,
+                        protected is_admin: bool) {}
+        }";
+        let code2 = "class UserPair {
+            constructor(public user1: User, 
+                        public user2: User) {}
+        }";
+
+        let mut boa_ctx = boa_engine::Context::default();
+        let cache = Arc::new(Cache::new());
+        let mut classes = TsClasses::new();
+        let user_class_name = classes.add_class(code1.to_string(), &cache).unwrap();
+        let user_pair_class_name = classes.add_class(code2.to_string(), &cache).unwrap();
+
+        let user1 = classes.generate_object(
+            &user_class_name,
+            str_cached!(cache; "student1"),
+            HashMap::from([
+                (str_cached!(cache; "surname"), vstr!(cache; "Doe")),
+                (str_cached!(cache; "name"), vstr!(cache; "John")),
+            ]),
+        );
+
+        let user2 = classes.generate_object(
+            &user_class_name,
+            str_cached!(cache; "student2"),
+            HashMap::from([
+                (str_cached!(cache; "name"), vstr!(cache; "Paul")),
+                (str_cached!(cache; "surname"), vstr!(cache; "Simon")),
+            ]),
+        );
+
+        let complex_user = classes
+            .generate_object(
+                &user_pair_class_name,
+                str_cached!(cache; "student_pair"),
+                HashMap::from([
+                    (str_cached!(cache; "user1"), user1),
+                    (str_cached!(cache; "user2"), user2),
+                ]),
+            )
+            .obj()
+            .unwrap()
+            .clone();
+        let js_obj =
+            classes.generate_js_object(&user_pair_class_name, complex_user, &mut boa_ctx, &cache);
+        boa_ctx
+            .register_global_property(js_string!("up"), js_obj, Attribute::all())
+            .expect("Failed to register p");
+
+        let js_code = boa_engine::Source::from_bytes("up.user1.name + \" \" + up.user2.name");
+        let res = boa_ctx.eval(js_code).unwrap();
+        assert!(res.is_string());
+        assert_eq!(res.as_string().unwrap(), &js_string!("John Paul"));
+    }
 }
