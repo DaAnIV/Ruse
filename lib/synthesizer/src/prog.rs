@@ -119,7 +119,7 @@ impl SubProgram
         })
     }
 
-    pub fn evaluate(&mut self, cache: &Cache) -> bool {
+    pub fn evaluate(&mut self, cache: &Arc<Cache>) -> bool {
         let mut out_type: Option<ValueType> = None;
         let examples_count = self.pre_ctx().len();
         let mut post_ctx = Vec::with_capacity(examples_count);

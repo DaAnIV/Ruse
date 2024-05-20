@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use ruse_object_graph::{Cache, CachedString};
 use ruse_synthesizer::context::*;
 use ruse_synthesizer::opcode::{ExprAst, ExprOpcode};
@@ -14,7 +16,7 @@ pub struct IdentOp {
 }
 
 impl ExprOpcode for IdentOp {
-    fn eval(&self, args: &[&LocValue], post_ctx: &mut Context, _cache: &Cache) -> Option<LocValue> {
+    fn eval(&self, args: &[&LocValue], post_ctx: &mut Context, _cache: &Arc<Cache>) -> Option<LocValue> {
         debug_assert_eq!(args.len(), 0);
 
         Some(post_ctx.get_var_loc_value(&self.name))

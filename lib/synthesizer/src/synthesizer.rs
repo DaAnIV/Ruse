@@ -137,7 +137,7 @@ impl Synthesizer {
         new_obj
     }
 
-    fn init_context(&self, iteration_map: &ContextMap, ctx: &ContextArray, cache: &Cache) {
+    fn init_context(&self, iteration_map: &ContextMap, ctx: &ContextArray, cache: &Arc<Cache>) {
         let type_map: TypeMap = Default::default();
         for op in &self.init_opcodes {
             let p  = match self.get_program_from_init_opcode(op.clone(), ctx, cache) {
@@ -164,7 +164,7 @@ impl Synthesizer {
                     let p = match this.get_program_from_composite_opcode(
                         op.clone(),
                         children.clone(),
-                        cache.as_ref(),
+                        &cache,
                     ) {
                         Some(p) => p,
                         None => return None
@@ -182,7 +182,7 @@ impl Synthesizer {
                         this.init_context(
                             current_iteration_map.as_ref(),
                             p.post_ctx(),
-                            cache.as_ref(),
+                            &cache,
                         );
                     }
                     if &this.start_context == p.pre_ctx() && (this.predicate)(&p) {
@@ -249,7 +249,7 @@ impl Synthesizer {
         }
     }
 
-    fn evaluate_program(&self, p: &mut Arc<SubProgram>, cache: &Cache) -> bool {
+    fn evaluate_program(&self, p: &mut Arc<SubProgram>, cache: &Arc<Cache>) -> bool {
         self.statistics.inc_value(StatisticsTypes::Evaluated);
         unsafe { Arc::get_mut(p).unwrap_unchecked() }.evaluate(cache)
     }
@@ -258,7 +258,7 @@ impl Synthesizer {
         &self,
         op: Arc<dyn ExprOpcode>,
         args: Vec<Arc<SubProgram>>,
-        cache: &Cache,
+        cache: &Arc<Cache>,
     ) -> Option<Arc<SubProgram>> {
         debug_assert!(op.arg_types().len() > 0);
 
@@ -273,7 +273,7 @@ impl Synthesizer {
         &self,
         op: Arc<dyn ExprOpcode>,
         ctx: &ContextArray,
-        cache: &Cache,
+        cache: &Arc<Cache>,
     ) -> Option<Arc<SubProgram>> {
         debug_assert!(op.arg_types().len() == 0);
 

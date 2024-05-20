@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use ruse_object_graph::*;
 use ruse_synthesizer::{context::*, opcode::ExprAst};
 use ruse_synthesizer::opcode::ExprOpcode;
@@ -22,7 +24,7 @@ pub struct ArrayLitOp {
 }
 
 impl ExprOpcode for LitOp {
-    fn eval(&self, args: &[&LocValue], post_ctx: &mut Context, _cache: &Cache) -> Option<LocValue> {
+    fn eval(&self, args: &[&LocValue], post_ctx: &mut Context, _cache: &Arc<Cache>) -> Option<LocValue> {
         debug_assert_eq!(args.len(), 0);
         let val = match self {
             LitOp::Null => Value::Primitive(PrimitiveValue::Null),
@@ -64,7 +66,7 @@ impl ExprOpcode for LitOp {
 }
 
 impl ExprOpcode for ArrayLitOp {
-    fn eval(&self, args: &[&LocValue], post_ctx: &mut Context, cache: &Cache) -> Option<LocValue> {
+    fn eval(&self, args: &[&LocValue], post_ctx: &mut Context, cache: &Arc<Cache>) -> Option<LocValue> {
         let kv_map = (0..self.size)
             .zip(args)
             .map(|(i, val)| (scached!(cache; i.to_string()), val.val().clone()))
@@ -73,7 +75,7 @@ impl ExprOpcode for ArrayLitOp {
         Some(post_ctx.temp_value(Value::generate_object_from_map(
             cache.temp_string(),
             str_cached!(cache; "Array"),
-            kv_map,
+            kv_map
         )))
     }
 

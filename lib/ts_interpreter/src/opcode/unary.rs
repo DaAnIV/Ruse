@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use ruse_object_graph::{Cache, Number, PrimitiveValue};
 use ruse_synthesizer::opcode::{ExprAst, ExprOpcode};
 use ruse_synthesizer::{context::*, vbool, vnum};
@@ -46,7 +48,7 @@ impl UnaryOp {
 }
 
 impl ExprOpcode for UnaryOp {
-    fn eval(&self, args: &[&LocValue], post_ctx: &mut Context, _cache: &Cache) -> Option<LocValue> {
+    fn eval(&self, args: &[&LocValue], post_ctx: &mut Context, _cache: &Arc<Cache>) -> Option<LocValue> {
         debug_assert_eq!(args.len(), 1);
         let res = match &args[0].val() {
             Value::Primitive(p) => match p {
@@ -87,7 +89,7 @@ impl UpdateOp {
 }
 
 impl ExprOpcode for UpdateOp {
-    fn eval(&self, args: &[&LocValue], post_ctx: &mut Context, _cache: &Cache) -> Option<LocValue> {
+    fn eval(&self, args: &[&LocValue], post_ctx: &mut Context, _cache: &Arc<Cache>) -> Option<LocValue> {
         debug_assert_eq!(args.len(), 1);
 
         if args[0].loc().is_temp() {
