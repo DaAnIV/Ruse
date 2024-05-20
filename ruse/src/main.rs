@@ -20,7 +20,7 @@ use ruse_synthesizer::{
     vnum,
     vstr,
 };
-use ruse_ts_interpreter::ts_class::TsClass;
+use ruse_ts_interpreter::ts_class::TsClasses;
 // use ruse_ts_interpreter::opcode::{BinOp, LitOp, TsExprAst};
 use ruse_ts_synthesizer::*;
 // use swc_ecma_ast as ast;
@@ -120,6 +120,7 @@ fn get_serialized_graphs_from_range(
 //     gatherer.gather_work_for_next_iteration(&bank, &bin_op);
 // }
 
+#[allow(dead_code)]
 async fn test_class_loader() {
     let code1 = "class User {
         constructor(public name: string, 
@@ -133,10 +134,12 @@ async fn test_class_loader() {
     }";
 
     let cache = Arc::new(object_graph::Cache::new());
-    let user_class = TsClass::from_code(code1.to_string(), &cache).unwrap();
-    let user_pair_class = TsClass::from_code(code2.to_string(), &cache).unwrap();
+    let classes = TsClasses::new();
+    let user_class_name = classes.add_class(code1.to_string(), &cache).unwrap();
+    let user_pair_class_name = classes.add_class(code2.to_string(), &cache).unwrap();
 
-    let user1 = user_class.generate_object(
+    let user1 = classes.generate_object(
+        &user_class_name,
         str_cached!(cache; "student1"),
         HashMap::from([
             (str_cached!(cache; "surname"), vstr!(cache; "Doe")),
@@ -146,7 +149,8 @@ async fn test_class_loader() {
         ]),
     );
 
-    let user2 = user_class.generate_object(
+    let user2 = classes.generate_object(
+        &user_class_name,
         str_cached!(cache; "student2"),
         HashMap::from([
             (str_cached!(cache; "name"), vstr!(cache; "Paul")),
@@ -156,7 +160,8 @@ async fn test_class_loader() {
         ]),
     );
 
-    let complex_user = user_pair_class.generate_object(
+    let complex_user = classes.generate_object(
+        &user_pair_class_name,
         str_cached!(cache; "student_pair"),
         HashMap::from([
             (str_cached!(cache; "user1"), user1),
@@ -178,8 +183,8 @@ async fn test_class_loader() {
         &ALL_UPDATE_NUM_OPCODES,
     );
     add_str_opcodes(&mut opcodes, &ALL_BIN_STR_OPCODES);
-    opcodes.extend(user_class.member_opcodes().clone());
-    opcodes.extend(user_pair_class.member_opcodes().clone());
+    opcodes.extend(classes.class_members_opcodes(&user_class_name));
+    opcodes.extend(classes.class_members_opcodes(&user_pair_class_name));
 
     let ctx = Arc::new(vec![Context::with_values(
         [(str_cached!(cache; "x"), complex_user)].into(),
@@ -231,35 +236,33 @@ async fn test_class_loader() {
     }
 }
 
-
 async fn run_mutating_primitive_field_in_object() {
     let code = "class Point {
         constructor(public x: number) {}
     }";
     let cache = Arc::new(object_graph::Cache::new());
-    let point_class = TsClass::from_code(code.to_string(), &cache).unwrap();
+    let classes = TsClasses::new();
+    let point_class_name = classes.add_class(code.to_string(), &cache).unwrap();
 
-    let point1 = point_class.generate_object(
+    let point1 = classes.generate_object(
+        &point_class_name,
         str_cached!(cache; "p"),
-        HashMap::from([
-            (str_cached!(cache; "x"), vnum!(Number::from(4))),
-        ]),
+        HashMap::from([(str_cached!(cache; "x"), vnum!(Number::from(4)))]),
     );
-    let point2 = point_class.generate_object(
+    let point2 = classes.generate_object(
+        &point_class_name,
         str_cached!(cache; "p"),
-        HashMap::from([
-            (str_cached!(cache; "x"), vnum!(Number::from(5))),
-        ]),
+        HashMap::from([(str_cached!(cache; "x"), vnum!(Number::from(5)))]),
     );
 
-    let mut opcodes = construct_opcode_list(
-        &[str_cached!(cache; "p")],
+    let mut opcodes = construct_opcode_list(&[str_cached!(cache; "p")], &[], &[], false);
+    add_num_opcodes(
+        &mut opcodes,
+        &[ast::BinaryOp::Add],
         &[],
-        &[],
-        false,
+        &[ast::UpdateOp::PlusPlus],
     );
-    add_num_opcodes(&mut opcodes, &[ast::BinaryOp::Add], &[], &[ast::UpdateOp::PlusPlus]);
-    opcodes.extend(point_class.member_opcodes().clone());
+    opcodes.extend(classes.class_members_opcodes(&point_class_name));
 
     let ctx = Arc::new(vec![
         Context::with_values([(str_cached!(cache; "p"), point1)].into()),
@@ -270,9 +273,7 @@ async fn run_mutating_primitive_field_in_object() {
         ctx.clone(),
         opcodes,
         Box::new(move |p| {
-            let expected_outputs = [
-                Number::from(10), Number::from(12)
-            ];
+            let expected_outputs = [Number::from(10), Number::from(12)];
             if p.out_type() != ValueType::Number {
                 return false;
             }
@@ -290,7 +291,7 @@ async fn run_mutating_primitive_field_in_object() {
             }
             return true;
         }),
-        Box::new(move |_p| true ),
+        Box::new(move |_p| true),
         3,
     );
 
@@ -305,7 +306,11 @@ async fn run_mutating_primitive_field_in_object() {
         );
         println!("statistics: {}", synthesizer.statistics());
         if let Some(p) = res {
-            println!("Found program {} = {}", p.get_code(), p.out_value()[0].val());
+            println!(
+                "Found program {} = {}",
+                p.get_code(),
+                p.out_value()[0].val()
+            );
             for c in p.children.iter() {
                 let p_var_before = c.pre_ctx()[0].get_var_loc_value(&str_cached!(cache; "p"));
                 let p_var_after = c.post_ctx()[0].get_var_loc_value(&str_cached!(cache; "p"));

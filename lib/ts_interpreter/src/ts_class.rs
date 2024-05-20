@@ -1,8 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
-use ruse_object_graph::{
-    str_cached, Cache, CachedString,
-};
+use dashmap::DashMap;
+use ruse_object_graph::{str_cached, Cache, CachedString};
 use ruse_synthesizer::{
     synthesizer::OpcodesList,
     value::Value,
@@ -16,9 +15,42 @@ use swc_ecma_ast as ast;
 use anyhow::Error;
 use swc_ecma_parser::{Syntax, TsConfig};
 
+impl TsClasses {
+    pub fn new() -> Self {
+        Self {
+            classes: Default::default(),
+        }
+    }
+
+    pub fn add_class(&self, code: String, cache: &Cache) -> Result<CachedString, Error> {
+        let class = TsClass::from_code(code, cache)?;
+        let class_name = class.class_name.clone();
+        self.classes.insert(class_name.clone(), class);
+        Ok(class_name.clone())
+    }
+
+    fn get_class(&self, class: &CachedString) -> dashmap::mapref::one::Ref<Arc<String>, TsClass> {
+        self.classes.get(class).unwrap()
+    }
+
+    pub fn generate_object(
+        &self,
+        class: &CachedString,
+        root_name: CachedString,
+        map: HashMap<CachedString, Value>,
+    ) -> Value {
+        self.get_class(class).generate_object(root_name, map)
+    }
 use crate::opcode::{MemberOp, TsExprAst};
 
 pub struct TsClass {
+
+    pub fn class_members_opcodes(&self, class: &CachedString) -> OpcodesList {
+        self.get_class(class).member_opcodes().clone()
+    }
+}
+
+struct TsClass {
     class: Box<ast::Class>,
     class_name: CachedString,
     member_opcodes: OpcodesList<TsExprAst>,
@@ -44,15 +76,14 @@ impl TsClass {
         Ok(class)
     }
 
-    pub fn class_name(&self) -> &CachedString {
-        &self.class_name
-    }
-
-    pub fn member_opcodes(&self) -> &OpcodesList<TsExprAst> {
+    fn member_opcodes(&self) -> &OpcodesList {
         &self.member_opcodes
     }
 
-    pub fn generate_object(
+    fn generate_object(&self, root_name: CachedString, map: HashMap<CachedString, Value>) -> Value {
+        Value::generate_object_from_map(root_name, self.class_name.clone(), map)
+    }
+
         &self,
         name: CachedString,
         map: HashMap<CachedString, Value>,
@@ -65,7 +96,7 @@ impl TsClass {
         let handler = Handler::with_tty_emitter(ColorConfig::Auto, true, false, Some(cm.clone()));
         let c = swc::Compiler::new(cm.clone());
 
-        let fm = cm.new_source_file(FileName::Custom("class.js".into()), code);
+        let fm = cm.new_source_file(FileName::Anon, code);
 
         match c.parse_js(
             fm,
@@ -84,7 +115,7 @@ impl TsClass {
         for member in self.class.body.clone().iter() {
             match member {
                 ast::ClassMember::Constructor(constructor) => {
-                    self.add_opcodes_from_constructor(&constructor, cache);
+                    self.add_opcodes_from_constructor(constructor, cache);
                 }
                 ast::ClassMember::Method(_) => todo!(),
                 ast::ClassMember::ClassProp(_) => todo!(),

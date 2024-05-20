@@ -7,7 +7,7 @@ mod tests {
     use ruse_synthesizer::{
         context::Context, value::{Location, ValueType}, vnum, vstr
     };
-    use ruse_ts_interpreter::ts_class::TsClass;
+    use ruse_ts_interpreter::ts_class::TsClasses;
     use swc_ecma_ast as ast;
 
     use crate::*;
@@ -21,16 +21,19 @@ mod tests {
                         public surname: string) {}
         }";
         let cache = Arc::new(object_graph::Cache::new());
-        let user_class = TsClass::from_code(code.to_string(), &cache).unwrap();
+        let classes = TsClasses::new();
+        let user_class_name = classes.add_class(code.to_string(), &cache).expect("Failed to add User class");
 
-        let user1 = user_class.generate_object(
+        let user1 = classes.generate_object(
+            &user_class_name,
             str_cached!(cache; "student"),
             HashMap::from([
                 (str_cached!(cache; "surname"), vstr!(cache; "Doe")),
                 (str_cached!(cache; "name"), vstr!(cache; "John")),
             ]),
         );
-        let user2 = user_class.generate_object(
+        let user2 = classes.generate_object(
+            &user_class_name,
             str_cached!(cache; "student"),
             HashMap::from([
                 (str_cached!(cache; "surname"), vstr!(cache; "Simon")),
@@ -45,7 +48,7 @@ mod tests {
             false,
         );
         add_str_opcodes(&mut opcodes, &ALL_BIN_STR_OPCODES);
-        opcodes.extend(user_class.member_opcodes().clone());
+        opcodes.extend(classes.class_members_opcodes(&user_class_name).clone());
 
         let ctx = Arc::new(vec![
             Context::with_values([(str_cached!(cache; "x"), user1)].into()),
@@ -97,16 +100,19 @@ mod tests {
                         public y: number) {}
         }";
         let cache = Arc::new(object_graph::Cache::new());
-        let point_class = TsClass::from_code(code.to_string(), &cache).unwrap();
+        let classes = TsClasses::new();
+        let point_class_name = classes.add_class(code.to_string(), &cache).unwrap();
 
-        let point1 = point_class.generate_object(
+        let point1 = classes.generate_object(
+            &point_class_name,
             str_cached!(cache; "p"),
             HashMap::from([
                 (str_cached!(cache; "x"), vnum!(Number::from(4))),
                 (str_cached!(cache; "y"), vnum!(Number::from(17))),
             ]),
         );
-        let point2 = point_class.generate_object(
+        let point2 = classes.generate_object(
+            &point_class_name,
             str_cached!(cache; "p"),
             HashMap::from([
                 (str_cached!(cache; "x"), vnum!(Number::from(5))),
@@ -121,7 +127,7 @@ mod tests {
             false,
         );
         add_num_opcodes(&mut opcodes, &[ast::BinaryOp::Add], &[], &[ast::UpdateOp::PlusPlus]);
-        opcodes.extend(point_class.member_opcodes().clone());
+        opcodes.extend(classes.class_members_opcodes(&point_class_name).clone());
 
         let ctx = Arc::new(vec![
             Context::with_values([(str_cached!(cache; "p"), point1)].into()),

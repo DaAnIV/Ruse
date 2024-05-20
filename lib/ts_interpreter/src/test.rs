@@ -140,3 +140,42 @@ mod ts_simple_opcodes_tests {
         );
     }
 }
+
+#[cfg(test)]
+mod ts_class_tests {
+    use std::{collections::HashMap, sync::Arc};
+
+    use boa_engine::{js_string, property::Attribute};
+    use ruse_object_graph::{str_cached, Cache};
+    use ruse_synthesizer::{value::ValueType, vstr};
+
+    use crate::ts_class::TsClasses;
+
+    #[test]
+    fn generate_object() {
+        let code = "class User {
+            constructor(public name: string, 
+                        public surname: string) {}
+        }";
+        let cache = Arc::new(Cache::new());
+        let mut classes = TsClasses::new();
+        let user_class_name = classes
+            .add_class(code.to_string(), &cache)
+            .expect("Failed to add User class");
+        let user = classes
+            .generate_object(
+                &user_class_name,
+                str_cached!(cache; "student"),
+                HashMap::from([
+                    (str_cached!(cache; "surname"), vstr!(cache; "Doe")),
+                    (str_cached!(cache; "name"), vstr!(cache; "John")),
+                ]),
+            )
+            .obj()
+            .unwrap()
+            .clone();
+
+        let name_field = user.get_field_value(&str_cached!(cache; "name")).unwrap();
+        assert_eq!(name_field, vstr!(cache; "John"))
+    }
+}

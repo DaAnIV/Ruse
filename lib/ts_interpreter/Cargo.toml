@@ -8,6 +8,7 @@ ruse_object_graph = { path = "../object_graph" }
 ruse_synthesizer = { path = "../synthesizer" }
 
 petgraph = "^0.6.2"
+dashmap = "*"
 
 swc = "*"
 swc_common = {version = "*", features = ["tty-emitter"]}
