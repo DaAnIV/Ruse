@@ -1,17 +1,18 @@
-use std::{collections::HashMap, ops::Deref, sync::Arc};
+use std::{collections::HashMap, io::Read, ops::{Deref, DerefMut}, sync::Arc};
 
+use boa_engine::class;
 use dashmap::DashMap;
-use ruse_object_graph::{str_cached, Cache, CachedString};
+use ruse_object_graph::{scached, str_cached, Cache, CachedString};
 use ruse_synthesizer::{
     context::Context,
     synthesizer::OpcodesList,
-    value::{ObjectValue, Value},
+    value::{ObjectValue, Value, ValueType},
 };
 use swc_common::{
     errors::{ColorConfig, Handler},
     FileName, SourceMap,
 };
-use swc_ecma_ast as ast;
+use swc_ecma_ast::{self as ast, ClassDecl};
 
 use anyhow::Error;
 use swc_ecma_parser::{Syntax, TsConfig};
@@ -21,9 +22,9 @@ use crate::{
     opcode::{ClassMethodOp, MemberOp},
 };
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct TsClasses {
-    classes: Arc<DashMap<CachedString, TsClass>>,
+    classes: Arc<DashMap<CachedString, Arc<TsClass>>>,
 }
 
 struct TsContextHooks;
@@ -51,50 +52,34 @@ impl TsClasses {
         }
     }
 
-    pub fn add_class(&self, code: String, cache: &Cache) -> Result<CachedString, Error> {
+    pub fn add_class(&self, code: &str, cache: &Cache) -> Result<CachedString, Error> {
         let class = TsClass::from_code(self, code, cache)?;
         let class_name = class.class_name.clone();
-        self.classes.insert(class_name.clone(), class);
+        self.classes.insert(class_name.clone(), class.into());
         Ok(class_name.clone())
     }
 
-    fn get_class(&self, class: &CachedString) -> dashmap::mapref::one::Ref<Arc<String>, TsClass> {
-        self.classes.get(class).unwrap()
+    pub fn get_class(&self, class: &CachedString) -> Option<Arc<TsClass>> {
+        match self.classes.get(class) {
+            Some(v) => Some(v.clone()),
+            None => None
+        }
     }
 
-    pub fn generate_object(
-        &self,
-        class: &CachedString,
-        root_name: CachedString,
-        map: HashMap<CachedString, Value>,
-    ) -> Value {
-        self.get_class(class).generate_object(root_name, map)
-    }
-
-    pub fn generate_js_object(
-        &self,
-        class: &CachedString,
-        obj: ObjectValue,
-        boa_ctx: &mut boa_engine::Context,
-        cache: &Arc<Cache>,
-    ) -> boa_engine::JsObject {
-        self.get_class(class)
-            .generate_js_object(&self, obj, boa_ctx, cache)
-    }
-
-    pub fn create_boa_ctx(&self) -> boa_engine::Context {
-        boa_engine::context::ContextBuilder::default()
+    pub fn get_boa_ctx(&self, post_ctx: &mut Context, cache: &Arc<Cache>) -> boa_engine::Context {
+        // Todo: make this thread local somehow
+        let boa_ctx = boa_engine::context::ContextBuilder::default()
             .host_hooks(&TsContextHooks)
             .build()
-            .expect("Failed to build context")
-    }
+            .expect("Failed to build context");
+        
+        let global_obj = boa_ctx.global_object();
+        let mut a = global_obj.downcast_mut::<TsGlobalObject>().unwrap();
+        let b = a.deref_mut();
+        b.cache = Some(cache.clone());
+        b.context = Some(post_ctx.clone());
 
-    pub fn class_members_opcodes(&self, class: &CachedString) -> OpcodesList {
-        self.get_class(class).member_opcodes().clone()
-    }
-
-    pub fn class_method_opcodes(&self, class: &CachedString) -> OpcodesList {
-        self.get_class(class).method_opcodes().clone()
+        boa_ctx
     }
 
     fn object_getter(
@@ -126,27 +111,64 @@ impl TsClasses {
         // Implementation of the object_getter function goes here
         unimplemented!()
     }
+    
+    pub fn add_ts_file(&self, full_path: &std::path::PathBuf, cache: &Cache) -> Result<Vec<CachedString>, Error> {
+        let cm = Arc::<SourceMap>::default();
+        let handler = Handler::with_tty_emitter(ColorConfig::Auto, true, false, Some(cm.clone()));
+        let c = swc::Compiler::new(cm.clone());
+
+        let mut file = std::fs::File::open(full_path)?;
+        let mut src = String::new();
+        file.read_to_string(&mut src)?;
+        let fm = cm.new_source_file(FileName::Real(full_path.clone()), src);
+        
+        let script = c.parse_js(
+            fm,
+            &handler,
+            ast::EsVersion::Es2022,
+            Syntax::Typescript(TsConfig::default()),
+            swc::config::IsModule::Bool(false),
+            None,
+        )?.script().unwrap();
+
+        let mut class_names = vec![];
+
+        for stmt in &script.body {
+            if let ast::Stmt::Decl(ast::Decl::Class(class_decl)) = stmt {
+                let class = TsClass::from_class_decl(self, class_decl, cache)?;
+                let class_name = class.class_name.clone();
+                self.classes.insert(class_name.clone(), class.into());
+                class_names.push(class_name.clone());
+            }
+        }
+
+        Ok(class_names)
+    }
 }
 
-struct TsClass {
+#[derive(Debug)]
+pub struct TsClass {
     class: Box<ast::Class>,
-    class_name: CachedString,
-    member_opcodes: OpcodesList,
-    method_opcodes: OpcodesList,
+    pub class_name: CachedString,
+    pub fields: HashMap<CachedString, ValueType>,
+    pub member_opcodes: OpcodesList,
+    pub method_opcodes: OpcodesList,
 }
 
 impl TsClass {
-    fn from_code(classes: &TsClasses, code: String, cache: &Cache) -> Result<Self, Error> {
-        let script = match TsClass::get_ast(code) {
-            Ok(ast) => ast.script().unwrap(),
-            Err(e) => return Err(e),
-        };
+    fn from_code(classes: &TsClasses, code: &str, cache: &Cache) -> Result<Self, Error> {
+        let script = TsClass::get_ast(code)?.script().unwrap();
 
         let class_decl = script.body[0].as_decl().unwrap().as_class().unwrap();
 
+        Self::from_class_decl(classes, class_decl, cache)
+    }
+
+    fn from_class_decl(classes: &TsClasses, decl: &ClassDecl, cache: &Cache) -> Result<Self, Error> {
         let mut class = Self {
-            class: class_decl.class.clone(),
-            class_name: str_cached!(cache; class_decl.ident.sym.as_str()),
+            class: decl.class.clone(),
+            class_name: str_cached!(cache; decl.ident.sym.as_str()),
+            fields: Default::default(),
             member_opcodes: Default::default(),
             method_opcodes: Default::default(),
         };
@@ -156,19 +178,23 @@ impl TsClass {
         Ok(class)
     }
 
-    fn member_opcodes(&self) -> &OpcodesList {
-        &self.member_opcodes
+    pub fn obj_type(&self) -> ValueType {
+        ValueType::Object(self.class_name.clone())
     }
 
-    fn method_opcodes(&self) -> &OpcodesList {
-        &self.method_opcodes
+    pub fn generate_object(&self, map: HashMap<CachedString, Value>) -> Value {
+        Value::generate_object_from_map(self.class_name.clone(), map)
     }
 
-    fn generate_object(&self, root_name: CachedString, map: HashMap<CachedString, Value>) -> Value {
-        Value::generate_object_from_map(root_name, self.class_name.clone(), map)
+    pub fn generate_rooted_object(&self, root_name: CachedString, map: HashMap<CachedString, Value>) -> Value {
+        let mut value = Value::generate_object_from_map(self.class_name.clone(), map);
+        let obj_val = unsafe { value.mut_obj().unwrap_unchecked() };
+        obj_val.set_as_graph_root(root_name);
+
+        value
     }
 
-    fn generate_js_object(
+    pub fn generate_js_object(
         &self,
         classes: &TsClasses,
         obj: ObjectValue,
@@ -248,12 +274,12 @@ impl TsClass {
         }
     }
 
-    fn get_ast(code: String) -> Result<ast::Program, Error> {
+    fn get_ast(code: &str) -> Result<ast::Program, Error> {
         let cm = Arc::<SourceMap>::default();
         let handler = Handler::with_tty_emitter(ColorConfig::Auto, true, false, Some(cm.clone()));
         let c = swc::Compiler::new(cm.clone());
 
-        let fm = cm.new_source_file(FileName::Anon, code);
+        let fm = cm.new_source_file(FileName::Anon, code.to_owned());
 
         match c.parse_js(
             fm,
@@ -284,6 +310,53 @@ impl TsClass {
         }
     }
 
+    fn get_value_type(type_ann: &ast::TsType, cache: &Cache) -> ValueType {
+        match type_ann {
+            ast::TsType::TsKeywordType(t) => {
+                match t.kind {
+                    swc_ecma_ast::TsKeywordTypeKind::TsAnyKeyword => todo!(),
+                    swc_ecma_ast::TsKeywordTypeKind::TsUnknownKeyword => todo!(),
+                    swc_ecma_ast::TsKeywordTypeKind::TsNumberKeyword => ValueType::Number,
+                    swc_ecma_ast::TsKeywordTypeKind::TsObjectKeyword => todo!(),
+                    swc_ecma_ast::TsKeywordTypeKind::TsBooleanKeyword => ValueType::Bool,
+                    swc_ecma_ast::TsKeywordTypeKind::TsBigIntKeyword => todo!(),
+                    swc_ecma_ast::TsKeywordTypeKind::TsStringKeyword => ValueType::String,
+                    swc_ecma_ast::TsKeywordTypeKind::TsSymbolKeyword => todo!(),
+                    swc_ecma_ast::TsKeywordTypeKind::TsVoidKeyword => todo!(),
+                    swc_ecma_ast::TsKeywordTypeKind::TsUndefinedKeyword => todo!(),
+                    swc_ecma_ast::TsKeywordTypeKind::TsNullKeyword => todo!(),
+                    swc_ecma_ast::TsKeywordTypeKind::TsNeverKeyword => todo!(),
+                    swc_ecma_ast::TsKeywordTypeKind::TsIntrinsicKeyword => todo!(),
+                }
+            },
+            ast::TsType::TsThisType(_) => todo!(),
+            ast::TsType::TsFnOrConstructorType(_) => todo!(),
+            ast::TsType::TsTypeRef(t) => {
+                let id = t.type_name.as_ident().unwrap().sym.to_string();
+                ValueType::Object(scached!(cache; id))
+            },
+            ast::TsType::TsTypeQuery(_) => todo!(),
+            ast::TsType::TsTypeLit(_) => todo!(),
+            ast::TsType::TsArrayType(t) => {
+                let elem_type = Self::get_value_type(t.elem_type.as_ref(), cache);
+                ValueType::array_value_type(&elem_type, cache)
+            },
+            ast::TsType::TsTupleType(_) => todo!(),
+            ast::TsType::TsOptionalType(_) => todo!(),
+            ast::TsType::TsRestType(_) => todo!(),
+            ast::TsType::TsUnionOrIntersectionType(_) => todo!(),
+            ast::TsType::TsConditionalType(_) => todo!(),
+            ast::TsType::TsInferType(_) => todo!(),
+            ast::TsType::TsParenthesizedType(_) => todo!(),
+            ast::TsType::TsTypeOperator(_) => todo!(),
+            ast::TsType::TsIndexedAccessType(_) => todo!(),
+            ast::TsType::TsMappedType(_) => todo!(),
+            ast::TsType::TsLitType(_) => todo!(),
+            ast::TsType::TsTypePredicate(_) => todo!(),
+            ast::TsType::TsImportType(_) => todo!(),
+        }
+    }
+
     fn add_opcodes_from_constructor(&mut self, constructor: &ast::Constructor, cache: &Cache) {
         for param in &constructor.params {
             let ts_param = param.as_ts_param_prop().unwrap();
@@ -295,7 +368,12 @@ impl TsClass {
                 continue;
             }
 
-            let member = str_cached!(cache; ts_param.param.as_ident().unwrap().sym.as_str());
+            let ident = ts_param.param.as_ident().unwrap();
+
+            let member = str_cached!(cache; ident.sym.as_str());
+            let member_type = Self::get_value_type(&ident.type_ann.as_ref().unwrap().type_ann, cache);
+            self.fields.insert(member.clone(), member_type);
+
             let accessor = Arc::new(MemberOp::new(self.class_name.clone(), member));
             self.member_opcodes.push(accessor);
         }
@@ -351,9 +429,9 @@ unsafe impl boa_gc::Trace for TsObjectValue {
 
 impl boa_engine::JsData for TsObjectValue {}
 
-pub(crate) struct TsGlobalObject {
-    pub(crate) cache: Option<Arc<Cache>>,
-    pub(crate) context: Option<Context>,
+struct TsGlobalObject {
+    cache: Option<Arc<Cache>>,
+    context: Option<Context>,
 }
 
 impl<'a> boa_gc::Finalize for TsGlobalObject {}

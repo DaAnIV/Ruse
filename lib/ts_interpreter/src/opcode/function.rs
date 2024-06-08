@@ -1,7 +1,4 @@
-use std::{
-    ops::DerefMut,
-    sync::Arc,
-};
+use std::sync::Arc;
 
 use ruse_object_graph::{Cache, CachedString};
 use ruse_synthesizer::{
@@ -16,7 +13,7 @@ use swc_ecma_ast as ast;
 use crate::{
     js_value::{js_value_to_value, value_to_js_value},
     opcode::TsExprAst,
-    ts_class::{TsClasses, TsGlobalObject},
+    ts_class::TsClasses,
 };
 
 pub struct ClassMethodOp {
@@ -56,17 +53,6 @@ impl ClassMethodOp {
             classes: classes,
         }
     }
-
-    fn get_boa_ctx(&self, post_ctx: &mut Context, cache: &Arc<Cache>) -> boa_engine::Context {
-        let boa_ctx = self.classes.create_boa_ctx();
-        let global_obj = boa_ctx.global_object();
-        let mut a = global_obj.downcast_mut::<TsGlobalObject>().unwrap();
-        let b = a.deref_mut();
-        b.cache = Some(cache.clone());
-        b.context = Some(post_ctx.clone());
-
-        boa_ctx
-    }
 }
 
 impl ExprOpcode for ClassMethodOp {
@@ -80,7 +66,7 @@ impl ExprOpcode for ClassMethodOp {
         post_ctx: &mut Context,
         cache: &Arc<Cache>,
     ) -> Option<LocValue> {
-        let mut boa_ctx = self.get_boa_ctx(post_ctx, cache);
+        let mut boa_ctx = self.classes.get_boa_ctx(post_ctx, cache);
         for (i, arg) in args.iter().enumerate() {
             let key = boa_engine::js_string!(format!("arg{}", i));
             let value = value_to_js_value(&self.classes, arg.val(), &mut boa_ctx, cache);

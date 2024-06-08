@@ -22,7 +22,8 @@ pub fn object_value_to_js_value(
     boa_ctx: &mut boa_engine::Context,
     cache: &Arc<Cache>,
 ) -> boa_engine::JsValue {
-    let js_obj = classes.generate_js_object(&value.obj_type(), value.clone(), boa_ctx, cache);
+    let class = classes.get_class(&value.obj_type()).unwrap();
+    let js_obj = class.generate_js_object(classes, value.clone(), boa_ctx, cache);
     boa_engine::JsValue::Object(js_obj)
 }
 

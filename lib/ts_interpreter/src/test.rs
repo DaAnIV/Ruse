@@ -147,7 +147,7 @@ mod ts_class_tests {
 
     use boa_engine::{js_string, property::Attribute};
     use ruse_object_graph::{str_cached, Cache};
-    use ruse_synthesizer::{value::ValueType, vstr};
+    use ruse_synthesizer::{value::ValueType, vstr, context::Context};
 
     use crate::ts_class::TsClasses;
 
@@ -158,19 +158,17 @@ mod ts_class_tests {
                         public surname: string) {}
         }";
         let cache = Arc::new(Cache::new());
-        let mut classes = TsClasses::new();
+        let classes = TsClasses::new();
         let user_class_name = classes
-            .add_class(code.to_string(), &cache)
+            .add_class(code, &cache)
             .expect("Failed to add User class");
         let user = classes
-            .generate_object(
-                &user_class_name,
-                str_cached!(cache; "student"),
-                HashMap::from([
-                    (str_cached!(cache; "surname"), vstr!(cache; "Doe")),
-                    (str_cached!(cache; "name"), vstr!(cache; "John")),
-                ]),
-            )
+            .get_class(&user_class_name)
+            .unwrap()
+            .generate_object(HashMap::from([
+                (str_cached!(cache; "surname"), vstr!(cache; "Doe")),
+                (str_cached!(cache; "name"), vstr!(cache; "John")),
+            ]))
             .obj()
             .unwrap()
             .clone();
@@ -186,12 +184,13 @@ mod ts_class_tests {
                         public surname: string) {}
         }";
         let cache = Arc::new(Cache::new());
-        let mut classes = TsClasses::new();
+        let classes = TsClasses::new();
         let user_class_name = classes
-            .add_class(code.to_string(), &cache)
+            .add_class(code, &cache)
             .expect("Failed to add User class");
 
-        let opcodes = classes.class_members_opcodes(&user_class_name);
+        let user_class = classes.get_class(&user_class_name).unwrap();
+        let opcodes = &user_class.member_opcodes;
         assert_eq!(opcodes.len(), 2);
         assert!(opcodes.iter().all(|op| {
             op.arg_types().len() == 1
@@ -201,31 +200,62 @@ mod ts_class_tests {
     }
 
     #[test]
+    fn object_fields() {
+        let code1 = "class Student {
+            constructor(public name: string, 
+                        public surname: string,
+                        public age: number,
+                        public grades: number[]) {}
+        }";
+        let code2 = "class Class {
+            constructor(public students: Student[]) {}
+        }";
+
+        let cache = Arc::new(Cache::new());
+        let classes = TsClasses::new();
+
+        let student_class_name = classes.add_class(code1, &cache).unwrap();
+        let class_class_name = classes.add_class(code2, &cache).unwrap();
+        let student_class = classes.get_class(&student_class_name).unwrap();
+        let class_class = classes.get_class(&class_class_name).unwrap();
+
+        assert!(student_class.fields.get(&str_cached!(cache; "name")).is_some());
+        assert!(student_class.fields.get(&str_cached!(cache; "surname")).is_some());
+        assert!(student_class.fields.get(&str_cached!(cache; "age")).is_some());
+        assert!(student_class.fields.get(&str_cached!(cache; "grades")).is_some());
+        assert!(class_class.fields.get(&str_cached!(cache; "students")).is_some());
+
+        assert_eq!(student_class.fields[&str_cached!(cache; "name")], ValueType::String);
+        assert_eq!(student_class.fields[&str_cached!(cache; "surname")], ValueType::String);
+        assert_eq!(student_class.fields[&str_cached!(cache; "age")], ValueType::Number);
+        assert_eq!(student_class.fields[&str_cached!(cache; "grades")], ValueType::array_value_type(&ValueType::Number, &cache));
+        assert_eq!(class_class.fields[&str_cached!(cache; "students")], ValueType::array_value_type(&student_class.obj_type(), &cache));
+    }
+
+    #[test]
     fn simple_js_object_eval() {
         let code = "class User {
             constructor(public name: string, 
                         public surname: string) {}
         }";
 
-        let mut boa_ctx = boa_engine::Context::default();
         let cache = Arc::new(Cache::new());
-        let mut classes = TsClasses::new();
+        let classes = TsClasses::new();
+        let mut ctx = Context::with_values(Default::default());
+        let mut boa_ctx = classes.get_boa_ctx(&mut ctx, &cache);
         let user_class_name = classes
-            .add_class(code.to_string(), &cache)
+            .add_class(code, &cache)
             .expect("Failed to add User class");
-        let user = classes
-            .generate_object(
-                &user_class_name,
-                str_cached!(cache; "student"),
-                HashMap::from([
-                    (str_cached!(cache; "surname"), vstr!(cache; "Doe")),
-                    (str_cached!(cache; "name"), vstr!(cache; "John")),
-                ]),
-            )
+        let user_class = classes.get_class(&user_class_name).unwrap();
+        let user = user_class
+            .generate_object(HashMap::from([
+                (str_cached!(cache; "surname"), vstr!(cache; "Doe")),
+                (str_cached!(cache; "name"), vstr!(cache; "John")),
+            ]))
             .obj()
             .unwrap()
             .clone();
-        let js_user = classes.generate_js_object(&user_class_name, user, &mut boa_ctx, &cache);
+        let js_user = user_class.generate_js_object(&classes, user, &mut boa_ctx, &cache);
         boa_ctx
             .register_global_property(js_string!("u"), js_user, Attribute::all())
             .expect("Failed to register p");
@@ -242,21 +272,24 @@ mod ts_class_tests {
             constructor(public name: string, 
                         public surname: string,
                         public age: number,
-                        protected is_admin: bool) {}
+                        protected is_admin: bool,
+                        public grades: number[]) {}
         }";
         let code2 = "class UserPair {
             constructor(public user1: User, 
                         public user2: User) {}
         }";
 
-        let mut boa_ctx = boa_engine::Context::default();
         let cache = Arc::new(Cache::new());
-        let mut classes = TsClasses::new();
-        let user_class_name = classes.add_class(code1.to_string(), &cache).unwrap();
-        let user_pair_class_name = classes.add_class(code2.to_string(), &cache).unwrap();
+        let classes = TsClasses::new();
+        let mut ctx = Context::with_values(Default::default());
+        let mut boa_ctx = classes.get_boa_ctx(&mut ctx, &cache);
+        let user_class_name = classes.add_class(code1, &cache).unwrap();
+        let user_pair_class_name = classes.add_class(code2, &cache).unwrap();
+        let user_class = classes.get_class(&user_class_name).unwrap();
+        let user_class_pair = classes.get_class(&user_pair_class_name).unwrap();
 
-        let user1 = classes.generate_object(
-            &user_class_name,
+        let user1 = user_class.generate_rooted_object(
             str_cached!(cache; "student1"),
             HashMap::from([
                 (str_cached!(cache; "surname"), vstr!(cache; "Doe")),
@@ -264,8 +297,7 @@ mod ts_class_tests {
             ]),
         );
 
-        let user2 = classes.generate_object(
-            &user_class_name,
+        let user2 = user_class.generate_rooted_object(
             str_cached!(cache; "student2"),
             HashMap::from([
                 (str_cached!(cache; "name"), vstr!(cache; "Paul")),
@@ -273,9 +305,8 @@ mod ts_class_tests {
             ]),
         );
 
-        let complex_user = classes
-            .generate_object(
-                &user_pair_class_name,
+        let complex_user = user_class_pair
+            .generate_rooted_object(
                 str_cached!(cache; "student_pair"),
                 HashMap::from([
                     (str_cached!(cache; "user1"), user1),
@@ -286,7 +317,7 @@ mod ts_class_tests {
             .unwrap()
             .clone();
         let js_obj =
-            classes.generate_js_object(&user_pair_class_name, complex_user, &mut boa_ctx, &cache);
+            user_class_pair.generate_js_object(&classes, complex_user, &mut boa_ctx, &cache);
         boa_ctx
             .register_global_property(js_string!("up"), js_obj, Attribute::all())
             .expect("Failed to register p");
