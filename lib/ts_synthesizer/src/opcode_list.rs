@@ -144,3 +144,10 @@ pub fn add_str_opcodes(
         opcodes.push(op);
     }
 }
+
+pub fn add_array_opcodes(opcodes: &mut OpcodesList, array_types: &[ValueType], cache: &Cache) {
+    for t in array_types {
+        let op = Arc::new(opcode::IndexOp::new(t, cache));
+        opcodes.push(op);
+    }
+}

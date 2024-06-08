@@ -73,6 +73,7 @@ mod lit;
 mod member;
 mod unary;
 mod function;
+mod array_ops;
 
 pub use bin::*;
 pub use ident::*;
@@ -80,3 +81,4 @@ pub use lit::*;
 pub use member::*;
 pub use unary::*;
 pub use function::*;
+pub use array_ops::*;
