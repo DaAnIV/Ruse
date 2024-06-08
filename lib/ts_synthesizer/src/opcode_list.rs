@@ -27,15 +27,13 @@ pub const ALL_BIN_NUM_OPCODES: [ast::BinaryOp; 4] = [
     // ast::BinaryOp::Exp,
 ];
 
-pub const ALL_UNARY_NUM_OPCODES: [ast::UnaryOp; 2] = [
+pub const ALL_UNARY_NUM_OPCODES: [ast::UnaryOp; 1] = [
     ast::UnaryOp::Minus,
-    ast::UnaryOp::Tilde,
+    // ast::UnaryOp::Tilde,
 ];
 
-pub const ALL_UPDATE_NUM_OPCODES: [ast::UpdateOp; 2] = [
-    ast::UpdateOp::MinusMinus,
-    ast::UpdateOp::PlusPlus,
-];
+pub const ALL_UPDATE_NUM_OPCODES: [ast::UpdateOp; 2] =
+    [ast::UpdateOp::MinusMinus, ast::UpdateOp::PlusPlus];
 
 pub const ALL_BIN_BOOL_OPCODES: [ast::BinaryOp; 9] = [
     ast::BinaryOp::EqEq,
@@ -49,17 +47,13 @@ pub const ALL_BIN_BOOL_OPCODES: [ast::BinaryOp; 9] = [
     ast::BinaryOp::Add,
 ];
 
-pub const ALL_UNARY_BOOL_OPCODES: [ast::UnaryOp; 1] = [
-    ast::UnaryOp::Bang,
-];
+pub const ALL_UNARY_BOOL_OPCODES: [ast::UnaryOp; 1] = [ast::UnaryOp::Bang];
 
-pub const ALL_BIN_STR_OPCODES: [ast::BinaryOp; 1] = [
-    ast::BinaryOp::Add,
-];
+pub const ALL_BIN_STR_OPCODES: [ast::BinaryOp; 1] = [ast::BinaryOp::Add];
 
 pub fn construct_opcode_list(
     var_names: &[CachedString],
-    num_literals: &[f64],
+    num_literals: &[i64],
     string_literals: &[CachedString],
     add_bool_lit: bool,
 ) -> OpcodesList {
@@ -73,7 +67,7 @@ pub fn construct_opcode_list(
 
     // Add number literals
     for n in num_literals {
-        opcodes.push(Arc::new(opcode::LitOp::Num(Number(*n))));
+        opcodes.push(Arc::new(opcode::LitOp::Num(Number::from(*n))));
     }
 
     // Add bool literals
@@ -115,7 +109,7 @@ pub fn add_num_opcodes(
 }
 
 pub fn add_bool_opcodes(
-    opcodes:  &mut OpcodesList,
+    opcodes: &mut OpcodesList,
     bin_bool_opcodes: &[ast::BinaryOp],
     unary_bool_opcodes: &[ast::UnaryOp],
 ) {
@@ -132,10 +126,7 @@ pub fn add_bool_opcodes(
     }
 }
 
-pub fn add_str_opcodes(
-    opcodes:  &mut OpcodesList,
-    str_bool_opcodes: &[ast::BinaryOp],
-) {
+pub fn add_str_opcodes(opcodes: &mut OpcodesList, str_bool_opcodes: &[ast::BinaryOp]) {
     for op in str_bool_opcodes {
         let op = Arc::new(opcode::BinOp {
             arg_types: [ValueType::String, ValueType::String],
