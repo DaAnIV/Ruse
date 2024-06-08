@@ -1,7 +1,7 @@
 use crate::value::{LocValue, Location, Value, VarLoc};
 use ruse_object_graph::{CachedString, NodeIndex, ObjectGraph};
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     fmt::Display,
     hash::{DefaultHasher, Hash, Hasher},
     sync::Arc,
@@ -11,6 +11,7 @@ use std::{
 pub struct Context {
     hash: u64,
     values: Arc<HashMap<CachedString, Value>>,
+    immutable: Arc<HashSet<CachedString>>,
     number_of_changes: usize,
 }
 
@@ -19,12 +20,17 @@ impl Context {
         Self {
             hash: Self::get_hash_for_values(&values),
             values: values.into(),
+            immutable: Default::default(),
             number_of_changes: 0,
         }
     }
 
     pub fn number_of_changes(&self) -> usize {
         self.number_of_changes
+    }
+
+    pub fn set_immutable(&mut self, var: CachedString) {
+        Arc::get_mut(&mut self.immutable).unwrap().insert(var);
     }
 
     fn get_hash_for_values(values: &HashMap<CachedString, Value>) -> u64 {
@@ -69,6 +75,10 @@ impl Context {
                 assert!(new_val.is_primitive());
                 assert!(self.values[&l.var].val_type() == new_val.val_type());
 
+                if self.immutable.contains(&l.var) {
+                    return false;
+                }
+
                 let mut new_values = (*self.values).clone();
                 new_values.insert(l.var.clone(), new_val.clone());
 
@@ -86,6 +96,9 @@ impl Context {
                 let mut new_values = (*self.values).clone();
                 for (root_name, root_idx) in new_graph.roots() {
                     if let Some(root_var) = new_values.get_mut(root_name) {
+                        if self.immutable.contains(root_name) {
+                            return false;
+                        }
                         let root_obj_val = root_var.mut_obj().unwrap();
                         root_obj_val.node = *root_idx;
                         root_obj_val.graph = new_graph.clone();
