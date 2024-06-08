@@ -17,6 +17,7 @@ swc_ecma_ast = "*"
 swc_visit = "*"
 
 tokio = {version = "*", features = ["rt-multi-thread", "sync", "time", "macros"]}
+tokio-util = "*"
 
 [dev-dependencies]
 criterion = { version = "*", features = ["async_tokio"] }

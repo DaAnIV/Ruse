@@ -4,6 +4,7 @@ use ruse_synthesizer::{
     prog::SubProgram,
     synthesizer::{CurrentStatistics, OpcodesList, Synthesizer, SynthesizerPredicate},
 };
+use tokio_util::sync::CancellationToken;
 
 use std::sync::Arc;
 
@@ -42,5 +43,9 @@ impl TsSynthesizer {
     #[inline]
     pub fn statistics(&self) -> CurrentStatistics {
         self.inner.statistics()
+    }
+
+    pub fn get_cancel_token(&self) -> CancellationToken {
+        self.inner.get_cancel_token()
     }
 }
