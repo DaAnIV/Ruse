@@ -32,7 +32,7 @@ fn simple_synthesize_1(c: &mut Criterion) {
                     ]);
                     let mut opcodes = construct_opcode_list(
                         &[str_cached!(cache; "x"), str_cached!(cache; "y")],
-                        &[-1f64, 1f64],
+                        &[-1, 1],
                         &[],
                         false,
                     );

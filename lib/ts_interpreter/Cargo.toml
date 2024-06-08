@@ -17,6 +17,8 @@ swc_ecma_ast = "*"
 swc_visit = "*"
 anyhow = "*"
 
+html_parser = "*"
+
 boa_engine = "*"
 boa_gc = "*"
 

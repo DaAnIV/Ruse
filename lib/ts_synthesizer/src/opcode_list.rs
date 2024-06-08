@@ -1,4 +1,4 @@
-use ruse_object_graph::{CachedString, Number};
+use ruse_object_graph::{Cache, CachedString, Number};
 use ruse_synthesizer::{synthesizer::OpcodesList, value::ValueType};
 use ruse_ts_interpreter::opcode;
 use std::sync::Arc;
@@ -151,3 +151,9 @@ pub fn add_array_opcodes(opcodes: &mut OpcodesList, array_types: &[ValueType], c
         opcodes.push(op);
     }
 }
+
+pub fn add_dom_opcodes(opcodes: &mut OpcodesList, cache: &Cache) {
+    let op = Arc::new(opcode::GetElementByIdOp::new(cache));
+    opcodes.push(op);
+}
+

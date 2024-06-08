@@ -74,6 +74,7 @@ mod member;
 mod unary;
 mod function;
 mod array_ops;
+mod dom_ops;
 
 pub use bin::*;
 pub use ident::*;
@@ -82,3 +83,4 @@ pub use member::*;
 pub use unary::*;
 pub use function::*;
 pub use array_ops::*;
+pub use dom_ops::*;
