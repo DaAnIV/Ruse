@@ -72,11 +72,14 @@ impl ExprOpcode for ArrayLitOp {
             .map(|(i, val)| (scached!(cache; i.to_string()), val.val().clone()))
             .collect();
 
-        Some(post_ctx.temp_value(Value::generate_object_from_map(
-            cache.temp_string(),
+        let mut arr = Value::generate_object_from_map(
             str_cached!(cache; "Array"),
             kv_map
-        )))
+        );
+        let obj_val = arr.mut_obj().unwrap();
+        obj_val.set_as_graph_root(cache.temp_string());
+
+        Some(post_ctx.temp_value(arr))
     }
 
     fn to_ast(&self, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst> {

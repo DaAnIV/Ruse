@@ -138,6 +138,24 @@ impl PrimitiveValue {
     }
 }
 
+impl From<CachedString> for PrimitiveValue {
+    fn from(value: CachedString) -> Self {
+        PrimitiveValue::String(value)
+    }
+}
+
+impl From<u64> for PrimitiveValue {
+    fn from(value: u64) -> Self {
+        PrimitiveValue::Number(Number::from(value))
+    }
+}
+
+impl From<bool> for PrimitiveValue {
+    fn from(value: bool) -> Self {
+        PrimitiveValue::Bool(value)
+    }
+}
+
 impl Display for PrimitiveValue {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
@@ -171,6 +189,10 @@ impl ObjectData {
 
     pub fn get_neighbor(&self, name: &CachedString) -> Option<NodeIndex> {
         Some(self.pointers.get(name)?.1)
+    }
+
+    pub fn neighbors_count(&self) -> usize {
+        self.pointers.len()
     }
 }
 

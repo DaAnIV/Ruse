@@ -29,23 +29,7 @@ impl ExprOpcode for MemberOp {
     fn eval(&self, args: &[&LocValue], post_ctx: &mut Context, _cache: &Arc<Cache>) -> Option<LocValue> {
         debug_assert_eq!(args.len(), 1);
 
-        let obj = args[0].val().obj().unwrap();
-        let val = obj.get_field_value(&self.field_name).unwrap();
-        let loc = match &args[0].loc() {
-            Location::Temp => Location::Temp,
-            Location::Var(l) => Location::ObjectField(ObjectFieldLoc {
-                var: l.var.clone(),
-                node: obj.node,
-                field: self.field_name.clone(),
-            }),
-            Location::ObjectField(l) => Location::ObjectField(ObjectFieldLoc {
-                var: l.var.clone(),
-                node: obj.node,
-                field: self.field_name.clone(),
-            }),
-        };
-
-        Some(post_ctx.get_loc_value(val, loc))
+        args[0].get_obj_field_loc_value(&self.field_name)
     }
 
     fn to_ast(&self, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst> {

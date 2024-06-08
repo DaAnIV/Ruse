@@ -1,7 +1,10 @@
 use crate::value::{LocValue, Location, Value, VarLoc};
-use ruse_object_graph::{CachedString, ObjectGraph};
+use ruse_object_graph::{CachedString, NodeIndex, ObjectGraph};
 use std::{
-    collections::HashMap, fmt::Display, hash::{DefaultHasher, Hash, Hasher}, sync::Arc
+    collections::HashMap,
+    fmt::Display,
+    hash::{DefaultHasher, Hash, Hasher},
+    sync::Arc,
 };
 
 #[derive(Clone, Debug)]
@@ -16,7 +19,7 @@ impl Context {
         Self {
             hash: Self::get_hash_for_values(&values),
             values: values.into(),
-            number_of_changes: 0
+            number_of_changes: 0,
         }
     }
 
@@ -59,7 +62,7 @@ impl Context {
         return LocValue { val: val, loc: loc };
     }
 
-    pub fn update_value(&mut self, new_val: &Value, loc: &Location) {
+    pub fn update_value(&mut self, new_val: &Value, loc: &mut Location) -> bool {
         match loc {
             Location::Var(l) => {
                 debug_assert!(self.values.contains_key(&l.var));
@@ -70,52 +73,65 @@ impl Context {
                 new_values.insert(l.var.clone(), new_val.clone());
 
                 self.set_values(new_values);
+
+                true
             }
             Location::ObjectField(l) => {
                 debug_assert!(self.values.contains_key(&l.var));
 
                 let obj_val = self.values[&l.var].obj().unwrap();
-                let mut new_graph = match new_val {
-                    Value::Primitive(p) => {
-                        assert!(obj_val.graph.get_field(l.node, &l.field).is_some());
-                        let mut new_graph = (*obj_val.graph).clone();
-                        new_graph.set_field(l.node, l.field.clone(), p.clone());
-                        new_graph
-                    }
-                    Value::Object(o) => {
-                        let (mut new_graph, nodes_map) =
-                            ObjectGraph::union(&[obj_val.graph.clone(), o.graph.clone()]);
-                        new_graph.add_edge(
-                            nodes_map[&(Arc::as_ptr(&obj_val.graph) as u64, l.node)],
-                            nodes_map[&(Arc::as_ptr(&o.graph) as u64, o.node)],
-                            &l.field,
-                        );
-                        new_graph
-                    }
-                };
-                new_graph
-                    .generate_serialized_data()
-                    .expect("Failed to serialize new graph");
-
-                let graph_ptr = Arc::new(new_graph);
+                let (new_graph, node) = self.set_field(&obj_val.graph, l.node, &l.field, new_val);
+                l.node = node;
 
                 let mut new_values = (*self.values).clone();
-                for (root_name, root_idx) in graph_ptr.roots() {
+                for (root_name, root_idx) in new_graph.roots() {
                     if let Some(root_var) = new_values.get_mut(root_name) {
                         let root_obj_val = root_var.mut_obj().unwrap();
                         root_obj_val.node = *root_idx;
-                        root_obj_val.graph = graph_ptr.clone();
+                        root_obj_val.graph = new_graph.clone();
                     }
                 }
 
                 self.set_values(new_values);
+
+                true
             }
-            Location::Temp => return,
+            Location::Temp => return true,
         }
     }
 
     pub fn get_keys<'a>(&'a self) -> Box<dyn Iterator<Item = &CachedString> + 'a> {
         Box::new(self.values.keys())
+    }
+
+    pub fn set_field(
+        &self,
+        graph: &Arc<ObjectGraph>,
+        node: NodeIndex,
+        field_name: &CachedString,
+        value: &Value,
+    ) -> (Arc<ObjectGraph>, NodeIndex) {
+        let (mut new_graph, node) = match value {
+            Value::Primitive(p) => {
+                assert!(graph.get_field(node, &field_name).is_some());
+                let mut new_graph = graph.as_ref().clone();
+                new_graph.set_field(node, field_name.clone(), p.clone());
+                (new_graph, node)
+            }
+            Value::Object(o) => {
+                let (mut new_graph, nodes_map) =
+                    ObjectGraph::union(&[graph.clone(), o.graph.clone()]);
+                new_graph.add_edge(
+                    nodes_map[&(Arc::as_ptr(&graph) as u64, node)],
+                    nodes_map[&(Arc::as_ptr(&o.graph) as u64, o.node)],
+                    field_name,
+                );
+                (new_graph, nodes_map[&(Arc::as_ptr(&graph) as u64, node)])
+            }
+        };
+        new_graph.generate_serialized_data();
+
+        (Arc::new(new_graph), node)
     }
 }
 
@@ -142,7 +158,7 @@ impl Display for Context {
             value = iter.next();
             if value.is_some() {
                 write!(f, ", ").expect("Failed to write");
-            }            
+            }
         }
         Ok(())
     }

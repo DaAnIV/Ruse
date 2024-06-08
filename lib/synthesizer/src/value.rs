@@ -1,8 +1,9 @@
 use core::fmt;
 use ruse_object_graph::{
-    CachedString, FieldsMap, NodeIndex, Number, ObjectData, ObjectGraph, PrimitiveValue,
+    scached, Cache, CachedString, FieldsMap, NodeIndex, Number, ObjectData, ObjectGraph,
+    PrimitiveValue,
 };
-use std::{collections::HashMap, sync::Arc};
+use std::{any::Any, collections::HashMap, fmt::Debug, hash::Hash, sync::Arc};
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub enum ValueType {
@@ -12,7 +13,21 @@ pub enum ValueType {
     Object(CachedString),
 }
 
-#[derive(PartialEq, Eq, Debug, Clone, Hash)]
+impl ValueType {
+    pub fn array_obj_string(elem_type: &ValueType) -> String {
+        format!("Array<{}>", elem_type)
+    }
+
+    pub fn array_obj_cached_string(elem_type: &ValueType, cache: &Cache) -> CachedString {
+        scached!(cache; Self::array_obj_string(elem_type))
+    }
+
+    pub fn array_value_type(elem_type: &ValueType, cache: &Cache) -> ValueType {
+        return ValueType::Object(Self::array_obj_cached_string(elem_type, cache));
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct ObjectValue {
     pub graph: Arc<ObjectGraph>,
     pub node: NodeIndex,
@@ -65,6 +80,24 @@ impl ObjectValue {
 
     pub fn obj_type(&self) -> CachedString {
         self.graph.node_weight(self.node).unwrap().obj_type.clone()
+    }
+
+    pub fn primitive_field_count(&self) -> usize {
+        self.graph.node_weight(self.node).unwrap().fields.len()
+    }
+
+    pub fn pointers_field_count(&self) -> usize {
+        self.graph.node_weight(self.node).unwrap().neighbors_count()
+    }
+
+    pub fn total_field_count(&self) -> usize {
+        self.primitive_field_count() + self.pointers_field_count()
+    }
+
+    pub fn set_as_graph_root(&mut self, root: CachedString) {
+        let graph = Arc::get_mut(&mut self.graph).unwrap();
+        graph.set_as_root(root, self.node);
+        graph.generate_serialized_data();
     }
 }
 
@@ -132,7 +165,6 @@ impl Value {
     }
 
     pub fn generate_simple_object_from_map(
-        root_name: CachedString,
         obj_type: CachedString,
         map: HashMap<CachedString, PrimitiveValue>,
     ) -> Value {
@@ -142,11 +174,10 @@ impl Value {
             fields.insert(key, val);
         }
 
-        Self::create_simple_out_object(root_name, obj_type, fields)
+        Self::create_simple_out_object(obj_type, fields)
     }
 
     pub fn generate_object_from_map(
-        root_name: CachedString,
         obj_type: CachedString,
         map: HashMap<CachedString, Value>,
     ) -> Value {
@@ -159,11 +190,10 @@ impl Value {
         }
 
         if seen_graphs.len() == 0 {
-            Self::create_simple_out_object(root_name, obj_type, fields)
+            Self::create_simple_out_object(obj_type, fields)
         } else {
             Self::create_out_object(
                 seen_graphs.into_values().collect(),
-                root_name,
                 obj_type,
                 fields,
                 &obj_keys,
@@ -194,46 +224,82 @@ impl Value {
 
     fn create_out_object(
         graphs: Vec<Arc<ObjectGraph>>,
-        root_name: CachedString,
         obj_type: CachedString,
         fields: FieldsMap,
         obj_keys: &Vec<(CachedString, (u64, NodeIndex))>,
     ) -> Value {
         let (mut out, nodes_map) = ObjectGraph::union(&graphs);
 
-        let root = out.add_root(root_name, ObjectData::new(obj_type, fields.into()));
+        let node = out.add_node(ObjectData::new(obj_type, fields.into()));
         for (key, old_node) in obj_keys {
-            out.add_edge(root, nodes_map[old_node], &key);
+            out.add_edge(node, nodes_map[old_node], &key);
         }
 
-        out.generate_serialized_data()
-            .expect("Failed to serialize new graph");
+        out.generate_serialized_data();
 
         ObjectValue {
             graph: out.into(),
-            node: root,
+            node: node,
         }
         .into()
     }
 
-    fn create_simple_out_object(
-        root_name: CachedString,
-        obj_type: CachedString,
-        fields: FieldsMap,
+    fn create_simple_out_object(obj_type: CachedString, fields: FieldsMap) -> Value {
+        let mut graph = ObjectGraph::new();
+
+        let node = graph.add_node(ObjectData::new(obj_type, fields.into()));
+
+        graph.generate_serialized_data();
+
+        ObjectValue {
+            graph: graph.into(),
+            node: node,
+        }
+        .into()
+    }
+
+    pub fn create_primitive_array_object(
+        elem_type: &ValueType,
+        values: Vec<PrimitiveValue>,
+        cache: &Cache,
     ) -> Value {
         let mut graph = ObjectGraph::new();
 
-        let root = graph.add_root(root_name, ObjectData::new(obj_type, fields.into()));
+        let obj_type = ValueType::array_obj_cached_string(elem_type, cache);
+        let fields: Vec<(CachedString, PrimitiveValue)> = values
+            .into_iter()
+            .enumerate()
+            .map(|(i, v)| (scached!(cache; i.to_string()), v))
+            .collect();
+        let mut fields_map = FieldsMap::new();
+        fields_map.extend(fields);
+        let root = graph.add_node(ObjectData::new(obj_type, fields_map.into()));
 
-        graph
-            .generate_serialized_data()
-            .expect("Failed to serialize new graph");
+        graph.generate_serialized_data();
 
         ObjectValue {
             graph: graph.into(),
             node: root,
         }
         .into()
+    }
+}
+
+impl Eq for ObjectValue {}
+
+impl PartialEq for ObjectValue {
+    fn eq(&self, other: &Self) -> bool {
+        if self.graph == other.graph && self.node == other.node {
+            return true;
+        }
+        ObjectGraph::slow_equal_roots((&self.graph, &self.node), (&other.graph, &other.node))
+    }
+}
+
+impl Hash for ObjectValue {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.graph.hash(state);
+        self.node.hash(state);
     }
 }
 
@@ -270,6 +336,20 @@ impl Location {
             _ => false,
         }
     }
+
+    pub fn var(&self) -> Option<&'_ VarLoc> {
+        match &self {
+            Location::Var(l) => Some(l),
+            _ => None,
+        }
+    }
+
+    pub fn object_field(&self) -> Option<&'_ ObjectFieldLoc> {
+        match &self {
+            Location::ObjectField(l) => Some(l),
+            _ => None,
+        }
+    }
 }
 
 impl LocValue {
@@ -281,6 +361,29 @@ impl LocValue {
     pub fn loc(&self) -> &Location {
         &self.loc
     }
+
+    pub fn get_obj_field_loc_value(&self, field_name: &CachedString) -> Option<Self> {
+        let obj = self.val().obj().unwrap();
+        let field = obj.get_field_value(field_name)?;
+        let loc = match &self.loc() {
+            Location::Temp => Location::Temp,
+            Location::Var(l) => Location::ObjectField(ObjectFieldLoc {
+                var: l.var.clone(),
+                node: obj.node,
+                field: field_name.clone(),
+            }),
+            Location::ObjectField(l) => Location::ObjectField(ObjectFieldLoc {
+                var: l.var.clone(),
+                node: obj.node,
+                field: field_name.clone(),
+            }),
+        };
+
+        Some(Self {
+            val: field,
+            loc: loc,
+        })
+    }
 }
 
 impl fmt::Display for ValueType {
@@ -289,7 +392,7 @@ impl fmt::Display for ValueType {
             ValueType::Number => f.write_str("Number"),
             ValueType::Bool => f.write_str("Bool"),
             ValueType::String => f.write_str("String"),
-            ValueType::Object(o) => f.write_fmt(format_args!("Object({})", o.as_str())),
+            ValueType::Object(o) => f.write_fmt(format_args!("{}", o.as_str())),
         }
     }
 }

@@ -80,7 +80,7 @@ impl ObjectGraph {
         bitcode::encode(&graph).expect("Failed to serialize")
     }
 
-    fn slow_equal_roots(a: (&ObjectGraph, &NodeIndex), b: (&ObjectGraph, &NodeIndex)) -> bool {
+    pub fn slow_equal_roots(a: (&ObjectGraph, &NodeIndex), b: (&ObjectGraph, &NodeIndex)) -> bool {
         Self::serialize_graph_from_root(a.0, a.1) == Self::serialize_graph_from_root(b.0, b.1)
     }
 
@@ -262,7 +262,7 @@ impl ObjectGraph {
         self.graph.edge_count()
     }
 
-    pub fn generate_serialized_data(&mut self) -> Result<(), bitcode::Error> {
+    pub fn generate_serialized_data(&mut self) {
         let mut seen = HashMap::with_capacity(self.graph.node_count());
         let mut graph = SerializableGraph {
             roots: Vec::with_capacity(self.roots.len()),
@@ -279,13 +279,16 @@ impl ObjectGraph {
 
         Self::fix_serializable_graph_edges(&mut graph, seen);
 
-        self.serialized = Some(self.serialized_buffer.encode(&graph)?.to_vec());
+        self.serialized = Some(
+            self.serialized_buffer
+                .encode(&graph)
+                .expect("Failed to encode graph")
+                .to_vec(),
+        );
 
         let mut s = DefaultHasher::default();
         self.serialized.hash(&mut s);
         self.hash = s.finish();
-
-        Ok(())
     }
 
     fn add_node_to_serializable_graph(
@@ -381,7 +384,12 @@ impl ObjectGraph {
             writeln!(f, " {}{}: {},", indent_str, field_name, val)?;
         }
         for (field_name, val) in weight.pointers.iter() {
-            self.fmt_node_with_indentation_and_name(f, val.1, field_name.as_str(), indentation + 1)?;
+            self.fmt_node_with_indentation_and_name(
+                f,
+                val.1,
+                field_name.as_str(),
+                indentation + 1,
+            )?;
         }
 
         writeln!(f, "{}}}", indent_str)

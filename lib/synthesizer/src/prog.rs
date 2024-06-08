@@ -83,8 +83,8 @@ impl SubProgram
         assert!(children.len() > 0);
         debug_assert!(verify_children(&opcode, &children));
 
-        let size = (&children).into_iter().fold(0, |acc, x| acc + x.size) + 1;
-        let depth = (&children).into_iter().fold(0, |acc, x| max(acc, x.depth)) + 1;
+        let size = children.iter().fold(0, |acc, x| acc + x.size) + 1;
+        let depth = children.iter().fold(0, |acc, x| max(acc, x.depth)) + 1;
         let pre_ctx = children[0].pre_ctx().clone();
 
         Arc::new(Self {
@@ -107,7 +107,7 @@ impl SubProgram
     ) -> Arc<Self> {
         Arc::new(Self {
             opcode: opcode,
-            children: vec![],
+            children: Default::default(),
 
             size: 1,
             depth: 1,
@@ -127,10 +127,7 @@ impl SubProgram
 
         for i in 0..examples_count {
             // Gather arguments
-            let mut args = Vec::<&LocValue>::with_capacity(self.children.len());
-            for c in &self.children {
-                args.push(&c.out_value()[i]);
-            }
+            let args: Vec<&LocValue> = self.children.iter().map(|c| &c.out_value()[i]).collect();
 
             let mut out_ctx = match self.children.last() {
                 Some(last) => last.post_ctx()[i].clone(),
@@ -158,7 +155,7 @@ impl SubProgram
     }
 
     pub fn get_ast(&self) -> Box<dyn ExprAst> {
-        let child_asts = (&self.children).into_iter().map(|x| x.get_ast()).collect();
+        let child_asts = self.children.iter().map(|x| x.get_ast()).collect();
         self.opcode.to_ast(&child_asts)
     }
 

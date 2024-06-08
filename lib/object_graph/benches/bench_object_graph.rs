@@ -31,7 +31,7 @@ fn get_graphs_from_range(cache: &Cache) -> Vec<ObjectGraph> {
 fn get_serialized_graphs_from_range(cache: &Cache) -> Vec<ObjectGraph> {
     let mut graphs = get_graphs_from_range(cache);
     for g in &mut graphs {
-        g.generate_serialized_data().expect("Failed to serialize graph");
+        g.generate_serialized_data();
     }
     return graphs;
 }
@@ -46,7 +46,7 @@ fn graph_serialize(c: &mut Criterion) {
         group.throughput(Throughput::Elements(g.node_count() as u64));
         group.bench_function(format!("Serialize {}", g.node_count()),  |b| {
             b.iter(|| {
-                assert_err!(g.generate_serialized_data(), Ok(()));
+                g.generate_serialized_data();
             })
         });
     }
@@ -81,7 +81,7 @@ fn graph_clone_and_serialize(c: &mut Criterion) {
         group.bench_function(format!("Clone & Serialize {}", g.node_count()),  |b| {
             b.iter(|| {
                 let mut g_copy = g.clone();
-                g_copy.generate_serialized_data().expect("Failed to serialize graph");
+                g_copy.generate_serialized_data();
             })
         });
     }
@@ -130,8 +130,8 @@ fn graph_almost_eq(c: &mut Criterion) {
 
     assert_eq!(g1.edge_count(), g2.edge_count(), "Graphs edges count is different");
 
-    g1.generate_serialized_data().expect("Failed to serialize g1");
-    g2.generate_serialized_data().expect("Failed to serialize g2");
+    g1.generate_serialized_data();
+    g2.generate_serialized_data();
     c.bench_function("graph_almost_eq", |b| b.iter(|| {
         assert_ne!(g1, g2, "Graphs are not equal");
     }));
@@ -144,8 +144,8 @@ fn graph_ne(c: &mut Criterion) {
     let mut g1 = random_gnp_object_graph(&cache, &mut rng, 1000, 1f64 / f64::sqrt(1000f64));
     let mut g2 = random_gnp_object_graph(&cache, &mut rng, 1000, 1f64 / f64::sqrt(1000f64));
 
-    g1.generate_serialized_data().expect("Failed to serialize g1");
-    g2.generate_serialized_data().expect("Failed to serialize g2");
+    g1.generate_serialized_data();
+    g2.generate_serialized_data();
     c.bench_function("graph_ne", |b| b.iter(|| {
         assert_ne!(g1, g2, "Graphs are not equal");
     }));

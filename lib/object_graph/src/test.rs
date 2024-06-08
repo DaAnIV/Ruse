@@ -24,10 +24,8 @@ mod tests {
 
         let mut g1 = random_gnp_object_graph(&cache, &mut rng, 10, 0.5);
         let mut g2 = g1.clone();
-        g1.generate_serialized_data()
-            .expect("Failed to serialize g1");
-        g2.generate_serialized_data()
-            .expect("Failed to serialize g2");
+        g1.generate_serialized_data();
+        g2.generate_serialized_data();
         assert_eq!(g1, g2, "Graphs are not equal");
     }
 
@@ -81,10 +79,8 @@ mod tests {
         ));
         g2.add_edge(n21, n23, &str_cached!(&cache; "13"));
 
-        g1.generate_serialized_data()
-            .expect("Failed to serialize g1");
-        g2.generate_serialized_data()
-            .expect("Failed to serialize g2");
+        g1.generate_serialized_data();
+        g2.generate_serialized_data();
         assert_ne!(g1, g2, "Graphs are  equal");
     }
 
@@ -139,10 +135,8 @@ mod tests {
         ));
         g2.add_edge(n21, n23, &str_cached!(&cache; "13"));
 
-        g1.generate_serialized_data()
-            .expect("Failed to serialize g1");
-        g2.generate_serialized_data()
-            .expect("Failed to serialize g2");
+        g1.generate_serialized_data();
+        g2.generate_serialized_data();
         assert_ne!(g1, g2, "Graphs are equal");
     }
 
@@ -197,10 +191,8 @@ mod tests {
         ));
         g2.add_edge(n21, n23, &str_cached!(&cache; "13"));
 
-        g1.generate_serialized_data()
-            .expect("Failed to serialize g1");
-        g2.generate_serialized_data()
-            .expect("Failed to serialize g2");
+        g1.generate_serialized_data();
+        g2.generate_serialized_data();
         assert_ne!(g1, g2, "Graphs are equal");
     }
 
@@ -254,10 +246,8 @@ mod tests {
         ));
         g2.add_edge(n21, n23, &str_cached!(&cache; "13"));
 
-        g1.generate_serialized_data()
-            .expect("Failed to serialize g1");
-        g2.generate_serialized_data()
-            .expect("Failed to serialize g2");
+        g1.generate_serialized_data();
+        g2.generate_serialized_data();
         assert_eq!(g1, g2, "Graphs are not equal");
     }
 
@@ -268,10 +258,8 @@ mod tests {
 
         let mut g1 = random_gnp_object_graph(&cache, &mut rng, 10, 0.5);
         let mut g2 = g1.clone();
-        g1.generate_serialized_data()
-            .expect("Failed to serialize g1");
-        g2.generate_serialized_data()
-            .expect("Failed to serialize g2");
+        g1.generate_serialized_data();
+        g2.generate_serialized_data();
         assert_eq!(g1.serialized, g2.serialized, "Graphs are not equal");
     }
 
@@ -283,10 +271,8 @@ mod tests {
         let mut g1 = random_gnp_object_graph(&cache, &mut rng1, 10, 0.5);
         let mut rng2 = StdRng::seed_from_u64(SEED);
         let mut g2 = random_gnp_object_graph(&cache, &mut rng2, 10, 0.5);
-        g1.generate_serialized_data()
-            .expect("Failed to serialize g1");
-        g2.generate_serialized_data()
-            .expect("Failed to serialize g2");
+        g1.generate_serialized_data();
+        g2.generate_serialized_data();
         assert_eq!(g1, g2, "Graphs are not equal");
     }
 
@@ -306,9 +292,7 @@ mod tests {
             fields!((field_name.clone(), PrimitiveValue::Number(4u64.into()))),
         ));
         graph.add_edge(n1, n2, &str_cached!(&cache; "c"));
-        graph
-            .generate_serialized_data()
-            .expect("Failed to serialize graph");
+        graph.generate_serialized_data();
         assert_ne!(graph.hash, 0);
 
         println!("{:?}", Dot::new(&graph.graph));
@@ -321,7 +305,7 @@ mod tests {
 
         let n = 10;
         let mut g = random_gnp_object_graph(&cache, &mut rng, n.try_into().unwrap(), 0.5);
-        assert_err!(g.generate_serialized_data(), Ok(()));
+        g.generate_serialized_data();
         println!("{:?}", Dot::new(&g.graph));
         println!("{:?}", g.serialized.unwrap());
     }
@@ -370,12 +354,8 @@ mod tests {
         );
 
         let (mut graph_union, _nodes_map) = ObjectGraph::union(&[graph_a.into(), graph_b.into()]);
-        graph_ab
-            .generate_serialized_data()
-            .expect("Failed to serialize graph");
-        graph_union
-            .generate_serialized_data()
-            .expect("Failed to serialize graph");
+        graph_ab.generate_serialized_data();
+        graph_union.generate_serialized_data();
         assert_eq!(graph_union, graph_ab, "Graphs are not equal");
     }
 }

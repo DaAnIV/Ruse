@@ -102,7 +102,10 @@ impl ExprOpcode for UpdateOp {
             ast::UpdateOp::MinusMinus => vnum!(Number(n.0 - 1f64)),
         };
 
-        post_ctx.update_value(&res.clone(), &args[0].loc());
+        let mut loc = args[0].loc().clone();
+        if !post_ctx.update_value(&res.clone(), &mut loc) {
+            return None
+        }
 
         Some(match self.prefix {
             true => post_ctx.temp_value(res),
