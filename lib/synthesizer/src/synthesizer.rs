@@ -1,15 +1,14 @@
 use dashmap::DashSet;
 use ruse_object_graph::Cache;
 
-use crate::{
-    bank::*,
-    opcode::ExprOpcode,
-    prog::SubProgram, work_gatherer::WorkGather,
-};
+use crate::{bank::*, opcode::ExprOpcode, prog::SubProgram, work_gatherer::WorkGather};
 use std::{
     fmt::Display,
+    ops::Index,
     sync::{atomic::*, Arc},
 };
+
+use serde::ser::SerializeStruct;
 
 use tokio_util::sync::CancellationToken;
 
@@ -27,7 +26,7 @@ pub enum StatisticsTypes {
 }
 
 impl StatisticsTypes {
-    fn iterator() -> impl Iterator<Item = StatisticsTypes> {
+    pub fn iterator() -> impl Iterator<Item = StatisticsTypes> {
         [
             StatisticsTypes::Evaluated,
             StatisticsTypes::BankSize,
@@ -41,6 +40,17 @@ impl StatisticsTypes {
     const fn count() -> usize {
         Self::__MaxType as usize
     }
+
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            StatisticsTypes::Evaluated => "Evaluated",
+            StatisticsTypes::BankSize => "BankSize",
+            StatisticsTypes::ContextSize => "ContextSize",
+            StatisticsTypes::MaxDepth => "MaxDepth",
+            StatisticsTypes::MaxSize => "MaxSize",
+            StatisticsTypes::__MaxType => unreachable!(),
+        }
+    }
 }
 
 #[derive(Default, Debug)]
@@ -48,7 +58,7 @@ struct Statistics {
     values: [AtomicU64; StatisticsTypes::count()],
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CurrentStatistics {
     values: Vec<u64>,
 }
@@ -79,6 +89,16 @@ impl Statistics {
     }
 }
 
+impl CurrentStatistics {
+    pub fn get_diff(&self, rhs: &Self) -> Self {
+        let mut values = self.values.clone();
+        values[StatisticsTypes::Evaluated as usize] -= rhs[StatisticsTypes::Evaluated];
+        values[StatisticsTypes::BankSize as usize] -= rhs[StatisticsTypes::BankSize];
+        values[StatisticsTypes::ContextSize as usize] -= rhs[StatisticsTypes::ContextSize];
+        Self { values: values }
+    }
+}
+
 impl Display for CurrentStatistics {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut comma_separated = String::new();
@@ -93,8 +113,29 @@ impl Display for CurrentStatistics {
     }
 }
 
-pub type SynthesizerPredicate =
-    Box<dyn Fn(&Arc<SubProgram>) -> bool + Send + Sync>;
+impl Index<StatisticsTypes> for CurrentStatistics {
+    type Output = u64;
+
+    fn index(&self, index: StatisticsTypes) -> &Self::Output {
+        &self.values[index as usize]
+    }
+}
+
+impl serde::Serialize for CurrentStatistics {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut stats = serializer.serialize_struct("Statistics", StatisticsTypes::count())?;
+        for (t, v) in StatisticsTypes::iterator().zip(self.values.iter()) {
+            stats.serialize_field(t.as_str(), v)?;
+        }
+
+        stats.end()
+    }
+}
+
+pub type SynthesizerPredicate = Box<dyn Fn(&Arc<SubProgram>) -> bool + Send + Sync>;
 
 pub struct Synthesizer {
     bank: ProgBank,
