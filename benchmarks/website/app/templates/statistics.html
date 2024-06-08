@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h3>Statistics</h3>
+
+{{ graphs_div|safe }}
+
+{% endblock %}
+
+{% block scripts %}
+
+{{ graphs_script|safe }}
+
+{% endblock %}

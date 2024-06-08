@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h3>Task: {{ task.name }}</h3>
+{% if task.error == None %}
+<u>Found solution:</u>
+<p>
+    <code>{{ task.found }}</code>
+</p>
+<u>Statistics:</u>
+<ul>
+    <li>
+        <label>Iterations</label> <label>{{ task.iterations | length }}</label>
+    </li>
+    {% for (key, value) in task.statistics.items() %}
+    <li>
+        <label>{{key}}</label> <label>{{value}}</label>
+    </li>
+    {% endfor %}
+</ul>
+
+{{ graph[0]|safe }}
+{% else %}
+<u>Error:</u>
+<p>
+    <code>{{ task.error }}</code>
+</p>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+
+{% if task.error == None %}
+{{ graph[1]|safe }}
+{% endif %}
+
+{% endblock %}

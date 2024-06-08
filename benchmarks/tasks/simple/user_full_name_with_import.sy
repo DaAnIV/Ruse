@@ -1,0 +1,25 @@
+{
+  "import": [
+    "../classes/user.ts"
+  ],
+  "variables": {
+    "a": "User"
+  },
+  "stringLiterals": [" "],
+  "returnType": "String",
+  "examples": [
+    {
+      "input": {
+        "a": "{\"name\": \"John\", \"surname\": \"Doe\"}"
+      },
+      "output": "John Doe"
+    },
+    {
+      "input": {
+        "a": "{\"name\": \"Alan\", \"surname\": \"Wake\"}"
+      },
+      "output": "Alan Wake"
+    }
+  ],
+  "solution": [ "a.name + \" \" a.surname" ]
+}

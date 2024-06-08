@@ -1,0 +1,16 @@
+{
+    "variables": {
+      "document": "DOM"
+    },
+    "stringLiterals": ["students"],
+    "returnType": "DOMElement",
+    "examples": [
+      {
+        "input": {
+          "document": "../doms/StudentsListDom.html"
+        },
+        "output": "../doms/StudentsListElement.html"
+      }
+    ],
+    "solution": [ "document.getElementById(\"students\")" ]
+  }

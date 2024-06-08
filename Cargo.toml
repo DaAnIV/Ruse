@@ -1,7 +1,8 @@
 [workspace]
 members = [
     "ruse",
-    "lib/*"
+    "lib/*",
+    "benchmarks"
 ]
 resolver = "2"
 

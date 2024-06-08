@@ -1,0 +1,41 @@
+[package]
+name = "ruse_benchmarks"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+ruse_object_graph = { path = "../lib/object_graph" }
+ruse_ts_interpreter = { path = "../lib/ts_interpreter" }
+ruse_synthesizer = { path = "../lib/synthesizer" }
+ruse_ts_synthesizer = { path = "../lib/ts_synthesizer" }
+
+csv = "*"
+clap = { version = "*", features = ["derive"] }
+rand = "*"
+serde = { version = "*", features = ["derive"] }
+chrono = "*"
+sysinfo = { version = "*", default-features = false, features = ["serde"] }
+walkdir = "*"
+serde_json = "*"
+serde_with = "*"
+anyhow = "*"
+tokio = { version = "*", features = [
+    "rt-multi-thread",
+    "sync",
+    "time",
+    "macros",
+] }
+tokio-util = "*"
+
+swc = "*"
+swc_common = { version = "*", features = ["tty-emitter"] }
+swc_ecma_parser = "*"
+swc_ecma_ast = "*"
+swc_visit = "*"
+
+Boa = "*"
+boa_engine = "*"
+
+num_threads = "*"

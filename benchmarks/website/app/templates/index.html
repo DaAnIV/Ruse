@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block content %}
+<p>Date: {{ moment(benchmarks.date).format('MMMM Do YYYY, hh:mm:ss') }}</p>
+<table class="table table-striped table-hover">
+    <thead>
+        <tr>
+            <th scope="col">Task</th>
+            <th scope="col">Found</th>
+            <th scope="col">Iterations</th>
+            <th scope="col">Time (ms)</th>
+        </tr>
+    </thead>
+    {% for task in benchmarks.tasks.values() %}
+    <tr onclick="window.location='{{ url_for('routes.task', task_name=task.name) }}'">
+        <td>{{ task.name }}</td>
+        {% if task.error == None %}
+            <td>{{ task.found != '-' }}</td>
+            <td>{{ task.iterations | length }}</td>
+            <td>{{ "%.4f" % (task.took.total_seconds() * 1000) }}</td>
+        {% else %}
+            <td>error</td>
+        {% endif %}
+    </tr>
+    {% endfor %}
+</table>
+{% endblock %}

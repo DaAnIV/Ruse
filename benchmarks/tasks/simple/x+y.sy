@@ -1,0 +1,24 @@
+{
+  "variables": {
+    "x": "Int",
+    "y": "Int"
+  },
+  "returnType": "Int",
+  "examples": [
+    {
+      "input": {
+        "x": "5",
+        "y": "10"
+      },
+      "output": "15"
+    },
+    {
+      "input": {
+        "x": "7",
+        "y": "3"
+      },
+      "output": "10"
+    }
+  ],
+  "solution": [ "x + y", "y + x" ]
+}
