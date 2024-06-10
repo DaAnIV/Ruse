@@ -1,17 +1,17 @@
+use dashmap::DashSet;
+use futures::{future::BoxFuture, FutureExt};
+use itertools::Itertools;
 use std::{mem::replace, sync::Arc};
-use tokio::select;
+use tokio::task::JoinError;
 use tokio_util::sync::CancellationToken;
 
 use crate::{bank::ProgBank, opcode::ExprOpcode, prog::SubProgram};
 
-type WorkHandler = Arc<
-    dyn Fn(Arc<dyn ExprOpcode>, Vec<Arc<SubProgram>>) -> Option<Arc<SubProgram>> + Send + Sync,
->;
+type WorkHandler =
+    Arc<dyn Fn(Arc<dyn ExprOpcode>, Vec<Arc<SubProgram>>) -> Option<Arc<SubProgram>> + Send + Sync>;
 
 pub struct WorkGather {
     chunk_size: usize,
-    children: Vec<Arc<SubProgram>>,
-    iterations: Box<Vec<usize>>,
     chunk: Box<Vec<Vec<Arc<SubProgram>>>>,
     handler: WorkHandler,
     tasks: tokio::task::JoinSet<Option<Arc<SubProgram>>>,
@@ -23,111 +23,130 @@ impl WorkGather {
         Self {
             chunk_size: chunk_size,
             chunk: Vec::with_capacity(chunk_size).into(),
-            children: Default::default(),
-            iterations: Default::default(),
             handler: handler,
             tasks: tokio::task::JoinSet::new(),
             cancel_token: cancel_token,
         }
     }
 
-    pub fn gather_work_for_next_iteration(&mut self, bank: &ProgBank, op: &Arc<dyn ExprOpcode>) {
-        self.children = Vec::with_capacity(op.arg_types().len()).into();
-        self.iterations = Vec::with_capacity(op.arg_types().len()).into();
-        self.add_all_tasks(bank, op);
+    pub async fn gather_work_for_next_iteration(
+        &mut self,
+        bank: &ProgBank,
+        op: &Arc<dyn ExprOpcode>,
+    ) {
+        self.add_all_tasks(bank, op).await;
     }
 
     pub async fn wait_for_all_tasks(&mut self) -> Option<Arc<SubProgram>> {
         let mut found_prog = None;
-        while let Some(res) = self.tasks.join_next().await {
+        while let Some(res) = self.wait_for_next().await {
             if let Ok(Some(p)) = res {
                 found_prog = Some(p);
                 self.tasks.abort_all();
             }
         }
+        self.tasks.abort_all();
         return found_prog;
     }
 
-    fn add_all_tasks(&mut self, bank: &ProgBank, op: &Arc<dyn ExprOpcode>) {
+    async fn wait_for_next(&mut self) -> Option<Result<Option<Arc<SubProgram>>, JoinError>> {
+        tokio::select! {
+            _ = self.cancel_token.cancelled() => None,
+            v = self.tasks.join_next() => v
+        }
+    }
+
+    async fn add_all_tasks(&mut self, bank: &ProgBank, op: &Arc<dyn ExprOpcode>) {
         for i in 0..op.arg_types().len() {
-            self.gather_work_with_cutoff(bank, op, i);
+            self.gather_work_with_cutoff(bank, op, i).await;
         }
         if self.chunk.len() > 0 {
             self.perform_work(op);
         }
     }
 
-    fn gather_work_with_cutoff(
+    async fn gather_work_with_cutoff(
         &mut self,
         bank: &ProgBank,
         op: &Arc<dyn ExprOpcode>,
         cutoff: usize,
     ) {
-        let i = self.iterations.len();
         let last_iteration = bank.bank.len() - 1;
+        let iterations_iterator = (0..op.arg_types().len())
+            .map(|i| {
+                if last_iteration == 0 {
+                    0..=0
+                } else if i == cutoff {
+                    last_iteration..=last_iteration
+                } else if i < cutoff {
+                    0..=(last_iteration - 1)
+                } else {
+                    0..=last_iteration
+                }
+            })
+            .multi_cartesian_product();
 
-        if i == op.arg_types().len() {
-            self.gather_work_for_iterations(bank, op);
-            return;
-        }
-
-        if i == cutoff {
-            self.iterations.push(last_iteration);
-            self.gather_work_with_cutoff(bank, op, cutoff);
-            self.iterations.pop();
-        } else if i < cutoff {
-            for j in 0..last_iteration {
-                self.iterations.push(j);
-                self.gather_work_with_cutoff(bank, op, cutoff);
-                self.iterations.pop();
-            }
-        } else {
-            for j in 0..=last_iteration {
-                self.iterations.push(j);
-                self.gather_work_with_cutoff(bank, op, cutoff);
-                self.iterations.pop();
-            }
+        for iterations in iterations_iterator {
+            self.gather_work_for_iterations(bank, op, iterations).await
         }
     }
 
-    fn gather_work_for_iterations(&mut self, bank: &ProgBank, op: &Arc<dyn ExprOpcode>) {
-        let iterations = &self.iterations;
+    async fn gather_work_for_iterations(
+        &mut self,
+        bank: &ProgBank,
+        op: &Arc<dyn ExprOpcode>,
+        iterations: Vec<usize>,
+    ) {
+        let mut programs = Vec::with_capacity(op.arg_types().len());
+
         let arg_types = op.arg_types();
-        for t in bank.bank[iterations[0]].0.iter() {
-            let values = t.0.get(&arg_types[0]);
-            if values.is_none() {
-                continue;
-            }
-            for p in unsafe { values.unwrap_unchecked().iter() } {
-                self.children.push(p.clone());
-                self.gather_work_for_iterations_with_progs(bank, op);
-                self.children.pop();
-            }
-        }
-    }
 
-    fn gather_work_for_iterations_with_progs(&mut self, bank: &ProgBank, op: &Arc<dyn ExprOpcode>) {
-        let i = self.children.len();
-        if i == op.arg_types().len() {
-            return self.gather_work(op);
-        }
-
-        let ctx = self.children.last().unwrap().post_ctx();
-        if let Some(type_map) = bank.bank[self.iterations[i]].get(ctx) {
-            let values = type_map.0.get(&op.arg_types()[i]);
-            if values.is_none() {
+        for i in 0..op.arg_types().len() {
+            if let Some(values) = bank.bank[iterations[i]].0.get(&arg_types[i]) {
+                programs.push(values.value().clone())
+            } else {
                 return;
             }
-            for p in unsafe { values.unwrap_unchecked().iter() } {
-                self.children.push(p.clone());
-                self.gather_work_for_iterations_with_progs(bank, op);
-                self.children.pop();
-            }
         }
+
+        let mut children = Vec::with_capacity(programs.len());
+        self.gather_work_for_maps(op, &programs, &mut children)
+            .await;
     }
 
-    fn gather_work(&mut self, op: &Arc<dyn ExprOpcode>) {
-        self.chunk.push(self.children.clone());
+    fn gather_work_for_maps<'a>(
+        &'a mut self,
+        op: &'a Arc<dyn ExprOpcode>,
+        maps: &'a [Arc<DashSet<Arc<SubProgram>>>],
+        children: &'a mut Vec<Arc<SubProgram>>,
+    ) -> BoxFuture<'a, ()> {
+        let i = children.len();
+
+        if i == maps.len() {
+            return async move {
+                self.gather_work(op, children.clone()).await;
+            }
+            .boxed();
+        }
+
+        async move {
+            let map = &maps[i];
+            for p in map.iter() {
+                if let Some(prev) = children.last() {
+                    if prev.post_ctx() != p.pre_ctx() {
+                        continue;
+                    }
+                }
+                children.push(p.clone());
+                self.gather_work_for_maps(op, maps, children).await;
+                children.pop();
+            }
+        }
+        .boxed()
+    }
+
+    async fn gather_work(&mut self, op: &Arc<dyn ExprOpcode>, children: Vec<Arc<SubProgram>>) {
+        self.chunk.push(children);
         if self.chunk.len() == self.chunk_size {
             self.perform_work(op);
         }
@@ -152,7 +171,7 @@ impl WorkGather {
         cancel_token: CancellationToken,
     ) {
         tasks.spawn(async move {
-            select! {
+            tokio::select! {
                 _ = cancel_token.cancelled() => None,
                 v = async {
                     for c in chunk.into_iter() {

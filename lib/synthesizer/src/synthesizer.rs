@@ -187,25 +187,23 @@ impl Synthesizer {
         self.cancel_token.clone()
     }
 
-    fn init_context(&self, iteration_map: &ContextMap, ctx: &ContextArray, cache: &Arc<Cache>) {
-        let type_map: TypeMap = Default::default();
+    fn init_context(&self, iteration_map: &TypeMap, ctx: &ContextArray, cache: &Arc<Cache>) {
         for op in &self.init_opcodes {
             let p = match self.get_program_from_init_opcode(op.clone(), ctx, cache) {
                 Some(p) => p,
                 None => continue,
             };
-            if type_map.insert_program(p) {
+            if iteration_map.insert_program(p) {
                 self.statistics.inc_value(StatisticsTypes::BankSize);
             }
         }
 
         self.statistics.inc_value(StatisticsTypes::ContextSize);
-        iteration_map.insert(ctx, type_map);
     }
 
     fn create_work_gatherer(
         this: Arc<Self>,
-        current_iteration_map: Arc<ContextMap>,
+        current_iteration_map: Arc<TypeMap>,
         cache: Arc<Cache>,
     ) -> WorkGather {
         let child_token = this.cancel_token.child_token();
@@ -233,7 +231,7 @@ impl Synthesizer {
                 },
             ),
             1000,
-            child_token
+            child_token,
         )
     }
 
@@ -242,7 +240,7 @@ impl Synthesizer {
         cache: &Arc<Cache>,
     ) -> Option<Arc<SubProgram>> {
         let iteration = this.bank.iteration_count();
-        let current_iteration_map: Arc<ContextMap> = Default::default();
+        let current_iteration_map: Arc<TypeMap> = Default::default();
 
         let this_clone = this.clone();
         let cache_clone = cache.clone();
@@ -300,12 +298,16 @@ impl Synthesizer {
             cache.clone(),
         );
         for op in &this.composite_opcodes {
-            work_gatherer.gather_work_for_next_iteration(&this.bank, op)
+            tokio::select! {
+                _ = this.cancel_token.cancelled() => (),
+                _ = work_gatherer
+                .gather_work_for_next_iteration(&this.bank, op) => ()
+            }
         }
         work_gatherer.wait_for_all_tasks().await
     }
 
-    fn insert_iteration(this: &mut Arc<Self>, current_iteration_map: Arc<ContextMap>) {
+    fn insert_iteration(this: &mut Arc<Self>, current_iteration_map: Arc<TypeMap>) {
         unsafe {
             Arc::get_mut(this)
                 .unwrap_unchecked()
@@ -363,7 +365,7 @@ impl Synthesizer {
         return true;
     }
 
-    fn check_and_insert_program(&self, p: Arc<SubProgram>, iteration_map: &ContextMap) -> bool {
+    fn check_and_insert_program(&self, p: Arc<SubProgram>, iteration_map: &TypeMap) -> bool {
         if !self.check_program(&p) {
             return false;
         }
