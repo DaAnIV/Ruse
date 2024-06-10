@@ -1,7 +1,9 @@
 use dashmap::DashSet;
 use ruse_object_graph::Cache;
 
-use crate::{bank::*, opcode::ExprOpcode, prog::SubProgram, work_gatherer::WorkGather};
+use crate::{
+    bank::*, context::ContextArray, opcode::ExprOpcode, prog::SubProgram, work_gatherer::WorkGather,
+};
 use std::{
     fmt::Display,
     ops::Index,

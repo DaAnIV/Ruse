@@ -1,6 +1,5 @@
 use std::{collections::HashMap, io::Read, ops::{Deref, DerefMut}, sync::Arc};
 
-use boa_engine::class;
 use dashmap::DashMap;
 use ruse_object_graph::{scached, str_cached, Cache, CachedString};
 use ruse_synthesizer::{
@@ -379,9 +378,9 @@ impl TsClass {
         }
     }
 
-    fn add_method_opcode(&mut self, classes: &TsClasses, method: &ast::ClassMethod, cache: &Cache) {
+    fn add_method_opcode(&mut self, classes: &TsClasses, method: &ast::ClassMethod, _cache: &Cache) {
         let method_name = method.key.as_ident().unwrap().sym.to_string();
-        let mut args = Vec::with_capacity(method.function.params.len());
+        let args = Vec::with_capacity(method.function.params.len());
 
         let c = swc::Compiler::new(Arc::<SourceMap>::default());
 

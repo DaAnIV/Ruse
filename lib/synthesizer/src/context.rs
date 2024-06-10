@@ -176,3 +176,5 @@ impl Display for Context {
         Ok(())
     }
 }
+
+pub type ContextArray = Arc<Vec<Context>>;

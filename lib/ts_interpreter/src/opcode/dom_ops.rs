@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use ruse_object_graph::{
-    scached, str_cached, Cache, CachedString, NodeIndex, Number, ObjectData, PrimitiveValue
+    scached, str_cached, Cache, CachedString, NodeIndex, ObjectData
 };
 use ruse_synthesizer::context::*;
 use ruse_synthesizer::opcode::{ExprAst, ExprOpcode};

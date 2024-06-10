@@ -3,7 +3,7 @@ use ruse_object_graph::{
     scached, Cache, CachedString, FieldsMap, NodeIndex, Number, ObjectData, ObjectGraph,
     PrimitiveValue,
 };
-use std::{any::Any, collections::HashMap, fmt::Debug, hash::Hash, sync::Arc};
+use std::{collections::HashMap, fmt::Debug, hash::Hash, sync::Arc};
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub enum ValueType {

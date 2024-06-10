@@ -1,6 +1,6 @@
 use ruse_object_graph::Cache;
 use ruse_synthesizer::{
-    bank::ContextArray,
+    context::ContextArray,
     prog::SubProgram,
     synthesizer::{CurrentStatistics, OpcodesList, Synthesizer, SynthesizerPredicate},
 };

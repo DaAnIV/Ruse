@@ -8,15 +8,6 @@ mod tests {
 
     const SEED: u64 = 10;
 
-    macro_rules! assert_err {
-        ($expression:expr, $($pattern:tt)+) => {
-            match $expression {
-                $($pattern)+ => (),
-                ref e => panic!("expected `{}` but got `{:?}`", stringify!($($pattern)+), e),
-            }
-        }
-    }
-
     #[test]
     fn eq_random_graphs() {
         let cache = Cache::new();

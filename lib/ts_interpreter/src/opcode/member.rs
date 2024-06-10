@@ -26,7 +26,7 @@ impl MemberOp {
 }
 
 impl ExprOpcode for MemberOp {
-    fn eval(&self, args: &[&LocValue], post_ctx: &mut Context, _cache: &Arc<Cache>) -> Option<LocValue> {
+    fn eval(&self, args: &[&LocValue], _post_ctx: &mut Context, _cache: &Arc<Cache>) -> Option<LocValue> {
         debug_assert_eq!(args.len(), 1);
 
         args[0].get_obj_field_loc_value(&self.field_name)

@@ -8,8 +8,8 @@ use std::{
 
 use ruse_object_graph::{scached, str_cached, Cache, CachedString, Number, PrimitiveValue};
 use ruse_synthesizer::{
-    bank::ContextArray,
     context::Context,
+    context::ContextArray,
     prog::SubProgram,
     synthesizer::{OpcodesList, SynthesizerPredicate},
     value::Value,

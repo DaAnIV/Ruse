@@ -1,9 +1,8 @@
-use std::{fs::File, io::{BufWriter, Write}, path::PathBuf, sync::Arc, time::Duration, vec};
+use std::{fs::File, io::Write, path::PathBuf, sync::Arc, time::Duration, vec};
 
 use ruse_synthesizer::{prog::SubProgram, synthesizer::CurrentStatistics};
 
 use serde::{Serialize, Serializer};
-use serde_json::ser::PrettyFormatter;
 
 #[derive(Serialize, Debug, Clone)]
 pub struct BenchmarksIteration {

@@ -1,6 +1,5 @@
 [workspace]
 members = [
-    "ruse",
     "lib/*",
     "benchmarks"
 ]

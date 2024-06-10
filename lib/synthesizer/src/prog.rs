@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use ruse_object_graph::Cache;
 
-use crate::bank::ContextArray;
+use crate::context::ContextArray;
 use crate::bank::ValueArray;
 use crate::opcode::*;
 use crate::value::*;

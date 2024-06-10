@@ -7,16 +7,6 @@ use ruse_object_graph::*;
 use ruse_object_graph::generator::*;
 
 const SEED: u64 = 100;
-
-macro_rules! assert_err {
-    ($expression:expr, $($pattern:tt)+) => {
-        match $expression {
-            $($pattern)+ => (),
-            ref e => panic!("expected `{}` but got `{:?}`", stringify!($($pattern)+), e),
-        }
-    }
-}
-
 const RANGE: [usize; 8] = [5, 10, 20, 50, 100, 200, 500, 1000];
 
 fn get_graphs_from_range(cache: &Cache) -> Vec<ObjectGraph> {

@@ -1,10 +1,8 @@
 use std::{
-    ops::DerefMut,
     process::ExitCode,
     sync::Arc,
     time::{Duration, Instant},
 };
-use tokio::sync::RwLock;
 use tokio_util::sync::CancellationToken;
 
 mod results;

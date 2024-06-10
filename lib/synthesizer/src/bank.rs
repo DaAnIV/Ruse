@@ -3,16 +3,12 @@ use std::sync::Arc;
 use dashmap::{DashMap, DashSet};
 
 use crate::{
-    context::Context,
+    context::ContextArray
     prog::SubProgram,
     value::{LocValue, ValueType},
 };
 
-pub type ContextArray = Arc<Vec<Context>>;
 pub type ValueArray = Arc<Vec<LocValue>>;
-
-pub type ProgIterator<'a> =
-    Box<dyn Iterator<Item = &'a Arc<SubProgram>> + 'a>;
 
 // The bank is hierarchical
 // iteration -> [pre_context] -> out_type -> sub_prog
