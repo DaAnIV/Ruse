@@ -242,43 +242,65 @@ impl Synthesizer {
         let iteration = this.bank.iteration_count();
         let current_iteration_map: Arc<ContextMap> = Default::default();
 
-        let mut found_prog = None;
-
-        if iteration == 0 {
-            for op in &this.init_opcodes {
-                let p =
-                    match this.get_program_from_init_opcode(op.clone(), &this.start_context, cache)
-                    {
-                        Some(p) => p,
-                        None => continue,
-                    };
-                if !this.check_and_insert_program(p.clone(), &current_iteration_map) {
-                    continue;
-                }
-                if this.found_contexts.insert(p.post_ctx().clone()) {
-                    // println!("{} initializes a new context", p.get_code());
-                    this.init_context(&current_iteration_map, p.post_ctx(), cache);
-                }
-                if (this.predicate)(&p) {
-                    found_prog = Some(p);
-                    break;
-                }
+        let this_clone = this.clone();
+        let cache_clone = cache.clone();
+        let current_iteration_map_clone = current_iteration_map.clone();
+        let found_prog = tokio::spawn(async move {
+            if iteration == 0 {
+                this_clone.run_init_iteration(current_iteration_map_clone, cache_clone)
+            } else {
+                Self::run_composite_iteration(this_clone, current_iteration_map_clone, cache_clone)
+                    .await
             }
-        } else {
-            let mut work_gatherer = Synthesizer::create_work_gatherer(
-                this.clone(),
-                current_iteration_map.clone(),
-                cache.clone(),
-            );
-            for op in &this.composite_opcodes {
-                work_gatherer.gather_work_for_next_iteration(&this.bank, op)
-            }
-            found_prog = work_gatherer.wait_for_all_tasks().await;
-        }
+        })
+        .await
+        .unwrap();
 
-        Synthesizer::insert_iteration(this, current_iteration_map);
+        Self::insert_iteration(this, current_iteration_map);
 
         found_prog
+    }
+
+    fn run_init_iteration(
+        &self,
+        current_iteration_map: Arc<TypeMap>,
+        cache: Arc<Cache>,
+    ) -> Option<Arc<SubProgram>> {
+        for op in &self.init_opcodes {
+            let p = match self.get_program_from_init_opcode(op.clone(), &self.start_context, &cache)
+            {
+                Some(p) => p,
+                None => continue,
+            };
+            if !self.check_and_insert_program(p.clone(), &current_iteration_map) {
+                continue;
+            }
+            if self.found_contexts.insert(p.post_ctx().clone()) {
+                // println!("{} initializes a new context", p.get_code());
+                self.init_context(&current_iteration_map, p.post_ctx(), &cache);
+            }
+            if (self.predicate)(&p) {
+                return Some(p);
+            }
+        }
+
+        None
+    }
+
+    async fn run_composite_iteration(
+        this: Arc<Self>,
+        current_iteration_map: Arc<TypeMap>,
+        cache: Arc<Cache>,
+    ) -> Option<Arc<SubProgram>> {
+        let mut work_gatherer = Synthesizer::create_work_gatherer(
+            this.clone(),
+            current_iteration_map.clone(),
+            cache.clone(),
+        );
+        for op in &this.composite_opcodes {
+            work_gatherer.gather_work_for_next_iteration(&this.bank, op)
+        }
+        work_gatherer.wait_for_all_tasks().await
     }
 
     fn insert_iteration(this: &mut Arc<Self>, current_iteration_map: Arc<ContextMap>) {
