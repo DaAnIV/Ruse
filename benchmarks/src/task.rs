@@ -18,7 +18,8 @@ use ruse_synthesizer::{
 };
 use ruse_ts_interpreter::{dom, ts_class::TsClasses};
 use ruse_ts_synthesizer::{
-    add_array_opcodes, add_dom_opcodes, add_num_opcodes, add_str_opcodes, construct_opcode_list, TsSynthesizer, ALL_BIN_NUM_OPCODES, ALL_BIN_STR_OPCODES, ALL_UNARY_NUM_OPCODES
+    add_array_opcodes, add_dom_opcodes, add_num_opcodes, add_str_opcodes, construct_opcode_list,
+    TsSynthesizer, ALL_BIN_NUM_OPCODES, ALL_BIN_STR_OPCODES, ALL_UNARY_NUM_OPCODES, ALL_UPDATE_NUM_OPCODES,
 };
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
@@ -556,7 +557,10 @@ impl SnythesisTask {
         &self,
         _cache: &Cache,
     ) -> Result<SynthesizerPredicate, SnythesisTaskError> {
-        Ok(Box::new(move |_p| true))
+        Ok(Box::new(move |_p| {
+            // println!("{}", p);
+            true
+        }))
     }
 
     fn add_classes(
@@ -618,7 +622,7 @@ impl SnythesisTask {
             &mut opcodes,
             &ALL_BIN_NUM_OPCODES,
             &ALL_UNARY_NUM_OPCODES,
-            &[],
+            &ALL_UPDATE_NUM_OPCODES,
         );
         add_str_opcodes(&mut opcodes, &ALL_BIN_STR_OPCODES);
         add_array_opcodes(&mut opcodes, &[ValueType::Number, ValueType::String], cache);
