@@ -2,7 +2,6 @@ use dashmap::DashSet;
 use futures::{future::BoxFuture, FutureExt};
 use itertools::Itertools;
 use std::{mem::replace, sync::Arc};
-use tokio::task::JoinError;
 use tokio_util::sync::CancellationToken;
 
 use crate::{bank::ProgBank, opcode::ExprOpcode, prog::SubProgram};
@@ -39,26 +38,23 @@ impl WorkGather {
 
     pub async fn wait_for_all_tasks(&mut self) -> Option<Arc<SubProgram>> {
         let mut found_prog = None;
-        while let Some(res) = self.wait_for_next().await {
+        while let Some(res) = self.tasks.join_next().await {
             if let Ok(Some(p)) = res {
                 found_prog = Some(p);
                 self.tasks.abort_all();
             }
         }
-        self.tasks.abort_all();
         return found_prog;
     }
 
-    async fn wait_for_next(&mut self) -> Option<Result<Option<Arc<SubProgram>>, JoinError>> {
-        tokio::select! {
-            _ = self.cancel_token.cancelled() => None,
-            v = self.tasks.join_next() => v
-        }
-    }
-
     async fn add_all_tasks(&mut self, bank: &ProgBank, op: &Arc<dyn ExprOpcode>) {
-        for i in 0..op.arg_types().len() {
-            self.gather_work_with_cutoff(bank, op, i).await;
+        if bank.bank.len() == 1 {
+            self.gather_work_for_iterations(bank, op, vec![0; op.arg_types().len()])
+                .await
+        } else {
+            for i in 0..op.arg_types().len() {
+                self.gather_work_with_cutoff(bank, op, i).await;
+            }
         }
         if self.chunk.len() > 0 {
             self.perform_work(op);
@@ -74,9 +70,7 @@ impl WorkGather {
         let last_iteration = bank.bank.len() - 1;
         let iterations_iterator = (0..op.arg_types().len())
             .map(|i| {
-                if last_iteration == 0 {
-                    0..=0
-                } else if i == cutoff {
+                if i == cutoff {
                     last_iteration..=last_iteration
                 } else if i < cutoff {
                     0..=(last_iteration - 1)

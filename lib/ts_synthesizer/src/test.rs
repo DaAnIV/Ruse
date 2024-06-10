@@ -5,7 +5,9 @@ mod tests {
     use object_graph::{str_cached, Number};
     use ruse_object_graph as object_graph;
     use ruse_synthesizer::{
-        context::Context, value::{Location, ValueType}, vnum, vstr
+        context::Context,
+        value::{Location, ValueType},
+        vnum, vstr,
     };
     use ruse_ts_interpreter::ts_class::TsClasses;
     use swc_ecma_ast as ast;
@@ -22,7 +24,9 @@ mod tests {
         }";
         let cache = Arc::new(object_graph::Cache::new());
         let classes = TsClasses::new();
-        let user_class_name = classes.add_class(code, &cache).expect("Failed to add User class");
+        let user_class_name = classes
+            .add_class(code, &cache)
+            .expect("Failed to add User class");
         let user_class = classes.get_class(&user_class_name).unwrap();
 
         let user1 = user_class.generate_rooted_object(
@@ -118,13 +122,13 @@ mod tests {
             ]),
         );
 
-        let mut opcodes = construct_opcode_list(
-            &[str_cached!(cache; "p")],
+        let mut opcodes = construct_opcode_list(&[str_cached!(cache; "p")], &[], &[], false);
+        add_num_opcodes(
+            &mut opcodes,
+            &[ast::BinaryOp::Add],
             &[],
-            &[],
-            false,
+            &[ast::UpdateOp::PlusPlus],
         );
-        add_num_opcodes(&mut opcodes, &[ast::BinaryOp::Add], &[], &[ast::UpdateOp::PlusPlus]);
         opcodes.extend_from_slice(&point_class.member_opcodes);
 
         let ctx = Arc::new(vec![
@@ -136,9 +140,7 @@ mod tests {
             ctx.clone(),
             opcodes,
             Box::new(move |p| {
-                let expected_outputs = [
-                    Number::from(10), Number::from(12)
-                ];
+                let expected_outputs = [Number::from(10), Number::from(12)];
                 if p.out_type() != ValueType::Number {
                     return false;
                 }

@@ -239,13 +239,25 @@ impl Synthesizer {
         this: &mut Arc<Self>,
         cache: &Arc<Cache>,
     ) -> Option<Arc<SubProgram>> {
-        let iteration = this.bank.iteration_count();
         let current_iteration_map: Arc<TypeMap> = Default::default();
 
+        let found_prog = Self::run_iteration_inner(this, cache, &current_iteration_map).await;
+
+        Self::insert_iteration(this, current_iteration_map);
+
+        found_prog
+    }
+
+    pub async fn run_iteration_inner(
+        this: &mut Arc<Self>,
+        cache: &Arc<Cache>,
+        current_iteration_map: &Arc<TypeMap>,
+    ) -> Option<Arc<SubProgram>> {
+        let iteration = this.bank.iteration_count();
         let this_clone = this.clone();
         let cache_clone = cache.clone();
-        let current_iteration_map_clone = current_iteration_map.clone();
-        let found_prog = tokio::spawn(async move {
+        let current_iteration_map_clone: Arc<TypeMap> = current_iteration_map.clone();
+        tokio::spawn(async move {
             if iteration == 0 {
                 this_clone.run_init_iteration(current_iteration_map_clone, cache_clone)
             } else {
@@ -254,11 +266,7 @@ impl Synthesizer {
             }
         })
         .await
-        .unwrap();
-
-        Self::insert_iteration(this, current_iteration_map);
-
-        found_prog
+        .unwrap()
     }
 
     fn run_init_iteration(
@@ -308,12 +316,10 @@ impl Synthesizer {
     }
 
     fn insert_iteration(this: &mut Arc<Self>, current_iteration_map: Arc<TypeMap>) {
-        unsafe {
-            Arc::get_mut(this)
-                .unwrap_unchecked()
-                .bank
-                .insert(current_iteration_map.into());
-        }
+        Arc::get_mut(this)
+            .unwrap()
+            .bank
+            .insert(current_iteration_map.into());
     }
 
     fn evaluate_program(&self, p: &mut Arc<SubProgram>, cache: &Arc<Cache>) -> bool {

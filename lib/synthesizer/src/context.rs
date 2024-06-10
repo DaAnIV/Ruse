@@ -177,4 +177,10 @@ impl Display for Context {
     }
 }
 
+impl Default for Context {
+    fn default() -> Self {
+        Context::with_values(Default::default())
+    }
+}
+
 pub type ContextArray = Arc<Vec<Context>>;

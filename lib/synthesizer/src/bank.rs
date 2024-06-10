@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use dashmap::{DashMap, DashSet};
+use dashmap::{DashMap, DashSet, Map, SharedValue};
 
 use crate::{
     prog::SubProgram,
@@ -14,21 +14,25 @@ pub type ValueArray = Arc<Vec<LocValue>>;
 
 pub(crate) type ValueMap = DashSet<Arc<SubProgram>>;
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct TypeMap(pub(crate) DashMap<ValueType, Arc<ValueMap>>);
 
 impl TypeMap {
     pub fn insert_program(&self, p: Arc<SubProgram>) -> bool {
-        let value_set = match self.0.get_mut(&p.out_type()) {
-            Some(m) => m,
-            None => {
-                let m = ValueMap::new();
-                self.0.insert(p.out_type().clone(), m.into());
-                unsafe { self.0.get_mut(&p.out_type()).unwrap_unchecked() }
-            }
-        };
+        let value_map = self.get_or_insert_value_map(&p.out_type());
+        value_map.insert(p)
+    }
 
-        value_set.insert(p)
+    fn get_or_insert_value_map(&self, value_type: &ValueType) -> Arc<ValueMap> {
+        let idx = self.0.determine_map(value_type);
+        let mut shard = unsafe { self.0._yield_write_shard(idx) };
+        if let Some((_, vptr)) = shard.get_key_value(value_type) {
+            vptr.get().clone()
+        } else {
+            let m = Arc::new(ValueMap::new());
+            shard.insert(value_type.clone(), SharedValue::new(m.clone()));
+            m
+        }
     }
 
     pub fn contains(&self, p: &Arc<SubProgram>) -> bool {
@@ -56,8 +60,8 @@ impl ProgBank {
     }
 
     #[inline]
-    pub fn insert(&mut self, ctx_map: Arc<TypeMap>) {
-        self.bank.push(ctx_map);
+    pub fn insert(&mut self, type_map: Arc<TypeMap>) {
+        self.bank.push(type_map);
     }
 
     #[inline]
