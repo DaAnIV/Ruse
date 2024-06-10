@@ -1,4 +1,4 @@
-use std::{fs::File, io::Write, path::PathBuf, sync::Arc, time::Duration, vec};
+use std::{fs::File, io::Write, path::{Path, PathBuf}, sync::Arc, time::Duration, vec};
 
 use ruse_synthesizer::{prog::SubProgram, synthesizer::CurrentStatistics};
 
@@ -109,16 +109,18 @@ enum State {
 }
 
 pub(crate) struct ResultsWriter {
+    path: PathBuf,
     writer: File,
     state: Vec<State>,
 }
 
 impl ResultsWriter {
     pub fn from_path(path: PathBuf) -> Self {
-        let writer = File::create_new(path).expect("Failed to open output file");
+        let writer = File::create_new(path.clone()).expect("Failed to open output file");
         let mut this = Self {
             state: vec![State::First],
             writer: writer,
+            path: path
         };
 
         this.begin();
@@ -127,6 +129,10 @@ impl ResultsWriter {
         this.begin_array("tasks");
         
         this
+    }
+
+    pub fn path(&self) -> &Path {
+        self.path.as_path()
     }
 
     pub fn write_result(&mut self, result: &BenchmarkResult) {

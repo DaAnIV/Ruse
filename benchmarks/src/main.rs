@@ -168,5 +168,7 @@ async fn main() -> ExitCode {
         }
     }
 
+    println!("Results written to {:?}", writer.path());
+
     ExitCode::SUCCESS
 }
