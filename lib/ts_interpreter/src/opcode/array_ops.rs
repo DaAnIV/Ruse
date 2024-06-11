@@ -8,6 +8,8 @@ use ruse_synthesizer::value::*;
 use swc_common::DUMMY_SP;
 use swc_ecma_ast as ast;
 
+use crate::opcode::member_call_ast;
+
 use super::TsExprAst;
 
 #[derive(Debug)]
@@ -125,30 +127,7 @@ impl ExprOpcode for PushOp {
 
     fn to_ast(&self, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst> {
         debug_assert_eq!(children.len(), 2);
-
-        let val = TsExprAst::from(children[1].as_ref());
-
-        let callee_expr = ast::MemberExpr {
-            span: DUMMY_SP,
-            obj: TsExprAst::from(children[0].as_ref()).get_paren_expr(),
-            prop: ast::MemberProp::Ident(ast::Ident {
-                span: DUMMY_SP,
-                sym: "push".into(),
-                optional: false,
-            }),
-        };
-
-        let expr = ast::CallExpr {
-            span: DUMMY_SP,
-            callee: ast::Callee::Expr(ast::Expr::Member(callee_expr).into()),
-            args: vec![ast::ExprOrSpread {
-                spread: None,
-                expr: val.node.to_owned(),
-            }],
-            type_args: None,
-        };
-
-        TsExprAst::create(ast::Expr::Call(expr))
+        member_call_ast("push", children)
     }
 
     fn arg_types(&self) -> &[ValueType] {

@@ -7,12 +7,9 @@ use ruse_synthesizer::{
     value::{LocValue, ValueType},
 };
 
-use swc_common::DUMMY_SP;
-use swc_ecma_ast as ast;
-
 use crate::{
     js_value::{js_value_to_value, value_to_js_value},
-    opcode::TsExprAst,
+    opcode::member_call_ast,
     ts_class::TsClasses,
 };
 
@@ -91,27 +88,7 @@ impl ExprOpcode for ClassMethodOp {
 
     fn to_ast(&self, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst> {
         debug_assert_eq!(children.len(), self.arg_types.len());
-
-        let member = ast::MemberExpr {
-            span: DUMMY_SP,
-            obj: TsExprAst::from(children[0].as_ref()).get_paren_expr(),
-            prop: ast::MemberProp::Ident(self.method_name.as_str().into()),
-        };
-        let call_expr = ast::CallExpr {
-            span: DUMMY_SP,
-            callee: ast::Callee::Expr(Box::new(member.into())),
-            args: children
-                .iter()
-                .skip(1)
-                .map(|x| ast::ExprOrSpread {
-                    spread: None,
-                    expr: TsExprAst::from(x.as_ref()).get_paren_expr(),
-                })
-                .collect(),
-            type_args: None,
-        };
-
-        TsExprAst::create(ast::Expr::Call(call_expr))
+        member_call_ast(self.method_name.as_str(), children)
     }
 }
 

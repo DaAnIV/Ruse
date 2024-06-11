@@ -67,6 +67,35 @@ impl Default for TsExprAst {
     }
 }
 
+fn member_call_ast(callee_name: &str, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst> {
+    let callee_expr = ast::MemberExpr {
+        span: DUMMY_SP,
+        obj: TsExprAst::from(children[0].as_ref()).get_paren_expr(),
+        prop: ast::MemberProp::Ident(ast::Ident {
+            span: DUMMY_SP,
+            sym: callee_name.into(),
+            optional: false,
+        }),
+    };
+
+    let args = children.iter().skip(1).map(|x| {
+        let arg_ast = TsExprAst::from(x.as_ref());
+        ast::ExprOrSpread {
+            spread: None,
+            expr: arg_ast.node.to_owned(),
+        }
+    }).collect();
+
+    let expr = ast::CallExpr {
+        span: DUMMY_SP,
+        callee: ast::Callee::Expr(ast::Expr::Member(callee_expr).into()),
+        args: args,
+        type_args: None,
+    };
+
+    TsExprAst::create(ast::Expr::Call(expr))
+}
+
 mod bin;
 mod ident;
 mod lit;
