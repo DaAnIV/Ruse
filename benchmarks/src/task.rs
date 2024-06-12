@@ -141,6 +141,17 @@ fn get_string_from_file_or_value(dir: &Path, value: &str) -> Result<String, Snyt
     }
 }
 
+fn parse_string(value: &str, cache: &Cache) -> Result<CachedString, SnythesisTaskError> {
+    let stripped = match value.strip_prefix("'") {
+        Some(s1) => match s1.strip_suffix("'") {
+            Some(s2) => s2,
+            None => return Err(parse_err!(value, "String suffix is missing")),
+        },
+        None => return Err(parse_err!(value, "String prefix is missing")),
+    };
+    Ok(str_cached!(cache; stripped))
+}
+
 impl TaskType {
     pub fn create_value(
         &self,
@@ -174,16 +185,17 @@ impl TaskType {
                 Ok(b) => Ok(vbool!(b)),
                 Err(e) => Err(parse_err!(value, e)),
             },
-            TaskType::String => Ok(vstr!(cache; value)),
+            TaskType::String => Ok(vcstring!(parse_string(value, cache)?)),
             TaskType::StringArray => {
                 let strings: Vec<String> = match serde_json::from_str(value) {
                     Ok(v) => v,
                     Err(e) => return Err(parse_err!(value, e)),
                 };
-                let values = strings
-                    .into_iter()
-                    .map(|x| PrimitiveValue::String(scached!(cache; x)))
-                    .collect();
+                let mut values = Vec::with_capacity(strings.len());
+                for string in strings {
+                    values.push(parse_string(&string, cache)?)
+                }
+
                 Ok(Value::create_primitive_array_object(
                     &ValueType::String,
                     values,
