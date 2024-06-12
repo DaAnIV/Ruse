@@ -44,18 +44,18 @@ fn simple_synthesize_1(c: &mut Criterion) {
                         &ALL_UPDATE_NUM_OPCODES,
                     );
 
-                    let synthesizer = TsSynthesizer::new(
+                    TsSynthesizer::new(
                         ctx,
                         opcodes.clone(),
                         Box::new(|_| false),
                         Box::new(|_| true),
                         2,
-                    );
-                    (synthesizer, cache)
+                        cache
+                    )
                 },
-                |(mut synthesizer, cache)| async move {
+                |mut synthesizer| async move {
                     for _j in 0..=i {
-                        synthesizer.run_iteration(&cache).await;
+                        synthesizer.run_iteration().await;
                     }
                 },
                 BatchSize::PerIteration,

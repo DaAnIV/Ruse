@@ -1,9 +1,7 @@
-use std::sync::Arc;
-
-use ruse_object_graph::{Cache, Number, PrimitiveValue};
+use ruse_object_graph::{Number, PrimitiveValue};
 use ruse_synthesizer::opcode::{ExprAst, ExprOpcode};
-use ruse_synthesizer::{context::*, vbool, vnum};
 use ruse_synthesizer::value::*;
+use ruse_synthesizer::{context::*, vbool, vnum};
 
 use swc_common::DUMMY_SP;
 use swc_ecma_ast as ast;
@@ -48,7 +46,12 @@ impl UnaryOp {
 }
 
 impl ExprOpcode for UnaryOp {
-    fn eval(&self, args: &[&LocValue], post_ctx: &mut Context, _cache: &Arc<Cache>) -> Option<LocValue> {
+    fn eval(
+        &self,
+        args: &[&LocValue],
+        post_ctx: &mut Context,
+        _: &SynthesizerContext,
+    ) -> Option<LocValue> {
         debug_assert_eq!(args.len(), 1);
         let res = match &args[0].val() {
             Value::Primitive(p) => match p {
@@ -89,7 +92,12 @@ impl UpdateOp {
 }
 
 impl ExprOpcode for UpdateOp {
-    fn eval(&self, args: &[&LocValue], post_ctx: &mut Context, _cache: &Arc<Cache>) -> Option<LocValue> {
+    fn eval(
+        &self,
+        args: &[&LocValue],
+        post_ctx: &mut Context,
+        syn_ctx: &SynthesizerContext,
+    ) -> Option<LocValue> {
         debug_assert_eq!(args.len(), 1);
 
         if args[0].loc().is_temp() {
@@ -103,13 +111,13 @@ impl ExprOpcode for UpdateOp {
         };
 
         let mut loc = args[0].loc().clone();
-        if !post_ctx.update_value(&res.clone(), &mut loc) {
+        if !post_ctx.update_value(&res.clone(), &mut loc, syn_ctx) {
             return None
         }
 
         Some(match self.prefix {
             true => post_ctx.temp_value(res),
-            false => post_ctx.temp_value(args[0].val().clone())
+            false => post_ctx.temp_value(args[0].val().clone()),
         })
     }
 
@@ -124,7 +132,7 @@ impl ExprOpcode for UpdateOp {
             span: DUMMY_SP,
             op: self.op,
             arg: TsExprAst::from(children[0].as_ref()).get_paren_expr(),
-            prefix: self.prefix
+            prefix: self.prefix,
         };
 
         TsExprAst::create(ast::Expr::Update(expr))

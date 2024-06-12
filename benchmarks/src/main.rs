@@ -70,7 +70,6 @@ impl std::error::Error for TimeoutError {}
 async fn run_synthesizer(
     synthesizer: &mut TsSynthesizer,
     result: &mut BenchmarkResult,
-    cache: Arc<Cache>,
     max_iterations: u32,
     cancel_token: CancellationToken,
 ) {
@@ -80,7 +79,7 @@ async fn run_synthesizer(
         let iteration_start = Instant::now();
         let res = tokio::select! {
             _ = cancel_token.cancelled() => Err(TimeoutError {}),
-            v = synthesizer.run_iteration(&cache) => Ok(v)
+            v = synthesizer.run_iteration() => Ok(v)
         };
         let iteration_took = iteration_start.elapsed();
         if let Err(e) = res {
@@ -131,7 +130,6 @@ async fn run_task(
         run_synthesizer(
             &mut synthesizer,
             &mut result,
-            cache,
             bench_config.max_iterations,
             cancel_token.child_token(),
         ),

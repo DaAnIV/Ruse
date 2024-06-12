@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod ts_simple_opcodes_tests {
-    use std::collections::HashMap;
     use std::sync::Arc;
 
+    use context::SynthesizerContext;
     use ruse_synthesizer::opcode::ExprOpcode;
     use ruse_synthesizer::value::{Location, ValueType, VarLoc};
     use swc_ecma_ast as ast;
@@ -15,7 +15,9 @@ mod ts_simple_opcodes_tests {
     #[test]
     fn add_numbers() {
         let cache = Arc::new(Cache::new());
-        let ctx = context::Context::with_values(Default::default());
+        let ctx_arr = context_array!([]);
+        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr, cache.clone());
+        let ctx = &syn_ctx.start_context[0].clone();
         let mut out_ctx = ctx.clone();
         let evaluator = BinOp {
             op: ast::BinaryOp::Add,
@@ -26,14 +28,16 @@ mod ts_simple_opcodes_tests {
             &ctx.temp_value(vnum!(Number::from(3u64))),
             &ctx.temp_value(vnum!(Number::from(4u64))),
         ];
-        let out = evaluator.eval(&args, &mut out_ctx, &cache).unwrap();
+        let out = evaluator.eval(&args, &mut out_ctx, &syn_ctx).unwrap();
         assert_eq!(out.val(), &vnum!(Number::from(7u64)));
     }
 
     #[test]
     fn add_strings() {
         let cache = Arc::new(Cache::new());
-        let ctx = context::Context::with_values(Default::default());
+        let ctx_arr = context_array!([]);
+        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr, cache.clone());
+        let ctx = &syn_ctx.start_context[0];
         let mut out_ctx = ctx.clone();
         let evaluator = BinOp {
             op: ast::BinaryOp::Add,
@@ -45,32 +49,30 @@ mod ts_simple_opcodes_tests {
             &ctx.temp_value(vstr!(cache; "b")),
         ];
 
-        let out = evaluator.eval(&args, &mut out_ctx, &cache).unwrap();
+        let out = evaluator.eval(&args, &mut out_ctx, &syn_ctx).unwrap();
         assert_eq!(out.val(), &vstr!(cache; "ab"));
     }
 
     #[test]
     fn ident() {
         let cache = Arc::new(Cache::new());
-        let ctx = context::Context::with_values(HashMap::from([(
-            str_cached!(cache; "x"),
-            vnum!(Number::from(7u64)),
-        )]));
+        let ctx_arr = context_array![[(str_cached!(cache; "x"), vnum!(Number::from(7u64)))]];
+        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr, cache.clone());
+        let ctx = &syn_ctx.start_context[0];
         let mut out_ctx = ctx.clone();
         let evaluator = IdentOp {
             name: str_cached!(cache; "x"),
         };
-        let out = evaluator.eval(&[], &mut out_ctx, &cache).unwrap();
+        let out = evaluator.eval(&[], &mut out_ctx, &syn_ctx).unwrap();
         assert_eq!(out.val(), &vnum!(Number::from(7u64)));
     }
 
     #[test]
     fn prefix_plus_plus() {
         let cache = Arc::new(Cache::new());
-        let ctx = context::Context::with_values(HashMap::from([(
-            str_cached!(cache; "x"),
-            vnum!(Number::from(7u64)),
-        )]));
+        let ctx_arr = context_array![[(str_cached!(cache; "x"), vnum!(Number::from(7u64)))]];
+        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr, cache.clone());
+        let ctx = &syn_ctx.start_context[0];
         let id = IdentOp {
             name: str_cached!(cache; "x"),
         };
@@ -79,10 +81,10 @@ mod ts_simple_opcodes_tests {
             prefix: true,
         };
         let mut id_out_ctx = ctx.clone();
-        let x_val = id.eval(&[], &mut id_out_ctx, &cache).unwrap();
+        let x_val = id.eval(&[], &mut id_out_ctx, &syn_ctx).unwrap();
 
         let mut update_out_ctx = id_out_ctx.clone();
-        let out = op.eval(&[&x_val], &mut update_out_ctx, &cache).unwrap();
+        let out = op.eval(&[&x_val], &mut update_out_ctx, &syn_ctx).unwrap();
         assert_eq!(
             ctx.get_var_loc_value(&id.name).val(),
             &vnum!(Number::from(7u64))
@@ -105,10 +107,9 @@ mod ts_simple_opcodes_tests {
     #[test]
     fn postfix_plus_plus() {
         let cache = Arc::new(Cache::new());
-        let ctx = context::Context::with_values(HashMap::from([(
-            str_cached!(cache; "x"),
-            vnum!(Number::from(7u64)),
-        )]));
+        let ctx_arr = context_array![[(str_cached!(cache; "x"), vnum!(Number::from(7u64)))]];
+        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr, cache.clone());
+        let ctx = &syn_ctx.start_context[0];
         let id = IdentOp {
             name: str_cached!(cache; "x"),
         };
@@ -117,10 +118,10 @@ mod ts_simple_opcodes_tests {
             prefix: false,
         };
         let mut id_out_ctx = ctx.clone();
-        let x_val = id.eval(&[], &mut id_out_ctx, &cache).unwrap();
+        let x_val = id.eval(&[], &mut id_out_ctx, &syn_ctx).unwrap();
 
         let mut update_out_ctx = id_out_ctx.clone();
-        let out = op.eval(&[&x_val], &mut update_out_ctx, &cache).unwrap();
+        let out = op.eval(&[&x_val], &mut update_out_ctx, &syn_ctx).unwrap();
         assert_eq!(
             ctx.get_var_loc_value(&id.name).val(),
             &vnum!(Number::from(7u64))
@@ -147,7 +148,7 @@ mod ts_class_tests {
 
     use boa_engine::{js_string, property::Attribute};
     use ruse_object_graph::{str_cached, Cache};
-    use ruse_synthesizer::{value::ValueType, vstr, context::Context};
+    use ruse_synthesizer::{context::Context, value::ValueType, vstr};
 
     use crate::ts_class::TsClasses;
 

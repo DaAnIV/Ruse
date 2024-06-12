@@ -1,8 +1,12 @@
 use dashmap::DashSet;
-use ruse_object_graph::Cache;
+use ruse_object_graph::{Cache, CachedString};
 
 use crate::{
-    bank::*, context::ContextArray, opcode::ExprOpcode, prog::SubProgram, work_gatherer::WorkGather,
+    bank::*,
+    context::{ContextArray, SynthesizerContext},
+    opcode::ExprOpcode,
+    prog::SubProgram,
+    work_gatherer::WorkGather,
 };
 use std::{
     fmt::Display,
@@ -143,7 +147,7 @@ pub struct Synthesizer {
     bank: ProgBank,
     init_opcodes: OpcodesList,
     composite_opcodes: OpcodesList,
-    start_context: ContextArray,
+    context: SynthesizerContext,
     found_contexts: DashSet<ContextArray>,
     max_context_depth: usize,
     cancel_token: CancellationToken,
@@ -161,6 +165,7 @@ impl Synthesizer {
         predicate: SynthesizerPredicate,
         valid: SynthesizerPredicate,
         max_context_depth: usize,
+        cache: Arc<Cache>,
     ) -> Self {
         let (init_opcodes, composite_opcodes) =
             opcodes.into_iter().partition(|x| x.arg_types().len() == 0);
@@ -169,7 +174,7 @@ impl Synthesizer {
             bank: Default::default(),
             init_opcodes: init_opcodes,
             composite_opcodes: composite_opcodes,
-            start_context: start_context.clone(),
+            context: SynthesizerContext::from_context_array(start_context.clone(), cache),
             found_contexts: DashSet::new(),
             max_context_depth: max_context_depth,
             cancel_token: CancellationToken::new(),
@@ -187,9 +192,9 @@ impl Synthesizer {
         self.cancel_token.clone()
     }
 
-    fn init_context(&self, iteration_map: &TypeMap, ctx: &ContextArray, cache: &Arc<Cache>) {
+    fn init_context(&self, iteration_map: &TypeMap, ctx: &ContextArray) {
         for op in &self.init_opcodes {
-            let p = match self.get_program_from_init_opcode(op.clone(), ctx, cache) {
+            let p = match self.get_program_from_init_opcode(op.clone(), ctx) {
                 Some(p) => p,
                 None => continue,
             };
@@ -201,16 +206,12 @@ impl Synthesizer {
         self.statistics.inc_value(StatisticsTypes::ContextSize);
     }
 
-    fn create_work_gatherer(
-        this: Arc<Self>,
-        current_iteration_map: Arc<TypeMap>,
-        cache: Arc<Cache>,
-    ) -> WorkGather {
+    fn create_work_gatherer(this: Arc<Self>, current_iteration_map: Arc<TypeMap>) -> WorkGather {
         let child_token = this.cancel_token.child_token();
         WorkGather::new(
             Arc::new(
                 move |op: Arc<dyn ExprOpcode>, children: Vec<Arc<SubProgram>>| {
-                    let p = match this.get_program_from_composite_opcode(op, children, &cache) {
+                    let p = match this.get_program_from_composite_opcode(op, children) {
                         Some(p) => p,
                         None => return None,
                     };
@@ -221,9 +222,9 @@ impl Synthesizer {
 
                     if this.found_contexts.insert(p.post_ctx().clone()) {
                         // println!("{} initializes a new context {:?}", p.get_code(), p.post_ctx());
-                        this.init_context(current_iteration_map.as_ref(), p.post_ctx(), &cache);
+                        this.init_context(current_iteration_map.as_ref(), p.post_ctx());
                     }
-                    if &this.start_context == p.pre_ctx() && (this.predicate)(&p) {
+                    if &this.context.start_context == p.pre_ctx() && (this.predicate)(&p) {
                         return Some(p);
                     }
 
@@ -235,13 +236,10 @@ impl Synthesizer {
         )
     }
 
-    pub async fn run_iteration(
-        this: &mut Arc<Self>,
-        cache: &Arc<Cache>,
-    ) -> Option<Arc<SubProgram>> {
+    pub async fn run_iteration(this: &mut Arc<Self>) -> Option<Arc<SubProgram>> {
         let current_iteration_map: Arc<TypeMap> = Default::default();
 
-        let found_prog = Self::run_iteration_inner(this, cache, &current_iteration_map).await;
+        let found_prog = Self::run_iteration_inner(this, &current_iteration_map).await;
 
         Self::insert_iteration(this, current_iteration_map);
 
@@ -250,32 +248,25 @@ impl Synthesizer {
 
     pub async fn run_iteration_inner(
         this: &mut Arc<Self>,
-        cache: &Arc<Cache>,
         current_iteration_map: &Arc<TypeMap>,
     ) -> Option<Arc<SubProgram>> {
         let iteration = this.bank.iteration_count();
         let this_clone = this.clone();
-        let cache_clone = cache.clone();
         let current_iteration_map_clone: Arc<TypeMap> = current_iteration_map.clone();
         tokio::spawn(async move {
             if iteration == 0 {
-                this_clone.run_init_iteration(current_iteration_map_clone, cache_clone)
+                this_clone.run_init_iteration(current_iteration_map_clone)
             } else {
-                Self::run_composite_iteration(this_clone, current_iteration_map_clone, cache_clone)
-                    .await
+                Self::run_composite_iteration(this_clone, current_iteration_map_clone).await
             }
         })
         .await
         .unwrap()
     }
 
-    fn run_init_iteration(
-        &self,
-        current_iteration_map: Arc<TypeMap>,
-        cache: Arc<Cache>,
-    ) -> Option<Arc<SubProgram>> {
+    fn run_init_iteration(&self, current_iteration_map: Arc<TypeMap>) -> Option<Arc<SubProgram>> {
         for op in &self.init_opcodes {
-            let p = match self.get_program_from_init_opcode(op.clone(), &self.start_context, &cache)
+            let p = match self.get_program_from_init_opcode(op.clone(), &self.context.start_context)
             {
                 Some(p) => p,
                 None => continue,
@@ -285,7 +276,7 @@ impl Synthesizer {
             }
             if self.found_contexts.insert(p.post_ctx().clone()) {
                 // println!("{} initializes a new context", p.get_code());
-                self.init_context(&current_iteration_map, p.post_ctx(), &cache);
+                self.init_context(&current_iteration_map, p.post_ctx());
             }
             if (self.predicate)(&p) {
                 return Some(p);
@@ -298,13 +289,9 @@ impl Synthesizer {
     async fn run_composite_iteration(
         this: Arc<Self>,
         current_iteration_map: Arc<TypeMap>,
-        cache: Arc<Cache>,
     ) -> Option<Arc<SubProgram>> {
-        let mut work_gatherer = Synthesizer::create_work_gatherer(
-            this.clone(),
-            current_iteration_map.clone(),
-            cache.clone(),
-        );
+        let mut work_gatherer =
+            Synthesizer::create_work_gatherer(this.clone(), current_iteration_map.clone());
         for op in &this.composite_opcodes {
             tokio::select! {
                 _ = this.cancel_token.cancelled() => (),
@@ -322,21 +309,20 @@ impl Synthesizer {
             .insert(current_iteration_map.into());
     }
 
-    fn evaluate_program(&self, p: &mut Arc<SubProgram>, cache: &Arc<Cache>) -> bool {
+    fn evaluate_program(&self, p: &mut Arc<SubProgram>) -> bool {
         self.statistics.inc_value(StatisticsTypes::Evaluated);
-        unsafe { Arc::get_mut(p).unwrap_unchecked() }.evaluate(cache)
+        unsafe { Arc::get_mut(p).unwrap_unchecked() }.evaluate(&self.context)
     }
 
     fn get_program_from_composite_opcode(
         &self,
         op: Arc<dyn ExprOpcode>,
         args: Vec<Arc<SubProgram>>,
-        cache: &Arc<Cache>,
     ) -> Option<Arc<SubProgram>> {
         debug_assert!(op.arg_types().len() > 0);
 
         let mut p = SubProgram::with_opcode_and_children(op, args);
-        match self.evaluate_program(&mut p, cache) {
+        match self.evaluate_program(&mut p) {
             true => Some(p),
             false => None,
         }
@@ -346,12 +332,11 @@ impl Synthesizer {
         &self,
         op: Arc<dyn ExprOpcode>,
         ctx: &ContextArray,
-        cache: &Arc<Cache>,
     ) -> Option<Arc<SubProgram>> {
         debug_assert!(op.arg_types().len() == 0);
 
         let mut p = SubProgram::with_opcode_and_context(op.clone(), ctx);
-        match self.evaluate_program(&mut p, cache) {
+        match self.evaluate_program(&mut p) {
             true => Some(p),
             false => None,
         }
@@ -391,5 +376,9 @@ impl Synthesizer {
     #[inline]
     pub fn statistics(&self) -> CurrentStatistics {
         self.statistics.current()
+    }
+
+    pub fn set_immutable(&mut self, var: &CachedString) {
+        self.context.set_immutable(var);
     }
 }

@@ -7,12 +7,11 @@ use std::sync::Arc;
 use ruse_object_graph::Cache;
 
 use crate::context::ContextArray;
-use crate::bank::ValueArray;
+use crate::context::SynthesizerContext;
 use crate::opcode::*;
 use crate::value::*;
 
-pub struct SubProgram
-{
+pub struct SubProgram {
     pub opcode: Arc<dyn ExprOpcode>,
     pub children: Vec<Arc<SubProgram>>,
 
@@ -25,10 +24,7 @@ pub struct SubProgram
     out_value: Option<ValueArray>,
 }
 
-fn verify_children(
-    opcode: &Arc<dyn ExprOpcode>,
-    children: &[Arc<SubProgram>],
-) -> bool {
+fn verify_children(opcode: &Arc<dyn ExprOpcode>, children: &[Arc<SubProgram>]) -> bool {
     let pre_context = &children[0].pre_ctx()[0];
 
     // Verify all of the examples start from the same pre context keys
@@ -119,7 +115,7 @@ impl SubProgram
         })
     }
 
-    pub fn evaluate(&mut self, cache: &Arc<Cache>) -> bool {
+    pub fn evaluate(&mut self, context: &SynthesizerContext) -> bool {
         let mut out_type: Option<ValueType> = None;
         let examples_count = self.pre_ctx().len();
         let mut post_ctx = Vec::with_capacity(examples_count);
@@ -135,7 +131,7 @@ impl SubProgram
             };
 
             // Evaluate and verify the output type is consistent
-            match self.opcode.eval(&args, &mut out_ctx, cache) {
+            match self.opcode.eval(&args, &mut out_ctx, context) {
                 Some(out_val) => {
                     debug_assert!(out_type.is_none() || out_type == Some(out_val.val.val_type()));
                     let _ = out_type.get_or_insert(out_val.val.val_type());
@@ -194,8 +190,7 @@ impl SubProgram
     }
 }
 
-impl Hash for SubProgram
-{
+impl Hash for SubProgram {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.pre_ctx().hash(state);
         self.out_type().hash(state);
@@ -206,8 +201,7 @@ impl Hash for SubProgram
 
 impl Eq for SubProgram {}
 
-impl PartialEq for SubProgram
-{
+impl PartialEq for SubProgram {
     fn eq(&self, other: &Self) -> bool {
         self.out_type == other.out_type
             && self.pre_ctx == other.pre_ctx
@@ -216,8 +210,7 @@ impl PartialEq for SubProgram
     }
 }
 
-impl Debug for SubProgram
-{
+impl Debug for SubProgram {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("SubProgram")
             .field("code", &self.get_code())
@@ -229,10 +222,15 @@ impl Debug for SubProgram
     }
 }
 
-impl Display for SubProgram
-{
+impl Display for SubProgram {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "({}) {{ {} }} ({}; {})", self.pre_ctx()[0], self.get_code(), self.out_value()[0].val(), self.post_ctx()[0])
+        write!(
+            f,
+            "({}) {{ {} }} ({}; {})",
+            self.pre_ctx()[0],
+            self.get_code(),
+            self.out_value()[0].val(),
+            self.post_ctx()[0]
+        )
     }
 }
-

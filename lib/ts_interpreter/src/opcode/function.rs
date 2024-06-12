@@ -1,8 +1,6 @@
-use std::sync::Arc;
-
-use ruse_object_graph::{Cache, CachedString};
+use ruse_object_graph::CachedString;
 use ruse_synthesizer::{
-    context::Context,
+    context::{Context, SynthesizerContext},
     opcode::{ExprAst, ExprOpcode},
     value::{LocValue, ValueType},
 };
@@ -61,12 +59,12 @@ impl ExprOpcode for ClassMethodOp {
         &self,
         args: &[&LocValue],
         post_ctx: &mut Context,
-        cache: &Arc<Cache>,
+        syn_ctx: &SynthesizerContext,
     ) -> Option<LocValue> {
-        let mut boa_ctx = self.classes.get_boa_ctx(post_ctx, cache);
+        let mut boa_ctx = self.classes.get_boa_ctx(post_ctx, &syn_ctx.cache);
         for (i, arg) in args.iter().enumerate() {
             let key = boa_engine::js_string!(format!("arg{}", i));
-            let value = value_to_js_value(&self.classes, arg.val(), &mut boa_ctx, cache);
+            let value = value_to_js_value(&self.classes, arg.val(), &mut boa_ctx, &syn_ctx.cache);
             if boa_ctx
                 .register_global_property(key, value, boa_engine::property::Attribute::all())
                 .is_err()
@@ -80,7 +78,7 @@ impl ExprOpcode for ClassMethodOp {
                 &self.classes,
                 &res,
                 &mut boa_ctx,
-                cache,
+                &syn_ctx.cache,
             ))),
             Err(_) => None,
         }

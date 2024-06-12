@@ -1,4 +1,4 @@
-use ruse_object_graph::Cache;
+use ruse_object_graph::{Cache, CachedString};
 use ruse_synthesizer::{
     context::ContextArray,
     prog::SubProgram,
@@ -18,7 +18,8 @@ impl TsSynthesizer {
         opcodes: OpcodesList,
         predicate: SynthesizerPredicate,
         valid: SynthesizerPredicate,
-        max_context_depth: usize
+        max_context_depth: usize,
+        cache: Arc<Cache>
     ) -> Self {
         Self {
             inner: Arc::new(Synthesizer::new(
@@ -26,7 +27,8 @@ impl TsSynthesizer {
                 opcodes,
                 predicate,
                 valid,
-                max_context_depth
+                max_context_depth,
+                cache
             )),
         }
     }
@@ -34,10 +36,9 @@ impl TsSynthesizer {
     #[inline]
     pub async fn run_iteration(
         &mut self,
-        cache: &Arc<Cache>,
     ) -> Option<Arc<SubProgram>>
     {
-        Synthesizer::run_iteration(&mut self.inner, cache).await
+        Synthesizer::run_iteration(&mut self.inner).await
     }
 
     #[inline]
@@ -47,5 +48,9 @@ impl TsSynthesizer {
 
     pub fn get_cancel_token(&self) -> CancellationToken {
         self.inner.get_cancel_token()
+    }
+    
+    pub fn set_immutable(&mut self, var: &CachedString) {
+        Arc::get_mut(&mut self.inner).unwrap().set_immutable(var);
     }
 }

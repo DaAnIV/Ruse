@@ -1,17 +1,56 @@
-use crate::value::{LocValue, Location, Value, VarLoc};
-use ruse_object_graph::{CachedString, NodeIndex, ObjectGraph};
+use crate::value::{LocValue, Location, Value, ValueType, VarLoc};
+use ruse_object_graph::{str_cached, Cache, CachedString, NodeIndex, ObjectGraph};
 use std::{
-    collections::{HashMap, HashSet},
+    collections::HashMap,
     fmt::Display,
     hash::{DefaultHasher, Hash, Hasher},
     sync::Arc,
 };
 
+#[derive(PartialEq, Eq, Debug, Clone, Hash)]
+pub struct Variable {
+    pub name: CachedString,
+    pub value_type: ValueType,
+    pub immutable: bool,
+}
+
+pub struct SynthesizerContext {
+    all_variables: Arc<HashMap<CachedString, Variable>>,
+    pub cache: Arc<Cache>,
+    pub start_context: ContextArray,
+}
+
+impl SynthesizerContext {
+    pub fn from_context_array(context_array: ContextArray, cache: Arc<Cache>) -> Self {
+        Self {
+            all_variables: context_array.get_variables(),
+            cache: cache,
+            start_context: context_array,
+        }
+    }
+    pub fn get_variable(&self, name: &CachedString) -> Option<&Variable> {
+        self.all_variables.get(name)
+    }
+
+    pub fn set_immutable(&mut self, var: &CachedString) {
+        let all_variables = Arc::get_mut(&mut self.all_variables).unwrap();
+        let var = all_variables.get_mut(var).unwrap();
+        var.immutable = true;
+    }
+
+    pub fn cached_string(&self, string: &str) -> CachedString {
+        str_cached!(self.cache; string)
+    }
+
+    pub fn variables_count(&self) -> usize {
+        self.all_variables.len()
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct Context {
     hash: u64,
     values: Arc<HashMap<CachedString, Value>>,
-    immutable: Arc<HashSet<CachedString>>,
     number_of_changes: usize,
 }
 
@@ -20,17 +59,12 @@ impl Context {
         Self {
             hash: Self::get_hash_for_values(&values),
             values: values.into(),
-            immutable: Default::default(),
             number_of_changes: 0,
         }
     }
 
     pub fn number_of_changes(&self) -> usize {
         self.number_of_changes
-    }
-
-    pub fn set_immutable(&mut self, var: CachedString) {
-        Arc::get_mut(&mut self.immutable).unwrap().insert(var);
     }
 
     fn get_hash_for_values(values: &HashMap<CachedString, Value>) -> u64 {
@@ -68,14 +102,19 @@ impl Context {
         return LocValue { val: val, loc: loc };
     }
 
-    pub fn update_value(&mut self, new_val: &Value, loc: &mut Location) -> bool {
+    pub fn update_value(
+        &mut self,
+        new_val: &Value,
+        loc: &mut Location,
+        syn_ctx: &SynthesizerContext,
+    ) -> bool {
         match loc {
             Location::Var(l) => {
-                debug_assert!(self.values.contains_key(&l.var));
+                let var = syn_ctx.all_variables.get(&l.var).unwrap();
                 assert!(new_val.is_primitive());
-                assert!(self.values[&l.var].val_type() == new_val.val_type());
+                assert!(var.value_type == new_val.val_type());
 
-                if self.immutable.contains(&l.var) {
+                if var.immutable {
                     return false;
                 }
 
@@ -87,7 +126,7 @@ impl Context {
                 true
             }
             Location::ObjectField(l) => {
-                debug_assert!(self.values.contains_key(&l.var));
+                let var = syn_ctx.all_variables.get(&l.var).unwrap();
 
                 let obj_val = self.values[&l.var].obj().unwrap();
                 let (new_graph, node) = self.set_field(&obj_val.graph, l.node, &l.field, new_val);
@@ -96,7 +135,7 @@ impl Context {
                 let mut new_values = (*self.values).clone();
                 for (root_name, root_idx) in new_graph.roots() {
                     if let Some(root_var) = new_values.get_mut(root_name) {
-                        if self.immutable.contains(root_name) {
+                        if var.immutable { // This is not exactly true
                             return false;
                         }
                         let root_obj_val = root_var.mut_obj().unwrap();
@@ -184,3 +223,12 @@ impl Default for Context {
 }
 
 pub type ContextArray = Arc<Vec<Context>>;
+
+#[macro_export]
+macro_rules! context_array {
+    ($($x:expr),+ $(,)?) => {
+        Arc::new(vec![$(
+            $crate::context::Context::with_values($x.into()),
+        )+])
+    };
+}

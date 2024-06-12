@@ -343,20 +343,11 @@ impl SnythesisTaskExamples {
     fn create_context(
         &self,
         variables: &HashMap<String, TaskType>,
-        immutable: &Option<HashSet<String>>,
         classes: &TsClasses,
         cache: &Cache,
     ) -> Result<Context, SnythesisTaskError> {
         let values = string_map_to_value_map(&self.input, variables, classes, cache)?;
-        let mut ctx = Context::with_values(values);
-
-        if let Some(set) = immutable {
-            for var in set {
-                ctx.set_immutable(str_cached!(cache; var));
-            }
-        }
-
-        Ok(ctx)
+        Ok(Context::with_values(values))
     }
 
     fn load_var_value(&mut self, dir: &Path, var: &str) -> Result<(), SnythesisTaskError> {
@@ -467,7 +458,7 @@ pub struct SnythesisTask {
 }
 
 impl SnythesisTask {
-    pub fn get_synthesizer(&self, cache: &Cache) -> Result<TsSynthesizer, SnythesisTaskError> {
+    pub fn get_synthesizer(&self, cache: &Arc<Cache>) -> Result<TsSynthesizer, SnythesisTaskError> {
         let opcodes = self.get_opcodes(cache);
         let context_array = self.get_context_array(cache)?;
         let predicate = self.get_predicate(cache)?;
@@ -479,13 +470,21 @@ impl SnythesisTask {
             }
         }
 
-        Ok(TsSynthesizer::new(
+        let mut synthesizer = TsSynthesizer::new(
             context_array,
             opcodes,
             predicate,
             valid,
             max_context_depth,
-        ))
+            cache.clone()
+        );
+        if let Some(immutable) = &self.inner.immutable {
+            for var in immutable {
+                synthesizer.set_immutable(&str_cached!(cache; var));
+            }
+        }
+
+        Ok(synthesizer)
     }
 
     fn get_predicate(&self, cache: &Cache) -> Result<SynthesizerPredicate, SnythesisTaskError> {
@@ -639,12 +638,12 @@ impl SnythesisTask {
         for example in &self.inner.examples {
             values.push(example.create_context(
                 &self.inner.variables,
-                &self.inner.immutable,
                 &self.classes,
                 cache,
             )?);
         }
-        Ok(ContextArray::new(values))
+        
+        Ok(values.into())
     }
 
     pub fn from_json_file(path: &Path, cache: &Cache) -> Result<SnythesisTask, SnythesisTaskError> {

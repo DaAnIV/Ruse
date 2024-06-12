@@ -8,7 +8,8 @@ mod tests {
 
     use crate::{
         bank::{ProgBank, TypeMap},
-        context::{Context, ContextArray},
+        context::{Context, SynthesizerContext},
+        context_array,
         opcode::{ExprAst, ExprOpcode},
         prog::SubProgram,
         value::{LocValue, Location, Value, ValueType},
@@ -39,7 +40,12 @@ mod tests {
             &self.arg_types
         }
 
-        fn eval(&self, _: &[&LocValue], _: &mut Context, _: &Arc<Cache>) -> Option<LocValue> {
+        fn eval(
+            &self,
+            _: &[&LocValue],
+            _: &mut Context,
+            _: &SynthesizerContext,
+        ) -> Option<LocValue> {
             self.returns.clone()
         }
 
@@ -48,7 +54,11 @@ mod tests {
         }
     }
 
-    async fn run_gatherer(bank: &ProgBank, op: &Arc<dyn ExprOpcode>, chunk_size: usize) -> Vec<Vec<Arc<SubProgram>>> {
+    async fn run_gatherer(
+        bank: &ProgBank,
+        op: &Arc<dyn ExprOpcode>,
+        chunk_size: usize,
+    ) -> Vec<Vec<Arc<SubProgram>>> {
         let cancel_token = Default::default();
         let all_children = Arc::new(DashMap::<usize, Vec<Arc<SubProgram>>>::default());
         let all_children_clone = all_children.clone();
@@ -68,7 +78,7 @@ mod tests {
         all_children.iter().map(|x| x.value().clone()).collect()
     }
 
-    fn get_prog_for_bank(value: Value, ctx: &ContextArray, cache: &Arc<Cache>) -> Arc<SubProgram> {
+    fn get_prog_for_bank(value: Value, syn_ctx: &SynthesizerContext) -> Arc<SubProgram> {
         let init_op: Arc<dyn ExprOpcode> = Arc::new(TestOpcode {
             arg_types: vec![],
             returns: Some(LocValue {
@@ -77,9 +87,8 @@ mod tests {
             }),
         });
 
-        let mut p = SubProgram::with_opcode_and_context(init_op, ctx);
-        Arc::get_mut(&mut p).unwrap().evaluate(cache);
-
+        let mut p = SubProgram::with_opcode_and_context(init_op, &syn_ctx.start_context);
+        Arc::get_mut(&mut p).unwrap().evaluate(syn_ctx);
         p
     }
 
@@ -96,12 +105,12 @@ mod tests {
         }
     }
 
-    fn add_iteration(bank: &mut ProgBank, n: usize, ctx: &ContextArray, cache: &Arc<Cache>) {
+    fn add_iteration(bank: &mut ProgBank, n: usize, syn_ctx: &SynthesizerContext) {
         let iteration = bank.iteration_count();
         let type_map = Arc::new(TypeMap::default());
         for i in 0..n {
             let value = Number::from(iteration << 32 | i);
-            let p = get_prog_for_bank(vnum!(value), &ctx, &cache);
+            let p = get_prog_for_bank(vnum!(value), syn_ctx);
             type_map.insert_program(p.clone());
         }
         bank.insert(type_map);
@@ -110,7 +119,7 @@ mod tests {
     #[tokio::test(flavor = "current_thread")]
     async fn one_iteration_one_program() {
         let cache = Arc::new(Cache::new());
-        let ctx = Arc::new(vec![Default::default()]);
+        let syn_ctx = SynthesizerContext::from_context_array(context_array![[]], cache);
         let mut bank = ProgBank::default();
         let bin_op: Arc<dyn ExprOpcode> = Arc::new(TestOpcode {
             arg_types: vec![ValueType::Number, ValueType::Number],
@@ -120,7 +129,7 @@ mod tests {
             }),
         });
 
-        add_iteration(&mut bank, 1, &ctx, &cache);
+        add_iteration(&mut bank, 1, &syn_ctx);
 
         let all_children = run_gatherer(&bank, &bin_op, 1).await;
         assert_eq!(all_children.len(), 1);
@@ -129,7 +138,7 @@ mod tests {
     #[tokio::test(flavor = "current_thread")]
     async fn two_iterations() {
         let cache = Arc::new(Cache::new());
-        let ctx = Arc::new(vec![Default::default()]);
+        let syn_ctx = SynthesizerContext::from_context_array(context_array![[]], cache);
         let mut bank = ProgBank::default();
         let bin_op: Arc<dyn ExprOpcode> = Arc::new(TestOpcode {
             arg_types: vec![ValueType::Number, ValueType::Number],
@@ -139,8 +148,8 @@ mod tests {
             }),
         });
 
-        add_iteration(&mut bank, 2, &ctx, &cache);
-        add_iteration(&mut bank, 3, &ctx, &cache);
+        add_iteration(&mut bank, 2, &syn_ctx);
+        add_iteration(&mut bank, 3, &syn_ctx);
 
         let all_children = run_gatherer(&bank, &bin_op, 1).await;
         assert_eq!(all_children.len(), 5usize.pow(2) - 2usize.pow(2));
@@ -157,7 +166,7 @@ mod tests {
     #[tokio::test(flavor = "current_thread")]
     async fn three_iterations_binary() {
         let cache = Arc::new(Cache::new());
-        let ctx = Arc::new(vec![Default::default()]);
+        let syn_ctx = SynthesizerContext::from_context_array(context_array![[]], cache);
         let mut bank = ProgBank::default();
         let bin_op: Arc<dyn ExprOpcode> = Arc::new(TestOpcode {
             arg_types: vec![ValueType::Number, ValueType::Number],
@@ -167,9 +176,9 @@ mod tests {
             }),
         });
 
-        add_iteration(&mut bank, 2, &ctx, &cache);
-        add_iteration(&mut bank, 3, &ctx, &cache);
-        add_iteration(&mut bank, 4, &ctx, &cache);
+        add_iteration(&mut bank, 2, &syn_ctx);
+        add_iteration(&mut bank, 3, &syn_ctx);
+        add_iteration(&mut bank, 4, &syn_ctx);
 
         let all_children = run_gatherer(&bank, &bin_op, 1).await;
         assert_eq!(all_children.len(), 9usize.pow(2) - 5usize.pow(2));
@@ -186,7 +195,7 @@ mod tests {
     #[tokio::test(flavor = "current_thread")]
     async fn three_iterations_trinary() {
         let cache = Arc::new(Cache::new());
-        let ctx = Arc::new(vec![Default::default()]);
+        let syn_ctx = SynthesizerContext::from_context_array(context_array![[]], cache);
         let mut bank = ProgBank::default();
         let tri_op: Arc<dyn ExprOpcode> = Arc::new(TestOpcode {
             arg_types: vec![ValueType::Number, ValueType::Number, ValueType::Number],
@@ -196,9 +205,9 @@ mod tests {
             }),
         });
 
-        add_iteration(&mut bank, 2, &ctx, &cache);
-        add_iteration(&mut bank, 3, &ctx, &cache);
-        add_iteration(&mut bank, 4, &ctx, &cache);
+        add_iteration(&mut bank, 2, &syn_ctx);
+        add_iteration(&mut bank, 3, &syn_ctx);
+        add_iteration(&mut bank, 4, &syn_ctx);
 
         let all_children = run_gatherer(&bank, &tri_op, 1).await;
         assert_eq!(all_children.len(), 9usize.pow(3) - 5usize.pow(3));
@@ -215,7 +224,7 @@ mod tests {
     #[tokio::test(flavor = "current_thread")]
     async fn three_iterations_binary_big_chunk() {
         let cache = Arc::new(Cache::new());
-        let ctx = Arc::new(vec![Default::default()]);
+        let syn_ctx = SynthesizerContext::from_context_array(context_array![[]], cache);
         let mut bank = ProgBank::default();
         let bin_op: Arc<dyn ExprOpcode> = Arc::new(TestOpcode {
             arg_types: vec![ValueType::Number, ValueType::Number],
@@ -225,9 +234,9 @@ mod tests {
             }),
         });
 
-        add_iteration(&mut bank, 2, &ctx, &cache);
-        add_iteration(&mut bank, 3, &ctx, &cache);
-        add_iteration(&mut bank, 4, &ctx, &cache);
+        add_iteration(&mut bank, 2, &syn_ctx);
+        add_iteration(&mut bank, 3, &syn_ctx);
+        add_iteration(&mut bank, 4, &syn_ctx);
 
         let all_children = run_gatherer(&bank, &bin_op, 25).await;
         assert_eq!(all_children.len(), 9usize.pow(2) - 5usize.pow(2));

@@ -1,9 +1,8 @@
-use std::{any::Any, fmt::Debug, sync::Arc};
+use std::{any::Any, fmt::Debug};
 
-use crate::context::Context;
+use crate::context::{Context, SynthesizerContext};
 
 use super::value::{LocValue, ValueType};
-use ruse_object_graph::Cache;
 
 pub trait ExprAst: Any {
     fn to_string(&self) -> String;
@@ -20,7 +19,7 @@ pub trait ExprOpcode: Debug + Sync + Send {
         &self,
         args: &[&LocValue],
         post_ctx: &mut Context,
-        cache: &Arc<Cache>,
+        syn_ctx: &SynthesizerContext,
     ) -> Option<LocValue>;
     fn to_ast(&self, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst>;
 }

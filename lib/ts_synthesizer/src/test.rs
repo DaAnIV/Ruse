@@ -5,9 +5,7 @@ mod tests {
     use object_graph::{str_cached, Number};
     use ruse_object_graph as object_graph;
     use ruse_synthesizer::{
-        context::Context,
-        value::{Location, ValueType},
-        vnum, vstr,
+        context_array, value::{Location, ValueType}, vnum, vstr
     };
     use ruse_ts_interpreter::ts_class::TsClasses;
     use swc_ecma_ast as ast;
@@ -53,10 +51,10 @@ mod tests {
         add_str_opcodes(&mut opcodes, &ALL_BIN_STR_OPCODES);
         opcodes.extend_from_slice(&user_class.member_opcodes);
 
-        let ctx = Arc::new(vec![
-            Context::with_values([(str_cached!(cache; "x"), user1)].into()),
-            Context::with_values([(str_cached!(cache; "x"), user2)].into()),
-        ]);
+        let ctx = context_array![
+            [(str_cached!(cache; "x"), user1)],
+            [(str_cached!(cache; "x"), user2)]
+        ];
 
         let cache_clone = cache.clone();
         let mut synthesizer = TsSynthesizer::new(
@@ -83,10 +81,11 @@ mod tests {
             }),
             Box::new(|_p| true),
             3,
+            cache
         );
 
         for _ in 1..=5 {
-            let res = synthesizer.run_iteration(&cache).await;
+            let res = synthesizer.run_iteration().await;
             if let Some(p) = res {
                 assert_eq!(p.get_code(), "(x.name + \" \") + x.surname");
                 return;
@@ -131,10 +130,10 @@ mod tests {
         );
         opcodes.extend_from_slice(&point_class.member_opcodes);
 
-        let ctx = Arc::new(vec![
-            Context::with_values([(str_cached!(cache; "p"), point1)].into()),
-            Context::with_values([(str_cached!(cache; "p"), point2)].into()),
-        ]);
+        let ctx = context_array![
+            [(str_cached!(cache; "p"), point1)],
+            [(str_cached!(cache; "p"), point2)],
+        ];
 
         let mut synthesizer = TsSynthesizer::new(
             ctx.clone(),
@@ -157,10 +156,11 @@ mod tests {
             }),
             Box::new(|_p| true),
             3,
+            cache
         );
 
         for _ in 1..=5 {
-            let res = synthesizer.run_iteration(&cache).await;
+            let res = synthesizer.run_iteration().await;
             if let Some(p) = res {
                 assert_eq!(p.get_code(), "(++p.x) + p.x");
                 return;

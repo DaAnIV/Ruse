@@ -1,10 +1,8 @@
-use std::sync::Arc;
-
 use ruse_object_graph::*;
-use ruse_synthesizer::{context::*, opcode::ExprAst};
 use ruse_synthesizer::opcode::ExprOpcode;
 use ruse_synthesizer::value::*;
 use ruse_synthesizer::*;
+use ruse_synthesizer::{context::*, opcode::ExprAst};
 use swc_common::{util::take::Take, DUMMY_SP};
 use swc_ecma_ast as ast;
 
@@ -18,13 +16,13 @@ pub enum LitOp {
     Num(Number),
 }
 
-#[derive(Debug)]
-pub struct ArrayLitOp {
-    pub size: u32,
-}
-
 impl ExprOpcode for LitOp {
-    fn eval(&self, args: &[&LocValue], post_ctx: &mut Context, _cache: &Arc<Cache>) -> Option<LocValue> {
+    fn eval(
+        &self,
+        args: &[&LocValue],
+        post_ctx: &mut Context,
+        _: &SynthesizerContext,
+    ) -> Option<LocValue> {
         debug_assert_eq!(args.len(), 0);
         let val = match self {
             LitOp::Null => Value::Primitive(PrimitiveValue::Null),
@@ -65,19 +63,39 @@ impl ExprOpcode for LitOp {
     }
 }
 
+#[derive(Debug)]
+pub struct ArrayLitOp {
+    elem_type: ValueType,
+    arg_types: Vec<ValueType>,
+}
+
+impl ArrayLitOp {
+    pub fn new(elem_type: ValueType, size: usize) -> Self {
+        Self {
+            elem_type: elem_type.clone(),
+            arg_types: vec![elem_type; size],
+        }
+    }
+}
+
 impl ExprOpcode for ArrayLitOp {
-    fn eval(&self, args: &[&LocValue], post_ctx: &mut Context, cache: &Arc<Cache>) -> Option<LocValue> {
-        let kv_map = (0..self.size)
+    fn eval(
+        &self,
+        args: &[&LocValue],
+        post_ctx: &mut Context,
+        syn_ctx: &SynthesizerContext,
+    ) -> Option<LocValue> {
+        let kv_map = (0..self.arg_types.len())
             .zip(args)
-            .map(|(i, val)| (scached!(cache; i.to_string()), val.val().clone()))
+            .map(|(i, val)| (syn_ctx.cached_string(&i.to_string()), val.val().clone()))
             .collect();
 
         let mut arr = Value::generate_object_from_map(
-            str_cached!(cache; "Array"),
-            kv_map
+            ValueType::array_obj_cached_string(&self.elem_type, &syn_ctx.cache),
+            kv_map,
         );
         let obj_val = arr.mut_obj().unwrap();
-        obj_val.set_as_graph_root(cache.temp_string());
+        obj_val.set_as_graph_root(syn_ctx.cache.temp_string());
 
         Some(post_ctx.temp_value(arr))
     }
@@ -100,6 +118,6 @@ impl ExprOpcode for ArrayLitOp {
     }
 
     fn arg_types(&self) -> &[ValueType] {
-        &[]
+        &self.arg_types
     }
 }

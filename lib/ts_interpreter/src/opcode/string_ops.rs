@@ -1,9 +1,7 @@
-use std::sync::Arc;
-
-use ruse_object_graph::{str_cached, Cache, Number};
+use ruse_object_graph::Number;
 use ruse_synthesizer::opcode::{ExprAst, ExprOpcode};
-use ruse_synthesizer::value::*;
-use ruse_synthesizer::{context::*, vnum, vstr};
+use ruse_synthesizer::{value::*, vcstring};
+use ruse_synthesizer::{context::*, vnum};
 
 use crate::opcode::member_call_ast;
 
@@ -25,7 +23,7 @@ impl ExprOpcode for SplitOp {
         &self,
         args: &[&LocValue],
         post_ctx: &mut Context,
-        cache: &Arc<Cache>,
+        syn_ctx: &SynthesizerContext,
     ) -> Option<LocValue> {
         debug_assert_eq!(args.len(), 2);
 
@@ -35,8 +33,8 @@ impl ExprOpcode for SplitOp {
         let substrings = string.split(pattern.as_str());
         let array = Value::create_primitive_array_object(
             &ValueType::String,
-            substrings.map(|x| str_cached!(cache; x)),
-            cache,
+            substrings.map(|x| syn_ctx.cached_string(x)),
+            &syn_ctx.cache,
         );
 
         Some(post_ctx.temp_value(array))
@@ -70,7 +68,7 @@ impl ExprOpcode for ConcatOp {
         &self,
         args: &[&LocValue],
         post_ctx: &mut Context,
-        cache: &Arc<Cache>,
+        syn_ctx: &SynthesizerContext,
     ) -> Option<LocValue> {
         debug_assert_eq!(args.len(), 2);
 
@@ -81,7 +79,7 @@ impl ExprOpcode for ConcatOp {
         new_string.push_str(&string1);
         new_string.push_str(&string2);
 
-        Some(post_ctx.temp_value(vstr!(cache; &new_string)))
+        Some(post_ctx.temp_value(vcstring!(syn_ctx.cached_string(&new_string))))
     }
 
     fn to_ast(&self, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst> {
@@ -112,7 +110,7 @@ impl ExprOpcode for SliceOp {
         &self,
         args: &[&LocValue],
         post_ctx: &mut Context,
-        cache: &Arc<Cache>,
+        syn_ctx: &SynthesizerContext,
     ) -> Option<LocValue> {
         debug_assert_eq!(args.len(), 2);
 
@@ -124,7 +122,7 @@ impl ExprOpcode for SliceOp {
 
         let substring = &string[index_start..];
 
-        Some(post_ctx.temp_value(vstr!(cache; substring)))
+        Some(post_ctx.temp_value(vcstring!(syn_ctx.cached_string(substring))))
     }
 
     fn to_ast(&self, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst> {
@@ -156,7 +154,7 @@ impl ExprOpcode for SliceWithEndOp {
         &self,
         args: &[&LocValue],
         post_ctx: &mut Context,
-        cache: &Arc<Cache>,
+        syn_ctx: &SynthesizerContext,
     ) -> Option<LocValue> {
         debug_assert_eq!(args.len(), 2);
 
@@ -169,7 +167,7 @@ impl ExprOpcode for SliceWithEndOp {
 
         let substring = &string[index_start..index_end];
 
-        Some(post_ctx.temp_value(vstr!(cache; substring)))
+        Some(post_ctx.temp_value(vcstring!(syn_ctx.cached_string(substring))))
     }
 
     fn to_ast(&self, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst> {
@@ -201,7 +199,7 @@ impl ExprOpcode for LastIndexOfOp {
         &self,
         args: &[&LocValue],
         post_ctx: &mut Context,
-        _cache: &Arc<Cache>,
+        _: &SynthesizerContext,
     ) -> Option<LocValue> {
         debug_assert_eq!(args.len(), 2);
 

@@ -1,6 +1,4 @@
-use std::sync::Arc;
-
-use ruse_object_graph::{scached, Cache, Number, PrimitiveValue};
+use ruse_object_graph::{Cache, Number, PrimitiveValue};
 use ruse_synthesizer::context::*;
 use ruse_synthesizer::opcode::{ExprAst, ExprOpcode};
 use ruse_synthesizer::value::*;
@@ -20,7 +18,10 @@ pub struct IndexOp {
 impl IndexOp {
     pub fn new(elem_type: &ValueType, cache: &Cache) -> Self {
         Self {
-            arg_types: [ValueType::array_value_type(elem_type, cache), ValueType::Number],
+            arg_types: [
+                ValueType::array_value_type(elem_type, cache),
+                ValueType::Number,
+            ],
         }
     }
 }
@@ -30,12 +31,12 @@ impl ExprOpcode for IndexOp {
         &self,
         args: &[&LocValue],
         _post_ctx: &mut Context,
-        cache: &Arc<Cache>,
+        syn_ctx: &SynthesizerContext,
     ) -> Option<LocValue> {
         debug_assert_eq!(args.len(), 2);
 
         let num = args[1].val().number_value().unwrap();
-        let field_name = scached!(cache; (num.0 as usize).to_string());
+        let field_name = syn_ctx.cached_string(&(num.0 as usize).to_string());
 
         args[0].get_obj_field_loc_value(&field_name)
     }
@@ -70,7 +71,10 @@ pub struct PushOp {
 impl PushOp {
     pub fn new(elem_type: &ValueType, cache: &Cache) -> Self {
         Self {
-            arg_types: [ValueType::array_value_type(elem_type, cache), elem_type.to_owned()],
+            arg_types: [
+                ValueType::array_value_type(elem_type, cache),
+                elem_type.to_owned(),
+            ],
         }
     }
 }
@@ -80,13 +84,13 @@ impl ExprOpcode for PushOp {
         &self,
         args: &[&LocValue],
         post_ctx: &mut Context,
-        cache: &Arc<Cache>,
+        syn_ctx: &SynthesizerContext,
     ) -> Option<LocValue> {
         debug_assert_eq!(args.len(), 2);
 
         let arr = args[0].val().obj().unwrap();
         let new_idx = arr.total_field_count();
-        let idx_field_name = scached!(cache; new_idx.to_string());
+        let idx_field_name = syn_ctx.cached_string(&new_idx.to_string());
         let new_arr = match &args[0].loc() {
             Location::Temp => {
                 let (new_graph, node) =
@@ -101,14 +105,14 @@ impl ExprOpcode for PushOp {
                 let var = match &args[0].loc() {
                     Location::Var(l) => &l.var,
                     Location::ObjectField(l) => &l.var,
-                    Location::Temp => unreachable!()
+                    Location::Temp => unreachable!(),
                 };
                 let mut loc = Location::ObjectField(ObjectFieldLoc {
                     var: var.clone(),
                     node: arr.node,
                     field: idx_field_name,
                 });
-                if !post_ctx.update_value(args[1].val(), &mut loc) {
+                if !post_ctx.update_value(args[1].val(), &mut loc, syn_ctx) {
                     return None;
                 }
                 ObjectValue {

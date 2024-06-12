@@ -1,8 +1,7 @@
 use std::collections::HashMap;
-use std::sync::Arc;
 
 use ruse_object_graph::{
-    scached, str_cached, Cache, CachedString, NodeIndex, ObjectData
+    str_cached, Cache, CachedString, NodeIndex, ObjectData
 };
 use ruse_synthesizer::context::*;
 use ruse_synthesizer::opcode::{ExprAst, ExprOpcode};
@@ -14,7 +13,7 @@ use crate::opcode::member_call_ast;
 #[derive(Debug)]
 pub struct GetElementByIdOp {
     arg_types: [ValueType; 2],
-    id_field_name: CachedString
+    id_field_name: CachedString,
 }
 
 impl GetElementByIdOp {
@@ -24,7 +23,7 @@ impl GetElementByIdOp {
                 ValueType::Object(dom::DomLoader::document_obj_type(cache)),
                 ValueType::String,
             ],
-            id_field_name: str_cached!(cache; "id")
+            id_field_name: str_cached!(cache; "id"),
         }
     }
 
@@ -42,7 +41,7 @@ impl ExprOpcode for GetElementByIdOp {
         &self,
         args: &[&LocValue],
         post_ctx: &mut Context,
-        cache: &Arc<Cache>,
+        syn_ctx: &SynthesizerContext,
     ) -> Option<LocValue> {
         debug_assert_eq!(args.len(), 2);
 
@@ -64,7 +63,7 @@ impl ExprOpcode for GetElementByIdOp {
                 };
                 let (parent, field) = &parent[&node];
                 let loc = ObjectFieldLoc {
-                    var: dom::DomLoader::document_root_name(cache),
+                    var: dom::DomLoader::document_root_name(&syn_ctx.cache),
                     node: *parent,
                     field: field.clone(),
                 };
@@ -74,7 +73,7 @@ impl ExprOpcode for GetElementByIdOp {
             }
 
             for i in 0..node_weight.neighbors_count() {
-                let child_field_name = scached!(cache; i.to_string());
+                let child_field_name = syn_ctx.cached_string(&i.to_string());
                 let child_node = node_weight.get_neighbor(&child_field_name).unwrap();
                 parent.insert(child_node, (node, child_field_name));
                 stack.push(child_node);

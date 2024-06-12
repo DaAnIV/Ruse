@@ -1,9 +1,7 @@
-use std::sync::Arc;
-
-use ruse_object_graph::{Cache, Number, PrimitiveValue};
+use ruse_object_graph::{Number, PrimitiveValue};
 use ruse_synthesizer::opcode::{ExprAst, ExprOpcode};
-use ruse_synthesizer::value::*;
-use ruse_synthesizer::{context::*, vbool, vnum, vstring};
+use ruse_synthesizer::{value::*, vcstring};
+use ruse_synthesizer::{context::*, vbool, vnum};
 
 use swc_common::DUMMY_SP;
 use swc_ecma_ast as ast;
@@ -73,7 +71,7 @@ impl BinOp {
         }
     }
 
-    fn eval_bin_str(&self, s1: &String, s2: &String, cache: &Cache) -> Value {
+    fn eval_bin_str(&self, s1: &String, s2: &String, syn_ctx: &SynthesizerContext) -> Value {
         match self.op {
             ast::BinaryOp::EqEq => vbool!(s1 == s2),
             ast::BinaryOp::NotEq => vbool!(s1 != s2),
@@ -87,7 +85,7 @@ impl BinOp {
                 let mut value = String::with_capacity(s1.len() + s2.len());
                 value.push_str(s1);
                 value.push_str(s2);
-                vstring!(cache; value)
+                vcstring!(syn_ctx.cached_string(&value))
             }
             _ => unreachable!(),
         }
@@ -95,7 +93,12 @@ impl BinOp {
 }
 
 impl ExprOpcode for BinOp {
-    fn eval(&self, args: &[&LocValue], post_ctx: &mut Context, cache: &Arc<Cache>) -> Option<LocValue> {
+    fn eval(
+        &self,
+        args: &[&LocValue],
+        post_ctx: &mut Context,
+        syn_ctx: &SynthesizerContext,
+    ) -> Option<LocValue> {
         debug_assert_eq!(args.len(), 2);
         debug_assert_eq!(args[0].val().val_type(), self.arg_types[0]);
         debug_assert_eq!(args[1].val().val_type(), self.arg_types[1]);
@@ -109,7 +112,7 @@ impl ExprOpcode for BinOp {
                     self.eval_bin_bool(*b1, *b2)
                 }
                 (PrimitiveValue::String(s1), PrimitiveValue::String(s2)) => {
-                    self.eval_bin_str(s1, s2, cache)
+                    self.eval_bin_str(s1, s2, syn_ctx)
                 }
                 (_, _) => unreachable!(),
             },

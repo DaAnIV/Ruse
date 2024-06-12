@@ -1,6 +1,4 @@
-use std::sync::Arc;
-
-use ruse_object_graph::{Cache, CachedString};
+use ruse_object_graph::CachedString;
 use ruse_synthesizer::context::*;
 use ruse_synthesizer::opcode::{ExprAst, ExprOpcode};
 use ruse_synthesizer::value::*;
@@ -26,7 +24,12 @@ impl MemberOp {
 }
 
 impl ExprOpcode for MemberOp {
-    fn eval(&self, args: &[&LocValue], _post_ctx: &mut Context, _cache: &Arc<Cache>) -> Option<LocValue> {
+    fn eval(
+        &self,
+        args: &[&LocValue],
+        _post_ctx: &mut Context,
+        _: &SynthesizerContext,
+    ) -> Option<LocValue> {
         debug_assert_eq!(args.len(), 1);
 
         args[0].get_obj_field_loc_value(&self.field_name)
