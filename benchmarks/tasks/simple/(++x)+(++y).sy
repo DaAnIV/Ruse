@@ -4,6 +4,7 @@
     "y": "Int"
   },
   "returnType": "Int",
+  "intLiterals": [],
   "examples": [
     {
       "input": {
