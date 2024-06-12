@@ -10,6 +10,7 @@ moment = Moment()
 def create_app(benchmarks):
     app = Flask(__name__)
     app.config.from_object(Config)
+    app.config['benchmarks_path'] = benchmarks
     with open(benchmarks) as f:
         app.config['benchmarks'] = Benchmarks(f)
 

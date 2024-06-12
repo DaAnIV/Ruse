@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from urllib.parse import urlsplit
-from flask import render_template, current_app, Blueprint
+from flask import render_template, current_app, Blueprint, redirect, url_for
 from .benchmarks import Benchmarks, BenchmarkTask, BenchmarkIteration
 
 routes = Blueprint('routes', __name__, url_prefix='/')
@@ -9,6 +9,13 @@ routes = Blueprint('routes', __name__, url_prefix='/')
 @routes.route('/index')
 def index():
     return render_template('index.html', title='Home', benchmarks=current_app.config['benchmarks'])
+
+@routes.route('/refresh')
+def refresh():
+    path = current_app.config['benchmarks_path']
+    with open(path) as f:
+        current_app.config['benchmarks'] = Benchmarks(f)
+    return redirect(url_for('routes.index'))
 
 @routes.route('/task/<task_name>')
 def task(task_name):
