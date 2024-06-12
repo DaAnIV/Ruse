@@ -83,7 +83,6 @@ impl std::fmt::Display for VerifyError {
 pub enum SnythesisTaskError {
     Verify(VerifyError),
     Parse(ParseError),
-    Todo(TodoError),
 }
 
 impl std::error::Error for SnythesisTaskError {}
@@ -105,20 +104,11 @@ macro_rules! verify_err {
     };
 }
 
-macro_rules! todo_err {
-    ($to_implement:expr) => {
-        $crate::task::SnythesisTaskError::Todo($crate::task::TodoError {
-            to_implement: $to_implement,
-        })
-    };
-}
-
 impl std::fmt::Display for SnythesisTaskError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             SnythesisTaskError::Verify(e) => write!(f, "{}", e),
             SnythesisTaskError::Parse(e) => write!(f, "{}", e),
-            SnythesisTaskError::Todo(e) => write!(f, "{}", e),
         }
     }
 }
