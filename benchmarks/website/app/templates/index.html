@@ -9,19 +9,17 @@
             <th>Found</th>
             <th>Iterations</th>
             <th>Time (ms)</th>
+            <th>Error</th>
         </tr>
     </thead>
     <tbody>
         {% for task in benchmarks.tasks.values() %}
         <tr onclick="window.location='{{ url_for('routes.task', task_name=task.name) }}'">
             <td>{{ task.name }}</td>
-            {% if task.error == None %}
-                <td>{{ task.found != '-' }}</td>
-                <td>{{ task.iterations | length }}</td>
-                <td>{{ "%.4f" % (task.took.total_seconds() * 1000) }}</td>
-            {% else %}
-                <td>error</td>
-            {% endif %}
+            <td>{{ task.found != '-' }}</td>
+            <td>{{ task.iterations | length }}</td>
+            <td>{{ "%.4f" % (task.took.total_seconds() * 1000) }}</td>
+            <td>{{ task.error }}</td>
         </tr>
         {% endfor %}
     </tbody>

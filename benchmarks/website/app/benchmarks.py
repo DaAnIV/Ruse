@@ -16,10 +16,17 @@ class BenchmarkTask:
         self.json = task
         self.name = task['name']
         self.error = task['error']
-        if self.error is None:
-            self.found = task['found']
+        self.found = task['found']
+        if self.found is None: 
+            self.found = "-"
+        if task['iterations'] is None:
+            self.iterations = []
+        else:
             self.iterations = list(map(BenchmarkIteration, task['iterations']))
-            self.statistics = task['total_statistics']
+        self.statistics = task['total_statistics']
+        if task['total_time'] is None:
+            self.took = datetime.timedelta(milliseconds=-1)
+        else:
             self.took = datetime.timedelta(seconds=task['total_time']['secs'], microseconds=task['total_time']['nanos']/1000)
         
     def get_evaluated_bank_size_graph(self):
