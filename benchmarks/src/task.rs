@@ -6,20 +6,19 @@ use std::{
     sync::Arc,
 };
 
-use ruse_object_graph::{scached, str_cached, Cache, CachedString, Number, PrimitiveValue};
+use ruse_object_graph::{scached, str_cached, Cache, CachedString};
 use ruse_synthesizer::{
-    context::Context,
-    context::ContextArray,
+    context::{Context, ContextArray},
     prog::SubProgram,
     synthesizer::{OpcodesList, SynthesizerPredicate},
-    value::Value,
-    value::ValueType,
-    vbool, vnum, vstr,
+    value::{Value, ValueType},
+    vbool, vcstring, vnum,
 };
 use ruse_ts_interpreter::{dom, ts_class::TsClasses};
 use ruse_ts_synthesizer::{
     add_array_opcodes, add_dom_opcodes, add_num_opcodes, add_str_opcodes, construct_opcode_list,
-    TsSynthesizer, ALL_BIN_NUM_OPCODES, ALL_BIN_STR_OPCODES, ALL_UNARY_NUM_OPCODES, ALL_UPDATE_NUM_OPCODES,
+    TsSynthesizer, ALL_BIN_NUM_OPCODES, ALL_BIN_STR_OPCODES, ALL_UNARY_NUM_OPCODES,
+    ALL_UPDATE_NUM_OPCODES,
 };
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
@@ -171,13 +170,9 @@ impl TaskType {
                         return Err(parse_err!(value, e));
                     }
                 };
-                let values = numbers
-                    .into_iter()
-                    .map(|x| PrimitiveValue::Number(Number::from(x)))
-                    .collect();
                 Ok(Value::create_primitive_array_object(
                     &ValueType::Number,
-                    values,
+                    numbers,
                     cache,
                 ))
             }

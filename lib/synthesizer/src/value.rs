@@ -258,19 +258,18 @@ impl Value {
         .into()
     }
 
-    pub fn create_primitive_array_object(
+    pub fn create_primitive_array_object<I>(
         elem_type: &ValueType,
-        values: Vec<PrimitiveValue>,
+        values: I,
         cache: &Cache,
-    ) -> Value {
+    ) -> Value where I: IntoIterator, I::Item: Into<PrimitiveValue> {
         let mut graph = ObjectGraph::new();
 
         let obj_type = ValueType::array_obj_cached_string(elem_type, cache);
-        let fields: Vec<(CachedString, PrimitiveValue)> = values
+        let fields = values
             .into_iter()
             .enumerate()
-            .map(|(i, v)| (scached!(cache; i.to_string()), v))
-            .collect();
+            .map(|(i, v)| (scached!(cache; i.to_string()), v.into()));
         let mut fields_map = FieldsMap::new();
         fields_map.extend(fields);
         let root = graph.add_node(ObjectData::new(obj_type, fields_map.into()));

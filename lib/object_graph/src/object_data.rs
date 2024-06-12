@@ -144,6 +144,12 @@ impl From<CachedString> for PrimitiveValue {
     }
 }
 
+impl From<Number> for PrimitiveValue {
+    fn from(value: Number) -> Self {
+        PrimitiveValue::Number(value)
+    }
+}
+
 impl From<u64> for PrimitiveValue {
     fn from(value: u64) -> Self {
         PrimitiveValue::Number(Number::from(value))
