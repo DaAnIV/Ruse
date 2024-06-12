@@ -608,11 +608,11 @@ impl SnythesisTask {
             .collect();
         let num_literals = match &self.inner.int_literals {
             Some(literals) => literals.clone(),
-            None => vec![],
+            None => vec![0, 1],
         };
         let string_literals = match &self.inner.string_literals {
             Some(literals) => literals.iter().map(|x| str_cached!(cache; x)).collect(),
-            None => vec![],
+            None => vec![str_cached!(cache; " ")],
         };
         let mut opcodes = construct_opcode_list(&var_names, &num_literals, &string_literals, false);
         add_num_opcodes(
