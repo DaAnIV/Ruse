@@ -32,7 +32,6 @@ impl TsExprAst {
             ast::Expr::Assign(_) => todo!(),
             ast::Expr::SuperProp(_) => todo!(),
             ast::Expr::Cond(_) => todo!(),
-            ast::Expr::Call(_) => todo!(),
             ast::Expr::New(_) => todo!(),
             ast::Expr::Seq(_) => todo!(),
             ast::Expr::PrivateName(_) => todo!(),
@@ -104,6 +103,7 @@ mod unary;
 mod function;
 mod array_ops;
 mod dom_ops;
+mod string_ops;
 
 pub use bin::*;
 pub use ident::*;
@@ -113,3 +113,4 @@ pub use unary::*;
 pub use function::*;
 pub use array_ops::*;
 pub use dom_ops::*;
+pub use string_ops::*;
