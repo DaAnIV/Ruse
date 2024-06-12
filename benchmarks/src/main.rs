@@ -18,13 +18,17 @@ mod config;
 mod task;
 
 fn get_writer(config: &config::BenchmarkConfig) -> ResultsWriter {
-    std::fs::create_dir_all(config.output_dir.as_path()).expect("Failed to create output dir");
-    let mut path = config.output_dir.clone();
-    path.push(format!(
-        "benchmarks_{}.json",
-        chrono::Local::now().format("%Y-%m-%d-%H:%M:%S%.f")
-    ));
-    ResultsWriter::from_path(path)
+    if config.output.is_dir() {
+        std::fs::create_dir_all(config.output.as_path()).expect("Failed to create output dir");
+        let mut path = config.output.clone();
+        path.push(format!(
+            "benchmarks_{}.json",
+            chrono::Local::now().format("%Y-%m-%d-%H:%M:%S%.f")
+        ));
+        ResultsWriter::from_path(&path)
+    } else {
+        ResultsWriter::from_path(&config.output)
+    }
 }
 
 /// Run benchmarks on the ruse synthesizer
@@ -148,7 +152,7 @@ async fn main() -> ExitCode {
     let cli = Cli::parse();
     let bench_config = BenchmarkConfig {
         benchmarks: cli.benchmarks,
-        output_dir: cli.output,
+        output: cli.output,
         timeout: Duration::from_secs(cli.timeout),
         max_iterations: cli.max_iterations,
     };

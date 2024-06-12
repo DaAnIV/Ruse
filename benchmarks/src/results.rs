@@ -115,12 +115,12 @@ pub(crate) struct ResultsWriter {
 }
 
 impl ResultsWriter {
-    pub fn from_path(path: PathBuf) -> Self {
-        let writer = File::create_new(path.clone()).expect("Failed to open output file");
+    pub fn from_path(path: &Path) -> Self {
+        let writer = File::create(path).expect("Failed to open output file");
         let mut this = Self {
             state: vec![State::First],
             writer: writer,
-            path: path
+            path: PathBuf::from(path)
         };
 
         this.begin();

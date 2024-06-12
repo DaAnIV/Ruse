@@ -6,7 +6,7 @@ use serde_with::{serde_as, DurationSeconds};
 #[derive(serde::Deserialize)]
 pub struct BenchmarkConfig {
     pub benchmarks: Vec<PathBuf>,
-    pub output_dir: PathBuf,
+    pub output: PathBuf,
     #[serde_as(as = "DurationSeconds<u64>")]
     pub timeout: Duration,
     pub max_iterations: u32,
@@ -34,7 +34,7 @@ impl Default for BenchmarkConfig {
         output_dir.push("benchmarks_output");
         Self {  
             benchmarks: vec![bencmarks_dir],
-            output_dir: output_dir,
+            output: output_dir,
             timeout: Duration::from_secs(300),
             max_iterations: 5
         }
