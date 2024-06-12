@@ -1,4 +1,5 @@
 use std::{
+    path::Path,
     process::ExitCode,
     sync::Arc,
     time::{Duration, Instant},
@@ -94,13 +95,22 @@ async fn run_synthesizer(
 }
 
 async fn run_task(
-    task_name: &str,
-    task: task::SnythesisTask,
+    path: &Path,
     cache: Arc<Cache>,
     bench_config: &BenchmarkConfig,
 ) -> BenchmarkResult {
+    let task_name = path.file_name().unwrap().to_str().unwrap();
     let mut result = BenchmarkResult::new(task_name);
 
+    // println!("{}", f_name);
+    let task = match task::SnythesisTask::from_json_file(path, &cache) {
+        Ok(v) => v,
+        Err(e) => {
+            eprintln!("Failed to parse task for {}. {}", task_name, e);
+            result.error(&e);
+            return result;
+        }
+    };
     let mut synthesizer = match task.get_synthesizer(&cache) {
         Ok(v) => v,
         Err(e) => {
@@ -122,9 +132,12 @@ async fn run_task(
             cancel_token.child_token(),
         ),
     );
-    if let Err(_) = timeout.await {
+    if let Err(e) = timeout.await {
         eprintln!("Reached timeout");
         cancel_token.cancel();
+        result.error(&e);
+        result.add_iteration(Duration::from_secs(0), synthesizer.statistics());
+        result.finish(None, bench_config.timeout, synthesizer.statistics());
     }
 
     return result;
@@ -153,17 +166,12 @@ async fn main() -> ExitCode {
                 })
             {
                 let cache = Arc::new(Cache::new());
-                let f_name = String::from(entry.file_name().to_string_lossy());
-                // println!("{}", f_name);
-                let task = task::SnythesisTask::from_json_file(entry.path(), &cache).unwrap();
-                let result = run_task(&f_name, task, cache.clone(), &bench_config).await;
+                let result = run_task(entry.path(), cache.clone(), &bench_config).await;
                 writer.write_result(&result);
             }
         } else {
             let cache = Arc::new(Cache::new());
-            let f_name = String::from(benchmark.file_name().unwrap().to_string_lossy());
-            let task = task::SnythesisTask::from_json_file(benchmark.as_path(), &cache).unwrap();
-            let result = run_task(&f_name, task, cache.clone(), &bench_config).await;
+            let result = run_task(benchmark.as_path(), cache.clone(), &bench_config).await;
             writer.write_result(&result);
         }
     }
