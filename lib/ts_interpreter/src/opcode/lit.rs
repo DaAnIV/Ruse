@@ -1,3 +1,4 @@
+use opcode::EvalResult;
 use ruse_object_graph::*;
 use ruse_synthesizer::opcode::ExprOpcode;
 use ruse_synthesizer::value::*;
@@ -22,7 +23,7 @@ impl ExprOpcode for LitOp {
         args: &[&LocValue],
         post_ctx: &mut Context,
         _: &SynthesizerContext,
-    ) -> Option<LocValue> {
+    ) -> EvalResult {
         debug_assert_eq!(args.len(), 0);
         let val = match self {
             LitOp::Null => Value::Primitive(PrimitiveValue::Null),
@@ -31,7 +32,7 @@ impl ExprOpcode for LitOp {
             LitOp::Num(n) => vnum!(*n),
         };
 
-        Some(post_ctx.temp_value(val))
+        EvalResult::NoModification(post_ctx.temp_value(val))
     }
 
     fn to_ast(&self, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst> {
@@ -84,11 +85,12 @@ impl ExprOpcode for ArrayLitOp {
         args: &[&LocValue],
         post_ctx: &mut Context,
         syn_ctx: &SynthesizerContext,
+    ) -> EvalResult {
         let values = args.into_iter().map(|val| (val.val().clone()));
 
         let arr = Value::create_array_object(&self.elem_type, values, &syn_ctx.cache);
 
-        Some(post_ctx.temp_value(arr))
+        EvalResult::NoModification(post_ctx.temp_value(arr))
     }
 
     fn to_ast(&self, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst> {

@@ -20,7 +20,7 @@ pub struct SubProgram {
     out_type: Option<ValueType>,
 
     pre_ctx: ContextArray,
-    post_ctx: Option<ContextArray>,
+    post_ctx: ContextArray,
     out_value: Option<ValueArray>,
 }
 
@@ -70,8 +70,7 @@ fn verify_children(opcode: &Arc<dyn ExprOpcode>, children: &[Arc<SubProgram>]) -
     return true;
 }
 
-impl SubProgram
-{
+impl SubProgram {
     pub fn with_opcode_and_children(
         opcode: Arc<dyn ExprOpcode>,
         children: Vec<Arc<SubProgram>>,
@@ -81,7 +80,8 @@ impl SubProgram
 
         let size = children.iter().fold(0, |acc, x| acc + x.size) + 1;
         let depth = children.iter().fold(0, |acc, x| max(acc, x.depth)) + 1;
-        let pre_ctx = children[0].pre_ctx().clone();
+        let pre_ctx = children.first().unwrap().pre_ctx().clone();
+        let post_ctx = children.last().unwrap().post_ctx().clone();
 
         Arc::new(Self {
             opcode: opcode,
@@ -110,7 +110,7 @@ impl SubProgram
 
             out_type: None,
             pre_ctx: context.clone(),
-            post_ctx: None,
+            post_ctx: context.clone(),
             out_value: None,
         })
     }
@@ -118,35 +118,36 @@ impl SubProgram
     pub fn evaluate(&mut self, context: &SynthesizerContext) -> bool {
         let mut out_type: Option<ValueType> = None;
         let examples_count = self.pre_ctx().len();
-        let mut post_ctx = Vec::with_capacity(examples_count);
         let mut out_value = Vec::with_capacity(examples_count);
+        let mut dirty = false;
 
         for i in 0..examples_count {
             // Gather arguments
             let args: Vec<&LocValue> = self.children.iter().map(|c| &c.out_value()[i]).collect();
-
-            let mut out_ctx = match self.children.last() {
-                Some(last) => last.post_ctx()[i].clone(),
-                None => self.pre_ctx[i].clone()
-            };
+            let out_ctx = self.post_ctx.get_mut(i).unwrap();
 
             // Evaluate and verify the output type is consistent
-            match self.opcode.eval(&args, &mut out_ctx, context) {
-                Some(out_val) => {
-                    debug_assert!(out_type.is_none() || out_type == Some(out_val.val.val_type()));
-                    let _ = out_type.get_or_insert(out_val.val.val_type());
-
-                    post_ctx.push(out_ctx);
-                    out_value.push(out_val);
-                },
-                None => return false
+            let out_val = match self.opcode.eval(&args, out_ctx, context) {
+                EvalResult::DirtyContext(out_val) => {
+                    dirty = true;
+                    out_val
+                }
+                EvalResult::NoModification(out_val) => out_val,
+                EvalResult::None => return false,
             };
+
+            debug_assert!(out_type.is_none() || out_type == Some(out_val.val.val_type()));
+            let _ = out_type.get_or_insert(out_val.val.val_type());
+
+            out_value.push(out_val);
         }
 
+        if dirty {
+            self.post_ctx.depth += 1;
+        }
         self.out_type = out_type.clone();
-        self.post_ctx = Some(Arc::new(post_ctx.try_into().unwrap()));
-        self.out_value = Some(Arc::new(out_value.try_into().unwrap()));
-        
+        self.out_value = Some(Arc::new(out_value));
+
         return true;
     }
 
@@ -181,7 +182,7 @@ impl SubProgram
 
     #[inline]
     pub fn post_ctx(&self) -> &ContextArray {
-        self.post_ctx.as_ref().unwrap()
+        &self.post_ctx
     }
 
     #[inline]

@@ -1,6 +1,6 @@
 use ruse_object_graph::CachedString;
 use ruse_synthesizer::context::*;
-use ruse_synthesizer::opcode::{ExprAst, ExprOpcode};
+use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};
 use ruse_synthesizer::value::*;
 
 use swc_common::DUMMY_SP;
@@ -29,10 +29,10 @@ impl ExprOpcode for MemberOp {
         args: &[&LocValue],
         _post_ctx: &mut Context,
         _: &SynthesizerContext,
-    ) -> Option<LocValue> {
+    ) -> EvalResult {
         debug_assert_eq!(args.len(), 1);
 
-        args[0].get_obj_field_loc_value(&self.field_name)
+        args[0].get_obj_field_loc_value(&self.field_name).into()
     }
 
     fn to_ast(&self, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst> {

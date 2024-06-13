@@ -1,6 +1,6 @@
 use ruse_object_graph::CachedString;
 use ruse_synthesizer::context::*;
-use ruse_synthesizer::opcode::{ExprAst, ExprOpcode};
+use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};
 use ruse_synthesizer::value::*;
 
 use swc_common::DUMMY_SP;
@@ -19,10 +19,10 @@ impl ExprOpcode for IdentOp {
         args: &[&LocValue],
         post_ctx: &mut Context,
         _: &SynthesizerContext,
-    ) -> Option<LocValue> {
+    ) -> EvalResult {
         debug_assert_eq!(args.len(), 0);
 
-        Some(post_ctx.get_var_loc_value(&self.name))
+        EvalResult::NoModification(post_ctx.get_var_loc_value(&self.name).)
     }
 
     fn to_ast(&self, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst> {
@@ -39,5 +39,9 @@ impl ExprOpcode for IdentOp {
 
     fn arg_types(&self) -> &[ValueType] {
         &[]
+    }
+
+    fn required_variables(&self) -> Vec<&CachedString> {
+        return vec![&self.name];
     }
 }

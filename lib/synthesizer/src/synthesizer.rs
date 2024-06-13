@@ -343,7 +343,7 @@ impl Synthesizer {
     }
 
     fn check_program(&self, p: &Arc<SubProgram>) -> bool {
-        if p.post_ctx()[0].number_of_changes() > self.max_context_depth {
+        if p.post_ctx().depth > self.max_context_depth {
             return false;
         }
         if self.bank.output_exists(p) {

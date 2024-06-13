@@ -1,7 +1,7 @@
 use criterion::*;
 use ruse_object_graph as object_graph;
 use ruse_object_graph::*;
-use ruse_synthesizer::{context::Context, vnum};
+use ruse_synthesizer::{context_array, vnum};
 use ruse_ts_synthesizer::*;
 use std::sync::Arc;
 
@@ -14,22 +14,16 @@ fn simple_synthesize_1(c: &mut Criterion) {
             b.to_async(&rt).iter_batched(
                 || {
                     let cache = Arc::new(object_graph::Cache::new());
-                    let ctx = Arc::new(vec![
-                        Context::with_values(
-                            [
-                                (str_cached!(cache; "x"), vnum!(Number::from(4u64))),
-                                (str_cached!(cache; "y"), vnum!(Number::from(2u64))),
-                            ]
-                            .into(),
-                        ),
-                        Context::with_values(
-                            [
-                                (str_cached!(cache; "x"), vnum!(Number::from(5u64))),
-                                (str_cached!(cache; "y"), vnum!(Number::from(3u64))),
-                            ]
-                            .into(),
-                        ),
-                    ]);
+                    let ctx = context_array![
+                        [
+                            (str_cached!(cache; "x"), vnum!(Number::from(4u64))),
+                            (str_cached!(cache; "y"), vnum!(Number::from(2u64))),
+                        ],
+                        [
+                            (str_cached!(cache; "x"), vnum!(Number::from(5u64))),
+                            (str_cached!(cache; "y"), vnum!(Number::from(3u64))),
+                        ]
+                    ];
                     let mut opcodes = construct_opcode_list(
                         &[str_cached!(cache; "x"), str_cached!(cache; "y")],
                         &[-1, 1],

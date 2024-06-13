@@ -1,5 +1,5 @@
 use ruse_object_graph::{Number, PrimitiveValue};
-use ruse_synthesizer::opcode::{ExprAst, ExprOpcode};
+use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};
 use ruse_synthesizer::{value::*, vcstring};
 use ruse_synthesizer::{context::*, vbool, vnum};
 
@@ -98,7 +98,7 @@ impl ExprOpcode for BinOp {
         args: &[&LocValue],
         post_ctx: &mut Context,
         syn_ctx: &SynthesizerContext,
-    ) -> Option<LocValue> {
+    ) -> EvalResult {
         debug_assert_eq!(args.len(), 2);
         debug_assert_eq!(args[0].val().val_type(), self.arg_types[0]);
         debug_assert_eq!(args[1].val().val_type(), self.arg_types[1]);
@@ -121,7 +121,7 @@ impl ExprOpcode for BinOp {
             _ => panic!("Unexpected binary args"),
         };
 
-        Some(post_ctx.temp_value(val))
+        EvalResult::NoModification(post_ctx.temp_value(val))
     }
 
     fn to_ast(&self, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst> {

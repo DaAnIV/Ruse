@@ -9,6 +9,36 @@ pub trait ExprAst: Any {
     fn as_any(&self) -> &dyn Any;
 }
 
+#[derive(Debug, Clone)]
+pub enum EvalResult {
+    None,
+    DirtyContext(LocValue),
+    NoModification(LocValue),
+}
+
+impl EvalResult {
+    const fn unwrap_failed() -> ! {
+        panic!("called `EvalResult::unwrap()` on a `None` value")
+    }
+    
+    pub fn unwrap(self) -> LocValue {
+        match self {
+            EvalResult::None => EvalResult::unwrap_failed(),
+            EvalResult::DirtyContext(val) => val,
+            EvalResult::NoModification(val) => val,
+        }
+    }
+}
+
+impl From<Option<LocValue>> for EvalResult {
+    fn from(value: Option<LocValue>) -> Self {
+        match value {
+            Some(v) => Self::NoModification(v),
+            None => Self::None,
+        }
+    }
+}
+
 pub trait ExprOpcode: Debug + Sync + Send {
     fn arg_types(&self) -> &[ValueType];
 
@@ -20,6 +50,6 @@ pub trait ExprOpcode: Debug + Sync + Send {
         args: &[&LocValue],
         post_ctx: &mut Context,
         syn_ctx: &SynthesizerContext,
-    ) -> Option<LocValue>;
+    ) -> EvalResult;
     fn to_ast(&self, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst>;
 }

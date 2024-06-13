@@ -1,9 +1,12 @@
 use crate::value::{LocValue, Location, Value, ValueType, VarLoc};
 use ruse_object_graph::{str_cached, Cache, CachedString, NodeIndex, ObjectGraph};
 use std::{
+    cmp::max,
     collections::HashMap,
     fmt::Display,
     hash::{DefaultHasher, Hash, Hasher},
+    ops::Index,
+    slice::Iter,
     sync::Arc,
 };
 
@@ -51,7 +54,6 @@ impl SynthesizerContext {
 pub struct Context {
     hash: u64,
     values: Arc<HashMap<CachedString, Value>>,
-    number_of_changes: usize,
 }
 
 impl Context {
@@ -59,12 +61,7 @@ impl Context {
         Self {
             hash: Self::get_hash_for_values(&values),
             values: values.into(),
-            number_of_changes: 0,
         }
-    }
-
-    pub fn number_of_changes(&self) -> usize {
-        self.number_of_changes
     }
 
     fn get_hash_for_values(values: &HashMap<CachedString, Value>) -> u64 {
@@ -81,7 +78,6 @@ impl Context {
 
         self.hash = new_hash;
         self.values = values.into();
-        self.number_of_changes += 1;
     }
 
     pub fn temp_value(&self, val: Value) -> LocValue {
@@ -135,7 +131,8 @@ impl Context {
                 let mut new_values = (*self.values).clone();
                 for (root_name, root_idx) in new_graph.roots() {
                     if let Some(root_var) = new_values.get_mut(root_name) {
-                        if var.immutable { // This is not exactly true
+                        if var.immutable {
+                            // This is not exactly true
                             return false;
                         }
                         let root_obj_val = root_var.mut_obj().unwrap();
@@ -222,12 +219,86 @@ impl Default for Context {
     }
 }
 
-pub type ContextArray = Arc<Vec<Context>>;
+#[derive(Clone, Debug)]
+pub struct ContextArray {
+    pub depth: usize,
+    inner: Vec<Context>,
+}
+
+
+impl ContextArray {
+    pub fn len(&self) -> usize {
+        self.inner.len()
+    }
+
+    pub fn iter(&self) -> Iter<Context> {
+        self.inner.iter()
+    }
+
+    pub fn get_mut(&mut self, index: usize) -> Option<&mut Context> {
+        self.inner.get_mut(index)
+    }
+
+
+    pub fn verify_contexts_vector(&self) -> bool {
+        true
+    }
+
+    pub fn get_variables(&self) -> Arc<HashMap<Arc<String>, Variable>> {
+        let mut all_vars =
+            HashMap::<CachedString, Variable>::with_capacity(self.inner[0].values.len());
+        for (name, val) in self.inner[0].values.iter() {
+            all_vars.insert(
+                name.clone(),
+                Variable {
+                    name: name.clone(),
+                    value_type: val.val_type(),
+                    immutable: false,
+                },
+            );
+        }
+
+        Arc::new(all_vars)
+    }
+}
+
+impl From<Vec<Context>> for ContextArray {
+    fn from(value: Vec<Context>) -> Self {
+        let obj = ContextArray {
+            inner: value,
+            depth: 0,
+        };
+        debug_assert!(obj.verify_contexts_vector());
+        obj
+    }
+}
+
+impl Index<usize> for ContextArray {
+    type Output = Context;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.inner[index]
+    }
+}
+
+impl Hash for ContextArray {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.inner.hash(state);
+    }
+}
+
+impl Eq for ContextArray {}
+
+impl PartialEq for ContextArray {
+    fn eq(&self, other: &Self) -> bool {
+        self.inner == other.inner
+    }
+}
 
 #[macro_export]
 macro_rules! context_array {
     ($($x:expr),+ $(,)?) => {
-        Arc::new(vec![$(
+        $crate::context::ContextArray::from(vec![$(
             $crate::context::Context::with_values($x.into()),
         )+])
     };

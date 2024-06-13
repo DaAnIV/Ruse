@@ -8,9 +8,9 @@ mod tests {
 
     use crate::{
         bank::{ProgBank, TypeMap},
-        context::{Context, SynthesizerContext},
+        context::{Context, ContextArray, SynthesizerContext},
         context_array,
-        opcode::{ExprAst, ExprOpcode},
+        opcode::{EvalResult, ExprAst, ExprOpcode},
         prog::SubProgram,
         value::{LocValue, Location, Value, ValueType},
         vnum,
@@ -32,7 +32,7 @@ mod tests {
     #[derive(Debug)]
     struct TestOpcode {
         pub arg_types: Vec<ValueType>,
-        pub returns: Option<LocValue>,
+        pub returns: EvalResult,
     }
 
     impl ExprOpcode for TestOpcode {
@@ -40,12 +40,7 @@ mod tests {
             &self.arg_types
         }
 
-        fn eval(
-            &self,
-            _: &[&LocValue],
-            _: &mut Context,
-            _: &SynthesizerContext,
-        ) -> Option<LocValue> {
+        fn eval(&self, _: &[&LocValue], _: &mut Context, _: &SynthesizerContext) -> EvalResult {
             self.returns.clone()
         }
 
@@ -81,7 +76,7 @@ mod tests {
     fn get_prog_for_bank(value: Value, syn_ctx: &SynthesizerContext) -> Arc<SubProgram> {
         let init_op: Arc<dyn ExprOpcode> = Arc::new(TestOpcode {
             arg_types: vec![],
-            returns: Some(LocValue {
+            returns: EvalResult::NoModification(LocValue {
                 loc: Location::Temp,
                 val: value,
             }),
@@ -123,7 +118,7 @@ mod tests {
         let mut bank = ProgBank::default();
         let bin_op: Arc<dyn ExprOpcode> = Arc::new(TestOpcode {
             arg_types: vec![ValueType::Number, ValueType::Number],
-            returns: Some(LocValue {
+            returns: EvalResult::NoModification(LocValue {
                 loc: Location::Temp,
                 val: vnum!(Number::from(5)),
             }),
@@ -142,7 +137,7 @@ mod tests {
         let mut bank = ProgBank::default();
         let bin_op: Arc<dyn ExprOpcode> = Arc::new(TestOpcode {
             arg_types: vec![ValueType::Number, ValueType::Number],
-            returns: Some(LocValue {
+            returns: EvalResult::NoModification(LocValue {
                 loc: Location::Temp,
                 val: vnum!(Number::from(5)),
             }),
@@ -170,7 +165,7 @@ mod tests {
         let mut bank = ProgBank::default();
         let bin_op: Arc<dyn ExprOpcode> = Arc::new(TestOpcode {
             arg_types: vec![ValueType::Number, ValueType::Number],
-            returns: Some(LocValue {
+            returns: EvalResult::NoModification(LocValue {
                 loc: Location::Temp,
                 val: vnum!(Number::from(5)),
             }),
@@ -199,7 +194,7 @@ mod tests {
         let mut bank = ProgBank::default();
         let tri_op: Arc<dyn ExprOpcode> = Arc::new(TestOpcode {
             arg_types: vec![ValueType::Number, ValueType::Number, ValueType::Number],
-            returns: Some(LocValue {
+            returns: EvalResult::NoModification(LocValue {
                 loc: Location::Temp,
                 val: vnum!(Number::from(5)),
             }),
@@ -228,7 +223,7 @@ mod tests {
         let mut bank = ProgBank::default();
         let bin_op: Arc<dyn ExprOpcode> = Arc::new(TestOpcode {
             arg_types: vec![ValueType::Number, ValueType::Number],
-            returns: Some(LocValue {
+            returns: EvalResult::NoModification(LocValue {
                 loc: Location::Temp,
                 val: vnum!(Number::from(5)),
             }),

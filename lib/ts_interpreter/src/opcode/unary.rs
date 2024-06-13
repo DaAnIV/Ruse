@@ -1,5 +1,5 @@
 use ruse_object_graph::{Number, PrimitiveValue};
-use ruse_synthesizer::opcode::{ExprAst, ExprOpcode};
+use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};
 use ruse_synthesizer::value::*;
 use ruse_synthesizer::{context::*, vbool, vnum};
 
@@ -51,7 +51,7 @@ impl ExprOpcode for UnaryOp {
         args: &[&LocValue],
         post_ctx: &mut Context,
         _: &SynthesizerContext,
-    ) -> Option<LocValue> {
+    ) -> EvalResult {
         debug_assert_eq!(args.len(), 1);
         let res = match &args[0].val() {
             Value::Primitive(p) => match p {
@@ -62,7 +62,7 @@ impl ExprOpcode for UnaryOp {
             Value::Object(_) => todo!(),
         };
 
-        Some(post_ctx.temp_value(res))
+        EvalResult::NoModification(post_ctx.temp_value(res))
     }
 
     fn arg_types(&self) -> &[ValueType] {
@@ -97,11 +97,11 @@ impl ExprOpcode for UpdateOp {
         args: &[&LocValue],
         post_ctx: &mut Context,
         syn_ctx: &SynthesizerContext,
-    ) -> Option<LocValue> {
+    ) -> EvalResult {
         debug_assert_eq!(args.len(), 1);
 
         if args[0].loc().is_temp() {
-            return None;
+            return EvalResult::None;
         }
         let n = args[0].val().primitive().unwrap().number().unwrap();
 
@@ -112,10 +112,10 @@ impl ExprOpcode for UpdateOp {
 
         let mut loc = args[0].loc().clone();
         if !post_ctx.update_value(&res.clone(), &mut loc, syn_ctx) {
-            return None
+            return EvalResult::None;
         }
 
-        Some(match self.prefix {
+        EvalResult::DirtyContext(match self.prefix {
             true => post_ctx.temp_value(res),
             false => post_ctx.temp_value(args[0].val().clone()),
         })

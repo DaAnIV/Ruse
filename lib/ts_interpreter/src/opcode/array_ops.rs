@@ -1,7 +1,7 @@
-use ruse_object_graph::{Cache, Number, PrimitiveValue};
-use ruse_synthesizer::context::*;
-use ruse_synthesizer::opcode::{ExprAst, ExprOpcode};
+use ruse_object_graph::{Cache, Number};
+use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};
 use ruse_synthesizer::value::*;
+use ruse_synthesizer::{context::*, vnum};
 
 use swc_common::DUMMY_SP;
 use swc_ecma_ast as ast;
@@ -32,13 +32,13 @@ impl ExprOpcode for IndexOp {
         args: &[&LocValue],
         _post_ctx: &mut Context,
         syn_ctx: &SynthesizerContext,
-    ) -> Option<LocValue> {
+    ) -> EvalResult {
         debug_assert_eq!(args.len(), 2);
 
         let num = args[1].val().number_value().unwrap();
         let field_name = syn_ctx.cached_string(&(num.0 as usize).to_string());
 
-        args[0].get_obj_field_loc_value(&field_name)
+        args[0].get_obj_field_loc_value(&field_name).into()
     }
 
     fn to_ast(&self, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst> {
@@ -85,12 +85,13 @@ impl ExprOpcode for PushOp {
         args: &[&LocValue],
         post_ctx: &mut Context,
         syn_ctx: &SynthesizerContext,
-    ) -> Option<LocValue> {
+    ) -> EvalResult {
         debug_assert_eq!(args.len(), 2);
 
         let arr = args[0].val().obj().unwrap();
         let new_idx = arr.total_field_count();
         let idx_field_name = syn_ctx.cached_string(&new_idx.to_string());
+        let mut dirty = false;
         let new_arr = match &args[0].loc() {
             Location::Temp => {
                 let (new_graph, node) =
@@ -113,8 +114,9 @@ impl ExprOpcode for PushOp {
                     field: idx_field_name,
                 });
                 if !post_ctx.update_value(args[1].val(), &mut loc, syn_ctx) {
-                    return None;
+                    return EvalResult::None;
                 }
+                dirty = true;
                 ObjectValue {
                     graph: post_ctx.get_var_loc_value(var).val().obj().unwrap().graph.clone(),
                     node: unsafe { loc.object_field().unwrap_unchecked().node },
@@ -122,11 +124,13 @@ impl ExprOpcode for PushOp {
             }
         };
 
-        Some(
-            post_ctx.temp_value(Value::Primitive(PrimitiveValue::Number(Number::from(
-                new_arr.total_field_count(),
-            )))),
-        )
+        let result = post_ctx.temp_value(vnum!(Number::from(new_arr.total_field_count())));
+
+        if dirty {
+            EvalResult::DirtyContext(result)
+        } else {
+            EvalResult::NoModification(result)
+        }
     }
 
     fn to_ast(&self, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst> {

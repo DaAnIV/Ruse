@@ -4,7 +4,7 @@ use ruse_object_graph::{
     str_cached, Cache, CachedString, NodeIndex, ObjectData
 };
 use ruse_synthesizer::context::*;
-use ruse_synthesizer::opcode::{ExprAst, ExprOpcode};
+use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};
 use ruse_synthesizer::value::*;
 
 use crate::dom;
@@ -42,12 +42,12 @@ impl ExprOpcode for GetElementByIdOp {
         args: &[&LocValue],
         post_ctx: &mut Context,
         syn_ctx: &SynthesizerContext,
-    ) -> Option<LocValue> {
+    ) -> EvalResult {
         debug_assert_eq!(args.len(), 2);
 
         let obj = args[0].val().obj().unwrap();
         let id = args[1].val().string_value().unwrap();
-        let mut found = None;
+        let mut found = EvalResult::None;
 
         let mut parent =
             HashMap::<NodeIndex, (NodeIndex, CachedString)>::with_capacity(obj.graph.node_count());
@@ -67,8 +67,9 @@ impl ExprOpcode for GetElementByIdOp {
                     node: *parent,
                     field: field.clone(),
                 };
-                found =
-                    Some(post_ctx.get_loc_value(Value::Object(val), Location::ObjectField(loc)));
+                found = EvalResult::NoModification(
+                    post_ctx.get_loc_value(Value::Object(val), Location::ObjectField(loc)),
+                );
                 break;
             }
 

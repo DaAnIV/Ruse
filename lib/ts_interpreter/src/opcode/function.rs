@@ -1,7 +1,7 @@
 use ruse_object_graph::CachedString;
 use ruse_synthesizer::{
     context::{Context, SynthesizerContext},
-    opcode::{ExprAst, ExprOpcode},
+    opcode::{EvalResult, ExprAst, ExprOpcode},
     value::{LocValue, ValueType},
 };
 
@@ -60,7 +60,7 @@ impl ExprOpcode for ClassMethodOp {
         args: &[&LocValue],
         post_ctx: &mut Context,
         syn_ctx: &SynthesizerContext,
-    ) -> Option<LocValue> {
+    ) -> EvalResult {
         let mut boa_ctx = self.classes.get_boa_ctx(post_ctx, &syn_ctx.cache);
         for (i, arg) in args.iter().enumerate() {
             let key = boa_engine::js_string!(format!("arg{}", i));
@@ -69,18 +69,19 @@ impl ExprOpcode for ClassMethodOp {
                 .register_global_property(key, value, boa_engine::property::Attribute::all())
                 .is_err()
             {
-                return None;
+                return EvalResult::None;
             }
         }
         let js_souce = boa_engine::Source::from_bytes(self.code.as_str());
         match boa_ctx.eval(js_souce) {
-            Ok(res) => Some(post_ctx.temp_value(js_value_to_value(
+            // Need to check if func changed the context
+            Ok(res) => EvalResult::NoModification(post_ctx.temp_value(js_value_to_value(
                 &self.classes,
                 &res,
                 &mut boa_ctx,
                 &syn_ctx.cache,
             ))),
-            Err(_) => None,
+            Err(_) => EvalResult::None,
         }
     }
 
