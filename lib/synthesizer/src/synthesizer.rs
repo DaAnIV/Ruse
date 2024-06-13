@@ -381,4 +381,8 @@ impl Synthesizer {
     pub fn set_immutable(&mut self, var: &CachedString) {
         self.context.set_immutable(var);
     }
+
+    pub fn print_all_programs(&self) {
+        self.bank.print_all_programs()
+    }
 }

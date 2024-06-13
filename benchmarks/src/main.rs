@@ -50,6 +50,9 @@ struct Cli {
     /// Timeout per benchmark in seconds
     #[arg(short, long, default_value_t = 5)]
     max_iterations: u32,
+
+    #[arg(long, default_value_t = false)]
+    print_all_programs: bool,
 }
 
 struct TimeoutError {}
@@ -141,6 +144,9 @@ async fn run_task(
         result.add_iteration(Duration::from_secs(0), synthesizer.statistics());
         result.finish(None, bench_config.timeout, synthesizer.statistics());
     }
+    if bench_config.print_inserted_programs {
+        synthesizer.print_all_programs()
+    }
 
     return result;
 }
@@ -153,6 +159,7 @@ async fn main() -> ExitCode {
         output: cli.output,
         timeout: Duration::from_secs(cli.timeout),
         max_iterations: cli.max_iterations,
+        print_inserted_programs: cli.print_all_programs,
     };
     print!("{}", bench_config);
 

@@ -53,4 +53,8 @@ impl TsSynthesizer {
     pub fn set_immutable(&mut self, var: &CachedString) {
         Arc::get_mut(&mut self.inner).unwrap().set_immutable(var);
     }
+
+    pub fn print_all_programs(&self) {
+        self.inner.print_all_programs()
+    }
 }

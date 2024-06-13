@@ -68,4 +68,15 @@ impl ProgBank {
     pub fn iteration_count(&self) -> usize {
         self.bank.len()
     }
+
+    pub fn print_all_programs(&self) {
+        for (i, type_map) in self.bank.iter().enumerate() {
+            println!("Iteration {}", i);
+            for values in type_map.0.iter() {
+                for p in values.value().iter() {
+                    println!("{}", p)
+                }
+            }
+        }
+    }
 }
