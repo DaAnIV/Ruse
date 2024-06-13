@@ -164,23 +164,24 @@ impl Value {
         }
     }
 
-    pub fn generate_simple_object_from_map(
-        obj_type: CachedString,
-        map: HashMap<CachedString, PrimitiveValue>,
-    ) -> Value {
+    pub fn generate_simple_object_from_map<I, T>(obj_type: CachedString, map: I) -> Value
+    where
+        I: IntoIterator<Item = (CachedString, T)>,
+        T: Into<PrimitiveValue>,
+    {
         let mut fields = FieldsMap::new();
 
         for (key, val) in map {
-            fields.insert(key, val);
+            fields.insert(key, val.into());
         }
 
         Self::create_simple_out_object(obj_type, fields)
     }
 
-    pub fn generate_object_from_map(
-        obj_type: CachedString,
-        map: HashMap<CachedString, Value>,
-    ) -> Value {
+    pub fn generate_object_from_map<I>(obj_type: CachedString, map: I) -> Value
+    where
+        I: IntoIterator<Item = (CachedString, Value)>,
+    {
         let mut fields = FieldsMap::new();
         let mut seen_graphs = HashMap::new();
         let mut obj_keys = vec![];
@@ -262,25 +263,29 @@ impl Value {
         elem_type: &ValueType,
         values: I,
         cache: &Cache,
-    ) -> Value where I: IntoIterator, I::Item: Into<PrimitiveValue> {
-        let mut graph = ObjectGraph::new();
-
+    ) -> Value
+    where
+        I: IntoIterator,
+        I::Item: Into<PrimitiveValue>,
+    {
         let obj_type = ValueType::array_obj_cached_string(elem_type, cache);
-        let fields = values
+        let map = values
             .into_iter()
             .enumerate()
-            .map(|(i, v)| (scached!(cache; i.to_string()), v.into()));
-        let mut fields_map = FieldsMap::new();
-        fields_map.extend(fields);
-        let root = graph.add_node(ObjectData::new(obj_type, fields_map.into()));
+            .map(|(i, v)| (scached!(cache; i.to_string()), v));
+        Self::generate_simple_object_from_map(obj_type, map)
+    }
 
-        graph.generate_serialized_data();
-
-        ObjectValue {
-            graph: graph.into(),
-            node: root,
-        }
-        .into()
+    pub fn create_array_object<I>(elem_type: &ValueType, values: I, cache: &Cache) -> Value
+    where
+        I: IntoIterator<Item = Value>,
+    {
+        let obj_type = ValueType::array_obj_cached_string(elem_type, cache);
+        let values_map = values
+            .into_iter()
+            .enumerate()
+            .map(|(i, v)| (scached!(cache; i.to_string()), v));
+        Self::generate_object_from_map(obj_type, values_map)
     }
 }
 

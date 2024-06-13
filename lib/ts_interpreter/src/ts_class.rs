@@ -1,4 +1,9 @@
-use std::{collections::HashMap, io::Read, ops::{Deref, DerefMut}, sync::Arc};
+use std::{
+    collections::HashMap,
+    io::Read,
+    ops::{Deref, DerefMut},
+    sync::Arc,
+};
 
 use dashmap::DashMap;
 use ruse_object_graph::{scached, str_cached, Cache, CachedString};
@@ -61,7 +66,7 @@ impl TsClasses {
     pub fn get_class(&self, class: &CachedString) -> Option<Arc<TsClass>> {
         match self.classes.get(class) {
             Some(v) => Some(v.clone()),
-            None => None
+            None => None,
         }
     }
 
@@ -71,7 +76,7 @@ impl TsClasses {
             .host_hooks(&TsContextHooks)
             .build()
             .expect("Failed to build context");
-        
+
         let global_obj = boa_ctx.global_object();
         let mut a = global_obj.downcast_mut::<TsGlobalObject>().unwrap();
         let b = a.deref_mut();
@@ -110,8 +115,12 @@ impl TsClasses {
         // Implementation of the object_getter function goes here
         unimplemented!()
     }
-    
-    pub fn add_ts_file(&self, full_path: &std::path::PathBuf, cache: &Cache) -> Result<Vec<CachedString>, Error> {
+
+    pub fn add_ts_file(
+        &self,
+        full_path: &std::path::PathBuf,
+        cache: &Cache,
+    ) -> Result<Vec<CachedString>, Error> {
         let cm = Arc::<SourceMap>::default();
         let handler = Handler::with_tty_emitter(ColorConfig::Auto, true, false, Some(cm.clone()));
         let c = swc::Compiler::new(cm.clone());
@@ -120,15 +129,18 @@ impl TsClasses {
         let mut src = String::new();
         file.read_to_string(&mut src)?;
         let fm = cm.new_source_file(FileName::Real(full_path.clone()), src);
-        
-        let script = c.parse_js(
-            fm,
-            &handler,
-            ast::EsVersion::Es2022,
-            Syntax::Typescript(TsConfig::default()),
-            swc::config::IsModule::Bool(false),
-            None,
-        )?.script().unwrap();
+
+        let script = c
+            .parse_js(
+                fm,
+                &handler,
+                ast::EsVersion::Es2022,
+                Syntax::Typescript(TsConfig::default()),
+                swc::config::IsModule::Bool(false),
+                None,
+            )?
+            .script()
+            .unwrap();
 
         let mut class_names = vec![];
 
@@ -163,7 +175,11 @@ impl TsClass {
         Self::from_class_decl(classes, class_decl, cache)
     }
 
-    fn from_class_decl(classes: &TsClasses, decl: &ClassDecl, cache: &Cache) -> Result<Self, Error> {
+    fn from_class_decl(
+        classes: &TsClasses,
+        decl: &ClassDecl,
+        cache: &Cache,
+    ) -> Result<Self, Error> {
         let mut class = Self {
             class: decl.class.clone(),
             class_name: str_cached!(cache; decl.ident.sym.as_str()),
@@ -181,11 +197,17 @@ impl TsClass {
         ValueType::Object(self.class_name.clone())
     }
 
-    pub fn generate_object(&self, map: HashMap<CachedString, Value>) -> Value {
+    pub fn generate_object<I>(&self, map: I) -> Value
+    where
+        I: IntoIterator<Item = (CachedString, Value)>,
+    {
         Value::generate_object_from_map(self.class_name.clone(), map)
     }
 
-    pub fn generate_rooted_object(&self, root_name: CachedString, map: HashMap<CachedString, Value>) -> Value {
+    pub fn generate_rooted_object<I>(&self, root_name: CachedString, map: I) -> Value
+    where
+        I: IntoIterator<Item = (CachedString, Value)>,
+    {
         let mut value = Value::generate_object_from_map(self.class_name.clone(), map);
         let obj_val = unsafe { value.mut_obj().unwrap_unchecked() };
         obj_val.set_as_graph_root(root_name);
@@ -311,35 +333,33 @@ impl TsClass {
 
     fn get_value_type(type_ann: &ast::TsType, cache: &Cache) -> ValueType {
         match type_ann {
-            ast::TsType::TsKeywordType(t) => {
-                match t.kind {
-                    swc_ecma_ast::TsKeywordTypeKind::TsAnyKeyword => todo!(),
-                    swc_ecma_ast::TsKeywordTypeKind::TsUnknownKeyword => todo!(),
-                    swc_ecma_ast::TsKeywordTypeKind::TsNumberKeyword => ValueType::Number,
-                    swc_ecma_ast::TsKeywordTypeKind::TsObjectKeyword => todo!(),
-                    swc_ecma_ast::TsKeywordTypeKind::TsBooleanKeyword => ValueType::Bool,
-                    swc_ecma_ast::TsKeywordTypeKind::TsBigIntKeyword => todo!(),
-                    swc_ecma_ast::TsKeywordTypeKind::TsStringKeyword => ValueType::String,
-                    swc_ecma_ast::TsKeywordTypeKind::TsSymbolKeyword => todo!(),
-                    swc_ecma_ast::TsKeywordTypeKind::TsVoidKeyword => todo!(),
-                    swc_ecma_ast::TsKeywordTypeKind::TsUndefinedKeyword => todo!(),
-                    swc_ecma_ast::TsKeywordTypeKind::TsNullKeyword => todo!(),
-                    swc_ecma_ast::TsKeywordTypeKind::TsNeverKeyword => todo!(),
-                    swc_ecma_ast::TsKeywordTypeKind::TsIntrinsicKeyword => todo!(),
-                }
+            ast::TsType::TsKeywordType(t) => match t.kind {
+                swc_ecma_ast::TsKeywordTypeKind::TsAnyKeyword => todo!(),
+                swc_ecma_ast::TsKeywordTypeKind::TsUnknownKeyword => todo!(),
+                swc_ecma_ast::TsKeywordTypeKind::TsNumberKeyword => ValueType::Number,
+                swc_ecma_ast::TsKeywordTypeKind::TsObjectKeyword => todo!(),
+                swc_ecma_ast::TsKeywordTypeKind::TsBooleanKeyword => ValueType::Bool,
+                swc_ecma_ast::TsKeywordTypeKind::TsBigIntKeyword => todo!(),
+                swc_ecma_ast::TsKeywordTypeKind::TsStringKeyword => ValueType::String,
+                swc_ecma_ast::TsKeywordTypeKind::TsSymbolKeyword => todo!(),
+                swc_ecma_ast::TsKeywordTypeKind::TsVoidKeyword => todo!(),
+                swc_ecma_ast::TsKeywordTypeKind::TsUndefinedKeyword => todo!(),
+                swc_ecma_ast::TsKeywordTypeKind::TsNullKeyword => todo!(),
+                swc_ecma_ast::TsKeywordTypeKind::TsNeverKeyword => todo!(),
+                swc_ecma_ast::TsKeywordTypeKind::TsIntrinsicKeyword => todo!(),
             },
             ast::TsType::TsThisType(_) => todo!(),
             ast::TsType::TsFnOrConstructorType(_) => todo!(),
             ast::TsType::TsTypeRef(t) => {
                 let id = t.type_name.as_ident().unwrap().sym.to_string();
                 ValueType::Object(scached!(cache; id))
-            },
+            }
             ast::TsType::TsTypeQuery(_) => todo!(),
             ast::TsType::TsTypeLit(_) => todo!(),
             ast::TsType::TsArrayType(t) => {
                 let elem_type = Self::get_value_type(t.elem_type.as_ref(), cache);
                 ValueType::array_value_type(&elem_type, cache)
-            },
+            }
             ast::TsType::TsTupleType(_) => todo!(),
             ast::TsType::TsOptionalType(_) => todo!(),
             ast::TsType::TsRestType(_) => todo!(),
@@ -370,7 +390,8 @@ impl TsClass {
             let ident = ts_param.param.as_ident().unwrap();
 
             let member = str_cached!(cache; ident.sym.as_str());
-            let member_type = Self::get_value_type(&ident.type_ann.as_ref().unwrap().type_ann, cache);
+            let member_type =
+                Self::get_value_type(&ident.type_ann.as_ref().unwrap().type_ann, cache);
             self.fields.insert(member.clone(), member_type);
 
             let accessor = Arc::new(MemberOp::new(self.class_name.clone(), member));
@@ -378,7 +399,12 @@ impl TsClass {
         }
     }
 
-    fn add_method_opcode(&mut self, classes: &TsClasses, method: &ast::ClassMethod, _cache: &Cache) {
+    fn add_method_opcode(
+        &mut self,
+        classes: &TsClasses,
+        method: &ast::ClassMethod,
+        _cache: &Cache,
+    ) {
         let method_name = method.key.as_ident().unwrap().sym.to_string();
         let args = Vec::with_capacity(method.function.params.len());
 

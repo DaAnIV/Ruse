@@ -84,18 +84,9 @@ impl ExprOpcode for ArrayLitOp {
         args: &[&LocValue],
         post_ctx: &mut Context,
         syn_ctx: &SynthesizerContext,
-    ) -> Option<LocValue> {
-        let kv_map = (0..self.arg_types.len())
-            .zip(args)
-            .map(|(i, val)| (syn_ctx.cached_string(&i.to_string()), val.val().clone()))
-            .collect();
+        let values = args.into_iter().map(|val| (val.val().clone()));
 
-        let mut arr = Value::generate_object_from_map(
-            ValueType::array_obj_cached_string(&self.elem_type, &syn_ctx.cache),
-            kv_map,
-        );
-        let obj_val = arr.mut_obj().unwrap();
-        obj_val.set_as_graph_root(syn_ctx.cache.temp_string());
+        let arr = Value::create_array_object(&self.elem_type, values, &syn_ctx.cache);
 
         Some(post_ctx.temp_value(arr))
     }
