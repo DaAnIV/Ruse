@@ -59,7 +59,10 @@ mod tests {
         let all_children_clone = all_children.clone();
         let mut gatherer = WorkGather::new(
             Arc::new(
-                move |_: Arc<dyn ExprOpcode>, children: Vec<Arc<SubProgram>>| {
+                move |_: Arc<dyn ExprOpcode>,
+                      _: ContextArray,
+                      children: Vec<Arc<SubProgram>>,
+                      _: ContextArray| {
                     all_children_clone.insert(all_children_clone.len(), children);
                     None
                 },
@@ -82,7 +85,11 @@ mod tests {
             }),
         });
 
-        let mut p = SubProgram::with_opcode_and_context(init_op, &syn_ctx.start_context);
+        let mut p = SubProgram::with_opcode(
+            init_op,
+            syn_ctx.start_context.clone(),
+            syn_ctx.start_context.clone(),
+        );
         Arc::get_mut(&mut p).unwrap().evaluate(syn_ctx);
         p
     }

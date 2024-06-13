@@ -117,9 +117,13 @@ impl ExprOpcode for PushOp {
                     return EvalResult::None;
                 }
                 dirty = true;
-                ObjectValue {
-                    graph: post_ctx.get_var_loc_value(var).val().obj().unwrap().graph.clone(),
-                    node: unsafe { loc.object_field().unwrap_unchecked().node },
+                if let Some(loc_value) = post_ctx.get_var_loc_value(var) {
+                    ObjectValue {
+                        graph: loc_value.val().obj().unwrap().graph.clone(),
+                        node: unsafe { loc.object_field().unwrap_unchecked().node },
+                    }
+                } else {
+                    return EvalResult::None;
                 }
             }
         };

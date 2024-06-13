@@ -536,7 +536,11 @@ impl SnythesisTask {
             if let Some(array) = &state_array {
                 for (actual, expected) in p.post_ctx().iter().zip(array) {
                     for (var, value) in expected {
-                        if actual.get_var_loc_value(var).val() != value {
+                        let actual_value = match actual.get_var_loc_value(var) {
+                            None => return false,
+                            Some(v) => v,
+                        };
+                        if actual_value.val() != value {
                             return false;
                         }
                     }

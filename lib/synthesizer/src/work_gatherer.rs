@@ -1,20 +1,35 @@
-use dashmap::DashSet;
+use dashmap::DashMap;
 use futures::{future::BoxFuture, FutureExt};
 use itertools::Itertools;
-use std::{mem::replace, sync::Arc};
+use std::{collections::HashSet, mem::replace, sync::Arc};
 use tokio_util::sync::CancellationToken;
 
-use crate::{bank::ProgBank, opcode::ExprOpcode, prog::SubProgram};
+use crate::{
+    bank::{Output, ProgBank},
+    context::{self, ContextArray},
+    opcode::ExprOpcode,
+    prog::SubProgram,
+};
 
-type WorkHandler =
-    Arc<dyn Fn(Arc<dyn ExprOpcode>, Vec<Arc<SubProgram>>) -> Option<Arc<SubProgram>> + Send + Sync>;
+type WorkHandler = Arc<
+    dyn Fn(
+            Arc<dyn ExprOpcode>,
+            ContextArray,
+            Vec<Arc<SubProgram>>,
+            ContextArray,
+        ) -> Option<Arc<SubProgram>>
+        + Send
+        + Sync,
+>;
 
 pub struct WorkGather {
     chunk_size: usize,
-    chunk: Box<Vec<Vec<Arc<SubProgram>>>>,
+    chunk: Box<Vec<(ContextArray, Vec<Arc<SubProgram>>, ContextArray)>>,
     handler: WorkHandler,
     tasks: tokio::task::JoinSet<Option<Arc<SubProgram>>>,
     cancel_token: CancellationToken,
+
+    children: Vec<Arc<SubProgram>>,
 }
 
 impl WorkGather {
@@ -25,6 +40,8 @@ impl WorkGather {
             handler: handler,
             tasks: tokio::task::JoinSet::new(),
             cancel_token: cancel_token,
+
+            children: Default::default(),
         }
     }
 
@@ -33,6 +50,7 @@ impl WorkGather {
         bank: &ProgBank,
         op: &Arc<dyn ExprOpcode>,
     ) {
+        self.children = Vec::with_capacity(op.arg_types().len());
         self.add_all_tasks(bank, op).await;
     }
 
@@ -103,22 +121,20 @@ impl WorkGather {
             }
         }
 
-        let mut children = Vec::with_capacity(programs.len());
-        self.gather_work_for_maps(op, &programs, &mut children)
-            .await;
+        self.gather_work_for_maps(op, &programs).await;
     }
 
     fn gather_work_for_maps<'a>(
         &'a mut self,
         op: &'a Arc<dyn ExprOpcode>,
-        maps: &'a [Arc<DashSet<Arc<SubProgram>>>],
-        children: &'a mut Vec<Arc<SubProgram>>,
+        maps: &'a [Arc<DashMap<Output, Arc<SubProgram>>>],
     ) -> BoxFuture<'a, ()> {
-        let i = children.len();
+        let i = self.children.len();
 
         if i == maps.len() {
             return async move {
-                self.gather_work(op, children.clone()).await;
+                let (pre_context, post_context) = self.get_children_context();
+                self.gather_work(op, pre_context, post_context).await;
             }
             .boxed();
         }
@@ -126,21 +142,54 @@ impl WorkGather {
         async move {
             let map = &maps[i];
             for p in map.iter() {
-                if let Some(prev) = children.last() {
-                    if prev.post_ctx() != p.pre_ctx() {
+                if let Some(prev) = self.children.last() {
+                    if prev.post_ctx().matches(p.value().pre_ctx()) == context::Matches::CONFLICT {
                         continue;
                     }
                 }
-                children.push(p.clone());
-                self.gather_work_for_maps(op, maps, children).await;
-                children.pop();
+                self.children.push(p.value().clone());
+                self.gather_work_for_maps(op, maps).await;
+                self.children.pop();
             }
         }
         .boxed()
     }
 
-    async fn gather_work(&mut self, op: &Arc<dyn ExprOpcode>, children: Vec<Arc<SubProgram>>) {
-        self.chunk.push(children);
+    fn get_children_context(&self) -> (ContextArray, ContextArray) {
+        let children = &self.children;
+        let mut pre_context = children.first().unwrap().pre_ctx().clone();
+        let mut post_context = children.last().unwrap().post_ctx().clone();
+        let mut variables = HashSet::new();
+
+        for c in children {
+            variables.extend(c.pre_ctx()[0].variables())
+        }
+
+        for c in children.iter().skip(1) {
+            if pre_context[0].variable_count() == variables.len() {
+                break;
+            }
+            pre_context.merge_in_place(c.pre_ctx())
+        }
+
+        for c in children.iter().rev().skip(1) {
+            if post_context[0].variable_count() == variables.len() {
+                break;
+            }
+            post_context.merge_in_place(c.post_ctx())
+        }
+
+        (pre_context, post_context)
+    }
+
+    async fn gather_work(
+        &mut self,
+        op: &Arc<dyn ExprOpcode>,
+        pre_context: ContextArray,
+        post_context: ContextArray,
+    ) {
+        self.chunk
+            .push((pre_context, self.children.clone(), post_context));
         if self.chunk.len() == self.chunk_size {
             self.perform_work(op);
         }
@@ -159,7 +208,7 @@ impl WorkGather {
 
     fn spawn(
         tasks: &mut tokio::task::JoinSet<Option<Arc<SubProgram>>>,
-        chunk: Box<Vec<Vec<Arc<SubProgram>>>>,
+        chunk: Box<Vec<(ContextArray, Vec<Arc<SubProgram>>, ContextArray)>>,
         op: Arc<dyn ExprOpcode>,
         handler: WorkHandler,
         cancel_token: CancellationToken,
@@ -169,7 +218,7 @@ impl WorkGather {
                 _ = cancel_token.cancelled() => None,
                 v = async {
                     for c in chunk.into_iter() {
-                        let found_prog = handler(op.clone(), c);
+                        let found_prog = handler(op.clone(), c.0, c.1, c.2);
                         if found_prog.is_some() {
                             return found_prog;
                         }

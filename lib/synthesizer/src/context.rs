@@ -1,8 +1,8 @@
-use crate::value::{LocValue, Location, Value, ValueType, VarLoc};
+use crate::value::{LocValue, Location, ObjectValue, Value, ValueType, VarLoc};
 use ruse_object_graph::{str_cached, Cache, CachedString, NodeIndex, ObjectGraph};
 use std::{
     cmp::max,
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     fmt::Display,
     hash::{DefaultHasher, Hash, Hasher},
     ops::Index,
@@ -87,11 +87,15 @@ impl Context {
         }
     }
 
-    pub fn get_var_loc_value(&self, var: &CachedString) -> LocValue {
-        LocValue {
-            val: self.values[var].clone(),
+    pub fn get_var_loc_value(&self, var: &CachedString) -> Option<LocValue> {
+        let val = match self.values.get(var) {
+            None => return None,
+            Some(v) => v.clone(),
+        };
+        Some(LocValue {
+            val: val,
             loc: Location::Var(VarLoc { var: var.clone() }),
-        }
+        })
     }
 
     pub fn get_loc_value(&self, val: Value, loc: Location) -> LocValue {
@@ -182,6 +186,14 @@ impl Context {
 
         (Arc::new(new_graph), node)
     }
+
+    pub fn variable_count(&self) -> usize {
+        self.values.len()
+    }
+
+    pub fn variables(&self) -> std::collections::hash_map::Keys<Arc<String>, Value> {
+        self.values.keys()
+    }
 }
 
 impl Hash for Context {
@@ -225,6 +237,12 @@ pub struct ContextArray {
     inner: Vec<Context>,
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub enum Matches {
+    SAME,
+    MATCHES,
+    CONFLICT,
+}
 
 impl ContextArray {
     pub fn len(&self) -> usize {
@@ -239,6 +257,135 @@ impl ContextArray {
         self.inner.get_mut(index)
     }
 
+    pub fn matches(&self, other: &Self) -> Matches {
+        debug_assert_eq!(self.len(), other.len());
+        if self.inner == other.inner {
+            return Matches::SAME;
+        }
+        for (self_ctx, other_ctx) in self.inner.iter().zip(other.inner.iter()) {
+            for (key, value) in self_ctx.values.iter() {
+                if let Some(other_value) = other_ctx.values.get(key) {
+                    if value != other_value {
+                        return Matches::CONFLICT;
+                    }
+                }
+            }
+        }
+
+        return Matches::MATCHES;
+    }
+
+    pub fn merge(&self, other: &Self) -> Self {
+        let mut merged = Vec::with_capacity(self.len());
+
+        for (self_ctx, other_ctx) in self.inner.iter().zip(other.inner.iter()) {
+            let mut merged_values = (*self_ctx.values).clone();
+            for (key, value) in other_ctx.values.iter() {
+                if !merged_values.contains_key(key) {
+                    merged_values.insert(key.clone(), value.clone());
+                }
+            }
+            merged.push(Context::with_values(merged_values));
+        }
+
+        Self {
+            inner: merged,
+            depth: max(self.depth, other.depth),
+        }
+    }
+
+    pub fn merge_in_place(&mut self, other: &Self) {
+        if self[0].variables().eq(other[0].variables()) {
+            return;
+        }
+        for (self_ctx, other_ctx) in self.inner.iter_mut().zip(other.inner.iter()) {
+            let mut merged_values = (*self_ctx.values).clone();
+            for (key, value) in other_ctx.values.iter() {
+                if !merged_values.contains_key(key) {
+                    merged_values.insert(key.clone(), value.clone());
+                }
+            }
+            self_ctx.set_values(merged_values)
+        }
+
+        self.depth = max(self.depth, other.depth)
+    }
+
+    pub(crate) fn contained(&self, other: &ContextArray) -> bool {
+        for (self_ctx, other_ctx) in self.inner.iter().zip(other.inner.iter()) {
+            for (key, value) in self_ctx.values.iter() {
+                if let Some(other_value) = other_ctx.values.get(key) {
+                    if value != other_value {
+                        return false;
+                    }
+                } else {
+                    return false;
+                }
+            }
+        }
+
+        true
+    }
+
+    fn add_connected_variables(
+        obj_value: &ObjectValue,
+        syn_ctx: &SynthesizerContext,
+        variables_closure: &mut HashSet<Arc<String>>,
+    ) {
+        for (root_var, _) in obj_value.graph.roots() {
+            if syn_ctx.all_variables.contains_key(root_var) {
+                variables_closure.insert(root_var.clone());
+            }
+        }
+    }
+
+    // Returns a list of the input variables and all of the variables which connect to them
+    fn get_closure_of_variables<'a, I>(
+        &self,
+        required_variables: I,
+        syn_ctx: &SynthesizerContext,
+    ) -> Option<HashSet<Arc<String>>>
+    where
+        I: IntoIterator<Item = &'a CachedString>,
+    {
+        let mut variables_closure = HashSet::new();
+        for var in required_variables {
+            for ctx in self.iter() {
+                variables_closure.insert(var.clone());
+                if let Some(obj_value) = ctx.values.get(var)?.obj() {
+                    Self::add_connected_variables(obj_value, &syn_ctx, &mut variables_closure);
+                }
+            }
+        }
+
+        Some(variables_closure)
+    }
+
+    pub(crate) fn get_partial_context<'a, I>(
+        &self,
+        required_variables: I,
+        syn_ctx: &SynthesizerContext,
+    ) -> Option<Self>
+    where
+        I: IntoIterator<Item = &'a CachedString>,
+    {
+        let mut ctxs = Vec::<Context>::with_capacity(self.len());
+        let needed_variables = self.get_closure_of_variables(required_variables, syn_ctx)?;
+
+        for ctx in self.iter() {
+            let mut values = HashMap::with_capacity(needed_variables.len());
+            for var in &needed_variables {
+                let var_value = ctx.values[var].clone();
+                values.insert(var.clone(), var_value);
+            }
+            ctxs.push(Context::with_values(values));
+        }
+
+        Some(Self {
+            inner: ctxs,
+            depth: self.depth,
+        })
+    }
 
     pub fn verify_contexts_vector(&self) -> bool {
         true

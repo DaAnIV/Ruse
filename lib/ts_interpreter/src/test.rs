@@ -60,9 +60,7 @@ mod ts_simple_opcodes_tests {
         let syn_ctx = SynthesizerContext::from_context_array(ctx_arr, cache.clone());
         let ctx = &syn_ctx.start_context[0];
         let mut out_ctx = ctx.clone();
-        let evaluator = IdentOp {
-            name: str_cached!(cache; "x"),
-        };
+        let evaluator = IdentOp::new(str_cached!(cache; "x"));
         let out = evaluator.eval(&[], &mut out_ctx, &syn_ctx).unwrap();
         assert_eq!(out.val(), &vnum!(Number::from(7u64)));
     }
@@ -73,9 +71,7 @@ mod ts_simple_opcodes_tests {
         let ctx_arr = context_array![[(str_cached!(cache; "x"), vnum!(Number::from(7u64)))]];
         let syn_ctx = SynthesizerContext::from_context_array(ctx_arr, cache.clone());
         let ctx = &syn_ctx.start_context[0];
-        let id = IdentOp {
-            name: str_cached!(cache; "x"),
-        };
+        let id = IdentOp::new(str_cached!(cache; "x"));
         let op = UpdateOp {
             op: ast::UpdateOp::PlusPlus,
             prefix: true,
@@ -86,7 +82,9 @@ mod ts_simple_opcodes_tests {
         let mut update_out_ctx = id_out_ctx.clone();
         let out = op.eval(&[&x_val], &mut update_out_ctx, &syn_ctx).unwrap();
         assert_eq!(
-            ctx.get_var_loc_value(&id.name).val(),
+            ctx.get_var_loc_value(&id.name)
+                .expect("Didn't find var")
+                .val(),
             &vnum!(Number::from(7u64))
         );
         assert_eq!(x_val.val(), &vnum!(Number::from(7u64)));
@@ -99,7 +97,10 @@ mod ts_simple_opcodes_tests {
         assert_eq!(out.val(), &vnum!(Number::from(8u64)));
         assert_eq!(out.loc(), &Location::Temp);
         assert_eq!(
-            update_out_ctx.get_var_loc_value(&id.name).val(),
+            update_out_ctx
+                .get_var_loc_value(&id.name)
+                .expect("Didn't find var")
+                .val(),
             &vnum!(Number::from(8u64))
         );
     }
@@ -110,9 +111,7 @@ mod ts_simple_opcodes_tests {
         let ctx_arr = context_array![[(str_cached!(cache; "x"), vnum!(Number::from(7u64)))]];
         let syn_ctx = SynthesizerContext::from_context_array(ctx_arr, cache.clone());
         let ctx = &syn_ctx.start_context[0];
-        let id = IdentOp {
-            name: str_cached!(cache; "x"),
-        };
+        let id = IdentOp::new(str_cached!(cache; "x"));
         let op = UpdateOp {
             op: ast::UpdateOp::PlusPlus,
             prefix: false,
@@ -123,7 +122,9 @@ mod ts_simple_opcodes_tests {
         let mut update_out_ctx = id_out_ctx.clone();
         let out = op.eval(&[&x_val], &mut update_out_ctx, &syn_ctx).unwrap();
         assert_eq!(
-            ctx.get_var_loc_value(&id.name).val(),
+            ctx.get_var_loc_value(&id.name)
+                .expect("Didn't find var")
+                .val(),
             &vnum!(Number::from(7u64))
         );
         assert_eq!(x_val.val(), &vnum!(Number::from(7u64)));
@@ -136,7 +137,10 @@ mod ts_simple_opcodes_tests {
         assert_eq!(out.val(), &vnum!(Number::from(7u64)));
         assert_eq!(out.loc(), &Location::Temp);
         assert_eq!(
-            update_out_ctx.get_var_loc_value(&id.name).val(),
+            update_out_ctx
+                .get_var_loc_value(&id.name)
+                .expect("Didn't find var")
+                .val(),
             &vnum!(Number::from(8u64))
         );
     }
@@ -220,17 +224,47 @@ mod ts_class_tests {
         let student_class = classes.get_class(&student_class_name).unwrap();
         let class_class = classes.get_class(&class_class_name).unwrap();
 
-        assert!(student_class.fields.get(&str_cached!(cache; "name")).is_some());
-        assert!(student_class.fields.get(&str_cached!(cache; "surname")).is_some());
-        assert!(student_class.fields.get(&str_cached!(cache; "age")).is_some());
-        assert!(student_class.fields.get(&str_cached!(cache; "grades")).is_some());
-        assert!(class_class.fields.get(&str_cached!(cache; "students")).is_some());
+        assert!(student_class
+            .fields
+            .get(&str_cached!(cache; "name"))
+            .is_some());
+        assert!(student_class
+            .fields
+            .get(&str_cached!(cache; "surname"))
+            .is_some());
+        assert!(student_class
+            .fields
+            .get(&str_cached!(cache; "age"))
+            .is_some());
+        assert!(student_class
+            .fields
+            .get(&str_cached!(cache; "grades"))
+            .is_some());
+        assert!(class_class
+            .fields
+            .get(&str_cached!(cache; "students"))
+            .is_some());
 
-        assert_eq!(student_class.fields[&str_cached!(cache; "name")], ValueType::String);
-        assert_eq!(student_class.fields[&str_cached!(cache; "surname")], ValueType::String);
-        assert_eq!(student_class.fields[&str_cached!(cache; "age")], ValueType::Number);
-        assert_eq!(student_class.fields[&str_cached!(cache; "grades")], ValueType::array_value_type(&ValueType::Number, &cache));
-        assert_eq!(class_class.fields[&str_cached!(cache; "students")], ValueType::array_value_type(&student_class.obj_type(), &cache));
+        assert_eq!(
+            student_class.fields[&str_cached!(cache; "name")],
+            ValueType::String
+        );
+        assert_eq!(
+            student_class.fields[&str_cached!(cache; "surname")],
+            ValueType::String
+        );
+        assert_eq!(
+            student_class.fields[&str_cached!(cache; "age")],
+            ValueType::Number
+        );
+        assert_eq!(
+            student_class.fields[&str_cached!(cache; "grades")],
+            ValueType::array_value_type(&ValueType::Number, &cache)
+        );
+        assert_eq!(
+            class_class.fields[&str_cached!(cache; "students")],
+            ValueType::array_value_type(&student_class.obj_type(), &cache)
+        );
     }
 
     #[test]

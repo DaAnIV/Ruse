@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
-use dashmap::{DashMap, DashSet, Map, SharedValue};
+use dashmap::{DashMap, Map, SharedValue};
+
+use std::hash::Hash;
 
 use crate::{
     prog::SubProgram,
@@ -9,10 +11,37 @@ use crate::{
 
 pub type ValueArray = Arc<Vec<LocValue>>;
 
+#[derive(Debug, Clone)]
+pub(crate) struct Output(Arc<SubProgram>);
+
+impl From<Arc<SubProgram>> for Output {
+    fn from(value: Arc<SubProgram>) -> Self {
+        Self(value)
+    }
+}
+
+impl Eq for Output {}
+
+impl PartialEq for Output {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.out_type() == other.0.out_type()
+            && self.0.out_value() == other.0.out_value()
+            && self.0.pre_ctx().contained(other.0.pre_ctx())
+            && self.0.post_ctx().contained(other.0.post_ctx())
+    }
+}
+
+impl Hash for Output {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.0.out_type().hash(state);
+        self.0.out_value().hash(state);
+    }
+}
+
 // The bank is hierarchical
 // iteration -> out_type -> sub_prog
 
-pub(crate) type ValueMap = DashSet<Arc<SubProgram>>;
+pub(crate) type ValueMap = DashMap<Output, Arc<SubProgram>>;
 
 #[derive(Default, Debug)]
 pub struct TypeMap(pub(crate) DashMap<ValueType, Arc<ValueMap>>);
@@ -20,7 +49,12 @@ pub struct TypeMap(pub(crate) DashMap<ValueType, Arc<ValueMap>>);
 impl TypeMap {
     pub fn insert_program(&self, p: Arc<SubProgram>) -> bool {
         let value_map = self.get_or_insert_value_map(&p.out_type());
-        value_map.insert(p)
+        let output: Output = p.clone().into();
+        if !value_map.contains_key(&output) {
+            value_map.insert(output, p);
+            return true;
+        }
+        return false;
     }
 
     fn get_or_insert_value_map(&self, value_type: &ValueType) -> Arc<ValueMap> {
@@ -38,7 +72,10 @@ impl TypeMap {
     pub fn contains(&self, p: &Arc<SubProgram>) -> bool {
         match self.0.get(&p.out_type()) {
             None => false,
-            Some(values) => values.contains(p),
+            Some(values) => {
+                let output: Output = p.clone().into();
+                values.contains_key(&output)
+            }
         }
     }
 }
@@ -74,7 +111,7 @@ impl ProgBank {
             println!("Iteration {}", i);
             for values in type_map.0.iter() {
                 for p in values.value().iter() {
-                    println!("{}", p)
+                    println!("{}", p.value())
                 }
             }
         }

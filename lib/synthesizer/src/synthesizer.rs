@@ -198,9 +198,7 @@ impl Synthesizer {
                 Some(p) => p,
                 None => continue,
             };
-            if iteration_map.insert_program(p) {
-                self.statistics.inc_value(StatisticsTypes::BankSize);
-            }
+            self.check_and_insert_program(p, iteration_map);
         }
 
         self.statistics.inc_value(StatisticsTypes::ContextSize);
@@ -210,8 +208,13 @@ impl Synthesizer {
         let child_token = this.cancel_token.child_token();
         WorkGather::new(
             Arc::new(
-                move |op: Arc<dyn ExprOpcode>, children: Vec<Arc<SubProgram>>| {
-                    let p = match this.get_program_from_composite_opcode(op, children) {
+                move |op: Arc<dyn ExprOpcode>,
+                      pre_ctx: ContextArray,
+                      children: Vec<Arc<SubProgram>>,
+                      post_ctx: ContextArray| {
+                    let p = match this
+                        .get_program_from_composite_opcode(pre_ctx, op, post_ctx, children)
+                    {
                         Some(p) => p,
                         None => return None,
                     };
@@ -224,7 +227,7 @@ impl Synthesizer {
                         // println!("{} initializes a new context {:?}", p.get_code(), p.post_ctx());
                         this.init_context(current_iteration_map.as_ref(), p.post_ctx());
                     }
-                    if &this.context.start_context == p.pre_ctx() && (this.predicate)(&p) {
+                    if p.pre_ctx().contained(&this.context.start_context) && (this.predicate)(&p) {
                         return Some(p);
                     }
 
@@ -316,12 +319,14 @@ impl Synthesizer {
 
     fn get_program_from_composite_opcode(
         &self,
+        pre_ctx: ContextArray,
         op: Arc<dyn ExprOpcode>,
+        post_ctx: ContextArray,
         args: Vec<Arc<SubProgram>>,
     ) -> Option<Arc<SubProgram>> {
         debug_assert!(op.arg_types().len() > 0);
 
-        let mut p = SubProgram::with_opcode_and_children(op, args);
+        let mut p = SubProgram::with_opcode_and_children(op, args, pre_ctx, post_ctx);
         match self.evaluate_program(&mut p) {
             true => Some(p),
             false => None,
@@ -335,7 +340,9 @@ impl Synthesizer {
     ) -> Option<Arc<SubProgram>> {
         debug_assert!(op.arg_types().len() == 0);
 
-        let mut p = SubProgram::with_opcode_and_context(op.clone(), ctx);
+        let pre_ctx = ctx.get_partial_context(op.required_variables(), &self.context)?;
+        let post_ctx = pre_ctx.clone();
+        let mut p = SubProgram::with_opcode(op.clone(), pre_ctx, post_ctx);
         match self.evaluate_program(&mut p) {
             true => Some(p),
             false => None,

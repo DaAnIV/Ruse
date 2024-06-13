@@ -61,7 +61,7 @@ pub fn construct_opcode_list(
 
     // Add variable access
     for var in var_names {
-        let op = Arc::new(opcode::IdentOp { name: var.clone() });
+        let op = Arc::new(opcode::IdentOp::new(var.clone()));
         opcodes.push(op);
     }
 

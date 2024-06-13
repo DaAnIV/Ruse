@@ -11,6 +11,16 @@ use super::TsExprAst;
 #[derive(Debug)]
 pub struct IdentOp {
     pub name: CachedString,
+    required_args: [CachedString; 1],
+}
+
+impl IdentOp {
+    pub fn new(var_name: CachedString) -> Self {
+        Self {
+            name: var_name.clone(),
+            required_args: [var_name]
+        }
+    }
 }
 
 impl ExprOpcode for IdentOp {
@@ -22,7 +32,7 @@ impl ExprOpcode for IdentOp {
     ) -> EvalResult {
         debug_assert_eq!(args.len(), 0);
 
-        EvalResult::NoModification(post_ctx.get_var_loc_value(&self.name).)
+        post_ctx.get_var_loc_value(&self.name).into()
     }
 
     fn to_ast(&self, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst> {
@@ -41,7 +51,7 @@ impl ExprOpcode for IdentOp {
         &[]
     }
 
-    fn required_variables(&self) -> Vec<&CachedString> {
-        return vec![&self.name];
+    fn required_variables(&self) -> &[CachedString] {
+        &self.required_args
     }
 }

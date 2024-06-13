@@ -4,8 +4,8 @@ use std::fmt::Display;
 use std::hash::Hash;
 use std::sync::Arc;
 
-use ruse_object_graph::Cache;
-
+use crate::bank::ValueArray;
+use crate::context;
 use crate::context::ContextArray;
 use crate::context::SynthesizerContext;
 use crate::opcode::*;
@@ -57,12 +57,7 @@ fn verify_children(opcode: &Arc<dyn ExprOpcode>, children: &[Arc<SubProgram>]) -
     for i in 1..children.len() {
         let prev = &children[i - 1];
         let cur = &children[i];
-        if prev
-            .post_ctx()
-            .iter()
-            .zip(cur.pre_ctx().iter())
-            .any(|(post, pre)| post != pre)
-        {
+        if prev.post_ctx().matches(cur.pre_ctx()) == context::Matches::CONFLICT {
             return false;
         }
     }
@@ -74,14 +69,14 @@ impl SubProgram {
     pub fn with_opcode_and_children(
         opcode: Arc<dyn ExprOpcode>,
         children: Vec<Arc<SubProgram>>,
+        pre_ctx: ContextArray,
+        post_ctx: ContextArray,
     ) -> Arc<Self> {
         assert!(children.len() > 0);
         debug_assert!(verify_children(&opcode, &children));
 
         let size = children.iter().fold(0, |acc, x| acc + x.size) + 1;
         let depth = children.iter().fold(0, |acc, x| max(acc, x.depth)) + 1;
-        let pre_ctx = children.first().unwrap().pre_ctx().clone();
-        let post_ctx = children.last().unwrap().post_ctx().clone();
 
         Arc::new(Self {
             opcode: opcode,
@@ -92,14 +87,15 @@ impl SubProgram {
 
             out_type: None,
             pre_ctx: pre_ctx,
-            post_ctx: None,
+            post_ctx: post_ctx,
             out_value: None,
         })
     }
 
-    pub fn with_opcode_and_context(
+    pub fn with_opcode(
         opcode: Arc<dyn ExprOpcode>,
-        context: &ContextArray,
+        pre_ctx: ContextArray,
+        post_ctx: ContextArray,
     ) -> Arc<Self> {
         Arc::new(Self {
             opcode: opcode,
@@ -109,8 +105,8 @@ impl SubProgram {
             depth: 1,
 
             out_type: None,
-            pre_ctx: context.clone(),
-            post_ctx: context.clone(),
+            pre_ctx: pre_ctx,
+            post_ctx: post_ctx,
             out_value: None,
         })
     }

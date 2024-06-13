@@ -3,6 +3,7 @@ use std::{any::Any, fmt::Debug};
 use crate::context::{Context, SynthesizerContext};
 
 use super::value::{LocValue, ValueType};
+use ruse_object_graph::CachedString;
 
 pub trait ExprAst: Any {
     fn to_string(&self) -> String;
@@ -39,6 +40,8 @@ impl From<Option<LocValue>> for EvalResult {
     }
 }
 
+const NO_REQUIRED_VARIABLES: [CachedString; 0] = [];
+
 pub trait ExprOpcode: Debug + Sync + Send {
     fn arg_types(&self) -> &[ValueType];
 
@@ -52,4 +55,8 @@ pub trait ExprOpcode: Debug + Sync + Send {
         syn_ctx: &SynthesizerContext,
     ) -> EvalResult;
     fn to_ast(&self, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst>;
+
+    fn required_variables(&self) -> &[CachedString] {
+        return &NO_REQUIRED_VARIABLES;
+    }
 }
