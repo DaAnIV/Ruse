@@ -153,8 +153,8 @@ impl Context {
         }
     }
 
-    pub fn get_keys<'a>(&'a self) -> Box<dyn Iterator<Item = &CachedString> + 'a> {
-        Box::new(self.values.keys())
+    pub fn get_keys<'a>(&'a self) -> impl Iterator<Item = &CachedString> {
+        self.values.keys()
     }
 
     pub fn set_field(
@@ -191,7 +191,7 @@ impl Context {
         self.values.len()
     }
 
-    pub fn variables(&self) -> std::collections::hash_map::Keys<Arc<String>, Value> {
+    pub fn variables(&self) -> impl std::iter::Iterator<Item = &Arc<String>> {
         self.values.keys()
     }
 }

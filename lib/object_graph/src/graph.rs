@@ -250,8 +250,8 @@ impl ObjectGraph {
         self.roots[r]
     }
 
-    pub fn roots<'a>(&'a self) -> Box<dyn Iterator<Item = (&CachedString, &NodeIndex)> + 'a> {
-        Box::new(self.roots.iter())
+    pub fn roots<'a>(&'a self) -> impl Iterator<Item = (&CachedString, &NodeIndex)> {
+        self.roots.iter()
     }
 
     pub fn node_count(&self) -> usize {
