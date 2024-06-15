@@ -41,73 +41,95 @@ impl Hash for Output {
 // The bank is hierarchical
 // iteration -> out_type -> sub_prog
 
-pub(crate) type ValueMap = DashMap<Output, Arc<SubProgram>>;
+#[derive(Debug)]
+pub(crate) struct ProgramsMap(DashMap<Output, Arc<SubProgram>>);
 
-#[derive(Default, Debug)]
-pub struct TypeMap(pub(crate) DashMap<ValueType, Arc<ValueMap>>);
-
-impl TypeMap {
-    pub fn insert_program(&self, p: Arc<SubProgram>) -> bool {
-        let value_map = self.get_or_insert_value_map(&p.out_type());
-        let output: Output = p.clone().into();
-        if !value_map.contains_key(&output) {
-            value_map.insert(output, p);
-            return true;
+impl ProgramsMap {
+    fn new() -> Self {
+        Self {
+            0: DashMap::<Output, Arc<SubProgram>>::new()
         }
-        return false;
     }
 
-    fn get_or_insert_value_map(&self, value_type: &ValueType) -> Arc<ValueMap> {
+    fn insert(&self, p: Arc<SubProgram>) -> bool {
+        let output: Output = p.clone().into();
+        let idx = self.0.determine_map(&output);
+        let mut shard = unsafe { self.0._yield_write_shard(idx) };
+        if shard.get_key_value(&output).is_some() {
+            false
+        } else {
+            shard.insert(output, SharedValue::new(p));
+            true
+        }
+    }
+
+    fn contains(&self, p: &Arc<SubProgram>) -> bool {
+        let output: Output = p.clone().into();
+        self.0.contains_key(&output)
+    }
+
+    pub fn iter(&self) -> dashmap::iter::Iter<Output, Arc<SubProgram>> {
+        self.0.iter()
+    }
+}
+
+#[derive(Default, Debug)]
+pub struct TypeMap(DashMap<ValueType, Arc<ProgramsMap>>);
+
+impl TypeMap {
+    pub(crate) fn insert_program(&self, p: Arc<SubProgram>) -> bool {
+        let programs_map = self.get_or_insert_programs_map(&p.out_type());
+        programs_map.insert(p)
+    }
+
+    fn get_or_insert_programs_map(&self, value_type: &ValueType) -> Arc<ProgramsMap> {
         let idx = self.0.determine_map(value_type);
         let mut shard = unsafe { self.0._yield_write_shard(idx) };
         if let Some((_, vptr)) = shard.get_key_value(value_type) {
             vptr.get().clone()
         } else {
-            let m = Arc::new(ValueMap::new());
+            let m = Arc::new(ProgramsMap::new());
             shard.insert(value_type.clone(), SharedValue::new(m.clone()));
             m
         }
     }
 
-    pub fn contains(&self, p: &Arc<SubProgram>) -> bool {
+    pub(crate) fn contains(&self, p: &Arc<SubProgram>) -> bool {
         match self.0.get(&p.out_type()) {
             None => false,
             Some(values) => {
-                let output: Output = p.clone().into();
-                values.contains_key(&output)
+                values.contains(p)
             }
         }
+    }
+
+    pub(crate) fn get(&self, value_type: &ValueType) -> Option<dashmap::mapref::one::Ref<ValueType, Arc<ProgramsMap>>> {
+        self.0.get(value_type)
     }
 }
 
 #[derive(Default)]
-pub struct ProgBank {
-    pub(crate) bank: Vec<Arc<TypeMap>>,
-}
+pub struct ProgBank(Vec<Arc<TypeMap>>);
 
 impl ProgBank {
     pub fn output_exists(&self, p: &Arc<SubProgram>) -> bool {
-        (&self.bank)
+        (&self.0)
             .into_iter()
             .any(|type_map| type_map.contains(p))
     }
 
-    pub fn get(&self, iteration: usize) -> Option<&Arc<TypeMap>> {
-        self.bank.get(iteration)
-    }
-
     #[inline]
-    pub fn insert(&mut self, type_map: Arc<TypeMap>) {
-        self.bank.push(type_map);
+    pub(crate) fn insert(&mut self, type_map: Arc<TypeMap>) {
+        self.0.push(type_map);
     }
 
     #[inline]
     pub fn iteration_count(&self) -> usize {
-        self.bank.len()
+        self.0.len()
     }
 
     pub fn print_all_programs(&self) {
-        for (i, type_map) in self.bank.iter().enumerate() {
+        for (i, type_map) in self.0.iter().enumerate() {
             println!("Iteration {}", i);
             for values in type_map.0.iter() {
                 for p in values.value().iter() {
@@ -115,5 +137,13 @@ impl ProgBank {
                 }
             }
         }
+    }
+}
+
+impl std::ops::Index<usize> for ProgBank {
+    type Output = Arc<TypeMap>;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.0[index]
     }
 }

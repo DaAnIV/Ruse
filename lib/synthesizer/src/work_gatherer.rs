@@ -1,11 +1,10 @@
-use dashmap::DashMap;
 use futures::{future::BoxFuture, FutureExt};
 use itertools::Itertools;
 use std::{collections::HashSet, mem::replace, sync::Arc};
 use tokio_util::sync::CancellationToken;
 
 use crate::{
-    bank::{Output, ProgBank},
+    bank::{ProgBank, ProgramsMap},
     context::{self, ContextArray},
     opcode::ExprOpcode,
     prog::SubProgram,
@@ -66,7 +65,7 @@ impl WorkGather {
     }
 
     async fn add_all_tasks(&mut self, bank: &ProgBank, op: &Arc<dyn ExprOpcode>) {
-        if bank.bank.len() == 1 {
+        if bank.iteration_count() == 1 {
             self.gather_work_for_iterations(bank, op, vec![0; op.arg_types().len()])
                 .await
         } else {
@@ -85,7 +84,7 @@ impl WorkGather {
         op: &Arc<dyn ExprOpcode>,
         cutoff: usize,
     ) {
-        let last_iteration = bank.bank.len() - 1;
+        let last_iteration = bank.iteration_count() - 1;
         let iterations_iterator = (0..op.arg_types().len())
             .map(|i| {
                 if i == cutoff {
@@ -114,7 +113,7 @@ impl WorkGather {
         let arg_types = op.arg_types();
 
         for i in 0..op.arg_types().len() {
-            if let Some(values) = bank.bank[iterations[i]].0.get(&arg_types[i]) {
+            if let Some(values) = bank[iterations[i]].get(&arg_types[i]) {
                 programs.push(values.value().clone())
             } else {
                 return;
@@ -127,7 +126,7 @@ impl WorkGather {
     fn gather_work_for_maps<'a>(
         &'a mut self,
         op: &'a Arc<dyn ExprOpcode>,
-        maps: &'a [Arc<DashMap<Output, Arc<SubProgram>>>],
+        maps: &'a [Arc<ProgramsMap>],
     ) -> BoxFuture<'a, ()> {
         let i = self.children.len();
 
