@@ -6,6 +6,7 @@ use crate::{
     context::{ContextArray, SynthesizerContext},
     opcode::ExprOpcode,
     prog::SubProgram,
+    value::Value,
     work_gatherer::WorkGather,
 };
 use std::{
@@ -19,6 +20,8 @@ use serde::ser::SerializeStruct;
 use tokio_util::sync::CancellationToken;
 
 pub type OpcodesList = Vec<Arc<dyn ExprOpcode>>;
+
+const ALLOW_NON_FINITE_NUMBER: bool = false;
 
 #[repr(usize)]
 #[derive(Clone, Copy, Debug)]
@@ -350,11 +353,25 @@ impl Synthesizer {
         if p.post_ctx().depth > self.max_context_depth {
             return false;
         }
+        if !p.out_value().iter().all(|x| self.check_out_value(x.val())) {
+            return false;
+        }
+
         if self.bank.output_exists(p) {
             return false;
         }
         if !(self.valid)(p) {
             return false;
+        }
+
+        return true;
+    }
+
+    fn check_out_value(&self, val: &Value) -> bool {
+        if let Some(num) = val.number_value() {
+            if !ALLOW_NON_FINITE_NUMBER && !num.0.is_finite() {
+                return false;
+            }
         }
 
         return true;
