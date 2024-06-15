@@ -11,6 +11,7 @@ pub struct BenchmarkConfig {
     pub timeout: Duration,
     pub max_iterations: u32,
     pub print_inserted_programs: bool,
+    pub multi_thread: bool,
 }
 
 fn workspace_dir() -> PathBuf {
@@ -38,7 +39,8 @@ impl Default for BenchmarkConfig {
             output: output_dir,
             timeout: Duration::from_secs(300),
             max_iterations: 5,
-            print_inserted_programs: false
+            print_inserted_programs: false,
+            multi_thread: true
         }
     }
 }

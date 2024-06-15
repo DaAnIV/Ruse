@@ -53,6 +53,9 @@ struct Cli {
 
     #[arg(long, default_value_t = false)]
     print_all_programs: bool,
+
+    #[arg(long, default_value_t = false)]
+    not_multi_thread: bool,
 }
 
 struct TimeoutError {}
@@ -100,11 +103,17 @@ async fn run_synthesizer(
     println!("Benchmark took {:.3}s", took.as_secs_f32());
 }
 
-async fn run_task(
-    path: &Path,
-    cache: Arc<Cache>,
-    bench_config: &BenchmarkConfig,
-) -> BenchmarkResult {
+fn get_tokio_runtime(bench_config: &BenchmarkConfig) -> tokio::runtime::Runtime {
+    let mut runtime_builder = if bench_config.multi_thread {
+        tokio::runtime::Builder::new_multi_thread()
+    } else {
+        tokio::runtime::Builder::new_current_thread()
+    };
+
+    runtime_builder.enable_all().build().unwrap()
+}
+
+fn run_task(path: &Path, cache: Arc<Cache>, bench_config: &BenchmarkConfig) -> BenchmarkResult {
     let task_name = path.file_name().unwrap().to_str().unwrap();
     let mut result = BenchmarkResult::new(task_name);
 
@@ -127,23 +136,28 @@ async fn run_task(
     };
     println!("{}", task_name);
 
-    let cancel_token = synthesizer.get_cancel_token();
-    let timeout = tokio::time::timeout(
-        bench_config.timeout,
-        run_synthesizer(
-            &mut synthesizer,
-            &mut result,
-            bench_config.max_iterations,
-            cancel_token.child_token(),
-        ),
-    );
-    if let Err(e) = timeout.await {
-        eprintln!("Reached timeout");
-        cancel_token.cancel();
-        result.error(&e);
-        result.add_iteration(Duration::from_secs(0), synthesizer.statistics());
-        result.finish(None, bench_config.timeout, synthesizer.statistics());
-    }
+    let runtime = get_tokio_runtime(bench_config);
+
+    runtime.block_on(async {
+        let cancel_token = synthesizer.get_cancel_token();
+        let timeout = tokio::time::timeout(
+            bench_config.timeout,
+            run_synthesizer(
+                &mut synthesizer,
+                &mut result,
+                bench_config.max_iterations,
+                cancel_token.child_token(),
+            ),
+        );
+        if let Err(e) = timeout.await {
+            eprintln!("Reached timeout");
+            cancel_token.cancel();
+            result.error(&e);
+            result.add_iteration(Duration::from_secs(0), synthesizer.statistics());
+            result.finish(None, bench_config.timeout, synthesizer.statistics());
+        }
+    });
+    
     if bench_config.print_inserted_programs {
         synthesizer.print_all_programs()
     }
@@ -151,8 +165,7 @@ async fn run_task(
     return result;
 }
 
-#[tokio::main]
-async fn main() -> ExitCode {
+fn main() -> ExitCode {
     let cli = Cli::parse();
     let bench_config = BenchmarkConfig {
         benchmarks: cli.benchmarks,
@@ -160,6 +173,7 @@ async fn main() -> ExitCode {
         timeout: Duration::from_secs(cli.timeout),
         max_iterations: cli.max_iterations,
         print_inserted_programs: cli.print_all_programs,
+        multi_thread: !cli.not_multi_thread,
     };
     print!("{}", bench_config);
 
@@ -175,12 +189,12 @@ async fn main() -> ExitCode {
                 })
             {
                 let cache = Arc::new(Cache::new());
-                let result = run_task(entry.path(), cache.clone(), &bench_config).await;
+                let result = run_task(entry.path(), cache.clone(), &bench_config);
                 writer.write_result(&result);
             }
         } else {
             let cache = Arc::new(Cache::new());
-            let result = run_task(benchmark.as_path(), cache.clone(), &bench_config).await;
+            let result = run_task(benchmark.as_path(), cache.clone(), &bench_config);
             writer.write_result(&result);
         }
     }
