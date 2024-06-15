@@ -186,7 +186,6 @@ impl Synthesizer {
             statistics: Default::default(),
         };
 
-        new_obj.found_contexts.insert(start_context);
         new_obj.statistics.inc_value(StatisticsTypes::ContextSize);
         new_obj
     }
@@ -195,16 +194,27 @@ impl Synthesizer {
         self.cancel_token.clone()
     }
 
-    fn init_context(&self, iteration_map: &TypeMap, ctx: &ContextArray) {
+    fn init_context<const IS_START_CTX: bool>(
+        &self,
+        iteration_map: &TypeMap,
+        ctx: &ContextArray,
+    ) -> Option<Arc<SubProgram>> {
+        self.found_contexts.insert(ctx.clone());
         for op in &self.init_opcodes {
             let p = match self.get_program_from_init_opcode(op.clone(), ctx) {
                 Some(p) => p,
                 None => continue,
             };
-            self.check_and_insert_program(p, iteration_map);
+            self.found_contexts.insert(p.pre_ctx().clone());
+            if !self.check_and_insert_program(p.clone(), iteration_map) {
+                continue;
+            }
+            if IS_START_CTX && (self.predicate)(&p) {
+                return Some(p);
+            }
         }
 
-        self.statistics.inc_value(StatisticsTypes::ContextSize);
+        None
     }
 
     fn create_work_gatherer(this: Arc<Self>, current_iteration_map: Arc<TypeMap>) -> WorkGather {
@@ -224,11 +234,9 @@ impl Synthesizer {
                     if !this.check_and_insert_program(p.clone(), current_iteration_map.as_ref()) {
                         return None;
                     }
-                    // println!("Inserting {{{}}}[0] = {}", p.get_code(), p.out_value()[0].val());
 
                     if this.found_contexts.insert(p.post_ctx().clone()) {
-                        // println!("{} initializes a new context {:?}", p.get_code(), p.post_ctx());
-                        this.init_context(current_iteration_map.as_ref(), p.post_ctx());
+                        this.init_context::<false>(current_iteration_map.as_ref(), p.post_ctx());
                     }
                     if p.pre_ctx().contained(&this.context.start_context) && (this.predicate)(&p) {
                         return Some(p);
@@ -245,7 +253,8 @@ impl Synthesizer {
     pub async fn run_iteration(this: &mut Arc<Self>) -> Option<Arc<SubProgram>> {
         let current_iteration_map: Arc<TypeMap> = Default::default();
 
-        let found_prog = Self::run_iteration_inner(this.clone(), current_iteration_map.clone()).await;
+        let found_prog =
+            Self::run_iteration_inner(this.clone(), current_iteration_map.clone()).await;
 
         Self::insert_iteration(this, current_iteration_map);
 
@@ -268,25 +277,7 @@ impl Synthesizer {
     }
 
     fn run_init_iteration(&self, current_iteration_map: Arc<TypeMap>) -> Option<Arc<SubProgram>> {
-        for op in &self.init_opcodes {
-            let p = match self.get_program_from_init_opcode(op.clone(), &self.context.start_context)
-            {
-                Some(p) => p,
-                None => continue,
-            };
-            if !self.check_and_insert_program(p.clone(), &current_iteration_map) {
-                continue;
-            }
-            if self.found_contexts.insert(p.post_ctx().clone()) {
-                // println!("{} initializes a new context", p.get_code());
-                self.init_context(&current_iteration_map, p.post_ctx());
-            }
-            if (self.predicate)(&p) {
-                return Some(p);
-            }
-        }
-
-        None
+        self.init_context::<true>(&current_iteration_map, &self.context.start_context)
     }
 
     async fn run_composite_iteration(
