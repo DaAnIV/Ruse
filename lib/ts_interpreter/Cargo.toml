@@ -7,14 +7,12 @@ edition = "2021"
 ruse_object_graph = { path = "../object_graph" }
 ruse_synthesizer = { path = "../synthesizer" }
 
-petgraph = "^0.6.2"
 dashmap = "*"
 
 swc = "*"
 swc_common = {version = "*", features = ["tty-emitter"]}
 swc_ecma_parser = "*"
 swc_ecma_ast = "*"
-swc_visit = "*"
 anyhow = "*"
 
 html_parser = "*"

@@ -8,15 +8,14 @@ ruse_object_graph = { path = "../object_graph" }
 
 futures = "*"
 serde = "*"
-petgraph = "^0.6.2"
 dashmap = { version = "*", features = ["raw-api"]}
-rand = "*"
 tokio = { version = "*", features = ["rt", "macros"] }
 tokio-util = "*"
 itertools = "*"
 
 [dev-dependencies]
 criterion = "*"
+rand = "*"
 
 [[bench]]
 name = "benches"
