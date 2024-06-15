@@ -242,7 +242,7 @@ impl Synthesizer {
     pub async fn run_iteration(this: &mut Arc<Self>) -> Option<Arc<SubProgram>> {
         let current_iteration_map: Arc<TypeMap> = Default::default();
 
-        let found_prog = Self::run_iteration_inner(this, &current_iteration_map).await;
+        let found_prog = Self::run_iteration_inner(this.clone(), current_iteration_map.clone()).await;
 
         Self::insert_iteration(this, current_iteration_map);
 
@@ -250,17 +250,14 @@ impl Synthesizer {
     }
 
     pub async fn run_iteration_inner(
-        this: &mut Arc<Self>,
-        current_iteration_map: &Arc<TypeMap>,
+        this: Arc<Self>,
+        current_iteration_map: Arc<TypeMap>,
     ) -> Option<Arc<SubProgram>> {
-        let iteration = this.bank.iteration_count();
-        let this_clone = this.clone();
-        let current_iteration_map_clone: Arc<TypeMap> = current_iteration_map.clone();
         tokio::spawn(async move {
-            if iteration == 0 {
-                this_clone.run_init_iteration(current_iteration_map_clone)
+            if this.bank.iteration_count() == 0 {
+                this.run_init_iteration(current_iteration_map)
             } else {
-                Self::run_composite_iteration(this_clone, current_iteration_map_clone).await
+                Self::run_composite_iteration(this, current_iteration_map).await
             }
         })
         .await
@@ -309,7 +306,7 @@ impl Synthesizer {
         Arc::get_mut(this)
             .unwrap()
             .bank
-            .insert(current_iteration_map.into());
+            .insert(current_iteration_map);
     }
 
     fn evaluate_program(&self, p: &mut Arc<SubProgram>) -> bool {
