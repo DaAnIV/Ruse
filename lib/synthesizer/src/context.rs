@@ -371,6 +371,9 @@ impl ContextArray {
     {
         let mut ctxs = Vec::<Context>::with_capacity(self.len());
         let needed_variables = self.get_closure_of_variables(required_variables, syn_ctx)?;
+        if needed_variables.len() == self.len() {
+            return Some(self.clone());
+        }
 
         for ctx in self.iter() {
             let mut values = HashMap::with_capacity(needed_variables.len());
