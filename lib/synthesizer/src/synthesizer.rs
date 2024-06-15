@@ -186,7 +186,6 @@ impl Synthesizer {
             statistics: Default::default(),
         };
 
-        new_obj.statistics.inc_value(StatisticsTypes::ContextSize);
         new_obj
     }
 
@@ -205,7 +204,9 @@ impl Synthesizer {
                 Some(p) => p,
                 None => continue,
             };
-            self.found_contexts.insert(p.pre_ctx().clone());
+            if self.found_contexts.insert(p.pre_ctx().clone()) {
+                self.statistics.inc_value(StatisticsTypes::ContextSize);
+            }
             if !self.check_and_insert_program(p.clone(), iteration_map) {
                 continue;
             }
