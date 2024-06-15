@@ -5,6 +5,7 @@ pub type CachedString = Arc<String>;
 
 pub struct Cache {
     strings: DashMap<CachedString, CachedString>,
+    output_root_name: CachedString
 }
 
 static TEMP: atomic::AtomicU64 = atomic::AtomicU64::new(0);
@@ -25,9 +26,11 @@ fn get_or_insert_to_strings_set(strings: &DashMap<CachedString, CachedString>, s
 impl Cache {
     pub fn new() -> Self {
         let strings = Default::default();
+        let output_root_name = get_or_insert_to_strings_set(&strings, "____output_root_name".to_string().into());
 
         Self {
             strings: strings,
+            output_root_name: output_root_name
         }
     }
 
@@ -35,6 +38,10 @@ impl Cache {
         let val = TEMP.fetch_add(1, atomic::Ordering::Relaxed);
         let str = format!("____temp_str_{val}");
         self.get_or_insert_string(str)
+    }
+
+    pub fn output_root_name(&self) -> &CachedString {
+        &self.output_root_name
     }
 
     pub fn get_or_insert_str(&self, str: &str) -> CachedString {

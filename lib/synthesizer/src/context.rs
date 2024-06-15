@@ -48,6 +48,10 @@ impl SynthesizerContext {
     pub fn variables_count(&self) -> usize {
         self.all_variables.len()
     }
+    
+    pub fn output_root_name(&self) -> &CachedString {
+        self.cache.output_root_name()
+    }
 }
 
 #[derive(Clone, Debug)]

@@ -88,7 +88,8 @@ impl ExprOpcode for ArrayLitOp {
     ) -> EvalResult {
         let values = args.into_iter().map(|val| (val.val().clone()));
 
-        let arr = Value::create_array_object(&self.elem_type, values, &syn_ctx.cache);
+        let mut arr = Value::create_array_object(&self.elem_type, values, &syn_ctx.cache);
+        arr.mut_obj().unwrap().set_as_graph_root(syn_ctx.output_root_name().clone());
 
         EvalResult::NoModification(post_ctx.temp_value(arr))
     }

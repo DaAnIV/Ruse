@@ -488,7 +488,7 @@ impl SnythesisTask {
     }
 
     fn get_predicate(&self, cache: &Cache) -> Result<SynthesizerPredicate, SnythesisTaskError> {
-        let root_name = cache.temp_string();
+        let root_name = cache.output_root_name();
         let output_array = match &self.inner.return_type {
             Some(return_type) => {
                 let mut array = Vec::with_capacity(self.inner.examples.len());
