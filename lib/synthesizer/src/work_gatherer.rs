@@ -84,6 +84,9 @@ impl WorkGather {
         op: &Arc<dyn ExprOpcode>,
         cutoff: usize,
     ) {
+        if self.cancel_token.is_cancelled() {
+            return;
+        }
         let last_iteration = bank.iteration_count() - 1;
         let iterations_iterator = (0..op.arg_types().len())
             .map(|i| {
@@ -108,6 +111,9 @@ impl WorkGather {
         op: &Arc<dyn ExprOpcode>,
         iterations: Vec<usize>,
     ) {
+        if self.cancel_token.is_cancelled() {
+            return;
+        }
         let mut programs = Vec::with_capacity(op.arg_types().len());
 
         let arg_types = op.arg_types();
@@ -141,6 +147,9 @@ impl WorkGather {
         async move {
             let map = &maps[i];
             for p in map.iter() {
+                if self.cancel_token.is_cancelled() {
+                    return;
+                }
                 if let Some(prev) = self.children.last() {
                     if prev.post_ctx().matches(p.value().pre_ctx()) == context::Matches::CONFLICT {
                         continue;
@@ -187,6 +196,10 @@ impl WorkGather {
         pre_context: ContextArray,
         post_context: ContextArray,
     ) {
+        if self.cancel_token.is_cancelled() {
+            return;
+        }
+
         self.chunk
             .push((pre_context, self.children.clone(), post_context));
         if self.chunk.len() == self.chunk_size {
