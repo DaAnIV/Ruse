@@ -9,7 +9,7 @@ edition = "2021"
 petgraph = "^0.6.2"
 petgraph-gen = "0.1.3"
 rand = "^0.8.5"
-dashmap = "*"
+dashmap = { version = "*", features = ["raw-api"] }
 bitcode = { version = "*", features = ["derive"] }
 
 [dev-dependencies]
