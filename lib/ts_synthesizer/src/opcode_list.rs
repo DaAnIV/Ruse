@@ -142,8 +142,12 @@ pub fn add_str_opcodes(opcodes: &mut OpcodesList, str_bool_opcodes: &[ast::Binar
 
 pub fn add_array_opcodes(opcodes: &mut OpcodesList, array_types: &[ValueType], cache: &Cache) {
     for t in array_types {
-        let op = Arc::new(opcode::IndexOp::new(t, cache));
-        opcodes.push(op);
+        opcodes.push(Arc::new(opcode::IndexOp::new(t, cache)));
+        opcodes.push(Arc::new(opcode::ArraySliceOp::new(t, false, cache)));
+        opcodes.push(Arc::new(opcode::ArraySliceOp::new(t, true, cache)));
+        opcodes.push(Arc::new(opcode::ArrayConcatOp::new(t, 1, cache)));
+        opcodes.push(Arc::new(opcode::ArrayConcatArrayOp::new(t, cache)));
+        opcodes.push(Arc::new(opcode::ArraySpliceOp::new(t, 0, cache)));
     }
 }
 

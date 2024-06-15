@@ -115,7 +115,6 @@ impl Context {
         match loc {
             Location::Var(l) => {
                 let var = syn_ctx.all_variables.get(&l.var).unwrap();
-                assert!(new_val.is_primitive());
                 assert!(var.value_type == new_val.val_type());
 
                 if var.immutable {

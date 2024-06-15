@@ -1,4 +1,5 @@
 use core::fmt;
+use itertools::Itertools;
 use ruse_object_graph::{
     scached, Cache, CachedString, FieldsMap, NodeIndex, Number, ObjectData, ObjectGraph,
     PrimitiveValue,
@@ -14,6 +15,10 @@ pub enum ValueType {
 }
 
 impl ValueType {
+    pub fn is_array_obj_type(obj_type: &CachedString) -> bool {
+        obj_type.starts_with("Array<")
+    }
+
     pub fn array_obj_string(elem_type: &ValueType) -> String {
         format!("Array<{}>", elem_type)
     }
@@ -24,6 +29,13 @@ impl ValueType {
 
     pub fn array_value_type(elem_type: &ValueType, cache: &Cache) -> ValueType {
         return ValueType::Object(Self::array_obj_cached_string(elem_type, cache));
+    }
+    
+    pub fn is_primitive(&self) -> bool {
+        match self {
+            ValueType::Object(_) => false,
+            _ => true
+        }
     }
 }
 
@@ -98,6 +110,28 @@ impl ObjectValue {
         let graph = Arc::get_mut(&mut self.graph).unwrap();
         graph.set_as_root(root, self.node);
         graph.generate_serialized_data();
+    }
+
+    pub fn is_array(&self) -> bool {
+        ValueType::is_array_obj_type(&self.obj_type())
+    }
+
+    pub fn fields(&self) -> impl Iterator<Item = (&Arc<String>, &PrimitiveValue)> {
+        self.graph.fields(self.node)
+    }
+
+    pub fn neighbors(&self) -> impl Iterator<Item = (&Arc<String>, NodeIndex)> {
+        self.graph.neighbors(self.node).map(|(key, value)| (key, value.1) )
+    }
+}
+
+impl std::fmt::Display for ObjectValue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.is_array() && self.primitive_field_count() > 0 {
+            let values = self.graph.fields(self.node).map(|(_, v)| v.to_string()).join(", ");
+            return write!(f, "[{}]", values);
+        }
+        self.graph.fmt_node(f, self.node)
     }
 }
 
@@ -405,7 +439,7 @@ impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self {
             Value::Primitive(p) => write!(f, "{}", p),
-            Value::Object(o) => o.graph.fmt_node(f, o.node),
+            Value::Object(o) => write!(f, "{}", o),
         }
     }
 }

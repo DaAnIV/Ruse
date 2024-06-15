@@ -179,6 +179,22 @@ impl ObjectGraph {
         node.fields.get(field_name)
     }
 
+    pub fn fields<'a>(
+        &'a self,
+        object: NodeIndex,
+    ) -> impl std::iter::Iterator<Item=(&'a Arc<String>, &'a PrimitiveValue)> {
+        let node = self.graph.node_weight(object).unwrap();
+        node.fields.iter()
+    }
+
+    pub fn neighbors<'a>(
+        &'a self,
+        object: NodeIndex,
+    ) -> impl std::iter::Iterator<Item=(&'a Arc<String>, &'a (EdgeIndex, NodeIndex))> {
+        let node = self.graph.node_weight(object).unwrap();
+        node.pointers.iter()
+    }
+
     pub fn remove_field(&mut self, object: NodeIndex, field_name: &CachedString) {
         self.serialized = None;
         let node = self.graph.node_weight_mut(object).unwrap();
