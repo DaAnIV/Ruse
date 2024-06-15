@@ -3,7 +3,7 @@ use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};
 use ruse_synthesizer::{value::*, vcstring};
 use ruse_synthesizer::{context::*, vnum};
 
-use crate::opcode::member_call_ast;
+use crate::opcode::{get_end_index, get_start_index, member_call_ast};
 
 #[derive(Debug)]
 pub struct SplitOp {
@@ -94,13 +94,20 @@ impl ExprOpcode for ConcatOp {
 
 #[derive(Debug)]
 pub struct SliceOp {
-    arg_types: [ValueType; 2],
+    arg_types: Vec<ValueType>,
 }
 
 impl SliceOp {
-    pub fn new() -> Self {
+    pub fn new(with_end: bool) -> Self {
+        let mut arg_types = vec![
+            ValueType::String,
+            ValueType::Number
+        ];
+        if with_end {
+            arg_types.push(ValueType::Number);
+        }
         Self {
-            arg_types: [ValueType::String, ValueType::Number],
+            arg_types: arg_types,
         }
     }
 }
@@ -112,67 +119,23 @@ impl ExprOpcode for SliceOp {
         post_ctx: &mut Context,
         syn_ctx: &SynthesizerContext,
     ) -> EvalResult {
-        debug_assert_eq!(args.len(), 2);
-
         let string = args[0].val().string_value().unwrap();
-        let index_start = args[1].val().number_value().unwrap().0 as usize;
-        if index_start >= string.len() {
-            return EvalResult::None;
+
+        let start = get_start_index(args[1].val().number_value().unwrap().0 as isize, string.len());
+        let end = match args.get(2) {
+            Some(v) => get_end_index(v.val().number_value().unwrap().0 as isize, string.len()),
+            None => string.len(),
+        };
+        if start >= end {
+            return EvalResult::NoModification(post_ctx.temp_value(vcstring!(syn_ctx.cached_string(""))));
         }
 
-        let substring = &string[index_start..];
+        let substring = &string[start..end];
 
         EvalResult::NoModification(post_ctx.temp_value(vcstring!(syn_ctx.cached_string(substring))))
     }
 
     fn to_ast(&self, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst> {
-        debug_assert_eq!(children.len(), 2);
-
-        member_call_ast("slice", children)
-    }
-
-    fn arg_types(&self) -> &[ValueType] {
-        &self.arg_types
-    }
-}
-
-#[derive(Debug)]
-pub struct SliceWithEndOp {
-    arg_types: [ValueType; 3],
-}
-
-impl SliceWithEndOp {
-    pub fn new() -> Self {
-        Self {
-            arg_types: [ValueType::String, ValueType::Number, ValueType::Number],
-        }
-    }
-}
-
-impl ExprOpcode for SliceWithEndOp {
-    fn eval(
-        &self,
-        args: &[&LocValue],
-        post_ctx: &mut Context,
-        syn_ctx: &SynthesizerContext,
-    ) -> EvalResult {
-        debug_assert_eq!(args.len(), 2);
-
-        let string = args[0].val().string_value().unwrap();
-        let index_start = args[1].val().number_value().unwrap().0 as usize;
-        let index_end = args[2].val().number_value().unwrap().0 as usize;
-        if index_start >= string.len() || index_end < index_start || index_end > string.len() {
-            return EvalResult::None;
-        }
-
-        let substring = &string[index_start..index_end];
-
-        EvalResult::NoModification(post_ctx.temp_value(vcstring!(syn_ctx.cached_string(substring))))
-    }
-
-    fn to_ast(&self, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst> {
-        debug_assert_eq!(children.len(), 2);
-
         member_call_ast("slice", children)
     }
 
@@ -215,8 +178,6 @@ impl ExprOpcode for LastIndexOfOp {
     }
 
     fn to_ast(&self, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst> {
-        debug_assert_eq!(children.len(), 2);
-
         member_call_ast("lastIndexOf", children)
     }
 

@@ -95,6 +95,36 @@ fn member_call_ast(callee_name: &str, children: &Vec<Box<dyn ExprAst>>) -> Box<d
     TsExprAst::create(ast::Expr::Call(expr))
 }
 
+fn get_start_index(value: isize, len: usize) -> usize {
+    
+    let ilen = len as isize;
+
+    if value >= ilen {
+        len
+    } else if value < -(ilen) {
+        0
+    } else if value < 0 {
+        (value + ilen) as usize
+    } else {
+        value as usize
+    }
+}
+
+fn get_end_index(value: isize, len: usize) -> usize {
+    
+    let ilen = len as isize;
+
+    if value >= ilen {
+        len
+    } else if value < -(ilen) {
+        0
+    } else if value < 0 {
+        (value + ilen) as usize
+    } else {
+        value as usize
+    }
+}
+
 mod bin;
 mod ident;
 mod lit;
