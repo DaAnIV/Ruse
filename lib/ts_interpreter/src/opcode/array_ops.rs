@@ -211,7 +211,10 @@ impl ExprOpcode for ArraySliceOp {
             });
             Value::create_array_object(&self.elem_type, fields, &syn_ctx.cache)
         };
-        new_arr.mut_obj().unwrap().set_as_graph_root(syn_ctx.output_root_name().clone());
+        new_arr
+            .mut_obj()
+            .unwrap()
+            .set_as_graph_root(syn_ctx.output_root_name().clone());
         EvalResult::NoModification(post_ctx.temp_value(new_arr))
     }
 
@@ -272,7 +275,10 @@ impl ExprOpcode for ArrayConcatOp {
                 .chain(args.iter().skip(1).map(|x| x.val().clone()));
             Value::create_array_object(&self.elem_type, values, &syn_ctx.cache)
         };
-        new_arr.mut_obj().unwrap().set_as_graph_root(syn_ctx.output_root_name().clone());
+        new_arr
+            .mut_obj()
+            .unwrap()
+            .set_as_graph_root(syn_ctx.output_root_name().clone());
 
         debug_assert_ne!(args[0].val(), &new_arr);
 
@@ -465,7 +471,10 @@ impl ExprOpcode for ArrayConcatArrayOp {
                 }));
             Value::create_array_object(&self.elem_type, values, &syn_ctx.cache)
         };
-        new_arr.mut_obj().unwrap().set_as_graph_root(syn_ctx.output_root_name().clone());
+        new_arr
+            .mut_obj()
+            .unwrap()
+            .set_as_graph_root(syn_ctx.output_root_name().clone());
 
         EvalResult::NoModification(post_ctx.temp_value(new_arr))
     }

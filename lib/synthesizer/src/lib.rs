@@ -1,9 +1,9 @@
-pub mod opcode;
-pub mod value;
-pub mod context;
-pub mod prog;
 pub mod bank;
-pub mod work_gatherer;
+pub mod context;
+pub mod opcode;
+pub mod prog;
 pub mod synthesizer;
+pub mod value;
+pub mod work_gatherer;
 
 mod test;

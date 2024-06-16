@@ -182,7 +182,7 @@ impl ObjectGraph {
     pub fn fields<'a>(
         &'a self,
         object: NodeIndex,
-    ) -> impl std::iter::Iterator<Item=(&'a Arc<String>, &'a PrimitiveValue)> {
+    ) -> impl std::iter::Iterator<Item = (&'a Arc<String>, &'a PrimitiveValue)> {
         let node = self.graph.node_weight(object).unwrap();
         node.fields.iter()
     }
@@ -190,7 +190,7 @@ impl ObjectGraph {
     pub fn neighbors<'a>(
         &'a self,
         object: NodeIndex,
-    ) -> impl std::iter::Iterator<Item=(&'a Arc<String>, &'a (EdgeIndex, NodeIndex))> {
+    ) -> impl std::iter::Iterator<Item = (&'a Arc<String>, &'a (EdgeIndex, NodeIndex))> {
         let node = self.graph.node_weight(object).unwrap();
         node.pointers.iter()
     }

@@ -1,8 +1,6 @@
 use std::collections::HashMap;
 
-use ruse_object_graph::{
-    str_cached, Cache, CachedString, NodeIndex, ObjectData
-};
+use ruse_object_graph::{str_cached, Cache, CachedString, NodeIndex, ObjectData};
 use ruse_synthesizer::context::*;
 use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};
 use ruse_synthesizer::value::*;

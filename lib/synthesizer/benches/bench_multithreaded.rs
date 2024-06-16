@@ -3,8 +3,8 @@ use criterion::*;
 // use dashmap;
 use rand::{rngs::StdRng, SeedableRng};
 // use rayon::{self, iter::{IntoParallelRefIterator, ParallelIterator}};
-use ruse_object_graph::{ObjectGraph, Cache};
 use ruse_object_graph::generator::*;
+use ruse_object_graph::{Cache, ObjectGraph};
 use std::{collections::HashSet, sync::Arc};
 
 const SEED: u64 = 100;
@@ -37,22 +37,28 @@ fn hash_insertion(c: &mut Criterion) {
     let cache = Cache::new();
     let mut rng = StdRng::seed_from_u64(SEED);
 
-    let graphs: Vec<Arc<ObjectGraph>> = (0..10000).map(|_| {
-        let mut g = random_gnm_object_graph(&cache, &mut rng, 20, 40);
-        g.generate_serialized_data();
-        Arc::new(g)
-    }).collect();
+    let graphs: Vec<Arc<ObjectGraph>> = (0..10000)
+        .map(|_| {
+            let mut g = random_gnm_object_graph(&cache, &mut rng, 20, 40);
+            g.generate_serialized_data();
+            Arc::new(g)
+        })
+        .collect();
 
     let mut group = c.benchmark_group("hash_insertion_graph");
 
     group.bench_function("iterative std::HashSet", |b| {
-        b.iter_batched(|| HashSet::<Arc<ObjectGraph>>::new(), |mut std_hashset| {
-            graphs.iter().for_each(|g| {
-                // sleep(time::Duration::from_nanos(1));
-                std_hashset.insert(g.clone());
-            });
-            std_hashset
-        }, BatchSize::LargeInput)
+        b.iter_batched(
+            || HashSet::<Arc<ObjectGraph>>::new(),
+            |mut std_hashset| {
+                graphs.iter().for_each(|g| {
+                    // sleep(time::Duration::from_nanos(1));
+                    std_hashset.insert(g.clone());
+                });
+                std_hashset
+            },
+            BatchSize::LargeInput,
+        )
     });
 
     // group.bench_function("parallel dashmap", |b| {

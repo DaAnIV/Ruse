@@ -476,7 +476,7 @@ impl SnythesisTask {
             predicate,
             valid,
             max_context_depth,
-            cache.clone()
+            cache.clone(),
         );
         if let Some(immutable) = &self.inner.immutable {
             for var in immutable {
@@ -640,13 +640,9 @@ impl SnythesisTask {
     fn get_context_array(&self, cache: &Cache) -> Result<ContextArray, SnythesisTaskError> {
         let mut values = Vec::with_capacity(self.inner.examples.len());
         for example in &self.inner.examples {
-            values.push(example.create_context(
-                &self.inner.variables,
-                &self.classes,
-                cache,
-            )?);
+            values.push(example.create_context(&self.inner.variables, &self.classes, cache)?);
         }
-        
+
         Ok(values.into())
     }
 

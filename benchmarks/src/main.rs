@@ -157,7 +157,7 @@ fn run_task(path: &Path, cache: Arc<Cache>, bench_config: &BenchmarkConfig) -> B
             result.finish(None, bench_config.timeout, synthesizer.statistics());
         }
     });
-    
+
     if bench_config.print_inserted_programs {
         synthesizer.print_all_programs()
     }

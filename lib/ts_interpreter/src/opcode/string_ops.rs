@@ -1,7 +1,7 @@
 use ruse_object_graph::Number;
 use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};
-use ruse_synthesizer::{value::*, vcstring};
 use ruse_synthesizer::{context::*, vnum};
+use ruse_synthesizer::{value::*, vcstring};
 
 use crate::opcode::{get_end_index, get_start_index, member_call_ast};
 
@@ -79,7 +79,9 @@ impl ExprOpcode for ConcatOp {
         new_string.push_str(&string1);
         new_string.push_str(&string2);
 
-        EvalResult::NoModification(post_ctx.temp_value(vcstring!(syn_ctx.cached_string(&new_string))))
+        EvalResult::NoModification(
+            post_ctx.temp_value(vcstring!(syn_ctx.cached_string(&new_string))),
+        )
     }
 
     fn to_ast(&self, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst> {
@@ -99,10 +101,7 @@ pub struct SliceOp {
 
 impl SliceOp {
     pub fn new(with_end: bool) -> Self {
-        let mut arg_types = vec![
-            ValueType::String,
-            ValueType::Number
-        ];
+        let mut arg_types = vec![ValueType::String, ValueType::Number];
         if with_end {
             arg_types.push(ValueType::Number);
         }
@@ -121,13 +120,18 @@ impl ExprOpcode for SliceOp {
     ) -> EvalResult {
         let string = args[0].val().string_value().unwrap();
 
-        let start = get_start_index(args[1].val().number_value().unwrap().0 as isize, string.len());
+        let start = get_start_index(
+            args[1].val().number_value().unwrap().0 as isize,
+            string.len(),
+        );
         let end = match args.get(2) {
             Some(v) => get_end_index(v.val().number_value().unwrap().0 as isize, string.len()),
             None => string.len(),
         };
         if start >= end {
-            return EvalResult::NoModification(post_ctx.temp_value(vcstring!(syn_ctx.cached_string(""))));
+            return EvalResult::NoModification(
+                post_ctx.temp_value(vcstring!(syn_ctx.cached_string(""))),
+            );
         }
 
         let substring = &string[start..end];

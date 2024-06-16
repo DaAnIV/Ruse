@@ -19,9 +19,7 @@ fn concat_strings(c: &mut Criterion) {
     group.bench_function("concat_with_clone_add_str", |b| {
         b.iter_batched(
             || (str1.to_string(), str2.to_string()),
-            |(s1, s2)| {
-                s1.clone() + s2.as_str()
-            },
+            |(s1, s2)| s1.clone() + s2.as_str(),
             BatchSize::PerIteration,
         )
     });
@@ -39,9 +37,7 @@ fn concat_strings(c: &mut Criterion) {
     group.bench_function("concat_with_format", |b| {
         b.iter_batched(
             || (str1.to_string(), str2.to_string()),
-            |(s1, s2)| {
-                format!("{s1}{s2}")
-            },
+            |(s1, s2)| format!("{s1}{s2}"),
             BatchSize::PerIteration,
         )
     });

@@ -5,7 +5,9 @@ mod tests {
     use object_graph::{str_cached, Number};
     use ruse_object_graph as object_graph;
     use ruse_synthesizer::{
-        context_array, value::{Location, ValueType}, vnum, vstr
+        context_array,
+        value::{Location, ValueType},
+        vnum, vstr,
     };
     use ruse_ts_interpreter::ts_class::TsClasses;
     use swc_ecma_ast as ast;
@@ -81,7 +83,7 @@ mod tests {
             }),
             Box::new(|_p| true),
             3,
-            cache
+            cache,
         );
 
         for _ in 1..=5 {
@@ -156,7 +158,7 @@ mod tests {
             }),
             Box::new(|_p| true),
             3,
-            cache
+            cache,
         );
 
         for _ in 1..=5 {

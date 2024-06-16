@@ -30,11 +30,11 @@ impl ValueType {
     pub fn array_value_type(elem_type: &ValueType, cache: &Cache) -> ValueType {
         return ValueType::Object(Self::array_obj_cached_string(elem_type, cache));
     }
-    
+
     pub fn is_primitive(&self) -> bool {
         match self {
             ValueType::Object(_) => false,
-            _ => true
+            _ => true,
         }
     }
 }
@@ -121,14 +121,20 @@ impl ObjectValue {
     }
 
     pub fn neighbors(&self) -> impl Iterator<Item = (&Arc<String>, NodeIndex)> {
-        self.graph.neighbors(self.node).map(|(key, value)| (key, value.1) )
+        self.graph
+            .neighbors(self.node)
+            .map(|(key, value)| (key, value.1))
     }
 }
 
 impl std::fmt::Display for ObjectValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.is_array() && self.primitive_field_count() > 0 {
-            let values = self.graph.fields(self.node).map(|(_, v)| v.to_string()).join(", ");
+            let values = self
+                .graph
+                .fields(self.node)
+                .map(|(_, v)| v.to_string())
+                .join(", ");
             return write!(f, "[{}]", values);
         }
         self.graph.fmt_node(f, self.node)

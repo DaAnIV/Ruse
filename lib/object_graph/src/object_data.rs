@@ -168,11 +168,10 @@ impl Display for PrimitiveValue {
             PrimitiveValue::Number(n) => write!(f, "{}", n),
             PrimitiveValue::Bool(b) => write!(f, "{}", b),
             PrimitiveValue::String(s) => write!(f, "\"{}\"", s),
-            PrimitiveValue::Null => write!(f, "Null")
+            PrimitiveValue::Null => write!(f, "Null"),
         }
     }
 }
-
 
 pub type FieldsMap = BTreeMap<CachedString, PrimitiveValue>;
 pub type PointersMap = BTreeMap<CachedString, (EdgeIndex, NodeIndex)>;

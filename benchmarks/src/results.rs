@@ -1,4 +1,11 @@
-use std::{fs::File, io::Write, path::{Path, PathBuf}, sync::Arc, time::Duration, vec};
+use std::{
+    fs::File,
+    io::Write,
+    path::{Path, PathBuf},
+    sync::Arc,
+    time::Duration,
+    vec,
+};
 
 use ruse_synthesizer::{prog::SubProgram, synthesizer::CurrentStatistics};
 
@@ -18,7 +25,7 @@ pub struct BenchmarkResult {
     found: Option<Arc<SubProgram>>,
     total_time: Option<Duration>,
     total_statistics: Option<CurrentStatistics>,
-    error: Option<String>
+    error: Option<String>,
 }
 
 fn serialize_found<S>(found: &Option<Arc<SubProgram>>, serializer: S) -> Result<S::Ok, S::Error>
@@ -39,14 +46,14 @@ impl BenchmarkResult {
             found: None,
             total_time: None,
             total_statistics: None,
-            error: None
+            error: None,
         }
     }
 
     pub fn add_iteration(&mut self, time: Duration, statistics: CurrentStatistics) {
         let iter_stats = match self.iterations.last() {
             Some(prev) => statistics.get_diff(&prev.statistics),
-            None => statistics
+            None => statistics,
         };
         self.iterations.push(BenchmarksIteration {
             time: time,
@@ -54,10 +61,7 @@ impl BenchmarkResult {
         });
     }
 
-    pub fn error<E: std::error::Error>(
-        &mut self,
-        error: &E,
-    ) {
+    pub fn error<E: std::error::Error>(&mut self, error: &E) {
         self.error = Some(error.to_string());
     }
 
@@ -72,7 +76,6 @@ impl BenchmarkResult {
         self.total_statistics = Some(statistics);
     }
 }
-
 
 #[derive(Serialize)]
 struct Sysinfo {
@@ -97,7 +100,7 @@ impl Sysinfo {
             ram: sys.total_memory(),
             cpu: sys.global_cpu_info().name().to_owned(),
             cpu_count: sys.cpus().len(),
-            cpu_fq: sys.global_cpu_info().frequency()
+            cpu_fq: sys.global_cpu_info().frequency(),
         }
     }
 }
@@ -105,7 +108,7 @@ impl Sysinfo {
 #[derive(Debug, PartialEq, Eq)]
 enum State {
     First,
-    Rest,    
+    Rest,
 }
 
 pub(crate) struct ResultsWriter {
@@ -120,14 +123,14 @@ impl ResultsWriter {
         let mut this = Self {
             state: vec![State::First],
             writer: writer,
-            path: PathBuf::from(path)
+            path: PathBuf::from(path),
         };
 
         this.begin();
         this.serialize_entry("timestamp", &chrono::Utc::now().timestamp());
         this.serialize_entry("sysinfo", &Sysinfo::new());
         this.begin_array("tasks");
-        
+
         this
     }
 
@@ -177,7 +180,7 @@ impl ResultsWriter {
     fn serialize_value<T: Serialize>(&mut self, value: &T) {
         serde_json::to_writer(&mut self.writer, value).expect("Failed");
     }
-    
+
     fn end_array(&mut self) {
         self.state.pop();
         write!(self.writer, "]").expect("Failed");

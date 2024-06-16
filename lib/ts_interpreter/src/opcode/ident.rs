@@ -18,7 +18,7 @@ impl IdentOp {
     pub fn new(var_name: CachedString) -> Self {
         Self {
             name: var_name.clone(),
-            required_args: [var_name]
+            required_args: [var_name],
         }
     }
 }

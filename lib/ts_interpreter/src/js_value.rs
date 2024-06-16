@@ -45,7 +45,6 @@ pub fn js_object_to_value(
     _boa_ctx: &mut boa_engine::Context,
     _cache: &Arc<Cache>,
 ) -> Value {
-    
     match value.downcast_ref::<TsObjectValue>() {
         Some(ts_obj) => Value::Object(ts_obj.clone()),
         None => unimplemented!(),

@@ -47,7 +47,7 @@ pub(crate) struct ProgramsMap(DashMap<Output, Arc<SubProgram>>);
 impl ProgramsMap {
     fn new() -> Self {
         Self {
-            0: DashMap::<Output, Arc<SubProgram>>::new()
+            0: DashMap::<Output, Arc<SubProgram>>::new(),
         }
     }
 
@@ -97,13 +97,14 @@ impl TypeMap {
     pub(crate) fn contains(&self, p: &Arc<SubProgram>) -> bool {
         match self.0.get(&p.out_type()) {
             None => false,
-            Some(values) => {
-                values.contains(p)
-            }
+            Some(values) => values.contains(p),
         }
     }
 
-    pub(crate) fn get(&self, value_type: &ValueType) -> Option<dashmap::mapref::one::Ref<ValueType, Arc<ProgramsMap>>> {
+    pub(crate) fn get(
+        &self,
+        value_type: &ValueType,
+    ) -> Option<dashmap::mapref::one::Ref<ValueType, Arc<ProgramsMap>>> {
         self.0.get(value_type)
     }
 }
@@ -113,9 +114,7 @@ pub struct ProgBank(Vec<Arc<TypeMap>>);
 
 impl ProgBank {
     pub fn output_exists(&self, p: &Arc<SubProgram>) -> bool {
-        (&self.0)
-            .into_iter()
-            .any(|type_map| type_map.contains(p))
+        (&self.0).into_iter().any(|type_map| type_map.contains(p))
     }
 
     #[inline]

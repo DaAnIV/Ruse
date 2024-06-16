@@ -21,7 +21,7 @@ impl EvalResult {
     const fn unwrap_failed() -> ! {
         panic!("called `EvalResult::unwrap()` on a `None` value")
     }
-    
+
     pub fn unwrap(self) -> LocValue {
         match self {
             EvalResult::None => EvalResult::unwrap_failed(),

@@ -1,4 +1,8 @@
-use std::{fs, path::{Path, PathBuf}, time::Duration};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+    time::Duration,
+};
 
 use serde_with::{serde_as, DurationSeconds};
 
@@ -26,7 +30,6 @@ fn workspace_dir() -> PathBuf {
     cargo_path.parent().unwrap().to_path_buf()
 }
 
-
 impl Default for BenchmarkConfig {
     fn default() -> Self {
         let mut bencmarks_dir = workspace_dir();
@@ -34,13 +37,13 @@ impl Default for BenchmarkConfig {
         bencmarks_dir.push("tasks");
         let mut output_dir = workspace_dir();
         output_dir.push("benchmarks_output");
-        Self {  
+        Self {
             benchmarks: vec![bencmarks_dir],
             output: output_dir,
             timeout: Duration::from_secs(300),
             max_iterations: 5,
             print_inserted_programs: false,
-            multi_thread: true
+            multi_thread: true,
         }
     }
 }
@@ -48,7 +51,8 @@ impl Default for BenchmarkConfig {
 impl From<PathBuf> for BenchmarkConfig {
     fn from(path: PathBuf) -> Self {
         let config_data = fs::File::open(path).expect("Failed to open config file");
-        let deserialized: Self = serde_json::from_reader(config_data).expect("Config file is corrupt");
+        let deserialized: Self =
+            serde_json::from_reader(config_data).expect("Config file is corrupt");
         deserialized
     }
 }

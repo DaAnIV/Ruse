@@ -19,7 +19,7 @@ impl TsSynthesizer {
         predicate: SynthesizerPredicate,
         valid: SynthesizerPredicate,
         max_context_depth: usize,
-        cache: Arc<Cache>
+        cache: Arc<Cache>,
     ) -> Self {
         Self {
             inner: Arc::new(Synthesizer::new(
@@ -28,16 +28,13 @@ impl TsSynthesizer {
                 predicate,
                 valid,
                 max_context_depth,
-                cache
+                cache,
             )),
         }
     }
 
     #[inline]
-    pub async fn run_iteration(
-        &mut self,
-    ) -> Option<Arc<SubProgram>>
-    {
+    pub async fn run_iteration(&mut self) -> Option<Arc<SubProgram>> {
         Synthesizer::run_iteration(&mut self.inner).await
     }
 
@@ -49,7 +46,7 @@ impl TsSynthesizer {
     pub fn get_cancel_token(&self) -> CancellationToken {
         self.inner.get_cancel_token()
     }
-    
+
     pub fn set_immutable(&mut self, var: &CachedString) {
         Arc::get_mut(&mut self.inner).unwrap().set_immutable(var);
     }

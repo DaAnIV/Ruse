@@ -5,12 +5,15 @@ pub type CachedString = Arc<String>;
 
 pub struct Cache {
     strings: DashMap<CachedString, CachedString>,
-    output_root_name: CachedString
+    output_root_name: CachedString,
 }
 
 static TEMP: atomic::AtomicU64 = atomic::AtomicU64::new(0);
 
-fn get_or_insert_to_strings_set(strings: &DashMap<CachedString, CachedString>, string: CachedString) -> CachedString {
+fn get_or_insert_to_strings_set(
+    strings: &DashMap<CachedString, CachedString>,
+    string: CachedString,
+) -> CachedString {
     let idx = strings.determine_map(&string);
     let mut shard = unsafe { strings._yield_write_shard(idx) };
     let kv = shard.get_key_value(&string);
@@ -26,11 +29,12 @@ fn get_or_insert_to_strings_set(strings: &DashMap<CachedString, CachedString>, s
 impl Cache {
     pub fn new() -> Self {
         let strings = Default::default();
-        let output_root_name = get_or_insert_to_strings_set(&strings, "____output_root_name".to_string().into());
+        let output_root_name =
+            get_or_insert_to_strings_set(&strings, "____output_root_name".to_string().into());
 
         Self {
             strings: strings,
-            output_root_name: output_root_name
+            output_root_name: output_root_name,
         }
     }
 

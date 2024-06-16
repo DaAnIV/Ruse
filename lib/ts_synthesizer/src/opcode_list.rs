@@ -155,4 +155,3 @@ pub fn add_dom_opcodes(opcodes: &mut OpcodesList, cache: &Cache) {
     let op = Arc::new(opcode::GetElementByIdOp::new(cache));
     opcodes.push(op);
 }
-

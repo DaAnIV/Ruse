@@ -20,15 +20,18 @@ impl TsExprAst {
             ast::Expr::Unary(_) => ast::ParenExpr {
                 expr: owned_node,
                 span: DUMMY_SP,
-            }.into(),
+            }
+            .into(),
             ast::Expr::Update(_) => ast::ParenExpr {
                 expr: owned_node,
                 span: DUMMY_SP,
-            }.into(),
+            }
+            .into(),
             ast::Expr::Bin(_) => ast::ParenExpr {
                 expr: owned_node,
                 span: DUMMY_SP,
-            }.into(),
+            }
+            .into(),
             ast::Expr::Assign(_) => todo!(),
             ast::Expr::SuperProp(_) => todo!(),
             ast::Expr::Cond(_) => todo!(),
@@ -77,13 +80,17 @@ fn member_call_ast(callee_name: &str, children: &Vec<Box<dyn ExprAst>>) -> Box<d
         }),
     };
 
-    let args = children.iter().skip(1).map(|x| {
-        let arg_ast = TsExprAst::from(x.as_ref());
-        ast::ExprOrSpread {
-            spread: None,
-            expr: arg_ast.node.to_owned(),
-        }
-    }).collect();
+    let args = children
+        .iter()
+        .skip(1)
+        .map(|x| {
+            let arg_ast = TsExprAst::from(x.as_ref());
+            ast::ExprOrSpread {
+                spread: None,
+                expr: arg_ast.node.to_owned(),
+            }
+        })
+        .collect();
 
     let expr = ast::CallExpr {
         span: DUMMY_SP,
@@ -96,7 +103,6 @@ fn member_call_ast(callee_name: &str, children: &Vec<Box<dyn ExprAst>>) -> Box<d
 }
 
 fn get_start_index(value: isize, len: usize) -> usize {
-    
     let ilen = len as isize;
 
     if value >= ilen {
@@ -111,7 +117,6 @@ fn get_start_index(value: isize, len: usize) -> usize {
 }
 
 fn get_end_index(value: isize, len: usize) -> usize {
-    
     let ilen = len as isize;
 
     if value >= ilen {
@@ -125,22 +130,22 @@ fn get_end_index(value: isize, len: usize) -> usize {
     }
 }
 
+mod array_ops;
 mod bin;
+mod dom_ops;
+mod function;
 mod ident;
 mod lit;
 mod member;
-mod unary;
-mod function;
-mod array_ops;
-mod dom_ops;
 mod string_ops;
+mod unary;
 
+pub use array_ops::*;
 pub use bin::*;
+pub use dom_ops::*;
+pub use function::*;
 pub use ident::*;
 pub use lit::*;
 pub use member::*;
-pub use unary::*;
-pub use function::*;
-pub use array_ops::*;
-pub use dom_ops::*;
 pub use string_ops::*;
+pub use unary::*;

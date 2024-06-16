@@ -3,9 +3,9 @@ use crate::*;
 use petgraph::graph::{DiGraph, NodeIndex};
 use petgraph::visit::{self, EdgeRef};
 use petgraph::visit::{VisitMap, Visitable};
+use petgraph_gen::{random_gnm_graph, random_gnp_graph};
 use rand::Rng;
 use std::collections::HashMap;
-use petgraph_gen::{random_gnp_graph, random_gnm_graph};
 
 fn get_unseen_index(n: u32, seen: &mut dyn VisitMap<u32>) -> Option<u32> {
     for i in 0..n {
@@ -28,7 +28,7 @@ fn generate_random_str<R: Rng + ?Sized>(max_size: usize, rng: &mut R) -> String 
 fn graph_to_random_object_graph<R: Rng + ?Sized>(
     cache: &Cache,
     rng: &mut R,
-    base: DiGraph<(), ()>
+    base: DiGraph<(), ()>,
 ) -> ObjectGraph {
     let n = base.node_count();
     let m = base.edge_count();
@@ -39,7 +39,10 @@ fn graph_to_random_object_graph<R: Rng + ?Sized>(
     let root_field_string = str_cached!(cache; "r");
     let data_field_string = str_cached!(cache; "a");
     while let Some(r) = get_unseen_index(n.try_into().unwrap(), &mut discovered) {
-        let root_fields = fields!((root_field_string.clone(), PrimitiveValue::Number(rng.next_u64().into())));
+        let root_fields = fields!((
+            root_field_string.clone(),
+            PrimitiveValue::Number(rng.next_u64().into())
+        ));
         let root_name = scached!(cache; generate_random_str(5, rng));
         let obj_name = scached!(cache; generate_random_str(5, rng));
         let idx = graph.add_root(root_name, ObjectData::new(obj_name, root_fields));
@@ -48,7 +51,10 @@ fn graph_to_random_object_graph<R: Rng + ?Sized>(
         let mut bfs = visit::Bfs::new(&base, r.into());
         while let Some(nx) = bfs.next(&base) {
             if discovered.visit(nx) {
-                let data_fields = fields!((data_field_string.clone(), PrimitiveValue::Number(rng.next_u64().into())));
+                let data_fields = fields!((
+                    data_field_string.clone(),
+                    PrimitiveValue::Number(rng.next_u64().into())
+                ));
                 let obj_name = scached!(cache; generate_random_str(5, rng));
                 let new_idx = graph.add_node(ObjectData::new(obj_name, data_fields));
                 map.insert(nx, new_idx);
