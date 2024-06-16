@@ -77,7 +77,7 @@ impl ObjectGraph {
         Self::add_node_to_serializable_graph(g, r, &mut seen, &mut graph);
         Self::fix_serializable_graph_edges(&mut graph, seen);
 
-        bitcode::encode(&graph).expect("Failed to serialize")
+        bitcode::encode(&graph)
     }
 
     pub fn slow_equal_roots(a: (&ObjectGraph, &NodeIndex), b: (&ObjectGraph, &NodeIndex)) -> bool {
@@ -295,12 +295,7 @@ impl ObjectGraph {
 
         Self::fix_serializable_graph_edges(&mut graph, seen);
 
-        self.serialized = Some(
-            self.serialized_buffer
-                .encode(&graph)
-                .expect("Failed to encode graph")
-                .to_vec(),
-        );
+        self.serialized = Some(self.serialized_buffer.encode(&graph).to_vec());
 
         let mut s = DefaultHasher::default();
         self.serialized.hash(&mut s);
@@ -423,10 +418,10 @@ impl ObjectGraph {
 impl Clone for ObjectGraph {
     fn clone(&self) -> Self {
         match &self.serialized {
-            Some(s) => Self {
+            Some(_s) => Self {
                 graph: self.graph.clone(),
                 roots: self.roots.clone(),
-                serialized_buffer: bitcode::Buffer::with_capacity(s.len()),
+                serialized_buffer: bitcode::Buffer::new(),
                 serialized: self.serialized.clone(),
                 hash: 0,
             },
