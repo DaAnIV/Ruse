@@ -27,7 +27,7 @@ impl SynthesizerContext {
     pub fn from_context_array(context_array: ContextArray, cache: Arc<Cache>) -> Self {
         Self {
             all_variables: context_array.get_variables(),
-            cache: cache,
+            cache,
             start_context: context_array,
         }
     }
@@ -86,7 +86,7 @@ impl Context {
 
     pub fn temp_value(&self, val: Value) -> LocValue {
         LocValue {
-            val: val,
+            val,
             loc: Location::Temp,
         }
     }
@@ -97,13 +97,13 @@ impl Context {
             Some(v) => v.clone(),
         };
         Some(LocValue {
-            val: val,
+            val,
             loc: Location::Var(VarLoc { var: var.clone() }),
         })
     }
 
     pub fn get_loc_value(&self, val: Value, loc: Location) -> LocValue {
-        return LocValue { val: val, loc: loc };
+        LocValue { val, loc }
     }
 
     pub fn update_value(
@@ -152,11 +152,11 @@ impl Context {
 
                 true
             }
-            Location::Temp => return true,
+            Location::Temp => true,
         }
     }
 
-    pub fn get_keys<'a>(&'a self) -> impl Iterator<Item = &CachedString> {
+    pub fn get_keys(&self) -> impl Iterator<Item = &CachedString> {
         self.values.keys()
     }
 
@@ -169,7 +169,7 @@ impl Context {
     ) -> (Arc<ObjectGraph>, NodeIndex) {
         let (mut new_graph, node) = match value {
             Value::Primitive(p) => {
-                assert!(graph.get_field(node, &field_name).is_some());
+                assert!(graph.get_field(node, field_name).is_some());
                 let mut new_graph = graph.as_ref().clone();
                 new_graph.set_field(node, field_name.clone(), p.clone());
                 (new_graph, node)
@@ -178,11 +178,11 @@ impl Context {
                 let (mut new_graph, nodes_map) =
                     ObjectGraph::union(&[graph.clone(), o.graph.clone()]);
                 new_graph.add_edge(
-                    nodes_map[&(Arc::as_ptr(&graph) as u64, node)],
+                    nodes_map[&(Arc::as_ptr(graph) as u64, node)],
                     nodes_map[&(Arc::as_ptr(&o.graph) as u64, o.node)],
                     field_name,
                 );
-                (new_graph, nodes_map[&(Arc::as_ptr(&graph) as u64, node)])
+                (new_graph, nodes_map[&(Arc::as_ptr(graph) as u64, node)])
             }
         };
         new_graph.generate_serialized_data();
@@ -252,6 +252,10 @@ impl ContextArray {
         self.inner.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.inner.is_empty()
+    }
+
     pub fn iter(&self) -> Iter<Context> {
         self.inner.iter()
     }
@@ -275,7 +279,7 @@ impl ContextArray {
             }
         }
 
-        return Matches::MATCHES;
+        Matches::MATCHES
     }
 
     pub fn merge(&self, other: &Self) -> Self {
@@ -356,7 +360,7 @@ impl ContextArray {
             for ctx in self.iter() {
                 variables_closure.insert(var.clone());
                 if let Some(obj_value) = ctx.values.get(var)?.obj() {
-                    Self::add_connected_variables(obj_value, &syn_ctx, &mut variables_closure);
+                    Self::add_connected_variables(obj_value, syn_ctx, &mut variables_closure);
                 }
             }
         }

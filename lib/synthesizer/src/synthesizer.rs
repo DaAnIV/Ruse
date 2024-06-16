@@ -104,7 +104,7 @@ impl CurrentStatistics {
         values[StatisticsTypes::Evaluated as usize] -= rhs[StatisticsTypes::Evaluated];
         values[StatisticsTypes::BankSize as usize] -= rhs[StatisticsTypes::BankSize];
         values[StatisticsTypes::ContextSize as usize] -= rhs[StatisticsTypes::ContextSize];
-        Self { values: values }
+        Self { values }
     }
 }
 
@@ -171,22 +171,20 @@ impl Synthesizer {
         cache: Arc<Cache>,
     ) -> Self {
         let (init_opcodes, composite_opcodes) =
-            opcodes.into_iter().partition(|x| x.arg_types().len() == 0);
+            opcodes.into_iter().partition(|x| x.arg_types().is_empty());
 
-        let new_obj = Self {
+        Self {
             bank: Default::default(),
-            init_opcodes: init_opcodes,
-            composite_opcodes: composite_opcodes,
+            init_opcodes,
+            composite_opcodes,
             context: SynthesizerContext::from_context_array(start_context.clone(), cache),
             found_contexts: DashSet::new(),
-            max_context_depth: max_context_depth,
+            max_context_depth,
             cancel_token: CancellationToken::new(),
-            predicate: predicate,
-            valid: valid,
+            predicate,
+            valid,
             statistics: Default::default(),
-        };
-
-        new_obj
+        }
     }
 
     pub fn get_cancel_token(&self) -> CancellationToken {
@@ -243,7 +241,7 @@ impl Synthesizer {
                         return Some(p);
                     }
 
-                    return None;
+                    None
                 },
             ),
             1000,
@@ -316,7 +314,7 @@ impl Synthesizer {
         post_ctx: ContextArray,
         args: Vec<Arc<SubProgram>>,
     ) -> Option<Arc<SubProgram>> {
-        debug_assert!(op.arg_types().len() > 0);
+        debug_assert!(!op.arg_types().is_empty());
 
         let mut p = SubProgram::with_opcode_and_children(op, args, pre_ctx, post_ctx);
         match self.evaluate_program(&mut p) {
@@ -330,7 +328,7 @@ impl Synthesizer {
         op: Arc<dyn ExprOpcode>,
         ctx: &ContextArray,
     ) -> Option<Arc<SubProgram>> {
-        debug_assert!(op.arg_types().len() == 0);
+        debug_assert!(op.arg_types().is_empty());
 
         let pre_ctx = ctx.get_partial_context(op.required_variables(), &self.context)?;
         let post_ctx = pre_ctx.clone();
@@ -356,7 +354,7 @@ impl Synthesizer {
             return false;
         }
 
-        return true;
+        true
     }
 
     fn check_out_value(&self, val: &Value) -> bool {
@@ -366,7 +364,7 @@ impl Synthesizer {
             }
         }
 
-        return true;
+        true
     }
 
     fn check_and_insert_program(&self, p: Arc<SubProgram>, iteration_map: &TypeMap) -> bool {
@@ -383,7 +381,7 @@ impl Synthesizer {
 
             return true;
         }
-        return false;
+        false
     }
 
     #[inline]

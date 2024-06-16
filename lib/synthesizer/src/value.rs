@@ -28,14 +28,11 @@ impl ValueType {
     }
 
     pub fn array_value_type(elem_type: &ValueType, cache: &Cache) -> ValueType {
-        return ValueType::Object(Self::array_obj_cached_string(elem_type, cache));
+        ValueType::Object(Self::array_obj_cached_string(elem_type, cache))
     }
 
     pub fn is_primitive(&self) -> bool {
-        match self {
-            ValueType::Object(_) => false,
-            _ => true,
-        }
+        !matches!(self, ValueType::Object(_))
     }
 }
 
@@ -78,16 +75,23 @@ pub struct LocValue {
 
 impl ObjectValue {
     pub fn get_field_value(&self, field_name: &CachedString) -> Option<Value> {
-        match self.graph.get_field(self.node, &field_name) {
-            Some(val) => Some(Value::Primitive(val.clone())),
-            None => match self.graph.get_neighbor(self.node, &field_name) {
-                Some(neighbor) => Some(Value::Object(ObjectValue {
-                    graph: self.graph.clone(),
-                    node: neighbor,
-                })),
-                None => None,
-            },
-        }
+        self.get_primitive_field_value(field_name)
+            .or(self.get_object_field_value(field_name))
+    }
+
+    pub fn get_primitive_field_value(&self, field_name: &CachedString) -> Option<Value> {
+        Option::map(self.graph.get_field(self.node, field_name), |x| {
+            Value::Primitive(x.clone())
+        })
+    }
+
+    pub fn get_object_field_value(&self, field_name: &CachedString) -> Option<Value> {
+        Option::map(self.graph.get_neighbor(self.node, field_name), |x| {
+            Value::Object(ObjectValue {
+                graph: self.graph.clone(),
+                node: x,
+            })
+        })
     }
 
     pub fn obj_type(&self) -> CachedString {
@@ -230,7 +234,7 @@ impl Value {
             Self::visit_field(val, &mut fields, key, &mut seen_graphs, &mut obj_keys);
         }
 
-        if seen_graphs.len() == 0 {
+        if seen_graphs.is_empty() {
             Self::create_simple_out_object(obj_type, fields)
         } else {
             Self::create_out_object(
@@ -255,9 +259,7 @@ impl Value {
             }
             Value::Object(o) => {
                 let ptr = Arc::as_ptr(&o.graph) as u64;
-                if !seen_graphs.contains_key(&ptr) {
-                    seen_graphs.insert(ptr, o.graph);
-                };
+                seen_graphs.insert(ptr, o.graph);
                 obj_keys.push((key, (ptr, o.node)));
             }
         };
@@ -273,14 +275,14 @@ impl Value {
 
         let node = out.add_node(ObjectData::new(obj_type, fields.into()));
         for (key, old_node) in obj_keys {
-            out.add_edge(node, nodes_map[old_node], &key);
+            out.add_edge(node, nodes_map[old_node], key);
         }
 
         out.generate_serialized_data();
 
         ObjectValue {
             graph: out.into(),
-            node: node,
+            node,
         }
         .into()
     }
@@ -294,7 +296,7 @@ impl Value {
 
         ObjectValue {
             graph: graph.into(),
-            node: node,
+            node,
         }
         .into()
     }
@@ -361,24 +363,15 @@ impl From<PrimitiveValue> for Value {
 
 impl Location {
     pub fn is_temp(&self) -> bool {
-        match &self {
-            Location::Temp => true,
-            _ => false,
-        }
+        matches!(&self, Location::Temp)
     }
 
     pub fn is_var(&self) -> bool {
-        match &self {
-            Location::Var(_) => true,
-            _ => false,
-        }
+        matches!(&self, Location::Var(_))
     }
 
     pub fn is_object_field(&self) -> bool {
-        match &self {
-            Location::ObjectField(_) => true,
-            _ => false,
-        }
+        matches!(&self, Location::ObjectField(_))
     }
 
     pub fn var(&self) -> Option<&'_ VarLoc> {
@@ -423,10 +416,7 @@ impl LocValue {
             }),
         };
 
-        Some(Self {
-            val: field,
-            loc: loc,
-        })
+        Some(Self { val: field, loc })
     }
 }
 

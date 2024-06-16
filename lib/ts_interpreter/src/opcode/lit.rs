@@ -35,11 +35,11 @@ impl ExprOpcode for LitOp {
         EvalResult::NoModification(post_ctx.temp_value(val))
     }
 
-    fn to_ast(&self, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst> {
+    fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
         debug_assert_eq!(children.len(), 0);
 
         let expr = match self {
-            LitOp::Null => ast::Lit::Null(ast::Null::dummy()).into(),
+            LitOp::Null => ast::Lit::Null(ast::Null::dummy()),
             LitOp::Str(s) => ast::Lit::Str(ast::Str {
                 span: DUMMY_SP,
                 value: s.as_str().into(),
@@ -86,7 +86,7 @@ impl ExprOpcode for ArrayLitOp {
         post_ctx: &mut Context,
         syn_ctx: &SynthesizerContext,
     ) -> EvalResult {
-        let values = args.into_iter().map(|val| (val.val().clone()));
+        let values = args.iter().map(|val| (val.val().clone()));
 
         let mut arr = Value::create_array_object(&self.elem_type, values, &syn_ctx.cache);
         arr.mut_obj()
@@ -96,11 +96,11 @@ impl ExprOpcode for ArrayLitOp {
         EvalResult::NoModification(post_ctx.temp_value(arr))
     }
 
-    fn to_ast(&self, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst> {
+    fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
         let expr = ast::ArrayLit {
             span: DUMMY_SP,
             elems: children
-                .into_iter()
+                .iter()
                 .map(|x| {
                     Some(ast::ExprOrSpread {
                         spread: None,

@@ -35,7 +35,7 @@ impl ExprOpcode for IdentOp {
         post_ctx.get_var_loc_value(&self.name).into()
     }
 
-    fn to_ast(&self, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst> {
+    fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
         debug_assert_eq!(children.len(), 0);
 
         let expr = ast::Ident {

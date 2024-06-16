@@ -57,7 +57,7 @@ impl ExprOpcode for GetElementByIdOp {
             if self.node_id_equal(node_weight, &id) {
                 let val = ObjectValue {
                     graph: obj.graph.clone(),
-                    node: node,
+                    node,
                 };
                 let (parent, field) = &parent[&node];
                 let loc = ObjectFieldLoc {
@@ -82,7 +82,7 @@ impl ExprOpcode for GetElementByIdOp {
         found
     }
 
-    fn to_ast(&self, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst> {
+    fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
         debug_assert_eq!(children.len(), 2);
         member_call_ast("getElementById", children)
     }

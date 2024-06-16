@@ -162,7 +162,7 @@ fn run_task(path: &Path, cache: Arc<Cache>, bench_config: &BenchmarkConfig) -> B
         synthesizer.print_all_programs()
     }
 
-    return result;
+    result
 }
 
 fn main() -> ExitCode {

@@ -18,7 +18,7 @@ impl MemberOp {
     pub fn new(obj_type: CachedString, field_name: CachedString) -> Self {
         Self {
             arg_types: [ValueType::Object(obj_type)],
-            field_name: field_name,
+            field_name,
         }
     }
 }
@@ -35,7 +35,7 @@ impl ExprOpcode for MemberOp {
         args[0].get_obj_field_loc_value(&self.field_name).into()
     }
 
-    fn to_ast(&self, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst> {
+    fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
         debug_assert_eq!(children.len(), 1);
 
         let expr = ast::MemberExpr {

@@ -18,6 +18,12 @@ impl SplitOp {
     }
 }
 
+impl Default for SplitOp {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ExprOpcode for SplitOp {
     fn eval(
         &self,
@@ -40,7 +46,7 @@ impl ExprOpcode for SplitOp {
         EvalResult::NoModification(post_ctx.temp_value(array))
     }
 
-    fn to_ast(&self, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst> {
+    fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
         debug_assert_eq!(children.len(), 2);
         member_call_ast("split", children)
     }
@@ -60,6 +66,12 @@ impl ConcatOp {
         Self {
             arg_types: [ValueType::String, ValueType::String],
         }
+    }
+}
+
+impl Default for ConcatOp {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -84,7 +96,7 @@ impl ExprOpcode for ConcatOp {
         )
     }
 
-    fn to_ast(&self, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst> {
+    fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
         debug_assert_eq!(children.len(), 2);
         member_call_ast("concat", children)
     }
@@ -105,9 +117,7 @@ impl SliceOp {
         if with_end {
             arg_types.push(ValueType::Number);
         }
-        Self {
-            arg_types: arg_types,
-        }
+        Self { arg_types }
     }
 }
 
@@ -139,7 +149,7 @@ impl ExprOpcode for SliceOp {
         EvalResult::NoModification(post_ctx.temp_value(vcstring!(syn_ctx.cached_string(substring))))
     }
 
-    fn to_ast(&self, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst> {
+    fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
         member_call_ast("slice", children)
     }
 
@@ -158,6 +168,12 @@ impl LastIndexOfOp {
         Self {
             arg_types: [ValueType::String, ValueType::String],
         }
+    }
+}
+
+impl Default for LastIndexOfOp {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -181,7 +197,7 @@ impl ExprOpcode for LastIndexOfOp {
         EvalResult::NoModification(post_ctx.temp_value(vnum!(index)))
     }
 
-    fn to_ast(&self, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst> {
+    fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
         member_call_ast("lastIndexOf", children)
     }
 

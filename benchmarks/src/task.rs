@@ -29,9 +29,7 @@ pub struct TodoError {
 
 impl TodoError {
     pub fn new(to_implement: &'static str) -> Self {
-        Self {
-            to_implement: to_implement,
-        }
+        Self { to_implement }
     }
 }
 
@@ -121,7 +119,7 @@ pub enum TaskType {
     StringArray,
     NumberSet,
     StringSet,
-    DOM,
+    Dom,
     DOMElement,
     Object(String),
 }
@@ -141,8 +139,8 @@ fn get_string_from_file_or_value(dir: &Path, value: &str) -> Result<String, Snyt
 }
 
 fn parse_string(value: &str, cache: &Cache) -> Result<CachedString, SnythesisTaskError> {
-    let stripped = match value.strip_prefix("'") {
-        Some(s1) => match s1.strip_suffix("'") {
+    let stripped = match value.strip_prefix('\'') {
+        Some(s1) => match s1.strip_suffix('\'') {
             Some(s2) => s2,
             None => return Err(parse_err!(value, "String suffix is missing")),
         },
@@ -230,7 +228,7 @@ impl TaskType {
 
                 Ok(class.generate_object(values))
             }
-            TaskType::DOM => {
+            TaskType::Dom => {
                 let dom_value = match dom::DomLoader::load_dom(value, cache) {
                     Ok(v) => v,
                     Err(e) => return Err(parse_err!(value, e)),
@@ -261,7 +259,7 @@ impl From<&ValueType> for TaskType {
                 "Array<String>" => TaskType::StringArray,
                 "Set<Number>" => TaskType::NumberSet,
                 "Set<String>" => TaskType::StringSet,
-                dom::DomLoader::DOM_CLASS_STR => TaskType::DOM,
+                dom::DomLoader::DOM_CLASS_STR => TaskType::Dom,
                 dom::DomLoader::ELEMENT_CLASS_STR => TaskType::DOMElement,
                 s => TaskType::Object(s.to_owned()),
             },
@@ -283,7 +281,7 @@ impl<'de> Deserialize<'de> for TaskType {
             "String" => Ok(TaskType::String),
             "[String]" => Ok(TaskType::StringArray),
             "{String}" => Ok(TaskType::StringSet),
-            "DOM" => Ok(TaskType::DOM),
+            "DOM" => Ok(TaskType::Dom),
             "DOMElement" => Ok(TaskType::DOMElement),
             _ => Ok(TaskType::Object(val)),
         }
@@ -303,9 +301,9 @@ impl Serialize for TaskType {
             TaskType::StringArray => serializer.serialize_str("[String]"),
             TaskType::NumberSet => serializer.serialize_str("{Int}"),
             TaskType::StringSet => serializer.serialize_str("{String}"),
-            TaskType::Object(o) => serializer.serialize_str(&format!("{}", o)),
-            TaskType::DOM => serializer.serialize_str(&format!("{}", "DOM")),
-            TaskType::DOMElement => serializer.serialize_str(&format!("{}", "DOMElement")),
+            TaskType::Object(o) => serializer.serialize_str(o),
+            TaskType::Dom => serializer.serialize_str("DOM"),
+            TaskType::DOMElement => serializer.serialize_str("DOMElement"),
         }
     }
 }
@@ -438,15 +436,15 @@ impl SnythesisTaskInner {
         }
 
         for (var, var_type) in &self.variables {
-            if var == "document" && var_type != &TaskType::DOM {
+            if var == "document" && var_type != &TaskType::Dom {
                 return Err(verify_err!("document variable must be of type DOM"));
             }
-            if var != "document" && var_type == &TaskType::DOM {
+            if var != "document" && var_type == &TaskType::Dom {
                 return Err(verify_err!("Only the document variable can be of type DOM"));
             }
         }
 
-        return Ok(());
+        Ok(())
     }
 }
 
@@ -660,13 +658,13 @@ impl SnythesisTask {
         dir.pop();
 
         let classes = TsClasses::new();
-        let mut classes_names = vec![];
+        let mut class_names = vec![];
         if let Some(classes_code) = &inner.classes {
-            classes_names.extend(Self::add_classes(&classes, classes_code, cache)?);
+            class_names.extend(Self::add_classes(&classes, classes_code, cache)?);
         }
 
         if let Some(ts_files) = &inner.ts_files {
-            classes_names.extend(Self::add_classes_from_ts_files(
+            class_names.extend(Self::add_classes_from_ts_files(
                 &classes,
                 dir.as_path(),
                 ts_files,
@@ -686,7 +684,7 @@ impl SnythesisTask {
         }
 
         for (var, var_type) in &inner.variables {
-            if var_type != &TaskType::DOM && var_type != &TaskType::DOMElement {
+            if var_type != &TaskType::Dom && var_type != &TaskType::DOMElement {
                 continue;
             };
             for example in &mut inner.examples {
@@ -694,7 +692,7 @@ impl SnythesisTask {
             }
         }
 
-        if inner.return_type == Some(TaskType::DOM)
+        if inner.return_type == Some(TaskType::Dom)
             || inner.return_type == Some(TaskType::DOMElement)
         {
             for example in &mut inner.examples {
@@ -703,9 +701,9 @@ impl SnythesisTask {
         }
 
         Ok(Self {
-            classes: classes,
-            class_names: classes_names,
-            inner: inner,
+            classes,
+            class_names,
+            inner,
         })
     }
 }

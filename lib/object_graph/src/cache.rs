@@ -33,8 +33,8 @@ impl Cache {
             get_or_insert_to_strings_set(&strings, "____output_root_name".to_string().into());
 
         Self {
-            strings: strings,
-            output_root_name: output_root_name,
+            strings,
+            output_root_name,
         }
     }
 
@@ -58,6 +58,12 @@ impl Cache {
 
     pub fn clear_cache(&self) {
         self.strings.clear();
+    }
+}
+
+impl Default for Cache {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

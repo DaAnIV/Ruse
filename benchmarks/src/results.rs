@@ -56,7 +56,7 @@ impl BenchmarkResult {
             None => statistics,
         };
         self.iterations.push(BenchmarksIteration {
-            time: time,
+            time,
             statistics: iter_stats,
         });
     }
@@ -122,7 +122,7 @@ impl ResultsWriter {
         let writer = File::create(path).expect("Failed to open output file");
         let mut this = Self {
             state: vec![State::First],
-            writer: writer,
+            writer,
             path: PathBuf::from(path),
         };
 

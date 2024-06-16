@@ -1,4 +1,3 @@
-use bitcode;
 use petgraph::graph::{EdgeIndex, NodeIndex};
 use std::collections::BTreeMap;
 use std::fmt::{self, Display, Formatter};
@@ -118,14 +117,14 @@ pub enum PrimitiveValue {
 impl PrimitiveValue {
     pub fn number(&self) -> Option<Number> {
         match self {
-            PrimitiveValue::Number(n) => Some(n.clone()),
+            PrimitiveValue::Number(n) => Some(*n),
             _ => None,
         }
     }
 
     pub fn bool(&self) -> Option<bool> {
         match self {
-            PrimitiveValue::Bool(b) => Some(b.clone()),
+            PrimitiveValue::Bool(b) => Some(*b),
             _ => None,
         }
     }
@@ -186,8 +185,8 @@ pub struct ObjectData {
 impl ObjectData {
     pub fn new(obj_type: CachedString, fields: Arc<FieldsMap>) -> Self {
         ObjectData {
-            obj_type: obj_type,
-            fields: fields,
+            obj_type,
+            fields,
             pointers: Default::default(),
         }
     }

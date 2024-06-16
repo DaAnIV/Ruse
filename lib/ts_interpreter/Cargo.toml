@@ -11,6 +11,7 @@ dashmap = "*"
 
 swc = "*"
 swc_common = {version = "*", features = ["tty-emitter"]}
+swc_ecma_codegen = "*"
 swc_ecma_parser = "*"
 swc_ecma_ast = "*"
 anyhow = "*"

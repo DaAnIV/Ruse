@@ -69,7 +69,7 @@ impl Default for TsExprAst {
     }
 }
 
-fn member_call_ast(callee_name: &str, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst> {
+fn member_call_ast(callee_name: &str, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
     let callee_expr = ast::MemberExpr {
         span: DUMMY_SP,
         obj: TsExprAst::from(children[0].as_ref()).get_paren_expr(),
@@ -95,7 +95,7 @@ fn member_call_ast(callee_name: &str, children: &Vec<Box<dyn ExprAst>>) -> Box<d
     let expr = ast::CallExpr {
         span: DUMMY_SP,
         callee: ast::Callee::Expr(ast::Expr::Member(callee_expr).into()),
-        args: args,
+        args,
         type_args: None,
     };
 

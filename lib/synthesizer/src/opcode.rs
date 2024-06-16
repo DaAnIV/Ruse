@@ -54,9 +54,9 @@ pub trait ExprOpcode: Debug + Sync + Send {
         post_ctx: &mut Context,
         syn_ctx: &SynthesizerContext,
     ) -> EvalResult;
-    fn to_ast(&self, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst>;
+    fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst>;
 
     fn required_variables(&self) -> &[CachedString] {
-        return &NO_REQUIRED_VARIABLES;
+        &NO_REQUIRED_VARIABLES
     }
 }

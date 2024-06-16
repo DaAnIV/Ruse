@@ -64,10 +64,7 @@ impl TsClasses {
     }
 
     pub fn get_class(&self, class: &CachedString) -> Option<Arc<TsClass>> {
-        match self.classes.get(class) {
-            Some(v) => Some(v.clone()),
-            None => None,
-        }
+        Option::map(self.classes.get(class), |x| x.clone())
     }
 
     pub fn get_boa_ctx(&self, post_ctx: &mut Context, cache: &Arc<Cache>) -> boa_engine::Context {
@@ -157,6 +154,12 @@ impl TsClasses {
     }
 }
 
+impl Default for TsClasses {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[derive(Debug)]
 pub struct TsClass {
     class: Box<ast::Class>,
@@ -227,11 +230,8 @@ impl TsClass {
         let mut builder =
             boa_engine::object::ObjectInitializer::with_native_data(TsObjectValue(obj), boa_ctx);
         for member in self.class.body.clone().iter() {
-            match member {
-                ast::ClassMember::Constructor(constructor) => {
-                    self.add_accessors_from_constructor(&mut builder, classes, &constructor, cache);
-                }
-                _ => (),
+            if let ast::ClassMember::Constructor(constructor) = member {
+                self.add_accessors_from_constructor(&mut builder, classes, constructor, cache);
             };
         }
         builder.build()
@@ -410,9 +410,23 @@ impl TsClass {
 
         let c = swc::Compiler::new(Arc::<SourceMap>::default());
 
-        let mut print_args: swc::PrintArgs = Default::default();
-        print_args.source_map = swc::config::SourceMapsConfig::Bool(false);
-        print_args.codegen_config.target = ast::EsVersion::Es2022;
+        let codegen_config =
+            swc_ecma_codegen::Config::default().with_target(ast::EsVersion::Es2022);
+
+        let print_args = swc::PrintArgs {
+            source_root: None,
+            source_file_name: None,
+            output_path: None,
+            inline_sources_content: false,
+            source_map: swc::config::SourceMapsConfig::Bool(false),
+            source_map_names: &Default::default(),
+            orig: None,
+            comments: None,
+            emit_source_map_columns: false,
+            preamble: "",
+            codegen_config,
+            output: None,
+        };
         let function_body = c
             .print(method.function.body.as_ref().unwrap(), print_args)
             .expect("Failed to get code")
@@ -459,10 +473,10 @@ struct TsGlobalObject {
     context: Option<Context>,
 }
 
-impl<'a> boa_gc::Finalize for TsGlobalObject {}
+impl boa_gc::Finalize for TsGlobalObject {}
 
-unsafe impl<'a> boa_gc::Trace for TsGlobalObject {
+unsafe impl boa_gc::Trace for TsGlobalObject {
     boa_gc::empty_trace!();
 }
 
-impl<'a> boa_engine::JsData for TsGlobalObject {}
+impl boa_engine::JsData for TsGlobalObject {}

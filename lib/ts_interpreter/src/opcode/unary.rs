@@ -23,7 +23,7 @@ pub struct UpdateOp {
 impl UnaryOp {
     pub fn new(op: ast::UnaryOp, value_type: ValueType) -> Self {
         Self {
-            op: op,
+            op,
             arg_types: [value_type],
         }
     }
@@ -31,7 +31,7 @@ impl UnaryOp {
     fn eval_unary_num(&self, n: &Number) -> Value {
         match self.op {
             ast::UnaryOp::Minus => vnum!(Number(-n.0)),
-            ast::UnaryOp::Plus => vnum!(n.clone()),
+            ast::UnaryOp::Plus => vnum!(*n),
             ast::UnaryOp::Tilde => vnum!(Number::from(!(n.0.floor() as u64))),
             _ => unreachable!(),
         }
@@ -69,7 +69,7 @@ impl ExprOpcode for UnaryOp {
         &self.arg_types
     }
 
-    fn to_ast(&self, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst> {
+    fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
         debug_assert_eq!(children.len(), 1);
 
         let expr = ast::UnaryExpr {
@@ -84,10 +84,7 @@ impl ExprOpcode for UnaryOp {
 
 impl UpdateOp {
     pub fn new(op: ast::UpdateOp, prefix: bool) -> Self {
-        Self {
-            op: op,
-            prefix: prefix,
-        }
+        Self { op, prefix }
     }
 }
 
@@ -125,7 +122,7 @@ impl ExprOpcode for UpdateOp {
         &[ValueType::Number]
     }
 
-    fn to_ast(&self, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst> {
+    fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
         debug_assert_eq!(children.len(), 1);
 
         let expr = ast::UpdateExpr {

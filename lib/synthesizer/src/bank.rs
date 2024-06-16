@@ -46,9 +46,7 @@ pub(crate) struct ProgramsMap(DashMap<Output, Arc<SubProgram>>);
 
 impl ProgramsMap {
     fn new() -> Self {
-        Self {
-            0: DashMap::<Output, Arc<SubProgram>>::new(),
-        }
+        Self(DashMap::<Output, Arc<SubProgram>>::new())
     }
 
     fn insert(&self, p: Arc<SubProgram>) -> bool {
@@ -114,7 +112,7 @@ pub struct ProgBank(Vec<Arc<TypeMap>>);
 
 impl ProgBank {
     pub fn output_exists(&self, p: &Arc<SubProgram>) -> bool {
-        (&self.0).into_iter().any(|type_map| type_map.contains(p))
+        self.0.iter().any(|type_map| type_map.contains(p))
     }
 
     #[inline]

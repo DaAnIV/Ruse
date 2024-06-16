@@ -44,7 +44,7 @@ mod tests {
             self.returns.clone()
         }
 
-        fn to_ast(&self, _: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst> {
+        fn to_ast(&self, _: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
             Box::new(TestAst {})
         }
     }
@@ -94,6 +94,7 @@ mod tests {
         p
     }
 
+    #[allow(dead_code)]
     fn print_all_children(all_children: &[Vec<Arc<SubProgram>>]) {
         for c in all_children {
             let values: Vec<String> = c

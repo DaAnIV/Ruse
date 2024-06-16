@@ -65,13 +65,13 @@ impl DomLoader {
     fn add_children(
         graph: &mut ObjectGraph,
         parent: &NodeIndex,
-        children: &Vec<html_parser::Node>,
+        children: &[html_parser::Node],
         cache: &Cache,
     ) {
         for (i, child) in children.iter().enumerate() {
             if let html_parser::Node::Element(element) = child {
                 let child_node = Self::add_node(graph, element, cache);
-                graph.add_edge(parent.clone(), child_node, &scached!(cache; i.to_string()));
+                graph.add_edge(*parent, child_node, &scached!(cache; i.to_string()));
             }
         }
     }

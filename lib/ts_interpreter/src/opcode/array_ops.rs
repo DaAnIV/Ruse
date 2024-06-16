@@ -43,7 +43,7 @@ impl ExprOpcode for IndexOp {
         args[0].get_obj_field_loc_value(&field_name).into()
     }
 
-    fn to_ast(&self, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst> {
+    fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
         debug_assert_eq!(children.len(), 2);
 
         let field = TsExprAst::from(children[1].as_ref());
@@ -101,7 +101,7 @@ impl ExprOpcode for PushOp {
 
                 ObjectValue {
                     graph: new_graph,
-                    node: node.clone(),
+                    node,
                 }
             }
             _ => {
@@ -139,7 +139,7 @@ impl ExprOpcode for PushOp {
         }
     }
 
-    fn to_ast(&self, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst> {
+    fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
         debug_assert_eq!(children.len(), 2);
         member_call_ast("push", children)
     }
@@ -166,7 +166,7 @@ impl ArraySliceOp {
         }
         Self {
             elem_type: elem_type.clone(),
-            arg_types: arg_types,
+            arg_types,
         }
     }
 }
@@ -218,7 +218,7 @@ impl ExprOpcode for ArraySliceOp {
         EvalResult::NoModification(post_ctx.temp_value(new_arr))
     }
 
-    fn to_ast(&self, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst> {
+    fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
         member_call_ast("slice", children)
     }
 
@@ -241,7 +241,7 @@ impl ArrayConcatOp {
         arg_types.extend(vec![elem_type.clone(); count]);
         Self {
             elem_type: elem_type.clone(),
-            arg_types: arg_types,
+            arg_types,
         }
     }
 }
@@ -269,7 +269,7 @@ impl ExprOpcode for ArrayConcatOp {
                 .map(|x| {
                     Value::Object(ObjectValue {
                         graph: graph.clone(),
-                        node: x.1.clone(),
+                        node: x.1,
                     })
                 })
                 .chain(args.iter().skip(1).map(|x| x.val().clone()));
@@ -285,7 +285,7 @@ impl ExprOpcode for ArrayConcatOp {
         EvalResult::NoModification(post_ctx.temp_value(new_arr))
     }
 
-    fn to_ast(&self, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst> {
+    fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
         member_call_ast("concat", children)
     }
 
@@ -311,7 +311,7 @@ impl ArraySpliceOp {
         }
         Self {
             elem_type: elem_type.clone(),
-            arg_types: arg_types,
+            arg_types,
         }
     }
 }
@@ -382,7 +382,7 @@ impl ExprOpcode for ArraySpliceOp {
         }
 
         let mut new_arr_loc = args[0].loc().clone();
-        if !post_ctx.update_value(&new_arr, &mut &mut new_arr_loc, syn_ctx) {
+        if !post_ctx.update_value(&new_arr, &mut new_arr_loc, syn_ctx) {
             return EvalResult::None;
         }
 
@@ -409,7 +409,7 @@ impl ExprOpcode for ArraySpliceOp {
         EvalResult::NoModification(post_ctx.temp_value(deleted_items_arr))
     }
 
-    fn to_ast(&self, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst> {
+    fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
         member_call_ast("splice", children)
     }
 
@@ -432,7 +432,7 @@ impl ArrayConcatArrayOp {
         ];
         Self {
             elem_type: elem_type.clone(),
-            arg_types: arg_types,
+            arg_types,
         }
     }
 }
@@ -460,13 +460,13 @@ impl ExprOpcode for ArrayConcatArrayOp {
                 .map(|x| {
                     Value::Object(ObjectValue {
                         graph: graph.clone(),
-                        node: x.1.clone(),
+                        node: x.1,
                     })
                 })
                 .chain(arr_to_add.neighbors().map(|x| {
                     Value::Object(ObjectValue {
                         graph: graph.clone(),
-                        node: x.1.clone(),
+                        node: x.1,
                     })
                 }));
             Value::create_array_object(&self.elem_type, values, &syn_ctx.cache)
@@ -479,7 +479,7 @@ impl ExprOpcode for ArrayConcatArrayOp {
         EvalResult::NoModification(post_ctx.temp_value(new_arr))
     }
 
-    fn to_ast(&self, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst> {
+    fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
         member_call_ast("concat", children)
     }
 

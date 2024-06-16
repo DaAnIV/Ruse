@@ -1,4 +1,3 @@
-use bitcode;
 use core::fmt;
 use petgraph::stable_graph::{EdgeIndices, NodeIndices, StableDiGraph};
 use std::collections::hash_map::DefaultHasher;
@@ -104,7 +103,7 @@ impl ObjectGraph {
 
         seen.insert((ptr, n), new_node);
         for (e, nei) in node.pointers.values() {
-            pointers.push((new_node, (ptr, *nei), g.edge_weight(*e).unwrap()));
+            pointers.push((new_node, (ptr, *nei), g.edge_weight(*e).unwrap().clone()));
             q.push_back(*nei);
         }
 
@@ -179,18 +178,18 @@ impl ObjectGraph {
         node.fields.get(field_name)
     }
 
-    pub fn fields<'a>(
-        &'a self,
+    pub fn fields(
+        &self,
         object: NodeIndex,
-    ) -> impl std::iter::Iterator<Item = (&'a Arc<String>, &'a PrimitiveValue)> {
+    ) -> impl std::iter::Iterator<Item = (&Arc<String>, &PrimitiveValue)> {
         let node = self.graph.node_weight(object).unwrap();
         node.fields.iter()
     }
 
-    pub fn neighbors<'a>(
-        &'a self,
+    pub fn neighbors(
+        &self,
         object: NodeIndex,
-    ) -> impl std::iter::Iterator<Item = (&'a Arc<String>, &'a (EdgeIndex, NodeIndex))> {
+    ) -> impl std::iter::Iterator<Item = (&Arc<String>, &(EdgeIndex, NodeIndex))> {
         let node = self.graph.node_weight(object).unwrap();
         node.pointers.iter()
     }
@@ -215,7 +214,7 @@ impl ObjectGraph {
         let mut new_pointers = (*node.pointers).clone();
         new_pointers.insert(field_name.clone(), (edge, field));
         node.pointers = new_pointers.into();
-        return edge;
+        edge
     }
 
     pub fn remove_edge(&mut self, idx: EdgeIndex) -> Option<CachedString> {
@@ -238,18 +237,15 @@ impl ObjectGraph {
         self.graph.node_weight(a)
     }
 
-    pub fn edge_weight(&self, a: EdgeIndex) -> Option<CachedString> {
-        match self.graph.edge_weight(a) {
-            Some(e) => Some(e.clone()),
-            None => None,
-        }
+    pub fn edge_weight(&self, a: EdgeIndex) -> Option<&CachedString> {
+        self.graph.edge_weight(a)
     }
 
     pub fn add_root(&mut self, r: CachedString, data: ObjectData) -> NodeIndex {
         self.serialized = None;
         let index = self.add_node(data);
         self.roots.insert(r, index);
-        return index;
+        index
     }
 
     pub fn set_as_root(&mut self, r: CachedString, index: NodeIndex) {
@@ -266,7 +262,7 @@ impl ObjectGraph {
         self.roots[r]
     }
 
-    pub fn roots<'a>(&'a self) -> impl Iterator<Item = (&CachedString, &NodeIndex)> {
+    pub fn roots(&self) -> impl Iterator<Item = (&CachedString, &NodeIndex)> {
         self.roots.iter()
     }
 
@@ -286,11 +282,11 @@ impl ObjectGraph {
         };
 
         for root in self.roots.values() {
-            Self::add_node_to_serializable_graph(&self, root, &mut seen, &mut graph);
+            Self::add_node_to_serializable_graph(self, root, &mut seen, &mut graph);
         }
 
         for (k, root) in &self.roots {
-            graph.roots.push((Arc::as_ptr(&k) as u64, seen[root]));
+            graph.roots.push((Arc::as_ptr(k) as u64, seen[root]));
         }
 
         Self::fix_serializable_graph_edges(&mut graph, seen);
@@ -323,7 +319,7 @@ impl ObjectGraph {
                         pointers: node
                             .pointers
                             .iter()
-                            .map(|(k, v)| (Arc::as_ptr(&k) as u64, v.1.index()))
+                            .map(|(k, v)| (Arc::as_ptr(k) as u64, v.1.index()))
                             .collect(),
                     }
                 });
@@ -411,7 +407,13 @@ impl ObjectGraph {
         for _ in 0..indentation {
             indent_str.push(' ');
         }
-        return indent_str;
+        indent_str
+    }
+}
+
+impl Default for ObjectGraph {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -451,9 +453,9 @@ impl Hash for ObjectGraph {
     }
 }
 
-impl<'a> Eq for ObjectGraph {}
+impl Eq for ObjectGraph {}
 
-impl<'a> PartialEq for ObjectGraph {
+impl PartialEq for ObjectGraph {
     fn eq(&self, other: &ObjectGraph) -> bool {
         let self_buf = self.serialized.as_ref().unwrap();
         let other_buf = other.serialized.as_ref().unwrap();
@@ -472,7 +474,7 @@ impl<'a> PartialEq for ObjectGraph {
                 return false;
             }
         }
-        return self_buf == other_buf;
+        self_buf == other_buf
     }
 }
 

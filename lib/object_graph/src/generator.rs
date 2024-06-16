@@ -8,21 +8,16 @@ use rand::Rng;
 use std::collections::HashMap;
 
 fn get_unseen_index(n: u32, seen: &mut dyn VisitMap<u32>) -> Option<u32> {
-    for i in 0..n {
-        if seen.visit(i) {
-            return Some(i);
-        }
-    }
-    return None;
+    (0..n).find(|i| seen.visit(*i))
 }
 
 fn generate_random_str<R: Rng + ?Sized>(max_size: usize, rng: &mut R) -> String {
     let str_size = rng.gen_range(0..=max_size);
     let mut rstr = Vec::with_capacity(str_size);
     for _ in 0..max_size {
-        rstr.push(rng.gen_range(('a' as u8)..=('z' as u8)));
+        rstr.push(rng.gen_range(('a' as u16)..=('z' as u16)));
     }
-    String::from_utf8(rstr).expect("Bad random string")
+    String::from_utf16(&rstr).expect("Bad random string")
 }
 
 fn graph_to_random_object_graph<R: Rng + ?Sized>(
@@ -69,7 +64,7 @@ fn graph_to_random_object_graph<R: Rng + ?Sized>(
         graph.add_edge(*object, *field, &edge_name);
     }
 
-    return graph;
+    graph
 }
 
 pub fn random_gnp_object_graph<R: Rng + ?Sized>(

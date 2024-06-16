@@ -21,9 +21,11 @@ type WorkHandler = Arc<
         + Sync,
 >;
 
+type ProgTriplet = (ContextArray, Vec<Arc<SubProgram>>, ContextArray);
+
 pub struct WorkGather {
     chunk_size: usize,
-    chunk: Box<Vec<(ContextArray, Vec<Arc<SubProgram>>, ContextArray)>>,
+    chunk: Vec<ProgTriplet>,
     handler: WorkHandler,
     tasks: tokio::task::JoinSet<Option<Arc<SubProgram>>>,
     cancel_token: CancellationToken,
@@ -34,11 +36,11 @@ pub struct WorkGather {
 impl WorkGather {
     pub fn new(handler: WorkHandler, chunk_size: usize, cancel_token: CancellationToken) -> Self {
         Self {
-            chunk_size: chunk_size,
-            chunk: Vec::with_capacity(chunk_size).into(),
-            handler: handler,
+            chunk_size,
+            chunk: Vec::with_capacity(chunk_size),
+            handler,
             tasks: tokio::task::JoinSet::new(),
-            cancel_token: cancel_token,
+            cancel_token,
 
             children: Default::default(),
         }
@@ -61,7 +63,7 @@ impl WorkGather {
                 self.tasks.abort_all();
             }
         }
-        return found_prog;
+        found_prog
     }
 
     async fn add_all_tasks(&mut self, bank: &ProgBank, op: &Arc<dyn ExprOpcode>) {
@@ -73,7 +75,7 @@ impl WorkGather {
                 self.gather_work_with_cutoff(bank, op, i).await;
             }
         }
-        if self.chunk.len() > 0 {
+        if !self.chunk.is_empty() {
             self.perform_work(op);
         }
     }
@@ -89,14 +91,10 @@ impl WorkGather {
         }
         let last_iteration = bank.iteration_count() - 1;
         let iterations_iterator = (0..op.arg_types().len())
-            .map(|i| {
-                if i == cutoff {
-                    last_iteration..=last_iteration
-                } else if i < cutoff {
-                    0..=(last_iteration - 1)
-                } else {
-                    0..=last_iteration
-                }
+            .map(|i| match i {
+                n if n == cutoff => last_iteration..=last_iteration,
+                n if n < cutoff => 0..=(last_iteration - 1),
+                _ => 0..=last_iteration,
             })
             .multi_cartesian_product();
 
@@ -208,7 +206,7 @@ impl WorkGather {
     }
 
     fn perform_work(&mut self, op: &Arc<dyn ExprOpcode>) {
-        let chunk = replace(&mut self.chunk, Vec::with_capacity(self.chunk_size).into());
+        let chunk = replace(&mut self.chunk, Vec::with_capacity(self.chunk_size));
         WorkGather::spawn(
             &mut self.tasks,
             chunk,
@@ -220,7 +218,7 @@ impl WorkGather {
 
     fn spawn(
         tasks: &mut tokio::task::JoinSet<Option<Arc<SubProgram>>>,
-        chunk: Box<Vec<(ContextArray, Vec<Arc<SubProgram>>, ContextArray)>>,
+        chunk: Vec<ProgTriplet>,
         op: Arc<dyn ExprOpcode>,
         handler: WorkHandler,
         cancel_token: CancellationToken,
@@ -235,7 +233,7 @@ impl WorkGather {
                             return found_prog;
                         }
                     }
-                    return None;
+                    None
                 } => v
             }
         });

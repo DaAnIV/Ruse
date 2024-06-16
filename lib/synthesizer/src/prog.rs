@@ -34,7 +34,7 @@ fn verify_children(opcode: &Arc<dyn ExprOpcode>, children: &[Arc<SubProgram>]) -
                 return false;
             }
         }
-        return true;
+        true
     }) {
         return false;
     }
@@ -46,8 +46,8 @@ fn verify_children(opcode: &Arc<dyn ExprOpcode>, children: &[Arc<SubProgram>]) -
 
     // Verify the opcode arguments types match the children types
     if children
-        .into_iter()
-        .zip(opcode.arg_types().into_iter())
+        .iter()
+        .zip(opcode.arg_types().iter())
         .any(|(c, t)| c.out_type.as_ref().unwrap() != t)
     {
         return false;
@@ -62,7 +62,7 @@ fn verify_children(opcode: &Arc<dyn ExprOpcode>, children: &[Arc<SubProgram>]) -
         }
     }
 
-    return true;
+    true
 }
 
 impl SubProgram {
@@ -72,22 +72,22 @@ impl SubProgram {
         pre_ctx: ContextArray,
         post_ctx: ContextArray,
     ) -> Arc<Self> {
-        assert!(children.len() > 0);
+        assert!(!children.is_empty());
         debug_assert!(verify_children(&opcode, &children));
 
         let size = children.iter().fold(0, |acc, x| acc + x.size) + 1;
         let depth = children.iter().fold(0, |acc, x| max(acc, x.depth)) + 1;
 
         Arc::new(Self {
-            opcode: opcode,
-            children: children,
+            opcode,
+            children,
 
-            size: size,
-            depth: depth,
+            size,
+            depth,
 
             out_type: None,
-            pre_ctx: pre_ctx,
-            post_ctx: post_ctx,
+            pre_ctx,
+            post_ctx,
             out_value: None,
         })
     }
@@ -98,15 +98,15 @@ impl SubProgram {
         post_ctx: ContextArray,
     ) -> Arc<Self> {
         Arc::new(Self {
-            opcode: opcode,
+            opcode,
             children: Default::default(),
 
             size: 1,
             depth: 1,
 
             out_type: None,
-            pre_ctx: pre_ctx,
-            post_ctx: post_ctx,
+            pre_ctx,
+            post_ctx,
             out_value: None,
         })
     }
@@ -141,14 +141,14 @@ impl SubProgram {
         if dirty {
             self.post_ctx.depth += 1;
         }
-        self.out_type = out_type.clone();
+        self.out_type = out_type;
         self.out_value = Some(Arc::new(out_value));
 
-        return true;
+        true
     }
 
     pub fn get_ast(&self) -> Box<dyn ExprAst> {
-        let child_asts = self.children.iter().map(|x| x.get_ast()).collect();
+        let child_asts: Vec<Box<dyn ExprAst>> = self.children.iter().map(|x| x.get_ast()).collect();
         self.opcode.to_ast(&child_asts)
     }
 

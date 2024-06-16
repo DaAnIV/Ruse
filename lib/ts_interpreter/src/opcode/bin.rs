@@ -124,7 +124,7 @@ impl ExprOpcode for BinOp {
         EvalResult::NoModification(post_ctx.temp_value(val))
     }
 
-    fn to_ast(&self, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst> {
+    fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
         debug_assert_eq!(children.len(), 2);
 
         let expr = ast::BinExpr {

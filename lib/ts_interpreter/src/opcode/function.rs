@@ -42,10 +42,10 @@ impl ClassMethodOp {
             args_names, function_body, caller_args
         );
         Self {
-            method_name: method_name,
-            arg_types: arg_types,
-            code: code,
-            classes: classes,
+            method_name,
+            arg_types,
+            code,
+            classes,
         }
     }
 }
@@ -85,7 +85,7 @@ impl ExprOpcode for ClassMethodOp {
         }
     }
 
-    fn to_ast(&self, children: &Vec<Box<dyn ExprAst>>) -> Box<dyn ExprAst> {
+    fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
         debug_assert_eq!(children.len(), self.arg_types.len());
         member_call_ast(self.method_name.as_str(), children)
     }
