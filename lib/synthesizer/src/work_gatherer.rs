@@ -1,6 +1,7 @@
 use futures::{future::BoxFuture, FutureExt};
 use itertools::Itertools;
 use std::{mem::replace, sync::Arc};
+use tokio::sync::OwnedSemaphorePermit;
 use tokio_util::sync::CancellationToken;
 
 use crate::{
@@ -24,7 +25,6 @@ type WorkHandler = Arc<
 type ProgTriplet = (ContextArray, Vec<Arc<SubProgram>>, ContextArray);
 
 pub struct WorkGather {
-    chunk_size: usize,
     chunk: Vec<ProgTriplet>,
     handler: WorkHandler,
     tasks: tokio::task::JoinSet<Option<Arc<SubProgram>>>,
@@ -32,12 +32,26 @@ pub struct WorkGather {
 
     children: Vec<Arc<SubProgram>>,
     ctx: Vec<(ContextArray, ContextArray)>,
+
+    chunk_size: usize,
+    permits: Arc<tokio::sync::Semaphore>,
+}
+
+pub struct WorkGatherBuilder {
+    chunk_size: usize,
+    permits_count: usize,
+    handler: WorkHandler,
+    cancel_token: CancellationToken,
 }
 
 impl WorkGather {
-    pub fn new(handler: WorkHandler, chunk_size: usize, cancel_token: CancellationToken) -> Self {
+    fn new(
+        handler: WorkHandler,
+        cancel_token: CancellationToken,
+        chunk_size: usize,
+        permits_count: usize,
+    ) -> Self {
         Self {
-            chunk_size,
             chunk: Vec::with_capacity(chunk_size),
             handler,
             tasks: tokio::task::JoinSet::new(),
@@ -45,6 +59,9 @@ impl WorkGather {
 
             children: Default::default(),
             ctx: Default::default(),
+
+            chunk_size,
+            permits: Arc::new(tokio::sync::Semaphore::new(permits_count)),
         }
     }
 
@@ -85,7 +102,7 @@ impl WorkGather {
             }
         }
         if !self.chunk.is_empty() {
-            self.perform_work(op);
+            self.perform_work(op).await;
         }
     }
 
@@ -193,17 +210,19 @@ impl WorkGather {
         self.chunk
             .push((pre_context, self.children.clone(), post_context));
         if self.chunk.len() == self.chunk_size {
-            self.perform_work(op);
+            self.perform_work(op).await;
         }
     }
 
-    fn perform_work(&mut self, op: &Arc<dyn ExprOpcode>) {
+    async fn perform_work(&mut self, op: &Arc<dyn ExprOpcode>) {
+        let permit = self.permits.clone().acquire_owned().await.unwrap();
         let chunk = replace(&mut self.chunk, Vec::with_capacity(self.chunk_size));
         WorkGather::spawn(
             &mut self.tasks,
             chunk,
             op.clone(),
             self.handler.clone(),
+            permit,
             self.cancel_token.child_token(),
         );
     }
@@ -213,10 +232,11 @@ impl WorkGather {
         chunk: Vec<ProgTriplet>,
         op: Arc<dyn ExprOpcode>,
         handler: WorkHandler,
+        permit: OwnedSemaphorePermit,
         cancel_token: CancellationToken,
     ) {
         tasks.spawn(async move {
-            tokio::select! {
+            let result = tokio::select! {
                 _ = cancel_token.cancelled() => None,
                 v = async {
                     for c in chunk.into_iter() {
@@ -227,7 +247,50 @@ impl WorkGather {
                     }
                     None
                 } => v
-            }
+            };
+            drop(permit);
+
+            result
         });
+    }
+}
+
+const DEFAULT_WORKERS_MULTIPLICATION: usize = 5;
+const DEFAULT_CHUNK_SIZE: usize = 1000;
+
+impl WorkGatherBuilder {
+    pub fn new(handler: WorkHandler, cancel_token: CancellationToken) -> Self {
+        let metrics = tokio::runtime::Handle::current().metrics();
+        Self {
+            chunk_size: DEFAULT_CHUNK_SIZE,
+            permits_count: metrics.num_workers() * DEFAULT_WORKERS_MULTIPLICATION,
+            handler,
+            cancel_token,
+        }
+    }
+
+    pub fn chunk_size(&mut self, chunk_size: usize) -> &mut Self {
+        self.chunk_size = chunk_size;
+        self
+    }
+
+    pub fn permits_count(&mut self, permits_count: usize) -> &mut Self {
+        self.permits_count = permits_count;
+        self
+    }
+
+    pub fn permits_workers_multiplier(&mut self, multiplier: usize) -> &mut Self {
+        let metrics = tokio::runtime::Handle::current().metrics();
+        self.permits_count = metrics.num_workers() * multiplier;
+        self
+    }
+
+    pub fn build(&mut self) -> WorkGather {
+        WorkGather::new(
+            self.handler.clone(),
+            self.cancel_token.clone(),
+            self.chunk_size,
+            self.permits_count,
+        )
     }
 }

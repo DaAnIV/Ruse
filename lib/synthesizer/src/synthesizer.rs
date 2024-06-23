@@ -7,7 +7,7 @@ use crate::{
     opcode::ExprOpcode,
     prog::SubProgram,
     value::Value,
-    work_gatherer::WorkGather,
+    work_gatherer::{WorkGather, WorkGatherBuilder},
 };
 use std::{
     fmt::Display,
@@ -218,35 +218,31 @@ impl Synthesizer {
 
     fn create_work_gatherer(this: Arc<Self>, current_iteration_map: Arc<TypeMap>) -> WorkGather {
         let child_token = this.cancel_token.child_token();
-        WorkGather::new(
-            Arc::new(
-                move |op: Arc<dyn ExprOpcode>,
-                      pre_ctx: ContextArray,
-                      children: Vec<Arc<SubProgram>>,
-                      post_ctx: ContextArray| {
-                    let p = match this
-                        .get_program_from_composite_opcode(pre_ctx, op, post_ctx, children)
-                    {
+        let handler = Arc::new(
+            move |op: Arc<dyn ExprOpcode>,
+                  pre_ctx: ContextArray,
+                  children: Vec<Arc<SubProgram>>,
+                  post_ctx: ContextArray| {
+                let p =
+                    match this.get_program_from_composite_opcode(pre_ctx, op, post_ctx, children) {
                         Some(p) => p,
                         None => return None,
                     };
-                    if !this.check_and_insert_program(p.clone(), current_iteration_map.as_ref()) {
-                        return None;
-                    }
+                if !this.check_and_insert_program(p.clone(), current_iteration_map.as_ref()) {
+                    return None;
+                }
 
-                    if this.found_contexts.insert(p.post_ctx().clone()) {
-                        this.init_context::<false>(current_iteration_map.as_ref(), p.post_ctx());
-                    }
-                    if p.pre_ctx().contained(&this.context.start_context) && (this.predicate)(&p) {
-                        return Some(p);
-                    }
+                if this.found_contexts.insert(p.post_ctx().clone()) {
+                    this.init_context::<false>(current_iteration_map.as_ref(), p.post_ctx());
+                }
+                if p.pre_ctx().contained(&this.context.start_context) && (this.predicate)(&p) {
+                    return Some(p);
+                }
 
-                    None
-                },
-            ),
-            1000,
-            child_token,
-        )
+                None
+            },
+        );
+        WorkGatherBuilder::new(handler, child_token).build()
     }
 
     pub async fn run_iteration(this: &mut Arc<Self>) -> Option<Arc<SubProgram>> {

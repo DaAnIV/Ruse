@@ -37,12 +37,11 @@ mod helpers {
             Box::new(TestAst {})
         }
     }
-
 }
 
 #[cfg(test)]
 mod work_gatherer_tests {
-    use crate::test::helpers::*;
+    use crate::{test::helpers::*, work_gatherer::WorkGatherBuilder};
     use std::sync::Arc;
 
     use dashmap::DashMap;
@@ -57,7 +56,6 @@ mod work_gatherer_tests {
         prog::SubProgram,
         value::{LocValue, Location, Value, ValueType},
         vnum,
-        work_gatherer::WorkGather,
     };
 
     async fn run_gatherer(
@@ -69,20 +67,21 @@ mod work_gatherer_tests {
         let cancel_token = Default::default();
         let all_children = Arc::new(DashMap::<usize, Vec<Arc<SubProgram>>>::default());
         let all_children_clone = all_children.clone();
-        let mut gatherer = WorkGather::new(
-            Arc::new(
-                move |_: Arc<dyn ExprOpcode>,
-                      _: ContextArray,
-                      children: Vec<Arc<SubProgram>>,
-                      _: ContextArray| {
-                    all_children_clone.insert(all_children_clone.len(), children);
-                    None
-                },
-            ),
-            chunk_size,
-            cancel_token,
+        let handler = Arc::new(
+            move |_: Arc<dyn ExprOpcode>,
+                  _: ContextArray,
+                  children: Vec<Arc<SubProgram>>,
+                  _: ContextArray| {
+                all_children_clone.insert(all_children_clone.len(), children);
+                None
+            },
         );
-        gatherer.gather_work_for_next_iteration(bank, op, syn_ctx).await;
+        let mut gatherer = WorkGatherBuilder::new(handler, cancel_token)
+            .chunk_size(chunk_size)
+            .build();
+        gatherer
+            .gather_work_for_next_iteration(bank, op, syn_ctx)
+            .await;
         gatherer.wait_for_all_tasks().await;
 
         all_children.iter().map(|x| x.value().clone()).collect()
