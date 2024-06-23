@@ -289,7 +289,7 @@ impl Synthesizer {
             tokio::select! {
                 _ = this.cancel_token.cancelled() => (),
                 _ = work_gatherer
-                .gather_work_for_next_iteration(&this.bank, op) => ()
+                .gather_work_for_next_iteration(&this.bank, op, &this.context) => ()
             }
         }
         work_gatherer.wait_for_all_tasks().await

@@ -1,11 +1,11 @@
 use futures::{future::BoxFuture, FutureExt};
 use itertools::Itertools;
-use std::{collections::HashSet, mem::replace, sync::Arc};
+use std::{mem::replace, sync::Arc};
 use tokio_util::sync::CancellationToken;
 
 use crate::{
     bank::{ProgBank, ProgramsMap},
-    context::{self, ContextArray},
+    context::{ContextArray, SynthesizerContext},
     opcode::ExprOpcode,
     prog::SubProgram,
 };
@@ -31,6 +31,7 @@ pub struct WorkGather {
     cancel_token: CancellationToken,
 
     children: Vec<Arc<SubProgram>>,
+    ctx: Vec<(ContextArray, ContextArray)>,
 }
 
 impl WorkGather {
@@ -43,6 +44,7 @@ impl WorkGather {
             cancel_token,
 
             children: Default::default(),
+            ctx: Default::default(),
         }
     }
 
@@ -50,9 +52,11 @@ impl WorkGather {
         &mut self,
         bank: &ProgBank,
         op: &Arc<dyn ExprOpcode>,
+        syn_ctx: &SynthesizerContext,
     ) {
         self.children = Vec::with_capacity(op.arg_types().len());
-        self.add_all_tasks(bank, op).await;
+        self.ctx = Vec::with_capacity(op.arg_types().len());
+        self.add_all_tasks(bank, op, syn_ctx).await;
     }
 
     pub async fn wait_for_all_tasks(&mut self) -> Option<Arc<SubProgram>> {
@@ -66,13 +70,18 @@ impl WorkGather {
         found_prog
     }
 
-    async fn add_all_tasks(&mut self, bank: &ProgBank, op: &Arc<dyn ExprOpcode>) {
+    async fn add_all_tasks(
+        &mut self,
+        bank: &ProgBank,
+        op: &Arc<dyn ExprOpcode>,
+        syn_ctx: &SynthesizerContext,
+    ) {
         if bank.iteration_count() == 1 {
-            self.gather_work_for_iterations(bank, op, vec![0; op.arg_types().len()])
+            self.gather_work_for_iterations(bank, op, vec![0; op.arg_types().len()], syn_ctx)
                 .await
         } else {
             for i in 0..op.arg_types().len() {
-                self.gather_work_with_cutoff(bank, op, i).await;
+                self.gather_work_with_cutoff(bank, op, i, syn_ctx).await;
             }
         }
         if !self.chunk.is_empty() {
@@ -85,6 +94,7 @@ impl WorkGather {
         bank: &ProgBank,
         op: &Arc<dyn ExprOpcode>,
         cutoff: usize,
+        syn_ctx: &SynthesizerContext,
     ) {
         if self.cancel_token.is_cancelled() {
             return;
@@ -99,7 +109,8 @@ impl WorkGather {
             .multi_cartesian_product();
 
         for iterations in iterations_iterator {
-            self.gather_work_for_iterations(bank, op, iterations).await
+            self.gather_work_for_iterations(bank, op, iterations, syn_ctx)
+                .await
         }
     }
 
@@ -108,6 +119,7 @@ impl WorkGather {
         bank: &ProgBank,
         op: &Arc<dyn ExprOpcode>,
         iterations: Vec<usize>,
+        syn_ctx: &SynthesizerContext,
     ) {
         if self.cancel_token.is_cancelled() {
             return;
@@ -124,20 +136,21 @@ impl WorkGather {
             }
         }
 
-        self.gather_work_for_maps(op, &programs).await;
+        self.gather_work_for_maps(op, &programs, syn_ctx).await;
     }
 
     fn gather_work_for_maps<'a>(
         &'a mut self,
         op: &'a Arc<dyn ExprOpcode>,
         maps: &'a [Arc<ProgramsMap>],
+        syn_ctx: &'a SynthesizerContext,
     ) -> BoxFuture<'a, ()> {
         let i = self.children.len();
 
         if i == maps.len() {
             return async move {
-                let (pre_context, post_context) = self.get_children_context();
-                self.gather_work(op, pre_context, post_context).await;
+                let (pre_ctx, post_ctx) = self.ctx.last().unwrap().clone();
+                self.gather_work(op, pre_ctx, post_ctx).await;
             }
             .boxed();
         }
@@ -148,44 +161,23 @@ impl WorkGather {
                 if self.cancel_token.is_cancelled() {
                     return;
                 }
-                if let Some(prev) = self.children.last() {
-                    if prev.post_ctx().matches(p.value().pre_ctx()) == context::Matches::CONFLICT {
+                if let Some((pre_ctx, post_ctx)) = self.ctx.last() {
+                    if !post_ctx.check_compatibility(p.pre_ctx(), syn_ctx) {
                         continue;
                     }
+                    self.ctx
+                        .push((pre_ctx.merge(p.pre_ctx()), p.post_ctx().merge(&post_ctx)));
+                } else {
+                    self.ctx.push((p.pre_ctx().clone(), p.post_ctx().clone()));
                 }
+
                 self.children.push(p.value().clone());
-                self.gather_work_for_maps(op, maps).await;
+                self.gather_work_for_maps(op, maps, syn_ctx).await;
                 self.children.pop();
+                self.ctx.pop();
             }
         }
         .boxed()
-    }
-
-    fn get_children_context(&self) -> (ContextArray, ContextArray) {
-        let children = &self.children;
-        let mut pre_context = children.first().unwrap().pre_ctx().clone();
-        let mut post_context = children.last().unwrap().post_ctx().clone();
-        let mut variables = HashSet::new();
-
-        for c in children {
-            variables.extend(c.pre_ctx()[0].variables())
-        }
-
-        for c in children.iter().skip(1) {
-            if pre_context[0].variable_count() == variables.len() {
-                break;
-            }
-            pre_context.merge_in_place(c.pre_ctx())
-        }
-
-        for c in children.iter().rev().skip(1) {
-            if post_context[0].variable_count() == variables.len() {
-                break;
-            }
-            post_context.merge_in_place(c.post_ctx())
-        }
-
-        (pre_context, post_context)
     }
 
     async fn gather_work(

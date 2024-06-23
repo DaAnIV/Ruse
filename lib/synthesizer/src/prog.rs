@@ -5,7 +5,6 @@ use std::hash::Hash;
 use std::sync::Arc;
 
 use crate::bank::ValueArray;
-use crate::context;
 use crate::context::ContextArray;
 use crate::context::SynthesizerContext;
 use crate::opcode::*;
@@ -51,15 +50,6 @@ fn verify_children(opcode: &Arc<dyn ExprOpcode>, children: &[Arc<SubProgram>]) -
         .any(|(c, t)| c.out_type.as_ref().unwrap() != t)
     {
         return false;
-    }
-
-    // Verify each children pre context is equal to the previous post context for all examples
-    for i in 1..children.len() {
-        let prev = &children[i - 1];
-        let cur = &children[i];
-        if prev.post_ctx().matches(cur.pre_ctx()) == context::Matches::CONFLICT {
-            return false;
-        }
     }
 
     true

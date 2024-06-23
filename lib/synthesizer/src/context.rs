@@ -197,6 +197,42 @@ impl Context {
     pub fn variables(&self) -> impl std::iter::Iterator<Item = &Arc<String>> {
         self.values.keys()
     }
+
+    fn add_connected_variables(
+        obj_value: &ObjectValue,
+        syn_ctx: &SynthesizerContext,
+        variables_closure: &mut HashSet<Arc<String>>,
+    ) {
+        for (root_var, _) in obj_value.graph.roots() {
+            if syn_ctx.all_variables.contains_key(root_var) {
+                variables_closure.insert(root_var.clone());
+            }
+        }
+    }
+
+    // Returns a list of the input variables and all of the variables which connect to them
+    fn closure<'a, I>(
+        &self,
+        required_variables: I,
+        syn_ctx: &SynthesizerContext,
+        variables_closure: &mut HashSet<Arc<String>>,
+    ) -> bool
+    where
+        I: IntoIterator<Item = &'a CachedString>,
+    {
+        for var in required_variables {
+            variables_closure.insert(var.clone());
+            if let Some(value) = self.values.get(var) {
+                if let Some(obj_value) = value.obj() {
+                    Self::add_connected_variables(obj_value, syn_ctx, variables_closure);
+                }
+            } else {
+                return false;
+            }
+        }
+
+        true
+    }
 }
 
 impl Hash for Context {
@@ -240,13 +276,6 @@ pub struct ContextArray {
     inner: Vec<Context>,
 }
 
-#[derive(Debug, PartialEq, Eq)]
-pub enum Matches {
-    SAME,
-    MATCHES,
-    CONFLICT,
-}
-
 impl ContextArray {
     pub fn len(&self) -> usize {
         self.inner.len()
@@ -264,22 +293,38 @@ impl ContextArray {
         self.inner.get_mut(index)
     }
 
-    pub fn matches(&self, other: &Self) -> Matches {
-        debug_assert_eq!(self.len(), other.len());
-        if self.inner == other.inner {
-            return Matches::SAME;
+    fn is_closed(&self, vars: &HashSet<Arc<String>>, syn_ctx: &SynthesizerContext) -> bool {
+        let mut shared_vars_closure = HashSet::<Arc<String>>::new();
+        for ctx in &self.inner {
+            if !ctx.closure(vars.iter(), syn_ctx, &mut shared_vars_closure) {
+                return false;
+            }
+        }
+       
+        shared_vars_closure.is_subset(&vars)
+    }
+
+    pub fn check_compatibility(&self, other: &Self, syn_ctx: &SynthesizerContext) -> bool {
+        let shared_variables = HashSet::from_iter(
+            self.inner[0]
+                .variables()
+                .filter(|k| other.inner[0].values.contains_key(*k))
+                .map(|x| x.clone()),
+        );
+
+        if !self.is_closed(&shared_variables, syn_ctx) {
+            return false;
+        }
+        if !other.is_closed(&shared_variables, syn_ctx) {
+            return false;
         }
         for (self_ctx, other_ctx) in self.inner.iter().zip(other.inner.iter()) {
-            for (key, value) in self_ctx.values.iter() {
-                if let Some(other_value) = other_ctx.values.get(key) {
-                    if value != other_value {
-                        return Matches::CONFLICT;
-                    }
-                }
+            if shared_variables.iter().any(|var| self_ctx.values[var] != other_ctx.values[var]) {
+                return false;
             }
         }
 
-        Matches::MATCHES
+        true
     }
 
     pub fn merge(&self, other: &Self) -> Self {
@@ -301,23 +346,6 @@ impl ContextArray {
         }
     }
 
-    pub fn merge_in_place(&mut self, other: &Self) {
-        if self[0].variables().eq(other[0].variables()) {
-            return;
-        }
-        for (self_ctx, other_ctx) in self.inner.iter_mut().zip(other.inner.iter()) {
-            let mut merged_values = (*self_ctx.values).clone();
-            for (key, value) in other_ctx.values.iter() {
-                if !merged_values.contains_key(key) {
-                    merged_values.insert(key.clone(), value.clone());
-                }
-            }
-            self_ctx.set_values(merged_values)
-        }
-
-        self.depth = max(self.depth, other.depth)
-    }
-
     pub(crate) fn contained(&self, other: &ContextArray) -> bool {
         for (self_ctx, other_ctx) in self.inner.iter().zip(other.inner.iter()) {
             for (key, value) in self_ctx.values.iter() {
@@ -333,39 +361,23 @@ impl ContextArray {
 
         true
     }
-
-    fn add_connected_variables(
-        obj_value: &ObjectValue,
-        syn_ctx: &SynthesizerContext,
-        variables_closure: &mut HashSet<Arc<String>>,
-    ) {
-        for (root_var, _) in obj_value.graph.roots() {
-            if syn_ctx.all_variables.contains_key(root_var) {
-                variables_closure.insert(root_var.clone());
-            }
-        }
-    }
-
     // Returns a list of the input variables and all of the variables which connect to them
-    fn get_closure_of_variables<'a, I>(
+    fn closure_union<'a, I>(
         &self,
         required_variables: I,
         syn_ctx: &SynthesizerContext,
     ) -> Option<HashSet<Arc<String>>>
     where
-        I: IntoIterator<Item = &'a CachedString>,
+        I: IntoIterator<Item = &'a CachedString> + Clone,
     {
-        let mut variables_closure = HashSet::new();
-        for var in required_variables {
-            for ctx in self.iter() {
-                variables_closure.insert(var.clone());
-                if let Some(obj_value) = ctx.values.get(var)?.obj() {
-                    Self::add_connected_variables(obj_value, syn_ctx, &mut variables_closure);
-                }
+        let mut closure_union = HashSet::new();
+        for ctx in &self.inner {
+            if !ctx.closure(required_variables.clone(), syn_ctx, &mut closure_union) {
+                return None
             }
         }
 
-        Some(variables_closure)
+        Some(closure_union)
     }
 
     pub(crate) fn get_partial_context<'a, I>(
@@ -374,10 +386,10 @@ impl ContextArray {
         syn_ctx: &SynthesizerContext,
     ) -> Option<Self>
     where
-        I: IntoIterator<Item = &'a CachedString>,
+        I: IntoIterator<Item = &'a CachedString> + Clone,
     {
         let mut ctxs = Vec::<Context>::with_capacity(self.len());
-        let needed_variables = self.get_closure_of_variables(required_variables, syn_ctx)?;
+        let needed_variables = self.closure_union(required_variables, syn_ctx)?;
         if needed_variables.len() == self.len() {
             return Some(self.clone());
         }
@@ -416,6 +428,15 @@ impl ContextArray {
         }
 
         Arc::new(all_vars)
+    }
+}
+
+impl Default for ContextArray {
+    fn default() -> Self {
+        Self {
+            depth: 0,
+            inner: Default::default(),
+        }
     }
 }
 

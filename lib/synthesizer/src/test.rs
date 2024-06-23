@@ -1,20 +1,9 @@
 #[cfg(test)]
-mod tests {
-    use std::sync::Arc;
-
-    use dashmap::DashMap;
-    use itertools::Itertools;
-    use ruse_object_graph::{Cache, Number};
-
+mod helpers {
     use crate::{
-        bank::{ProgBank, TypeMap},
-        context::{Context, ContextArray, SynthesizerContext},
-        context_array,
+        context::{Context, SynthesizerContext},
         opcode::{EvalResult, ExprAst, ExprOpcode},
-        prog::SubProgram,
-        value::{LocValue, Location, Value, ValueType},
-        vnum,
-        work_gatherer::WorkGather,
+        value::{LocValue, ValueType},
     };
 
     pub struct TestAst {}
@@ -30,7 +19,7 @@ mod tests {
     }
 
     #[derive(Debug)]
-    struct TestOpcode {
+    pub struct TestOpcode {
         pub arg_types: Vec<ValueType>,
         pub returns: EvalResult,
     }
@@ -49,10 +38,33 @@ mod tests {
         }
     }
 
+}
+
+#[cfg(test)]
+mod work_gatherer_tests {
+    use crate::test::helpers::*;
+    use std::sync::Arc;
+
+    use dashmap::DashMap;
+    use itertools::Itertools;
+    use ruse_object_graph::{Cache, Number};
+
+    use crate::{
+        bank::{ProgBank, TypeMap},
+        context::{ContextArray, SynthesizerContext},
+        context_array,
+        opcode::{EvalResult, ExprOpcode},
+        prog::SubProgram,
+        value::{LocValue, Location, Value, ValueType},
+        vnum,
+        work_gatherer::WorkGather,
+    };
+
     async fn run_gatherer(
         bank: &ProgBank,
         op: &Arc<dyn ExprOpcode>,
         chunk_size: usize,
+        syn_ctx: &SynthesizerContext,
     ) -> Vec<Vec<Arc<SubProgram>>> {
         let cancel_token = Default::default();
         let all_children = Arc::new(DashMap::<usize, Vec<Arc<SubProgram>>>::default());
@@ -70,7 +82,7 @@ mod tests {
             chunk_size,
             cancel_token,
         );
-        gatherer.gather_work_for_next_iteration(bank, op).await;
+        gatherer.gather_work_for_next_iteration(bank, op, syn_ctx).await;
         gatherer.wait_for_all_tasks().await;
 
         all_children.iter().map(|x| x.value().clone()).collect()
@@ -134,7 +146,7 @@ mod tests {
 
         add_iteration(&mut bank, 1, &syn_ctx);
 
-        let all_children = run_gatherer(&bank, &bin_op, 1).await;
+        let all_children = run_gatherer(&bank, &bin_op, 1, &syn_ctx).await;
         assert_eq!(all_children.len(), 1);
     }
 
@@ -154,7 +166,7 @@ mod tests {
         add_iteration(&mut bank, 2, &syn_ctx);
         add_iteration(&mut bank, 3, &syn_ctx);
 
-        let all_children = run_gatherer(&bank, &bin_op, 1).await;
+        let all_children = run_gatherer(&bank, &bin_op, 1, &syn_ctx).await;
         assert_eq!(all_children.len(), 5usize.pow(2) - 2usize.pow(2));
         assert!(all_children.iter().all_unique());
         for c in &all_children {
@@ -183,7 +195,7 @@ mod tests {
         add_iteration(&mut bank, 3, &syn_ctx);
         add_iteration(&mut bank, 4, &syn_ctx);
 
-        let all_children = run_gatherer(&bank, &bin_op, 1).await;
+        let all_children = run_gatherer(&bank, &bin_op, 1, &syn_ctx).await;
         assert_eq!(all_children.len(), 9usize.pow(2) - 5usize.pow(2));
         assert!(all_children.iter().all_unique());
         for c in &all_children {
@@ -212,7 +224,7 @@ mod tests {
         add_iteration(&mut bank, 3, &syn_ctx);
         add_iteration(&mut bank, 4, &syn_ctx);
 
-        let all_children = run_gatherer(&bank, &tri_op, 1).await;
+        let all_children = run_gatherer(&bank, &tri_op, 1, &syn_ctx).await;
         assert_eq!(all_children.len(), 9usize.pow(3) - 5usize.pow(3));
         assert!(all_children.iter().all_unique());
         for c in &all_children {
@@ -241,7 +253,7 @@ mod tests {
         add_iteration(&mut bank, 3, &syn_ctx);
         add_iteration(&mut bank, 4, &syn_ctx);
 
-        let all_children = run_gatherer(&bank, &bin_op, 25).await;
+        let all_children = run_gatherer(&bank, &bin_op, 25, &syn_ctx).await;
         assert_eq!(all_children.len(), 9usize.pow(2) - 5usize.pow(2));
         assert!(all_children.iter().all_unique());
         for c in &all_children {
