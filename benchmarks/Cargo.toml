@@ -6,6 +6,9 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+[target.'cfg(not(target_env = "msvc"))'.dependencies]
+jemallocator = { version = "*", features = ["profiling"] }
+
 ruse_object_graph = { path = "../lib/object_graph" }
 ruse_ts_interpreter = { path = "../lib/ts_interpreter" }
 ruse_synthesizer = { path = "../lib/synthesizer" }

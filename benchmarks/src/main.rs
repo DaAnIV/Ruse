@@ -16,6 +16,12 @@ use ruse_ts_synthesizer::TsSynthesizer;
 use crate::results::BenchmarkResult;
 mod config;
 mod task;
+#[cfg(not(target_env = "msvc"))]
+use jemallocator::Jemalloc;
+
+#[cfg(not(target_env = "msvc"))]
+#[global_allocator]
+static GLOBAL: Jemalloc = Jemalloc;
 
 fn get_writer(config: &config::BenchmarkConfig) -> ResultsWriter {
     if config.output.is_dir() {
