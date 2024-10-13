@@ -6,11 +6,10 @@ use std::{
 };
 
 use dashmap::DashMap;
-use ruse_object_graph::{scached, str_cached, Cache, CachedString};
+use ruse_object_graph::{scached, str_cached, Cache, CachedString, FieldName, ObjectGraph, RootName};
 use ruse_synthesizer::{
-    context::Context,
+    context::{Context, GraphIdGenerator},
     synthesizer::OpcodesList,
-    value::{ObjectValue, Value, ValueType},
 };
 use swc_common::{
     errors::{ColorConfig, Handler},
@@ -20,6 +19,7 @@ use swc_ecma_ast::{self as ast, ClassDecl};
 
 use anyhow::Error;
 use swc_ecma_parser::{Syntax, TsConfig};
+use ruse_object_graph::value::*;
 
 use crate::{
     js_value::value_to_js_value,
@@ -97,10 +97,11 @@ impl TsClasses {
         let global_obj = boa_ctx.global_object();
         let global_ctx = global_obj.downcast_ref::<TsGlobalObject>().unwrap();
         let cache = global_ctx.cache.as_ref().unwrap();
+        let context = global_ctx.context.as_ref().unwrap();
 
-        let field = js_object_value.get_field_value(field_name).unwrap();
+        let field = js_object_value.get_field_value(field_name, &context.graphs_map).unwrap();
 
-        Ok(value_to_js_value(self, &field, boa_ctx, cache))
+        Ok(value_to_js_value(self, &field, boa_ctx, context, cache))
     }
 
     fn object_setter(
@@ -200,22 +201,26 @@ impl TsClass {
         ValueType::Object(self.class_name.clone())
     }
 
-    pub fn generate_object<I>(&self, map: I) -> Value
+    pub fn generate_object<I>(&self, map: I, graph: &mut ObjectGraph, graph_id_gen: &GraphIdGenerator) -> ObjectValue
     where
-        I: IntoIterator<Item = (CachedString, Value)>,
+        I: IntoIterator<Item = (FieldName, Value)>,
     {
-        Value::generate_object_from_map(self.class_name.clone(), map)
+        let obj_id = graph.add_object_from_map(graph_id_gen.get_id_for_node(), self.class_name.clone(), map);
+
+        ObjectValue {
+            graph_id: graph.id,
+            node: obj_id,
+        }
     }
 
-    pub fn generate_rooted_object<I>(&self, root_name: CachedString, map: I) -> Value
+    pub fn generate_rooted_object<I>(&self, root_name: RootName, map: I, graph: &mut ObjectGraph, graph_id_gen: &GraphIdGenerator) -> ObjectValue
     where
         I: IntoIterator<Item = (CachedString, Value)>,
     {
-        let mut value = Value::generate_object_from_map(self.class_name.clone(), map);
-        let obj_val = unsafe { value.mut_obj().unwrap_unchecked() };
-        obj_val.set_as_graph_root(root_name);
+        let val = self.generate_object(map, graph, graph_id_gen);
+        graph.set_as_root(root_name, val.node);
 
-        value
+        val
     }
 
     pub fn generate_js_object(
@@ -223,10 +228,8 @@ impl TsClass {
         classes: &TsClasses,
         obj: ObjectValue,
         boa_ctx: &mut boa_engine::Context,
-        cache: &Arc<Cache>,
+        cache: &Arc<Cache>
     ) -> boa_engine::JsObject {
-        assert!(obj.obj_type() == self.class_name);
-
         let mut builder =
             boa_engine::object::ObjectInitializer::with_native_data(TsObjectValue(obj), boa_ctx);
         for member in self.class.body.clone().iter() {
@@ -450,6 +453,7 @@ impl TsClass {
     }
 }
 
+#[derive(Clone, Debug)]
 pub(crate) struct TsObjectValue(ObjectValue);
 
 impl Deref for TsObjectValue {

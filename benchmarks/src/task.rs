@@ -6,13 +6,11 @@ use std::{
     sync::Arc,
 };
 
-use ruse_object_graph::{scached, str_cached, Cache, CachedString};
+use graph_map_value::GraphMapWrap;
+use itertools::izip;
+use ruse_object_graph::{*, value::{Value, ValueType}};
 use ruse_synthesizer::{
-    context::{Context, ContextArray},
-    prog::SubProgram,
-    synthesizer::{OpcodesList, SynthesizerPredicate},
-    value::{Value, ValueType},
-    vbool, vcstring, vnum,
+    context::{Context, ContextArray, GraphIdGenerator}, prog::SubProgram, synthesizer::{OpcodesList, SynthesizerPredicate}
 };
 use ruse_ts_interpreter::{dom, ts_class::TsClasses};
 use ruse_ts_synthesizer::{
@@ -153,7 +151,9 @@ impl TaskType {
     pub fn create_value(
         &self,
         value: &str,
+        graph: &mut ObjectGraph,
         classes: &TsClasses,
+        id_gen: &GraphIdGenerator,
         cache: &Cache,
     ) -> Result<Value, SnythesisTaskError> {
         match self {
@@ -168,11 +168,14 @@ impl TaskType {
                         return Err(parse_err!(value, e));
                     }
                 };
-                Ok(Value::create_primitive_array_object(
+                let node = graph.add_primitive_array_object(
+                    id_gen.get_id_for_node(),
                     &ValueType::Number,
                     numbers,
                     cache,
-                ))
+                );
+
+                Ok(vobj!(graph.id, node))
             }
             TaskType::Bool => match value.parse::<bool>() {
                 Ok(b) => Ok(vbool!(b)),
@@ -189,11 +192,14 @@ impl TaskType {
                     values.push(parse_string(&string, cache)?)
                 }
 
-                Ok(Value::create_primitive_array_object(
+                let node = graph.add_primitive_array_object(
+                    id_gen.get_id_for_node(),
                     &ValueType::String,
                     values,
                     cache,
-                ))
+                );
+
+                Ok(vobj!(graph.id, node))
             }
             TaskType::NumberSet => Err(parse_err!(value, TodoError::new("Number set"))),
             TaskType::StringSet => Err(parse_err!(value, TodoError::new("String set"))),
@@ -222,27 +228,29 @@ impl TaskType {
                         }
                     };
                     let field_value =
-                        TaskType::from(val).create_value(str_value.as_str(), classes, cache)?;
+                        TaskType::from(val).create_value(str_value.as_str(), graph, classes, id_gen, cache)?;
                     values.insert(cached_field_name, field_value);
                 }
 
-                Ok(class.generate_object(values))
+                let obj = class.generate_object(values, graph, id_gen);
+
+                Ok(Value::Object(obj))
             }
             TaskType::Dom => {
-                let dom_value = match dom::DomLoader::load_dom(value, cache) {
+                let dom_value = match dom::DomLoader::load_dom(id_gen, graph, value, cache) {
                     Ok(v) => v,
                     Err(e) => return Err(parse_err!(value, e)),
                 };
 
-                Ok(Value::Object(dom_value))
+                Ok(vobj!(graph.id, dom_value))
             }
             TaskType::DOMElement => {
-                let dom_value = match dom::DomLoader::load_element(value, cache) {
+                let dom_value = match dom::DomLoader::load_element(id_gen, graph, value, cache) {
                     Ok(v) => v,
                     Err(e) => return Err(parse_err!(value, e)),
                 };
 
-                Ok(Value::Object(dom_value))
+                Ok(vobj!(graph.id, dom_value))
             }
         }
     }
@@ -318,6 +326,8 @@ pub struct SnythesisTaskExamples {
 }
 
 fn string_map_to_value_map(
+    id_gen: &GraphIdGenerator,
+    graphs_map: &mut GraphsMap,
     map: &HashMap<String, String>,
     variables: &HashMap<String, TaskType>,
     classes: &TsClasses,
@@ -327,10 +337,12 @@ fn string_map_to_value_map(
     for (k, v) in map {
         let key = str_cached!(cache; k);
         let value_type = variables.get(k).unwrap();
-        let mut value = value_type.create_value(v, classes, cache)?;
+        let mut graph = ObjectGraph::new(id_gen.get_id_for_graph());
+        let mut value = value_type.create_value(v, &mut graph, classes, id_gen, cache)?;
         if let Some(obj) = value.mut_obj() {
-            obj.set_as_graph_root(key.clone());
+            graph.set_as_root(key.clone(), obj.node);
         }
+        graphs_map.insert_graph(graph.into());
         values.insert(key, value);
     }
 
@@ -344,8 +356,10 @@ impl SnythesisTaskExamples {
         classes: &TsClasses,
         cache: &Cache,
     ) -> Result<Context, SnythesisTaskError> {
-        let values = string_map_to_value_map(&self.input, variables, classes, cache)?;
-        Ok(Context::with_values(values))
+        let id_gen = Arc::new(GraphIdGenerator::default());
+        let mut graphs_map = GraphsMap::default();
+        let values = string_map_to_value_map(&id_gen, &mut graphs_map, &self.input, variables, classes, cache)?;
+        Ok(Context::with_values(values, graphs_map.into(), id_gen))
     }
 
     fn load_var_value(&mut self, dir: &Path, var: &str) -> Result<(), SnythesisTaskError> {
@@ -486,18 +500,24 @@ impl SnythesisTask {
     }
 
     fn get_predicate(&self, cache: &Cache) -> Result<SynthesizerPredicate, SnythesisTaskError> {
+        let mut predicate_graphs_map = GraphsMap::default();
+        let predicate_gen_id = GraphIdGenerator::default();
         let root_name = cache.output_root_name();
         let output_array = match &self.inner.return_type {
             Some(return_type) => {
                 let mut array = Vec::with_capacity(self.inner.examples.len());
                 for example in &self.inner.examples {
+                    let mut graph = ObjectGraph::new(predicate_gen_id.get_id_for_graph());
                     let mut output = return_type.create_value(
                         example.output.as_ref().unwrap(),
+                        &mut graph,
                         &self.classes,
+                        &predicate_gen_id,
                         cache,
                     )?;
                     if let Some(obj) = output.mut_obj() {
-                        obj.set_as_graph_root(root_name.clone());
+                        graph.set_as_root(root_name.clone(), obj.node);
+                        predicate_graphs_map.insert_graph(graph.into());
                     }
                     array.push(output);
                 }
@@ -510,6 +530,8 @@ impl SnythesisTask {
                 let mut array = Vec::with_capacity(self.inner.examples.len());
                 for example in &self.inner.examples {
                     let state_map = string_map_to_value_map(
+                        &predicate_gen_id,
+                        &mut predicate_graphs_map,
                         example.state.as_ref().unwrap(),
                         &self.inner.variables,
                         &self.classes,
@@ -524,8 +546,8 @@ impl SnythesisTask {
 
         let predicate = Box::new(move |p: &Arc<SubProgram>| {
             if let Some(array) = &output_array {
-                for (actual, expected) in p.out_value().iter().zip(array) {
-                    if actual.val() != expected {
+                for (actual, actual_ctx, expected) in izip!(p.out_value().iter(), p.post_ctx().iter(), array) {
+                    if actual.val().wrap(&predicate_graphs_map) != expected.wrap(&actual_ctx.graphs_map) {
                         return false;
                     }
                 }
@@ -538,7 +560,7 @@ impl SnythesisTask {
                             None => return false,
                             Some(v) => v,
                         };
-                        if actual_value.val() != value {
+                        if actual_value.val().wrap(&actual.graphs_map) != value.wrap(&predicate_graphs_map) {
                             return false;
                         }
                     }

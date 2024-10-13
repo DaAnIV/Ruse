@@ -1,9 +1,7 @@
-use std::collections::HashMap;
-
-use ruse_object_graph::{str_cached, Cache, CachedString, NodeIndex, ObjectData};
+use ruse_object_graph::{value::*, *};
 use ruse_synthesizer::context::*;
+use ruse_synthesizer::location::*;
 use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};
-use ruse_synthesizer::value::*;
 
 use crate::dom;
 use crate::opcode::member_call_ast;
@@ -25,7 +23,7 @@ impl GetElementByIdOp {
         }
     }
 
-    fn node_id_equal(&self, node: &ObjectData, id: &CachedString) -> bool {
+    fn node_id_equal(&self, node: &ObjectGraphNode, id: &CachedString) -> bool {
         if let Some(node_id) = node.fields.get(&self.id_field_name) {
             node_id.string().as_ref().unwrap() == id
         } else {
@@ -39,7 +37,7 @@ impl ExprOpcode for GetElementByIdOp {
         &self,
         args: &[&LocValue],
         post_ctx: &mut Context,
-        syn_ctx: &SynthesizerContext,
+        _syn_ctx: &SynthesizerContext,
     ) -> EvalResult {
         debug_assert_eq!(args.len(), 2);
 
@@ -47,35 +45,31 @@ impl ExprOpcode for GetElementByIdOp {
         let id = args[1].val().string_value().unwrap();
         let mut found = EvalResult::None;
 
-        let mut parent =
-            HashMap::<NodeIndex, (NodeIndex, CachedString)>::with_capacity(obj.graph.node_count());
-        let mut stack = Vec::with_capacity(obj.graph.node_count());
-        stack.push(obj.node);
-        while let Some(node) = stack.pop() {
-            let node_weight = obj.graph.node_weight(node).unwrap();
-
-            if self.node_id_equal(node_weight, &id) {
-                let val = ObjectValue {
-                    graph: obj.graph.clone(),
-                    node,
-                };
-                let (parent, field) = &parent[&node];
-                let loc = ObjectFieldLoc {
-                    var: dom::DomLoader::document_root_name(&syn_ctx.cache),
-                    node: *parent,
-                    field: field.clone(),
-                };
-                found = EvalResult::NoModification(
-                    post_ctx.get_loc_value(Value::Object(val), Location::ObjectField(loc)),
-                );
-                break;
-            }
-
-            for i in 0..node_weight.neighbors_count() {
-                let child_field_name = syn_ctx.cached_string(&i.to_string());
-                let child_node = node_weight.get_neighbor(&child_field_name).unwrap();
-                parent.insert(child_node, (node, child_field_name));
-                stack.push(child_node);
+        for (graph, node) in
+            graph_walk::ObjectGraphWalker::from_node(&post_ctx.graphs_map, obj.graph_id, obj.node)
+        {
+            for (field, neig) in &node.pointers {
+                let neig_node = graph.get_node_from_edge_end_point(&neig, &post_ctx.graphs_map);
+                if self.node_id_equal(neig_node, &id) {
+                    let val = match neig {
+                        EdgeEndPoint::Internal(node_index) => ObjectValue {
+                            graph_id: graph.id,
+                            node: *node_index,
+                        },
+                        EdgeEndPoint::Chain(graph_id, node_index) => ObjectValue {
+                            graph_id: *graph_id,
+                            node: *node_index,
+                        },
+                    };
+                    let loc = ObjectFieldLoc {
+                        graph: graph.id,
+                        node: node.id,
+                        field: field.clone(),
+                    };
+                    found = EvalResult::NoModification(
+                        post_ctx.get_loc_value(Value::Object(val), Location::ObjectField(loc)),
+                    );
+                }
             }
         }
 

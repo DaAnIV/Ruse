@@ -1,8 +1,6 @@
-use petgraph::graph::{EdgeIndex, NodeIndex};
-use std::collections::BTreeMap;
+use std::fmt::Debug;
 use std::fmt::{self, Display, Formatter};
 use std::hash::{Hash, Hasher};
-use std::{fmt::Debug, sync::Arc};
 
 use crate::CachedString;
 
@@ -170,59 +168,4 @@ impl Display for PrimitiveValue {
             PrimitiveValue::Null => write!(f, "Null"),
         }
     }
-}
-
-pub type FieldsMap = BTreeMap<CachedString, PrimitiveValue>;
-pub type PointersMap = BTreeMap<CachedString, (EdgeIndex, NodeIndex)>;
-
-#[derive(Clone)]
-pub struct ObjectData {
-    pub obj_type: CachedString,
-    pub fields: Arc<FieldsMap>,
-    pub(super) pointers: Arc<PointersMap>,
-}
-
-impl ObjectData {
-    pub fn new(obj_type: CachedString, fields: Arc<FieldsMap>) -> Self {
-        ObjectData {
-            obj_type,
-            fields,
-            pointers: Default::default(),
-        }
-    }
-
-    pub fn get_neighbor(&self, name: &CachedString) -> Option<NodeIndex> {
-        Some(self.pointers.get(name)?.1)
-    }
-
-    pub fn neighbors_count(&self) -> usize {
-        self.pointers.len()
-    }
-}
-
-impl Hash for ObjectData {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.fields.hash(state);
-        for key in self.pointers.keys() {
-            key.hash(state);
-        }
-    }
-}
-
-impl Debug for ObjectData {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("ObjectData")
-            .field("fields", &self.fields)
-            .finish()
-    }
-}
-
-#[macro_export]
-macro_rules! fields {
-    () => (
-        std::sync::Arc::new($crate::FieldsMap::default())
-    );
-    ($($x:expr),+ $(,)?) => (
-        std::sync::Arc::new($crate::FieldsMap::from([$($x),+]))
-    );
 }

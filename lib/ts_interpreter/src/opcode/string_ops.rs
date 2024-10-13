@@ -1,7 +1,8 @@
 use ruse_object_graph::Number;
+use ruse_object_graph::{value::*, *};
+use ruse_synthesizer::context::*;
+use ruse_synthesizer::location::*;
 use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};
-use ruse_synthesizer::{context::*, vnum};
-use ruse_synthesizer::{value::*, vcstring};
 
 use crate::opcode::{get_end_index, get_start_index, member_call_ast};
 
@@ -37,13 +38,13 @@ impl ExprOpcode for SplitOp {
         let pattern = args[1].val().string_value().unwrap();
 
         let substrings = string.split(pattern.as_str());
-        let array = Value::create_primitive_array_object(
+        let array = post_ctx.create_output_primitive_array(
             &ValueType::String,
             substrings.map(|x| syn_ctx.cached_string(x)),
-            &syn_ctx.cache,
+            &syn_ctx,
         );
 
-        EvalResult::NoModification(post_ctx.temp_value(array))
+        EvalResult::NoModification(post_ctx.temp_value(Value::Object(array)))
     }
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {

@@ -1,5 +1,6 @@
 use futures::{future::BoxFuture, FutureExt};
 use itertools::Itertools;
+use ruse_object_graph::value::ValueType;
 use std::{mem::replace, sync::Arc};
 use tokio::sync::OwnedSemaphorePermit;
 use tokio_util::sync::CancellationToken;
@@ -7,6 +8,7 @@ use tokio_util::sync::CancellationToken;
 use crate::{
     bank::{ProgBank, ProgramsMap},
     context::{ContextArray, SynthesizerContext},
+    embedding::merge_context_arrays,
     opcode::ExprOpcode,
     prog::SubProgram,
 };
@@ -68,12 +70,13 @@ impl WorkGather {
     pub async fn gather_work_for_next_iteration(
         &mut self,
         bank: &ProgBank,
-        op: &Arc<dyn ExprOpcode>,
+        arg_types: &[ValueType],
+        ops: &Vec<Arc<dyn ExprOpcode>>,
         syn_ctx: &SynthesizerContext,
     ) {
-        self.children = Vec::with_capacity(op.arg_types().len());
-        self.ctx = Vec::with_capacity(op.arg_types().len());
-        self.add_all_tasks(bank, op, syn_ctx).await;
+        self.children = Vec::with_capacity(arg_types.len());
+        self.ctx = Vec::with_capacity(arg_types.len());
+        self.add_all_tasks(bank, arg_types, ops, syn_ctx).await;
     }
 
     pub async fn wait_for_all_tasks(&mut self) -> Option<Arc<SubProgram>> {
@@ -90,26 +93,29 @@ impl WorkGather {
     async fn add_all_tasks(
         &mut self,
         bank: &ProgBank,
-        op: &Arc<dyn ExprOpcode>,
+        arg_types: &[ValueType],
+        ops: &Vec<Arc<dyn ExprOpcode>>,
         syn_ctx: &SynthesizerContext,
     ) {
         if bank.iteration_count() == 1 {
-            self.gather_work_for_iterations(bank, op, vec![0; op.arg_types().len()], syn_ctx)
+            self.gather_work_for_iterations(bank, arg_types, ops, vec![0; arg_types.len()], syn_ctx)
                 .await
         } else {
-            for i in 0..op.arg_types().len() {
-                self.gather_work_with_cutoff(bank, op, i, syn_ctx).await;
+            for i in 0..arg_types.len() {
+                self.gather_work_with_cutoff(bank, arg_types, ops, i, syn_ctx)
+                    .await;
             }
         }
         if !self.chunk.is_empty() {
-            self.perform_work(op).await;
+            self.perform_work(ops).await;
         }
     }
 
     async fn gather_work_with_cutoff(
         &mut self,
         bank: &ProgBank,
-        op: &Arc<dyn ExprOpcode>,
+        arg_types: &[ValueType],
+        ops: &Vec<Arc<dyn ExprOpcode>>,
         cutoff: usize,
         syn_ctx: &SynthesizerContext,
     ) {
@@ -117,7 +123,7 @@ impl WorkGather {
             return;
         }
         let last_iteration = bank.iteration_count() - 1;
-        let iterations_iterator = (0..op.arg_types().len())
+        let iterations_iterator = (0..arg_types.len())
             .map(|i| match i {
                 n if n == cutoff => last_iteration..=last_iteration,
                 n if n < cutoff => 0..=(last_iteration - 1),
@@ -126,7 +132,7 @@ impl WorkGather {
             .multi_cartesian_product();
 
         for iterations in iterations_iterator {
-            self.gather_work_for_iterations(bank, op, iterations, syn_ctx)
+            self.gather_work_for_iterations(bank, arg_types, ops, iterations, syn_ctx)
                 .await
         }
     }
@@ -134,18 +140,17 @@ impl WorkGather {
     async fn gather_work_for_iterations(
         &mut self,
         bank: &ProgBank,
-        op: &Arc<dyn ExprOpcode>,
+        arg_types: &[ValueType],
+        ops: &Vec<Arc<dyn ExprOpcode>>,
         iterations: Vec<usize>,
         syn_ctx: &SynthesizerContext,
     ) {
         if self.cancel_token.is_cancelled() {
             return;
         }
-        let mut programs = Vec::with_capacity(op.arg_types().len());
+        let mut programs = Vec::with_capacity(arg_types.len());
 
-        let arg_types = op.arg_types();
-
-        for i in 0..op.arg_types().len() {
+        for i in 0..arg_types.len() {
             if let Some(values) = bank[iterations[i]].get(&arg_types[i]) {
                 programs.push(values.value().clone())
             } else {
@@ -153,12 +158,14 @@ impl WorkGather {
             }
         }
 
-        self.gather_work_for_maps(op, &programs, syn_ctx).await;
+        self.gather_work_for_maps(arg_types, ops, &programs, syn_ctx)
+            .await;
     }
 
     fn gather_work_for_maps<'a>(
         &'a mut self,
-        op: &'a Arc<dyn ExprOpcode>,
+        arg_types: &'a [ValueType],
+        ops: &'a Vec<Arc<dyn ExprOpcode>>,
         maps: &'a [Arc<ProgramsMap>],
         syn_ctx: &'a SynthesizerContext,
     ) -> BoxFuture<'a, ()> {
@@ -167,7 +174,7 @@ impl WorkGather {
         if i == maps.len() {
             return async move {
                 let (pre_ctx, post_ctx) = self.ctx.last().unwrap().clone();
-                self.gather_work(op, pre_ctx, post_ctx).await;
+                self.gather_work(ops, pre_ctx, post_ctx).await;
             }
             .boxed();
         }
@@ -179,17 +186,19 @@ impl WorkGather {
                     return;
                 }
                 if let Some((pre_ctx, post_ctx)) = self.ctx.last() {
-                    if !post_ctx.check_compatibility(p.pre_ctx(), syn_ctx) {
+                    if let Ok((pre_ctx_hat, post_ctx_hat)) =
+                        merge_context_arrays(pre_ctx, post_ctx, p.pre_ctx(), p.post_ctx())
+                    {
+                        self.ctx.push((pre_ctx_hat, post_ctx_hat));
+                    } else {
                         continue;
                     }
-                    self.ctx
-                        .push((pre_ctx.merge(p.pre_ctx()), p.post_ctx().merge(&post_ctx)));
                 } else {
                     self.ctx.push((p.pre_ctx().clone(), p.post_ctx().clone()));
                 }
 
                 self.children.push(p.value().clone());
-                self.gather_work_for_maps(op, maps, syn_ctx).await;
+                self.gather_work_for_maps(arg_types, ops, maps, syn_ctx).await;
                 self.children.pop();
                 self.ctx.pop();
             }
@@ -199,7 +208,7 @@ impl WorkGather {
 
     async fn gather_work(
         &mut self,
-        op: &Arc<dyn ExprOpcode>,
+        ops: &Vec<Arc<dyn ExprOpcode>>,
         pre_context: ContextArray,
         post_context: ContextArray,
     ) {
@@ -210,17 +219,17 @@ impl WorkGather {
         self.chunk
             .push((pre_context, self.children.clone(), post_context));
         if self.chunk.len() == self.chunk_size {
-            self.perform_work(op).await;
+            self.perform_work(ops).await;
         }
     }
 
-    async fn perform_work(&mut self, op: &Arc<dyn ExprOpcode>) {
+    async fn perform_work(&mut self, ops: &Vec<Arc<dyn ExprOpcode>>) {
         let permit = self.permits.clone().acquire_owned().await.unwrap();
         let chunk = replace(&mut self.chunk, Vec::with_capacity(self.chunk_size));
         WorkGather::spawn(
             &mut self.tasks,
             chunk,
-            op.clone(),
+            ops.clone(),
             self.handler.clone(),
             permit,
             self.cancel_token.child_token(),
@@ -230,7 +239,7 @@ impl WorkGather {
     fn spawn(
         tasks: &mut tokio::task::JoinSet<Option<Arc<SubProgram>>>,
         chunk: Vec<ProgTriplet>,
-        op: Arc<dyn ExprOpcode>,
+        ops: Vec<Arc<dyn ExprOpcode>>,
         handler: WorkHandler,
         permit: OwnedSemaphorePermit,
         cancel_token: CancellationToken,
@@ -239,8 +248,8 @@ impl WorkGather {
             let result = tokio::select! {
                 _ = cancel_token.cancelled() => None,
                 v = async {
-                    for c in chunk.into_iter() {
-                        let found_prog = handler(op.clone(), c.0, c.1, c.2);
+                    for (c, op) in chunk.into_iter().cartesian_product(ops.into_iter()) {
+                        let found_prog = handler(op, c.0, c.1, c.2);
                         if found_prog.is_some() {
                             return found_prog;
                         }

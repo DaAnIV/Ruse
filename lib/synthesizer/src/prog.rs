@@ -1,14 +1,15 @@
 use std::cmp::max;
-use std::fmt::Debug;
-use std::fmt::Display;
+use std::fmt::{Display, Debug};
 use std::hash::Hash;
 use std::sync::Arc;
+
+use ruse_object_graph::{graph_map_value::*, value::ValueType};
 
 use crate::bank::ValueArray;
 use crate::context::ContextArray;
 use crate::context::SynthesizerContext;
+use crate::location::*;
 use crate::opcode::*;
-use crate::value::*;
 
 pub struct SubProgram {
     pub opcode: Arc<dyn ExprOpcode>,
@@ -28,7 +29,7 @@ fn verify_children(opcode: &Arc<dyn ExprOpcode>, children: &[Arc<SubProgram>]) -
 
     // Verify all of the examples start from the same pre context keys
     if !children[0].pre_ctx().iter().any(|x| {
-        for (a, b) in x.get_keys().zip(pre_context.get_keys()) {
+        for (a, b) in x.variables().zip(pre_context.variables()) {
             if a != b {
                 return false;
             }
@@ -111,7 +112,6 @@ impl SubProgram {
             // Gather arguments
             let args: Vec<&LocValue> = self.children.iter().map(|c| &c.out_value()[i]).collect();
             let out_ctx = self.post_ctx.get_mut(i).unwrap();
-
             // Evaluate and verify the output type is consistent
             let out_val = match self.opcode.eval(&args, out_ctx, context) {
                 EvalResult::DirtyContext(out_val) => {
@@ -122,8 +122,10 @@ impl SubProgram {
                 EvalResult::None => return false,
             };
 
-            debug_assert!(out_type.is_none() || out_type == Some(out_val.val.val_type()));
-            let _ = out_type.get_or_insert(out_val.val.val_type());
+            debug_assert!(
+                out_type.is_none() || out_type == Some(out_val.val.val_type(&out_ctx.graphs_map))
+            );
+            let _ = out_type.get_or_insert(out_val.val.val_type(&out_ctx.graphs_map));
 
             out_value.push(out_val);
         }
@@ -132,7 +134,7 @@ impl SubProgram {
             self.post_ctx.depth += 1;
         }
         self.out_type = out_type;
-        self.out_value = Some(Arc::new(out_value));
+        self.out_value = Some(out_value.into());
 
         true
     }
@@ -182,7 +184,7 @@ impl Hash for SubProgram {
         self.pre_ctx().hash(state);
         self.out_type().hash(state);
         self.post_ctx().hash(state);
-        self.out_value().hash(state);
+        self.out_value().calculate_hash(state, self.post_ctx());
     }
 }
 
@@ -193,7 +195,13 @@ impl PartialEq for SubProgram {
         self.out_type == other.out_type
             && self.pre_ctx == other.pre_ctx
             && self.post_ctx == other.post_ctx
-            && self.out_value == other.out_value
+            && match (&self.out_value, &other.out_value) {
+                (None, None) => true,
+                (Some(self_out_val), Some(other_out_val)) => {
+                    self_out_val.eq(&self.post_ctx, other_out_val, &other.post_ctx)
+                }
+                (_, _) => false,
+            }
     }
 }
 
@@ -210,13 +218,16 @@ impl Debug for SubProgram {
 }
 
 impl Display for SubProgram {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(
+        &self,
+        f: &mut core::fmt::Formatter<'_>,
+    ) -> core::fmt::Result {
         write!(
             f,
             "({}) {{ {} }} ({}; {})",
             self.pre_ctx()[0],
             self.get_code(),
-            self.out_value()[0].val(),
+            self.out_value()[0].val().wrap(&self.post_ctx()[0].graphs_map),
             self.post_ctx()[0]
         )
     }

@@ -1,18 +1,103 @@
-use std::sync::Arc;
+use std::{ops::Index, sync::Arc};
 
 use dashmap::{DashMap, Map, SharedValue};
+use itertools::izip;
+use ruse_object_graph::{value::ValueType, graph_map_value::GraphMapWrap};
 
 use std::hash::Hash;
 
-use crate::{
-    prog::SubProgram,
-    value::{LocValue, ValueType},
-};
+use crate::{context::ContextArray, location::LocValue, prog::SubProgram};
 
-pub type ValueArray = Arc<Vec<LocValue>>;
+#[derive(Debug)]
+pub struct ValueArray(Arc<Vec<LocValue>>);
+impl ValueArray {
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn iter(&self) -> impl std::iter::Iterator<Item = &LocValue> {
+        self.0.iter()
+    }
+}
+
+impl From<Vec<LocValue>> for ValueArray {
+    fn from(value: Vec<LocValue>) -> Self {
+        Self(Arc::new(value))
+    }
+}
+
+impl Index<usize> for ValueArray {
+    type Output = LocValue;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        self.0.index(index)
+    }
+}
+
+impl ValueArray {
+    pub fn eq(
+        &self,
+        self_context_array: &ContextArray,
+        other: &Self,
+        other_context_array: &ContextArray,
+    ) -> bool {
+        debug_assert!(
+            self.len() == other.len()
+                && self.len() == self_context_array.len()
+                && other.len() == other_context_array.len()
+        );
+        izip!(
+            self.iter(),
+            self_context_array.iter(),
+            other.iter(),
+            other_context_array.iter()
+        )
+        .all(|(self_val, self_ctx, other_val, other_ctx)| {
+            self_val.wrap(&self_ctx.graphs_map) == other_val.wrap(&other_ctx.graphs_map)
+        })
+    }
+}
+
+impl ValueArray {
+    pub fn calculate_hash<H: std::hash::Hasher>(
+        &self,
+        state: &mut H,
+        self_context_array: &ContextArray,
+    ) {
+        debug_assert!(self.len() == self_context_array.len());
+        for (val, ctx) in izip!(self.iter(), self_context_array.iter(),) {
+            val.wrap(&ctx.graphs_map).hash(state);
+        }
+    }
+}
+
+impl ValueArray {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>, self_context_array: &ContextArray) -> std::fmt::Result {
+        debug_assert!(self.len() == self_context_array.len());
+        for (val, ctx) in izip!(self.iter(), self_context_array.iter(),) {
+            write!(f, "{}", val.wrap(&ctx.graphs_map))?;
+        }
+        Ok(())
+    }
+}
 
 #[derive(Debug, Clone)]
 pub(crate) struct Output(Arc<SubProgram>);
+
+impl Output {
+    fn out_type(&self) -> ValueType {
+        self.0.out_type()
+    }
+    fn out_value(&self) -> &ValueArray {
+        self.0.out_value()
+    }
+    fn pre_ctx(&self) -> &ContextArray {
+        self.0.pre_ctx()
+    }
+    fn post_ctx(&self) -> &ContextArray {
+        self.0.post_ctx()
+    }
+}
 
 impl From<Arc<SubProgram>> for Output {
     fn from(value: Arc<SubProgram>) -> Self {
@@ -24,17 +109,19 @@ impl Eq for Output {}
 
 impl PartialEq for Output {
     fn eq(&self, other: &Self) -> bool {
-        self.0.out_type() == other.0.out_type()
-            && self.0.out_value() == other.0.out_value()
-            && self.0.pre_ctx().contained(other.0.pre_ctx())
-            && self.0.post_ctx().contained(other.0.post_ctx())
+        self.out_type() == other.out_type()
+            && self
+                .out_value()
+                .eq(self.post_ctx(), other.out_value(), other.post_ctx())
+            && self.pre_ctx().subset(other.pre_ctx())
+            && self.post_ctx().subset(other.post_ctx())
     }
 }
 
 impl Hash for Output {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.0.out_type().hash(state);
-        self.0.out_value().hash(state);
+        self.0.out_value().calculate_hash(state, self.post_ctx());
     }
 }
 

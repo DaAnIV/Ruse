@@ -3,7 +3,8 @@ pub mod context;
 pub mod opcode;
 pub mod prog;
 pub mod synthesizer;
-pub mod value;
+pub mod location;
 pub mod work_gatherer;
+pub mod embedding;
 
 mod test;

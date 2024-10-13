@@ -1,7 +1,8 @@
-use ruse_object_graph::{Number, PrimitiveValue};
+use ruse_object_graph::value::*;
+use ruse_object_graph::{vbool, vcstring, vnum, Number, PrimitiveValue};
+use ruse_synthesizer::context::*;
+use ruse_synthesizer::location::*;
 use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};
-use ruse_synthesizer::{context::*, vbool, vnum};
-use ruse_synthesizer::{value::*, vcstring};
 
 use swc_common::DUMMY_SP;
 use swc_ecma_ast as ast;
@@ -100,8 +101,8 @@ impl ExprOpcode for BinOp {
         syn_ctx: &SynthesizerContext,
     ) -> EvalResult {
         debug_assert_eq!(args.len(), 2);
-        debug_assert_eq!(args[0].val().val_type(), self.arg_types[0]);
-        debug_assert_eq!(args[1].val().val_type(), self.arg_types[1]);
+        debug_assert_eq!(args[0].val().val_type(&post_ctx.graphs_map), self.arg_types[0]);
+        debug_assert_eq!(args[1].val().val_type(&post_ctx.graphs_map), self.arg_types[1]);
 
         let val = match (&args[0].val(), &args[1].val()) {
             (Value::Primitive(p1), Value::Primitive(p2)) => match (p1, p2) {

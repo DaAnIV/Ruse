@@ -1,7 +1,8 @@
 use ruse_object_graph::CachedString;
+use ruse_object_graph::value::*;
 use ruse_synthesizer::context::*;
+use ruse_synthesizer::location::*;
 use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};
-use ruse_synthesizer::value::*;
 
 use swc_common::DUMMY_SP;
 use swc_ecma_ast as ast;
@@ -27,12 +28,12 @@ impl ExprOpcode for MemberOp {
     fn eval(
         &self,
         args: &[&LocValue],
-        _post_ctx: &mut Context,
+        post_ctx: &mut Context,
         _: &SynthesizerContext,
     ) -> EvalResult {
         debug_assert_eq!(args.len(), 1);
 
-        args[0].get_obj_field_loc_value(&self.field_name).into()
+        args[0].get_obj_field_loc_value(&post_ctx.graphs_map, &self.field_name).into()
     }
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {

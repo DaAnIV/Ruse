@@ -1,8 +1,8 @@
-use ruse_object_graph::CachedString;
+use ruse_object_graph::{value::*, *};
 use ruse_synthesizer::{
     context::{Context, SynthesizerContext},
+    location::*,
     opcode::{EvalResult, ExprAst, ExprOpcode},
-    value::{LocValue, ValueType},
 };
 
 use crate::{
@@ -64,7 +64,7 @@ impl ExprOpcode for ClassMethodOp {
         let mut boa_ctx = self.classes.get_boa_ctx(post_ctx, &syn_ctx.cache);
         for (i, arg) in args.iter().enumerate() {
             let key = boa_engine::js_string!(format!("arg{}", i));
-            let value = value_to_js_value(&self.classes, arg.val(), &mut boa_ctx, &syn_ctx.cache);
+            let value = value_to_js_value(&self.classes, arg.val(), &mut boa_ctx, post_ctx, &syn_ctx.cache);
             if boa_ctx
                 .register_global_property(key, value, boa_engine::property::Attribute::all())
                 .is_err()

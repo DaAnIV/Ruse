@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
 use ruse_object_graph::{scached, Cache, Number, PrimitiveValue};
-use ruse_synthesizer::value::{ObjectValue, Value};
+use ruse_object_graph::value::*;
+use ruse_synthesizer::context::Context;
 
 use crate::ts_class::{TsClasses, TsObjectValue};
 
@@ -20,9 +21,10 @@ pub fn object_value_to_js_value(
     classes: &TsClasses,
     value: &ObjectValue,
     boa_ctx: &mut boa_engine::Context,
+    context: &Context,
     cache: &Arc<Cache>,
 ) -> boa_engine::JsValue {
-    let class = classes.get_class(&value.obj_type()).unwrap();
+    let class = classes.get_class(&value.obj_type(&context.graphs_map)).unwrap();
     let js_obj = class.generate_js_object(classes, value.clone(), boa_ctx, cache);
     boa_engine::JsValue::Object(js_obj)
 }
@@ -31,11 +33,12 @@ pub fn value_to_js_value(
     classes: &TsClasses,
     value: &Value,
     boa_ctx: &mut boa_engine::Context,
+    context: &Context,
     cache: &Arc<Cache>,
 ) -> boa_engine::JsValue {
     match value {
         Value::Primitive(p) => primitive_value_to_js_value(p),
-        Value::Object(o) => object_value_to_js_value(classes, o, boa_ctx, cache),
+        Value::Object(o) => object_value_to_js_value(classes, o, boa_ctx, context, cache),
     }
 }
 
@@ -46,7 +49,10 @@ pub fn js_object_to_value(
     _cache: &Arc<Cache>,
 ) -> Value {
     match value.downcast_ref::<TsObjectValue>() {
-        Some(ts_obj) => Value::Object(ts_obj.clone()),
+        Some(ts_obj) => {
+            let obj_val = &*ts_obj;
+            Value::Object((**obj_val).clone())
+        },
         None => unimplemented!(),
     }
 }

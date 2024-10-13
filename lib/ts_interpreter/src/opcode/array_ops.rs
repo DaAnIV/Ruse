@@ -1,9 +1,10 @@
 use std::cmp::min;
 
-use ruse_object_graph::{Cache, Number};
+use ruse_object_graph::value::{Value, ValueType};
+use ruse_object_graph::{vnum, vobj, Cache, Number};
+use ruse_synthesizer::context::*;
+use ruse_synthesizer::location::*;
 use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};
-use ruse_synthesizer::value::*;
-use ruse_synthesizer::{context::*, vnum};
 
 use swc_common::DUMMY_SP;
 use swc_ecma_ast as ast;
@@ -32,7 +33,7 @@ impl ExprOpcode for IndexOp {
     fn eval(
         &self,
         args: &[&LocValue],
-        _post_ctx: &mut Context,
+        post_ctx: &mut Context,
         syn_ctx: &SynthesizerContext,
     ) -> EvalResult {
         debug_assert_eq!(args.len(), 2);
@@ -40,7 +41,7 @@ impl ExprOpcode for IndexOp {
         let num = args[1].val().number_value().unwrap();
         let field_name = syn_ctx.cached_string(&(num.0 as usize).to_string());
 
-        args[0].get_obj_field_loc_value(&field_name).into()
+        args[0].get_obj_field_loc_value(&post_ctx.graphs_map, &field_name).into()
     }
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
@@ -91,52 +92,13 @@ impl ExprOpcode for PushOp {
         debug_assert_eq!(args.len(), 2);
 
         let arr = args[0].val().obj().unwrap();
-        let new_idx = arr.total_field_count();
+        let new_idx = arr.total_field_count(&post_ctx.graphs_map);
         let idx_field_name = syn_ctx.cached_string(&new_idx.to_string());
-        let mut dirty = false;
-        let new_arr = match &args[0].loc() {
-            Location::Temp => {
-                let (new_graph, node) =
-                    post_ctx.set_field(&arr.graph, arr.node, &idx_field_name, args[1].val());
+        post_ctx.set_field(arr.graph_id, arr.node, idx_field_name, args[1].val());
 
-                ObjectValue {
-                    graph: new_graph,
-                    node,
-                }
-            }
-            _ => {
-                let var = match &args[0].loc() {
-                    Location::Var(l) => &l.var,
-                    Location::ObjectField(l) => &l.var,
-                    Location::Temp => unreachable!(),
-                };
-                let mut loc = Location::ObjectField(ObjectFieldLoc {
-                    var: var.clone(),
-                    node: arr.node,
-                    field: idx_field_name,
-                });
-                if !post_ctx.update_value(args[1].val(), &mut loc, syn_ctx) {
-                    return EvalResult::None;
-                }
-                dirty = true;
-                if let Some(loc_value) = post_ctx.get_var_loc_value(var) {
-                    ObjectValue {
-                        graph: loc_value.val().obj().unwrap().graph.clone(),
-                        node: unsafe { loc.object_field().unwrap_unchecked().node },
-                    }
-                } else {
-                    return EvalResult::None;
-                }
-            }
-        };
+        let result = post_ctx.temp_value(vnum!(Number::from(arr.total_field_count(&post_ctx.graphs_map) + 1)));
 
-        let result = post_ctx.temp_value(vnum!(Number::from(new_arr.total_field_count())));
-
-        if dirty {
-            EvalResult::DirtyContext(result)
-        } else {
-            EvalResult::NoModification(result)
-        }
+        EvalResult::DirtyContext(result)
     }
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
@@ -179,8 +141,8 @@ impl ExprOpcode for ArraySliceOp {
         syn_ctx: &SynthesizerContext,
     ) -> EvalResult {
         let arr = args[0].val().obj().unwrap();
-        let graph = arr.graph.clone();
-        let arr_len = arr.total_field_count();
+        let graph = arr.graph(&post_ctx.graphs_map);
+        let arr_len = arr.total_field_count(&post_ctx.graphs_map);
         let start = get_start_index(args[1].val().number_value().unwrap().0 as isize, arr_len);
         let end = match args.get(2) {
             Some(v) => get_end_index(v.val().number_value().unwrap().0 as isize, arr_len),
@@ -188,34 +150,34 @@ impl ExprOpcode for ArraySliceOp {
         };
 
         if start >= end {
-            return EvalResult::NoModification(post_ctx.temp_value(Value::create_array_object(
+            let empty_arr = post_ctx.create_output_array_object(
                 &self.elem_type,
                 [],
-                &syn_ctx.cache,
-            )));
+                &syn_ctx,
+            );
+            return EvalResult::NoModification(post_ctx.temp_value(Value::Object(empty_arr)));
         }
 
-        let mut new_arr = if self.elem_type.is_primitive() {
-            let fields = arr
-                .fields()
+        let new_arr = if self.elem_type.is_primitive() {
+            let fields = graph.fields(&arr.node)
                 .skip(start)
                 .take(end - start)
                 .map(|(_, p)| p.clone());
-            Value::create_primitive_array_object(&self.elem_type, fields, &syn_ctx.cache)
+            post_ctx.create_output_primitive_array(&self.elem_type, fields, &syn_ctx)
         } else {
-            let fields = arr.neighbors().skip(start).take(end - start).map(|(_, n)| {
-                Value::Object(ObjectValue {
-                    graph: graph.clone(),
-                    node: n,
-                })
-            });
-            Value::create_array_object(&self.elem_type, fields, &syn_ctx.cache)
+            let fields = graph
+                .neighbors(&arr.node)
+                .skip(start)
+                .take(end - start)
+                .map(|(_, n)| {
+                    match n {
+                        ruse_object_graph::EdgeEndPoint::Internal(node_index) => vobj!(arr.graph_id, *node_index),
+                        ruse_object_graph::EdgeEndPoint::Chain(graph_id, node_index) => vobj!(*graph_id, *node_index),
+                    }
+                });
+            post_ctx.create_output_array_object(&self.elem_type, fields, &syn_ctx)
         };
-        new_arr
-            .mut_obj()
-            .unwrap()
-            .set_as_graph_root(syn_ctx.output_root_name().clone());
-        EvalResult::NoModification(post_ctx.temp_value(new_arr))
+        EvalResult::NoModification(post_ctx.temp_value(Value::Object(new_arr)))
     }
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
@@ -254,35 +216,29 @@ impl ExprOpcode for ArrayConcatOp {
         syn_ctx: &SynthesizerContext,
     ) -> EvalResult {
         let arr = args[0].val().obj().unwrap();
-        let graph = arr.graph.clone();
+        let graph = arr.graph(&post_ctx.graphs_map);
 
-        let mut new_arr = if self.elem_type.is_primitive() {
-            let values = arr.fields().map(|x| x.1.clone()).chain(
+        let new_arr = if self.elem_type.is_primitive() {
+            let values = graph.fields(&arr.node).map(|x| x.1.clone()).chain(
                 args.iter()
                     .skip(1)
                     .map(|x| x.val().primitive().unwrap().clone()),
             );
-            Value::create_primitive_array_object(&self.elem_type, values, &syn_ctx.cache)
+            post_ctx.create_output_primitive_array(&self.elem_type, values, &syn_ctx)
         } else {
-            let values = arr
-                .neighbors()
-                .map(|x| {
-                    Value::Object(ObjectValue {
-                        graph: graph.clone(),
-                        node: x.1,
-                    })
+            let values = graph
+                .neighbors(&arr.node)
+                .map(|(_, n)| {
+                    match n {
+                        ruse_object_graph::EdgeEndPoint::Internal(node_index) => vobj!(arr.graph_id, *node_index),
+                        ruse_object_graph::EdgeEndPoint::Chain(graph_id, node_index) => vobj!(*graph_id, *node_index),
+                    }
                 })
                 .chain(args.iter().skip(1).map(|x| x.val().clone()));
-            Value::create_array_object(&self.elem_type, values, &syn_ctx.cache)
+            post_ctx.create_output_array_object(&self.elem_type, values, &syn_ctx)
         };
-        new_arr
-            .mut_obj()
-            .unwrap()
-            .set_as_graph_root(syn_ctx.output_root_name().clone());
 
-        debug_assert_ne!(args[0].val(), &new_arr);
-
-        EvalResult::NoModification(post_ctx.temp_value(new_arr))
+        EvalResult::NoModification(post_ctx.temp_value(Value::Object(new_arr)))
     }
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
@@ -324,8 +280,8 @@ impl ExprOpcode for ArraySpliceOp {
         syn_ctx: &SynthesizerContext,
     ) -> EvalResult {
         let arr = args[0].val().obj().unwrap();
-        let graph = arr.graph.clone();
-        let arr_len = arr.total_field_count();
+        let graph = arr.graph(&post_ctx.graphs_map);
+        let arr_len = arr.total_field_count(&post_ctx.graphs_map);
         let start = get_start_index(args[1].val().number_value().unwrap().0 as isize, arr_len);
         let delete_count = match args.get(2) {
             Some(v) => {
@@ -338,75 +294,72 @@ impl ExprOpcode for ArraySpliceOp {
             None => arr_len - start,
         };
 
-        let mut new_arr = if self.elem_type.is_primitive() {
+        let new_arr = if self.elem_type.is_primitive() {
             let items_to_add = args
                 .iter()
                 .skip(2)
                 .map(|x| x.val().primitive().unwrap().clone());
 
-            let fields = arr
-                .fields()
+            let fields = graph
+                .fields(&arr.node)
                 .take(start)
                 .map(|(_, p)| p.clone())
                 .chain(items_to_add)
                 .chain(
-                    arr.fields()
+                    graph.fields(&arr.node)
                         .skip(start + delete_count)
                         .map(|(_, p)| p.clone()),
                 );
 
-            Value::create_primitive_array_object(&self.elem_type, fields, &syn_ctx.cache)
+            post_ctx.create_output_primitive_array(&self.elem_type, fields, &syn_ctx)
         } else {
             let items_to_add = args.iter().skip(2).map(|x| x.val().clone());
 
-            let fields = arr
-                .neighbors()
+            let fields = graph
+                .neighbors(&arr.node)
                 .take(start)
                 .map(|(_, n)| {
-                    Value::Object(ObjectValue {
-                        graph: graph.clone(),
-                        node: n,
-                    })
+                    match n {
+                        ruse_object_graph::EdgeEndPoint::Internal(node_index) => vobj!(arr.graph_id, *node_index),
+                        ruse_object_graph::EdgeEndPoint::Chain(graph_id, node_index) => vobj!(*graph_id, *node_index),
+                    }
                 })
                 .chain(items_to_add)
-                .chain(arr.neighbors().skip(start + delete_count).map(|(_, n)| {
-                    Value::Object(ObjectValue {
-                        graph: graph.clone(),
-                        node: n,
-                    })
+                .chain(graph.neighbors(&arr.node).skip(start + delete_count).map(|(_, n)| {
+                    match n {
+                        ruse_object_graph::EdgeEndPoint::Internal(node_index) => vobj!(arr.graph_id, *node_index),
+                        ruse_object_graph::EdgeEndPoint::Chain(graph_id, node_index) => vobj!(*graph_id, *node_index),
+                    }
                 }));
-            Value::create_array_object(&self.elem_type, fields, &syn_ctx.cache)
+                post_ctx.create_output_array_object(&self.elem_type, fields, &syn_ctx)
         };
-        if let Some(root) = graph.roots().find(|x| x.1 == &arr.node) {
-            new_arr.mut_obj().unwrap().set_as_graph_root(root.0.clone());
-        }
 
         let mut new_arr_loc = args[0].loc().clone();
-        if !post_ctx.update_value(&new_arr, &mut new_arr_loc, syn_ctx) {
+        if !post_ctx.update_value(&Value::Object(new_arr), &mut new_arr_loc, syn_ctx) {
             return EvalResult::None;
         }
 
         let deleted_items_arr = if self.elem_type.is_primitive() {
-            let fields = arr
-                .fields()
+            let fields = graph
+                .fields(&arr.node)
                 .skip(start)
                 .take(delete_count)
                 .map(|(_, p)| p.clone());
-            Value::create_primitive_array_object(&self.elem_type, fields, &syn_ctx.cache)
+            post_ctx.create_output_primitive_array(&self.elem_type, fields, &syn_ctx)
         } else {
-            let fields = arr
-                .neighbors()
+            let fields = graph
+                .neighbors(&arr.node)
                 .skip(start)
                 .take(delete_count)
                 .map(|(_, n)| {
-                    Value::Object(ObjectValue {
-                        graph: graph.clone(),
-                        node: n,
-                    })
+                    match n {
+                        ruse_object_graph::EdgeEndPoint::Internal(node_index) => vobj!(arr.graph_id, *node_index),
+                        ruse_object_graph::EdgeEndPoint::Chain(graph_id, node_index) => vobj!(*graph_id, *node_index),
+                    }
                 });
-            Value::create_array_object(&self.elem_type, fields, &syn_ctx.cache)
+                post_ctx.create_output_array_object(&self.elem_type, fields, &syn_ctx)
         };
-        EvalResult::NoModification(post_ctx.temp_value(deleted_items_arr))
+        EvalResult::NoModification(post_ctx.temp_value(Value::Object(deleted_items_arr)))
     }
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
@@ -446,37 +399,34 @@ impl ExprOpcode for ArrayConcatArrayOp {
     ) -> EvalResult {
         let arr = args[0].val().obj().unwrap();
         let arr_to_add = args[1].val().obj().unwrap();
-        let graph = arr.graph.clone();
+        let graph = arr.graph(&post_ctx.graphs_map);
+        let graph_to_add = arr_to_add.graph(&post_ctx.graphs_map);
 
-        let mut new_arr = if self.elem_type.is_primitive() {
-            let values = arr
-                .fields()
+        let new_arr = if self.elem_type.is_primitive() {
+            let values = graph
+                .fields(&arr.node)
                 .map(|x| x.1.clone())
-                .chain(arr_to_add.fields().map(|x| x.1.clone()));
-            Value::create_primitive_array_object(&self.elem_type, values, &syn_ctx.cache)
+                .chain(graph_to_add.fields(&arr_to_add.node).map(|x| x.1.clone()));
+            post_ctx.create_output_primitive_array(&self.elem_type, values, &syn_ctx)
         } else {
-            let values = arr
-                .neighbors()
-                .map(|x| {
-                    Value::Object(ObjectValue {
-                        graph: graph.clone(),
-                        node: x.1,
-                    })
+            let values = graph
+                .neighbors(&arr.node)
+                .map(|(_, n)| {
+                    match n {
+                        ruse_object_graph::EdgeEndPoint::Internal(node_index) => vobj!(arr.graph_id, *node_index),
+                        ruse_object_graph::EdgeEndPoint::Chain(graph_id, node_index) => vobj!(*graph_id, *node_index),
+                    }
                 })
-                .chain(arr_to_add.neighbors().map(|x| {
-                    Value::Object(ObjectValue {
-                        graph: graph.clone(),
-                        node: x.1,
-                    })
+                .chain(graph_to_add.neighbors(&arr_to_add.node).map(|(_, n)| {
+                    match n {
+                        ruse_object_graph::EdgeEndPoint::Internal(node_index) => vobj!(arr_to_add.graph_id, *node_index),
+                        ruse_object_graph::EdgeEndPoint::Chain(graph_id, node_index) => vobj!(*graph_id, *node_index),
+                    }
                 }));
-            Value::create_array_object(&self.elem_type, values, &syn_ctx.cache)
+                post_ctx.create_output_array_object(&self.elem_type, values, &syn_ctx)
         };
-        new_arr
-            .mut_obj()
-            .unwrap()
-            .set_as_graph_root(syn_ctx.output_root_name().clone());
 
-        EvalResult::NoModification(post_ctx.temp_value(new_arr))
+        EvalResult::NoModification(post_ctx.temp_value(Value::Object(new_arr)))
     }
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {

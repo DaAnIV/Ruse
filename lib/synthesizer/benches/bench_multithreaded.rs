@@ -3,7 +3,7 @@ use criterion::*;
 // use dashmap;
 use rand::{rngs::StdRng, SeedableRng};
 // use rayon::{self, iter::{IntoParallelRefIterator, ParallelIterator}};
-use ruse_object_graph::generator::*;
+use ruse_object_graph::{generator::*, GraphsMap, graph_map_value::{GraphMapWrap, GraphMapValue}};
 use ruse_object_graph::{Cache, ObjectGraph};
 use std::{collections::HashSet, sync::Arc};
 
@@ -36,12 +36,13 @@ const SEED: u64 = 100;
 fn hash_insertion(c: &mut Criterion) {
     let cache = Cache::new();
     let mut rng = StdRng::seed_from_u64(SEED);
+    let mut map = GraphsMap::default();
 
-    let graphs: Vec<Arc<ObjectGraph>> = (0..10000)
-        .map(|_| {
-            let mut g = random_gnm_object_graph(&cache, &mut rng, 20, 40);
-            g.generate_serialized_data();
-            Arc::new(g)
+    let graphs: Vec<Arc<ObjectGraph>> = (0..10000usize)
+        .map(|i| {
+            let g = Arc::new(object_graph_generator::random_gnm_object_graph(&cache, i, &mut rng, 20, 40));
+            map.insert_graph(g.clone());
+            g
         })
         .collect();
 
@@ -49,11 +50,11 @@ fn hash_insertion(c: &mut Criterion) {
 
     group.bench_function("iterative std::HashSet", |b| {
         b.iter_batched(
-            || HashSet::<Arc<ObjectGraph>>::new(),
+            || HashSet::<GraphMapValue<'_, ObjectGraph>>::new(),
             |mut std_hashset| {
                 graphs.iter().for_each(|g| {
                     // sleep(time::Duration::from_nanos(1));
-                    std_hashset.insert(g.clone());
+                    std_hashset.insert(g.wrap(&map));
                 });
                 std_hashset
             },

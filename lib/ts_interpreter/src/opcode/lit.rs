@@ -1,7 +1,8 @@
 use opcode::EvalResult;
 use ruse_object_graph::*;
+use ruse_object_graph::value::*;
+use ruse_synthesizer::location::*;
 use ruse_synthesizer::opcode::ExprOpcode;
-use ruse_synthesizer::value::*;
 use ruse_synthesizer::*;
 use ruse_synthesizer::{context::*, opcode::ExprAst};
 use swc_common::{util::take::Take, DUMMY_SP};
@@ -88,12 +89,9 @@ impl ExprOpcode for ArrayLitOp {
     ) -> EvalResult {
         let values = args.iter().map(|val| (val.val().clone()));
 
-        let mut arr = Value::create_array_object(&self.elem_type, values, &syn_ctx.cache);
-        arr.mut_obj()
-            .unwrap()
-            .set_as_graph_root(syn_ctx.output_root_name().clone());
+        let arr = post_ctx.create_output_array_object(&self.elem_type, values, &syn_ctx);
 
-        EvalResult::NoModification(post_ctx.temp_value(arr))
+        EvalResult::NoModification(post_ctx.temp_value(Value::Object(arr)))
     }
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {

@@ -1,18 +1,15 @@
 use dashmap::DashSet;
-use ruse_object_graph::{Cache, CachedString};
+use ruse_object_graph::{value::{Value, ValueType}, Cache, CachedString};
 
 use crate::{
     bank::*,
     context::{ContextArray, SynthesizerContext},
     opcode::ExprOpcode,
     prog::SubProgram,
-    value::Value,
     work_gatherer::{WorkGather, WorkGatherBuilder},
 };
 use std::{
-    fmt::Display,
-    ops::Index,
-    sync::{atomic::*, Arc},
+    collections::HashMap, fmt::Display, ops::Index, sync::{atomic::*, Arc}
 };
 
 use serde::ser::SerializeStruct;
@@ -145,11 +142,11 @@ impl serde::Serialize for CurrentStatistics {
 }
 
 pub type SynthesizerPredicate = Box<dyn Fn(&Arc<SubProgram>) -> bool + Send + Sync>;
+type OpcodesMap = HashMap<Vec<ValueType>, Vec<Arc<dyn ExprOpcode>>>;
 
 pub struct Synthesizer {
     bank: ProgBank,
-    init_opcodes: OpcodesList,
-    composite_opcodes: OpcodesList,
+    opcodes: OpcodesMap,
     context: SynthesizerContext,
     found_contexts: DashSet<ContextArray>,
     max_context_depth: usize,
@@ -170,13 +167,9 @@ impl Synthesizer {
         max_context_depth: usize,
         cache: Arc<Cache>,
     ) -> Self {
-        let (init_opcodes, composite_opcodes) =
-            opcodes.into_iter().partition(|x| x.arg_types().is_empty());
-
         Self {
             bank: Default::default(),
-            init_opcodes,
-            composite_opcodes,
+            opcodes: Self::sort_opcodes(opcodes),
             context: SynthesizerContext::from_context_array(start_context.clone(), cache),
             found_contexts: DashSet::new(),
             max_context_depth,
@@ -187,6 +180,29 @@ impl Synthesizer {
         }
     }
 
+    fn sort_opcodes(opcodes: OpcodesList) -> OpcodesMap {
+        let mut sorted_opcodes: OpcodesMap = OpcodesMap::default();
+        for op in opcodes {
+            if let Some(list) = sorted_opcodes.get_mut(op.arg_types()) {
+                list.push(op);
+            } else {
+                sorted_opcodes.insert(op.arg_types().to_vec(), vec![op]);
+            }
+        }
+        
+        sorted_opcodes.shrink_to_fit();
+
+        sorted_opcodes
+    }
+
+    fn init_opcodes(&self) -> impl Iterator<Item=&Arc<dyn ExprOpcode>> {
+        self.opcodes[&vec![]].iter()
+    }
+    
+    fn composite_opcodes(&self) -> impl Iterator<Item=(&Vec<ValueType>, &Vec<Arc<dyn ExprOpcode>>)> {
+        self.opcodes.iter().filter(|(arg_types, _)| !arg_types.is_empty())
+    }
+    
     pub fn get_cancel_token(&self) -> CancellationToken {
         self.cancel_token.clone()
     }
@@ -197,7 +213,7 @@ impl Synthesizer {
         ctx: &ContextArray,
     ) -> Option<Arc<SubProgram>> {
         self.found_contexts.insert(ctx.clone());
-        for op in &self.init_opcodes {
+        for op in self.init_opcodes() {
             let p = match self.get_program_from_init_opcode(op.clone(), ctx) {
                 Some(p) => p,
                 None => continue,
@@ -235,7 +251,7 @@ impl Synthesizer {
                 if this.found_contexts.insert(p.post_ctx().clone()) {
                     this.init_context::<false>(current_iteration_map.as_ref(), p.post_ctx());
                 }
-                if p.pre_ctx().contained(&this.context.start_context) && (this.predicate)(&p) {
+                if p.pre_ctx().subset(&this.context.start_context) && (this.predicate)(&p) {
                     return Some(p);
                 }
 
@@ -281,11 +297,11 @@ impl Synthesizer {
     ) -> Option<Arc<SubProgram>> {
         let mut work_gatherer =
             Synthesizer::create_work_gatherer(this.clone(), current_iteration_map.clone());
-        for op in &this.composite_opcodes {
+        for (arg_types, ops) in this.composite_opcodes() {
             tokio::select! {
                 _ = this.cancel_token.cancelled() => (),
                 _ = work_gatherer
-                .gather_work_for_next_iteration(&this.bank, op, &this.context) => ()
+                .gather_work_for_next_iteration(&this.bank, arg_types, ops, &this.context) => ()
             }
         }
         work_gatherer.wait_for_all_tasks().await
@@ -326,7 +342,7 @@ impl Synthesizer {
     ) -> Option<Arc<SubProgram>> {
         debug_assert!(op.arg_types().is_empty());
 
-        let pre_ctx = ctx.get_partial_context(op.required_variables(), &self.context)?;
+        let pre_ctx = ctx.get_partial_context(op.required_variables())?;
         let post_ctx = pre_ctx.clone();
         let mut p = SubProgram::with_opcode(op.clone(), pre_ctx, post_ctx);
         match self.evaluate_program(&mut p) {

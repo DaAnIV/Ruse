@@ -2,8 +2,8 @@ use std::{any::Any, fmt::Debug};
 
 use crate::context::{Context, SynthesizerContext};
 
-use super::value::{LocValue, ValueType};
-use ruse_object_graph::CachedString;
+use crate::location::LocValue;
+use ruse_object_graph::{CachedString, value::ValueType};
 
 pub trait ExprAst: Any {
     fn to_string(&self) -> String;

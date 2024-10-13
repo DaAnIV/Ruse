@@ -1,7 +1,8 @@
+use ruse_object_graph::{value::*, *};
 use ruse_object_graph::{Number, PrimitiveValue};
+use ruse_synthesizer::context::*;
+use ruse_synthesizer::location::*;
 use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};
-use ruse_synthesizer::value::*;
-use ruse_synthesizer::{context::*, vbool, vnum};
 
 use swc_common::DUMMY_SP;
 use swc_ecma_ast as ast;
