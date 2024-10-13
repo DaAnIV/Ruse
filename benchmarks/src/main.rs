@@ -56,6 +56,9 @@ struct Cli {
 
     #[arg(long, default_value_t = false)]
     not_multi_thread: bool,
+
+    #[arg(long, default_value_t = false)]
+    tokio_console: bool,
 }
 
 struct TimeoutError {}
@@ -176,6 +179,10 @@ fn main() -> ExitCode {
         multi_thread: !cli.not_multi_thread,
     };
     print!("{}", bench_config);
+
+    if cli.tokio_console {
+        console_subscriber::init();
+    }
 
     let mut writer = get_writer(&bench_config);
 

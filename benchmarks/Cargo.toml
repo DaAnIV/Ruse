@@ -27,3 +27,4 @@ tokio = { version = "*", features = [
     "macros",
 ] }
 tokio-util = "*"
+console-subscriber = "*"
