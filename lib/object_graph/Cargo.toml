@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 rand = "^0.8.5"
-dashmap = { version = "*", features = ["raw-api"] }
+dashmap = { version = "*" }
 bitcode = { version = "*", features = ["derive"] }
 itertools = "*"
 fixedbitset = { version = "*" } 

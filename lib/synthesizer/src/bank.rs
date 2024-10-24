@@ -1,6 +1,6 @@
 use std::{ops::Index, sync::Arc};
 
-use dashmap::{DashMap, Map, SharedValue};
+use dashmap::{DashMap, mapref::entry::Entry};
 use itertools::izip;
 use ruse_object_graph::{value::ValueType, graph_map_value::GraphMapWrap};
 
@@ -128,23 +128,18 @@ impl Hash for Output {
 // The bank is hierarchical
 // iteration -> out_type -> sub_prog
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub(crate) struct ProgramsMap(DashMap<Output, Arc<SubProgram>>);
 
 impl ProgramsMap {
-    fn new() -> Self {
-        Self(DashMap::<Output, Arc<SubProgram>>::new())
-    }
-
     fn insert(&self, p: Arc<SubProgram>) -> bool {
         let output: Output = p.clone().into();
-        let idx = self.0.determine_map(&output);
-        let mut shard = unsafe { self.0._yield_write_shard(idx) };
-        if shard.get_key_value(&output).is_some() {
-            false
-        } else {
-            shard.insert(output, SharedValue::new(p));
-            true
+        match self.0.entry(output) {
+            Entry::Occupied(_) => false,
+            Entry::Vacant(vacant_entry) => {
+                vacant_entry.insert(p);
+                true
+            }
         }
     }
 
@@ -163,20 +158,9 @@ pub struct TypeMap(DashMap<ValueType, Arc<ProgramsMap>>);
 
 impl TypeMap {
     pub(crate) fn insert_program(&self, p: Arc<SubProgram>) -> bool {
-        let programs_map = self.get_or_insert_programs_map(&p.out_type());
+        let mut binding = self.0.entry(p.out_type().clone()).or_default();
+        let programs_map = binding.value_mut();
         programs_map.insert(p)
-    }
-
-    fn get_or_insert_programs_map(&self, value_type: &ValueType) -> Arc<ProgramsMap> {
-        let idx = self.0.determine_map(value_type);
-        let mut shard = unsafe { self.0._yield_write_shard(idx) };
-        if let Some((_, vptr)) = shard.get_key_value(value_type) {
-            vptr.get().clone()
-        } else {
-            let m = Arc::new(ProgramsMap::new());
-            shard.insert(value_type.clone(), SharedValue::new(m.clone()));
-            m
-        }
     }
 
     pub(crate) fn contains(&self, p: &Arc<SubProgram>) -> bool {

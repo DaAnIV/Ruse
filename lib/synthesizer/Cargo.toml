@@ -8,7 +8,7 @@ ruse_object_graph = { path = "../object_graph" }
 
 futures = "*"
 serde = "*"
-dashmap = { version = "*", features = ["raw-api"] }
+dashmap = { version = "*" }
 tokio = { version = "*", features = ["rt", "macros"] }
 tokio-util = "*"
 itertools = "*"
