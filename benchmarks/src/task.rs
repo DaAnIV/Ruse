@@ -1,16 +1,21 @@
 use std::{
-    collections::{HashMap, HashSet},
-    fmt::Debug,
+    collections::{HashMap, HashSet, VecDeque},
+    fmt::{Debug, Display},
     io::Read,
     path::{Path, PathBuf},
     sync::Arc,
 };
 
 use graph_map_value::GraphMapWrap;
-use itertools::izip;
-use ruse_object_graph::{*, value::{Value, ValueType}};
+use itertools::{izip, Itertools};
+use ruse_object_graph::{
+    value::{Value, ValueType},
+    *,
+};
 use ruse_synthesizer::{
-    context::{Context, ContextArray, GraphIdGenerator}, prog::SubProgram, synthesizer::{OpcodesList, SynthesizerPredicate}
+    context::{Context, ContextArray, GraphIdGenerator},
+    prog::SubProgram,
+    synthesizer::{OpcodesList, SynthesizerPredicate},
 };
 use ruse_ts_interpreter::{dom, ts_class::TsClasses};
 use ruse_ts_synthesizer::{
@@ -85,7 +90,7 @@ impl std::error::Error for SnythesisTaskError {}
 macro_rules! parse_err {
     ($val:expr, $e:expr) => {
         $crate::task::SnythesisTaskError::Parse($crate::task::ParseError {
-            value: $val.to_owned(),
+            value: $val.to_string(),
             error: $e.into(),
         })
     };
@@ -109,7 +114,64 @@ impl std::fmt::Display for SnythesisTaskError {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub enum TaskType {
+struct VarRef {
+    var: String,
+    fields: Vec<FieldName>,
+}
+
+impl VarRef {
+    fn create_value(
+        &self,
+        values: &HashMap<Arc<String>, Value>,
+        graphs_map: &GraphsMap,
+    ) -> Result<Value, SnythesisTaskError> {
+        let value = values.get(&self.var).ok_or(parse_err!(
+            format!("{}", self),
+            "Pointing to an uninitialized value"
+        ))?;
+        self.walk_fields(value, graphs_map)
+    }
+
+    fn walk_fields(
+        &self,
+        value: &Value,
+        graphs_map: &GraphsMap,
+    ) -> Result<Value, SnythesisTaskError> {
+        if self.fields.is_empty() {
+            Ok(value.clone())
+        } else {
+            let mut cur_value = value.clone();
+            for field in &self.fields {
+                if let Value::Object(obj) = cur_value {
+                    cur_value = obj.get_field_value(field, graphs_map).ok_or(parse_err!(
+                        format!("{}", self),
+                        format!("Couldn't find field {}", field)
+                    ))?;
+                } else {
+                    return Err(parse_err!(
+                        format!("{}", self),
+                        format!("Can't deref field {} on primitive value", field)
+                    ));
+                }
+            }
+
+            Ok(cur_value)
+        }
+    }
+}
+
+impl Display for VarRef {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.fields.is_empty() {
+            write!(f, "{}", &self.var)
+        } else {
+            write!(f, "{}.{}", &self.var, self.fields.iter().join("."))
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+enum TaskType {
     Number,
     NumberArray,
     Bool,
@@ -119,54 +181,57 @@ pub enum TaskType {
     StringSet,
     Dom,
     DOMElement,
+    VarRef(VarRef),
     Object(String),
 }
 
-fn get_string_from_file_or_value(dir: &Path, value: &str) -> Result<String, SnythesisTaskError> {
-    let mut full_path = PathBuf::from(dir);
-    full_path.push(value);
-    if let Ok(mut html_file) = std::fs::File::open(full_path) {
-        let mut buf = String::new();
-        if let Err(e) = html_file.read_to_string(&mut buf) {
-            return Err(parse_err!(value, e));
+fn get_value_from_file_or_value(
+    dir: &Path,
+    value: &serde_json::Value,
+) -> Result<serde_json::Value, SnythesisTaskError> {
+    if let Some(filename) = value.as_str() {
+        let full_path = dir.join(filename);
+        if let Ok(mut html_file) = std::fs::File::open(full_path) {
+            let mut buf = String::new();
+            if let Err(e) = html_file.read_to_string(&mut buf) {
+                return Err(parse_err!(value, e));
+            }
+            return Ok(serde_json::Value::String(buf));
         }
-        Ok(buf)
-    } else {
-        Ok(value.to_owned())
     }
-}
 
-fn parse_string(value: &str, cache: &Cache) -> Result<CachedString, SnythesisTaskError> {
-    let stripped = match value.strip_prefix('\'') {
-        Some(s1) => match s1.strip_suffix('\'') {
-            Some(s2) => s2,
-            None => return Err(parse_err!(value, "String suffix is missing")),
-        },
-        None => return Err(parse_err!(value, "String prefix is missing")),
-    };
-    Ok(str_cached!(cache; stripped))
+    Ok(value.to_owned())
 }
 
 impl TaskType {
     pub fn create_value(
         &self,
-        value: &str,
+        value: &serde_json::Value,
         graph: &mut ObjectGraph,
         classes: &TsClasses,
+        graphs_map: &mut GraphsMap,
         id_gen: &GraphIdGenerator,
         cache: &Cache,
     ) -> Result<Value, SnythesisTaskError> {
         match self {
-            TaskType::Number => match value.parse::<u64>() {
-                Ok(num) => Ok(vnum!(ruse_object_graph::Number::from(num))),
-                Err(e) => Err(parse_err!(value, e)),
+            TaskType::Number => match value.as_i64() {
+                Some(num) => Ok(vnum!(ruse_object_graph::Number::from(num))),
+                None => Err(parse_err!(value, "Value is not a number")),
             },
             TaskType::NumberArray => {
-                let numbers: Vec<u64> = match serde_json::from_str(value) {
-                    Ok(v) => v,
-                    Err(e) => {
-                        return Err(parse_err!(value, e));
+                let numbers = match value.as_array() {
+                    Some(value_array) => {
+                        if value_array.iter().any(|x| !x.is_i64()) {
+                            return Err(parse_err!(
+                                value,
+                                "Value is an array with an invalid number value"
+                            ));
+                        }
+                        value_array
+                            .iter()
+                            .map(|x| Number::from(x.as_i64().unwrap()))
                     }
+                    None => return Err(parse_err!(value, "Value is not an array")),
                 };
                 let node = graph.add_primitive_array_object(
                     id_gen.get_id_for_node(),
@@ -177,25 +242,33 @@ impl TaskType {
 
                 Ok(vobj!(graph.id, node))
             }
-            TaskType::Bool => match value.parse::<bool>() {
-                Ok(b) => Ok(vbool!(b)),
-                Err(e) => Err(parse_err!(value, e)),
+            TaskType::Bool => match value.as_bool() {
+                Some(b) => Ok(vbool!(b)),
+                None => Err(parse_err!(value, "Value is not a boolean")),
             },
-            TaskType::String => Ok(vcstring!(parse_string(value, cache)?)),
+            TaskType::String => match value.as_str() {
+                Some(s) => Ok(vstr!(cache; s)),
+                None => Err(parse_err!(value, "Value is not a string")),
+            },
             TaskType::StringArray => {
-                let strings: Vec<String> = match serde_json::from_str(value) {
-                    Ok(v) => v,
-                    Err(e) => return Err(parse_err!(value, e)),
+                let strings = match value.as_array() {
+                    Some(value_array) => {
+                        if value_array.iter().any(|x| !x.is_string()) {
+                            return Err(parse_err!(
+                                value,
+                                "Value is an array with an invalid string value"
+                            ));
+                        }
+                        value_array
+                            .iter()
+                            .map(|x| str_cached!(cache; x.as_str().unwrap()))
+                    }
+                    None => return Err(parse_err!(value, "Value is not an array")),
                 };
-                let mut values = Vec::with_capacity(strings.len());
-                for string in strings {
-                    values.push(parse_string(&string, cache)?)
-                }
-
                 let node = graph.add_primitive_array_object(
                     id_gen.get_id_for_node(),
                     &ValueType::String,
-                    values,
+                    strings,
                     cache,
                 );
 
@@ -209,35 +282,35 @@ impl TaskType {
                     Some(v) => v,
                     None => return Err(verify_err!(format!("object type {} is not defined", s))),
                 };
-                let strings: HashMap<String, String> = match serde_json::from_str(value) {
-                    Ok(v) => v,
-                    Err(e) => {
-                        return Err(parse_err!(value, e));
-                    }
+                let fields = match value.as_object() {
+                    Some(obj) => obj,
+                    None => return Err(parse_err!(value, "Value is not an object value")),
                 };
-                let mut values = HashMap::<CachedString, Value>::with_capacity(strings.capacity());
-                for (field, str_value) in strings {
-                    let cached_field_name = scached!(cache; field);
-                    let val = match class.fields.get(&cached_field_name) {
-                        Some(v) => v,
-                        None => {
-                            return Err(verify_err!(format!(
-                                "object type {} has no field {}",
-                                s, &cached_field_name
-                            )));
-                        }
-                    };
-                    let field_value =
-                        TaskType::from(val).create_value(str_value.as_str(), graph, classes, id_gen, cache)?;
-                    values.insert(cached_field_name, field_value);
-                }
+                let fields_types = HashMap::from_iter(
+                    class
+                        .fields
+                        .iter()
+                        .map(|(k, v)| (k.to_string(), TaskType::from(v))),
+                );
+                let values = values_map_to_value_map(
+                    &fields,
+                    &fields_types,
+                    graphs_map,
+                    id_gen,
+                    classes,
+                    cache,
+                )?;
 
                 let obj = class.generate_object(values, graph, id_gen);
 
                 Ok(Value::Object(obj))
             }
             TaskType::Dom => {
-                let dom_value = match dom::DomLoader::load_dom(id_gen, graph, value, cache) {
+                let html = match value.as_str() {
+                    Some(str) => str,
+                    None => return Err(parse_err!(value, "Value for html is not an string value")),
+                };
+                let dom_value = match dom::DomLoader::load_dom(id_gen, graph, html, cache) {
                     Ok(v) => v,
                     Err(e) => return Err(parse_err!(value, e)),
                 };
@@ -245,13 +318,25 @@ impl TaskType {
                 Ok(vobj!(graph.id, dom_value))
             }
             TaskType::DOMElement => {
-                let dom_value = match dom::DomLoader::load_element(id_gen, graph, value, cache) {
+                let html = match value.as_str() {
+                    Some(str) => str,
+                    None => return Err(parse_err!(value, "Value for html is not an string value")),
+                };
+                let dom_value = match dom::DomLoader::load_element(id_gen, graph, html, cache) {
                     Ok(v) => v,
                     Err(e) => return Err(parse_err!(value, e)),
                 };
 
                 Ok(vobj!(graph.id, dom_value))
             }
+            TaskType::VarRef(_) => Err(parse_err!(value, "Var ref is a delayed type")),
+        }
+    }
+
+    fn is_var_ref(&self) -> bool {
+        match self {
+            TaskType::VarRef(_) => true,
+            _ => false,
         }
     }
 }
@@ -291,7 +376,16 @@ impl<'de> Deserialize<'de> for TaskType {
             "{String}" => Ok(TaskType::StringSet),
             "DOM" => Ok(TaskType::Dom),
             "DOMElement" => Ok(TaskType::DOMElement),
-            _ => Ok(TaskType::Object(val)),
+            _ => {
+                if let Some(var_ref) = val.strip_prefix("VAR:") {
+                    let mut iter = var_ref.split(".");
+                    let var = iter.next().unwrap().to_string();
+                    let fields = iter.map(|x| FieldName::from(x.to_string())).collect();
+                    Ok(TaskType::VarRef(VarRef { var, fields }))
+                } else {
+                    Ok(TaskType::Object(val))
+                }
+            }
         }
     }
 }
@@ -310,6 +404,7 @@ impl Serialize for TaskType {
             TaskType::NumberSet => serializer.serialize_str("{Int}"),
             TaskType::StringSet => serializer.serialize_str("{String}"),
             TaskType::Object(o) => serializer.serialize_str(o),
+            TaskType::VarRef(v) => serializer.serialize_str(&format!("{}", v)),
             TaskType::Dom => serializer.serialize_str("DOM"),
             TaskType::DOMElement => serializer.serialize_str("DOMElement"),
         }
@@ -318,27 +413,31 @@ impl Serialize for TaskType {
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct SnythesisTaskExamples {
-    input: HashMap<String, String>,
+    input: serde_json::Map<String, serde_json::Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    output: Option<String>,
+    output: Option<serde_json::Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    state: Option<HashMap<String, String>>,
+    state: Option<serde_json::Map<String, serde_json::Value>>,
 }
 
-fn string_map_to_value_map(
-    id_gen: &GraphIdGenerator,
+fn values_map_to_value_map(
+    map: &serde_json::Map<String, serde_json::Value>,
+    types: &HashMap<String, TaskType>,
     graphs_map: &mut GraphsMap,
-    map: &HashMap<String, String>,
-    variables: &HashMap<String, TaskType>,
+    id_gen: &GraphIdGenerator,
     classes: &TsClasses,
     cache: &Cache,
 ) -> Result<HashMap<CachedString, Value>, SnythesisTaskError> {
     let mut values = HashMap::with_capacity(map.len());
     for (k, v) in map {
         let key = str_cached!(cache; k);
-        let value_type = variables.get(k).unwrap();
+        let value_type = &match types.get(k) {
+            Some(value_type) => value_type,
+            None => return Err(verify_err!(format!("{} type is unknown", k))),
+        };
         let mut graph = ObjectGraph::new(id_gen.get_id_for_graph());
-        let mut value = value_type.create_value(v, &mut graph, classes, id_gen, cache)?;
+        let mut value =
+            value_type.create_value(v, &mut graph, classes, graphs_map, id_gen, cache)?;
         if let Some(obj) = value.mut_obj() {
             graph.set_as_root(key.clone(), obj.node);
         }
@@ -347,6 +446,35 @@ fn string_map_to_value_map(
     }
 
     Ok(values)
+}
+
+fn set_var_refs_variables(
+    variables: &HashMap<String, TaskType>,
+    values: &mut HashMap<CachedString, Value>,
+    graphs_map: &mut GraphsMap,
+    cache: &Cache,
+) -> Result<(), SnythesisTaskError> {
+    let mut var_refs: VecDeque<_> = variables
+        .iter()
+        .filter_map(|(k, var_type)| {
+            if let TaskType::VarRef(var_ref) = var_type {
+                Some((str_cached!(cache; k), var_ref))
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    while let Some((key, var_ref)) = var_refs.pop_front() {
+        if !values.contains_key(&var_ref.var) {
+            var_refs.push_back((key, var_ref));
+            continue;
+        }
+        let value = var_ref.create_value(&values, graphs_map)?;
+        values.insert(key, value);
+    }
+
+    Ok(())
 }
 
 impl SnythesisTaskExamples {
@@ -358,20 +486,28 @@ impl SnythesisTaskExamples {
     ) -> Result<Context, SnythesisTaskError> {
         let id_gen = Arc::new(GraphIdGenerator::default());
         let mut graphs_map = GraphsMap::default();
-        let values = string_map_to_value_map(&id_gen, &mut graphs_map, &self.input, variables, classes, cache)?;
+        let mut values = values_map_to_value_map(
+            &self.input,
+            variables,
+            &mut graphs_map,
+            &id_gen,
+            classes,
+            cache,
+        )?;
+        set_var_refs_variables(variables, &mut values, &mut graphs_map, cache)?;
         Ok(Context::with_values(values, graphs_map.into(), id_gen))
     }
 
     fn load_var_value(&mut self, dir: &Path, var: &str) -> Result<(), SnythesisTaskError> {
         self.input.insert(
             var.to_owned(),
-            get_string_from_file_or_value(dir, &self.input[var])?,
+            get_value_from_file_or_value(dir, &self.input[var])?,
         );
         if let Some(state) = &mut self.state {
             if state.contains_key(var) {
                 state.insert(
                     var.to_owned(),
-                    get_string_from_file_or_value(dir, &state[var])?,
+                    get_value_from_file_or_value(dir, &state[var])?,
                 );
             }
         }
@@ -380,7 +516,7 @@ impl SnythesisTaskExamples {
     }
 
     fn load_output_value(&mut self, dir: &Path) -> Result<(), SnythesisTaskError> {
-        self.output = Some(get_string_from_file_or_value(
+        self.output = Some(get_value_from_file_or_value(
             dir,
             self.output.as_ref().unwrap(),
         )?);
@@ -456,6 +592,39 @@ impl SnythesisTaskInner {
             if var != "document" && var_type == &TaskType::Dom {
                 return Err(verify_err!("Only the document variable can be of type DOM"));
             }
+
+            if var_type.is_var_ref() {
+                self.verify_no_var_ref_circle(var, &self.variables)?;
+            }
+        }
+
+        if !(self.examples.iter().all(|x| {
+            self.variables
+                .iter()
+                .filter(|(_, t)| !t.is_var_ref())
+                .all(|(k, _)| x.input.contains_key(k))
+        })) {
+            return Err(verify_err!(
+                "All examples should contain values for all non-var-ref variables"
+            ));
+        }
+
+        Ok(())
+    }
+
+    fn verify_no_var_ref_circle(
+        &self,
+        var: &str,
+        variables: &HashMap<String, TaskType>,
+    ) -> Result<(), SnythesisTaskError> {
+        let mut count = 0;
+        let mut cur_var = var.to_string();
+        while let TaskType::VarRef(var_ref) = &variables[&cur_var] {
+            cur_var = var_ref.var.to_string();
+            count += 1;
+            if count > variables.len() {
+                return Err(verify_err!("There is a variable reference loop"));
+            }
         }
 
         Ok(())
@@ -512,6 +681,7 @@ impl SnythesisTask {
                         example.output.as_ref().unwrap(),
                         &mut graph,
                         &self.classes,
+                        &mut predicate_graphs_map,
                         &predicate_gen_id,
                         cache,
                     )?;
@@ -529,11 +699,11 @@ impl SnythesisTask {
             Some(_) => {
                 let mut array = Vec::with_capacity(self.inner.examples.len());
                 for example in &self.inner.examples {
-                    let state_map = string_map_to_value_map(
-                        &predicate_gen_id,
-                        &mut predicate_graphs_map,
+                    let state_map = values_map_to_value_map(
                         example.state.as_ref().unwrap(),
                         &self.inner.variables,
+                        &mut predicate_graphs_map,
+                        &predicate_gen_id,
                         &self.classes,
                         cache,
                     )?;
@@ -546,8 +716,12 @@ impl SnythesisTask {
 
         let predicate = Box::new(move |p: &Arc<SubProgram>| {
             if let Some(array) = &output_array {
-                for (actual, actual_ctx, expected) in izip!(p.out_value().iter(), p.post_ctx().iter(), array) {
-                    if actual.val().wrap(&predicate_graphs_map) != expected.wrap(&actual_ctx.graphs_map) {
+                for (actual, actual_ctx, expected) in
+                    izip!(p.out_value().iter(), p.post_ctx().iter(), array)
+                {
+                    if actual.val().wrap(&predicate_graphs_map)
+                        != expected.wrap(&actual_ctx.graphs_map)
+                    {
                         return false;
                     }
                 }
@@ -560,7 +734,9 @@ impl SnythesisTask {
                             None => return false,
                             Some(v) => v,
                         };
-                        if actual_value.val().wrap(&actual.graphs_map) != value.wrap(&predicate_graphs_map) {
+                        if actual_value.val().wrap(&actual.graphs_map)
+                            != value.wrap(&predicate_graphs_map)
+                        {
                             return false;
                         }
                     }

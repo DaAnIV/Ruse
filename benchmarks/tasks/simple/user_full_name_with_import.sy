@@ -11,15 +11,15 @@
   "examples": [
     {
       "input": {
-        "a": "{\"name\": \"'John'\", \"surname\": \"'Doe'\"}"
+        "a": {"name": "John", "surname": "Doe"}
       },
-      "output": "'John Doe'"
+      "output": "John Doe"
     },
     {
       "input": {
-        "a": "{\"name\": \"'Alan'\", \"surname\": \"'Wake'\"}"
+        "a": {"name": "Alan", "surname": "Wake"}
       },
-      "output": "'Alan Wake'"
+      "output": "Alan Wake"
     }
   ],
   "solution": [ "a.name + \" \" a.surname" ]
