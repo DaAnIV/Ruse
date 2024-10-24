@@ -61,7 +61,7 @@ struct Cli {
     print_all_programs: bool,
 
     #[arg(long, default_value_t = false)]
-    not_multi_thread: bool,
+    single_thread: bool,
 
     #[arg(long, default_value_t = false)]
     tokio_console: bool,
@@ -182,7 +182,7 @@ fn main() -> ExitCode {
         timeout: Duration::from_secs(cli.timeout),
         max_iterations: cli.max_iterations,
         print_inserted_programs: cli.print_all_programs,
-        multi_thread: !cli.not_multi_thread,
+        multi_thread: !cli.single_thread,
     };
     print!("{}", bench_config);
 
