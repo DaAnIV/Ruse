@@ -6,7 +6,6 @@ edition = "2021"
 [dependencies]
 ruse_object_graph = { path = "../object_graph" }
 
-futures = "*"
 serde = "*"
 dashmap = { version = "*", features = ["raw-api"] }
 hashbrown = { version = "*", features = ["raw"], default-features = false }
