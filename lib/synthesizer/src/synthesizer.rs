@@ -1,15 +1,17 @@
 use dashmap::DashSet;
-use ruse_object_graph::{value::{Value, ValueType}, Cache, CachedString};
+use ruse_object_graph::{
+    value::{Value, ValueType},
+    Cache, CachedString,
+};
 
 use crate::{
-    bank::*,
-    context::{ContextArray, SynthesizerContext},
-    opcode::ExprOpcode,
-    prog::SubProgram,
-    work_gatherer::{WorkGather, WorkGatherBuilder},
+    bank::*, bank_iterator::bank_iterator, context::{ContextArray, SynthesizerContext}, multi_programs_map_product::ProgTriplet, opcode::ExprOpcode, prog::SubProgram, 
 };
 use std::{
-    collections::HashMap, fmt::Display, ops::Index, sync::{atomic::*, Arc}
+    collections::HashMap,
+    fmt::Display,
+    ops::Index,
+    sync::{atomic::*, Arc},
 };
 
 use serde::ser::SerializeStruct;
@@ -189,20 +191,24 @@ impl Synthesizer {
                 sorted_opcodes.insert(op.arg_types().to_vec(), vec![op]);
             }
         }
-        
+
         sorted_opcodes.shrink_to_fit();
 
         sorted_opcodes
     }
 
-    fn init_opcodes(&self) -> impl Iterator<Item=&Arc<dyn ExprOpcode>> {
+    fn init_opcodes(&self) -> impl Iterator<Item = &Arc<dyn ExprOpcode>> {
         self.opcodes[&vec![]].iter()
     }
-    
-    fn composite_opcodes(&self) -> impl Iterator<Item=(&Vec<ValueType>, &Vec<Arc<dyn ExprOpcode>>)> {
-        self.opcodes.iter().filter(|(arg_types, _)| !arg_types.is_empty())
+
+    fn composite_opcodes(
+        &self,
+    ) -> impl Iterator<Item = (&Vec<ValueType>, &Vec<Arc<dyn ExprOpcode>>)> {
+        self.opcodes
+            .iter()
+            .filter(|(arg_types, _)| !arg_types.is_empty())
     }
-    
+
     pub fn get_cancel_token(&self) -> CancellationToken {
         self.cancel_token.clone()
     }
@@ -232,33 +238,30 @@ impl Synthesizer {
         None
     }
 
-    fn create_work_gatherer(this: Arc<Self>, current_iteration_map: Arc<TypeMap>) -> WorkGather {
-        let child_token = this.cancel_token.child_token();
-        let handler = Arc::new(
-            move |op: Arc<dyn ExprOpcode>,
-                  pre_ctx: ContextArray,
-                  children: Vec<Arc<SubProgram>>,
-                  post_ctx: ContextArray| {
-                let p =
-                    match this.get_program_from_composite_opcode(pre_ctx, op, post_ctx, children) {
-                        Some(p) => p,
-                        None => return None,
-                    };
-                if !this.check_and_insert_program(p.clone(), current_iteration_map.as_ref()) {
-                    return None;
-                }
+    fn handler(this: Arc<Self>, current_iteration_map: Arc<TypeMap>) -> Arc<impl Fn(Arc<dyn ExprOpcode>, ProgTriplet) -> Option<Arc<SubProgram>>> {
+        Arc::new(move |op: Arc<dyn ExprOpcode>, triplet: ProgTriplet| {
+            let p = match this.get_program_from_composite_opcode(
+                triplet.pre_ctx,
+                op,
+                triplet.post_ctx,
+                triplet.children,
+            ) {
+                Some(p) => p,
+                None => return None,
+            };
+            if !this.check_and_insert_program(p.clone(), current_iteration_map.as_ref()) {
+                return None;
+            }
 
-                if this.found_contexts.insert(p.post_ctx().clone()) {
-                    this.init_context::<false>(current_iteration_map.as_ref(), p.post_ctx());
-                }
-                if p.pre_ctx().subset(&this.context.start_context) && (this.predicate)(&p) {
-                    return Some(p);
-                }
+            if this.found_contexts.insert(p.post_ctx().clone()) {
+                this.init_context::<false>(current_iteration_map.as_ref(), p.post_ctx());
+            }
+            if p.pre_ctx().subset(&this.context.start_context) && (this.predicate)(&p) {
+                return Some(p);
+            }
 
-                None
-            },
-        );
-        WorkGatherBuilder::new(handler, child_token).build()
+            None
+        })
     }
 
     pub async fn run_iteration(this: &mut Arc<Self>) -> Option<Arc<SubProgram>> {
@@ -295,16 +298,18 @@ impl Synthesizer {
         this: Arc<Self>,
         current_iteration_map: Arc<TypeMap>,
     ) -> Option<Arc<SubProgram>> {
-        let mut work_gatherer =
-            Synthesizer::create_work_gatherer(this.clone(), current_iteration_map.clone());
+        let handler = Self::handler(this.clone(), current_iteration_map);
         for (arg_types, ops) in this.composite_opcodes() {
-            tokio::select! {
-                _ = this.cancel_token.cancelled() => (),
-                _ = work_gatherer
-                .gather_work_for_next_iteration(&this.bank, arg_types, ops, &this.context) => ()
+            for triplet in bank_iterator(&this.bank, arg_types) {
+                for op in ops {
+                    if let Some(found) = handler(op.clone(), triplet.clone()) {
+                        return Some(found);
+                    }
+                }
             }
         }
-        work_gatherer.wait_for_all_tasks().await
+
+        None
     }
 
     fn insert_iteration(this: &mut Arc<Self>, current_iteration_map: Arc<TypeMap>) {
@@ -329,10 +334,12 @@ impl Synthesizer {
         debug_assert!(!op.arg_types().is_empty());
 
         let mut p = SubProgram::with_opcode_and_children(op, args, pre_ctx, post_ctx);
-        match self.evaluate_program(&mut p) {
+        let res = match self.evaluate_program(&mut p) {
             true => Some(p),
             false => None,
-        }
+        };
+
+        res
     }
 
     fn get_program_from_init_opcode(

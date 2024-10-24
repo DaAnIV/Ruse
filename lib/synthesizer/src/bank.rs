@@ -1,6 +1,6 @@
 use std::{ops::Index, sync::Arc};
 
-use dashmap::{DashMap, mapref::entry::Entry};
+use dashmap::{mapref::{entry::Entry, multiple::RefMulti}, DashMap};
 use itertools::izip;
 use ruse_object_graph::{value::ValueType, graph_map_value::GraphMapWrap};
 
@@ -71,15 +71,15 @@ impl ValueArray {
     }
 }
 
-impl ValueArray {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>, self_context_array: &ContextArray) -> std::fmt::Result {
-        debug_assert!(self.len() == self_context_array.len());
-        for (val, ctx) in izip!(self.iter(), self_context_array.iter(),) {
-            write!(f, "{}", val.wrap(&ctx.graphs_map))?;
-        }
-        Ok(())
-    }
-}
+// impl ValueArray {
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>, self_context_array: &ContextArray) -> std::fmt::Result {
+//         debug_assert!(self.len() == self_context_array.len());
+//         for (val, ctx) in izip!(self.iter(), self_context_array.iter(),) {
+//             write!(f, "{}", val.wrap(&ctx.graphs_map))?;
+//         }
+//         Ok(())
+//     }
+// }
 
 #[derive(Debug, Clone)]
 pub(crate) struct Output(Arc<SubProgram>);
@@ -129,7 +129,7 @@ impl Hash for Output {
 // iteration -> out_type -> sub_prog
 
 #[derive(Debug, Default)]
-pub(crate) struct ProgramsMap(DashMap<Output, Arc<SubProgram>>);
+pub(crate) struct ProgramsMap(pub DashMap<Output, Arc<SubProgram>>);
 
 impl ProgramsMap {
     fn insert(&self, p: Arc<SubProgram>) -> bool {
@@ -153,8 +153,18 @@ impl ProgramsMap {
     }
 }
 
+impl<'a> IntoIterator for &'a ProgramsMap {
+    type Item = RefMulti<'a, Output, Arc<SubProgram>>;
+
+    type IntoIter = dashmap::iter::Iter<'a, Output, Arc<SubProgram>>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
 #[derive(Default, Debug)]
-pub struct TypeMap(DashMap<ValueType, Arc<ProgramsMap>>);
+pub struct TypeMap(DashMap<ValueType, ProgramsMap>);
 
 impl TypeMap {
     pub(crate) fn insert_program(&self, p: Arc<SubProgram>) -> bool {
@@ -173,7 +183,7 @@ impl TypeMap {
     pub(crate) fn get(
         &self,
         value_type: &ValueType,
-    ) -> Option<dashmap::mapref::one::Ref<ValueType, Arc<ProgramsMap>>> {
+    ) -> Option<dashmap::mapref::one::Ref<ValueType, ProgramsMap>> {
         self.0.get(value_type)
     }
 }
@@ -201,7 +211,8 @@ impl ProgBank {
             println!("Iteration {}", i);
             for values in type_map.0.iter() {
                 for p in values.value().iter() {
-                    println!("{}", p.value())
+                    println!("");
+                    println!("{}", p.value());
                 }
             }
         }

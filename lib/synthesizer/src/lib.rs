@@ -4,7 +4,8 @@ pub mod opcode;
 pub mod prog;
 pub mod synthesizer;
 pub mod location;
-pub mod work_gatherer;
 pub mod embedding;
+mod multi_programs_map_product;
+mod bank_iterator;
 
 mod test;
