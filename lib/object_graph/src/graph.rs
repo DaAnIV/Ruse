@@ -23,7 +23,21 @@ impl GraphsMap {
         self.0.get(&index).unwrap()
     }
 
+    pub fn contains(&self, index: GraphIndex) -> bool {
+        self.0.contains_key(&index)
+    }
+
     pub fn graphs(&self) -> impl std::iter::Iterator<Item = &GraphIndex> {
+        self.0.keys()
+    }
+    
+    pub fn extend(&mut self, other: &GraphsMap) {
+        for (key, value) in &other.0 {
+            self.0.entry(*key).or_insert(value.clone());
+        }
+    }
+
+    pub fn keys(&self) -> impl std::iter::Iterator<Item = &usize> {
         self.0.keys()
     }
 }
@@ -32,7 +46,7 @@ impl ops::Index<&GraphIndex> for GraphsMap {
     type Output = Arc<ObjectGraph>;
 
     fn index(&self, index: &GraphIndex) -> &Self::Output {
-        self.0.index(index)
+        self.0.get(index).expect(&format!("No entry found for key {}", index))
     }
 }
 
@@ -40,7 +54,7 @@ impl ops::Index<GraphIndex> for GraphsMap {
     type Output = Arc<ObjectGraph>;
 
     fn index(&self, index: GraphIndex) -> &Self::Output {
-        self.0.index(&index)
+        self.0.get(&index).expect(&format!("No entry found for key {}", index))
     }
 }
 

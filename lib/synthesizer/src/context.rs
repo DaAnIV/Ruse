@@ -236,6 +236,12 @@ impl Context {
     pub fn variable_values(&self) -> impl std::iter::Iterator<Item = &Value> {
         self.values.values()
     }
+    
+    fn extend_graphs_map(&mut self, other: &Context) {
+        let mut new_map = self.graphs_map.as_ref().clone();
+        new_map.extend(&other.graphs_map);
+        self.graphs_map = new_map.into();
+    }
 }
 
 impl Context {
@@ -484,6 +490,8 @@ impl Display for Context {
                 write!(f, ", ")?;
             }
         }
+        write!(f, "Graphs: {:?}", self.graphs_map.keys().collect_vec())?;
+        
         Ok(())
     }
 }
@@ -533,7 +541,7 @@ impl ContextArray {
         for ctx in self.iter() {
             let mut values = HashMap::new();
             for var in required_variables {
-                let var_value = ctx.values[var].clone();
+                let var_value = ctx.values.get(var)?.clone();
                 values.insert((*var).clone(), var_value);
             }
             ctxs.push(Context::with_values(
@@ -568,6 +576,12 @@ impl ContextArray {
         }
 
         Arc::new(all_vars)
+    }
+
+    pub fn extend_graphs_map(&mut self, other: &ContextArray) {
+        for (cur, other) in self.inner.iter_mut().zip(other.iter()) {
+            cur.extend_graphs_map(other);
+        }
     }
 }
 

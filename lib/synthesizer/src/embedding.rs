@@ -67,8 +67,13 @@ pub fn merge_context_arrays(
     q_2_array: &ContextArray,
 ) -> Result<(ContextArray, ContextArray), ()> {
     if q_1_array == p_2_array {
-        return Ok((p_1_array.clone(), q_2_array.clone()));
+        let mut q_2_hat = q_2_array.clone();
+        q_2_hat.extend_graphs_map(q_1_array);
+        return Ok((p_1_array.clone(), q_2_hat));
     }
+
+    let mut merged_pre_ctx_vec = Vec::with_capacity(p_1_array.len());
+    let mut merged_post_ctx_vec = Vec::with_capacity(p_1_array.len());
 
     for (p_1, q_1, p_2, q_2) in izip!(
         p_1_array.iter(),
@@ -76,12 +81,12 @@ pub fn merge_context_arrays(
         p_2_array.iter(),
         q_2_array.iter()
     ) {
-        if merge_context(p_1, q_1, p_2, q_2).is_err() {
-            return Err(());
-        }
+        let (merged_pre_ctx, merged_post_ctx) = merge_context(p_1, q_1, p_2, q_2)?;
+        merged_pre_ctx_vec.push(merged_pre_ctx);
+        merged_post_ctx_vec.push(merged_post_ctx);
     }
 
-    Ok((p_1_array.clone(), q_2_array.clone()))
+    Ok((ContextArray::from(merged_pre_ctx_vec), ContextArray::from(merged_post_ctx_vec)))
 }
 
 pub(crate) fn merge_context(
@@ -90,10 +95,6 @@ pub(crate) fn merge_context(
     p_2: &Context,
     q_2: &Context,
 ) -> Result<(Context, Context), ()> {
-    if q_1 == p_2 {
-        return Err(());
-    }
-
     let mut p_1_hat = p_1.values.as_ref().clone();
     let mut q_2_hat = q_2.values.as_ref().clone();
     let mut p_1_map_hat = p_1.graphs_map.as_ref().clone();
@@ -197,6 +198,8 @@ pub(crate) fn merge_context(
         q_2_hat.insert((*var).clone(), vobj!(new_var_value.0, new_var_value.1));
     }
 
+    q_2_map_hat.extend(&q_1.graphs_map);
+
     Ok((
         Context::with_values(p_1_hat, p_1_map_hat.into(), p_1.graph_id_gen.clone()),
         Context::with_values(q_2_hat, q_2_map_hat.into(), q_2.graph_id_gen.clone()),
@@ -226,10 +229,9 @@ fn embed(
 
     let mut q = VecDeque::new();
     let new_graph_id = new_graph.id;
-    let mut new_id = graph_id_gen.get_id_for_node();
 
-    q.push_back((graph_id, node_id));
-    while let Some((cur_graph_id, cur_node_id)) = q.pop_front() {
+    q.push_back((graph_id, node_id, graph_id_gen.get_id_for_node()));
+    while let Some((cur_graph_id, cur_node_id, new_id)) = q.pop_front() {
         let graph = &graphs_map[cur_graph_id];
         let node = graph.get_node(&cur_node_id).unwrap();
         let new_node = new_graph.add_node(new_id, node.obj_type.clone(), node.fields.clone());
@@ -245,14 +247,14 @@ fn embed(
                     new_node.insert_chain_edge(field_name.clone(), *new_neig_graph, *new_neig_id);
                 }
             } else {
-                new_node.insert_internal_edge(field_name.clone(), new_id);
-                new_id = graph_id_gen.get_id_for_node();
+                let new_neig_id = graph_id_gen.get_id_for_node();
+                new_node.insert_internal_edge(field_name.clone(), new_neig_id);
                 match old_neig {
                     ruse_object_graph::EdgeEndPoint::Internal(old_neig_node) => {
-                        q.push_back((cur_graph_id, *old_neig_node))
+                        q.push_back((cur_graph_id, *old_neig_node, new_neig_id))
                     }
                     ruse_object_graph::EdgeEndPoint::Chain(old_neig_graph, old_neig_node) => {
-                        q.push_back((*old_neig_graph, *old_neig_node))
+                        q.push_back((*old_neig_graph, *old_neig_node, new_neig_id))
                     }
                 }
             }
