@@ -83,24 +83,24 @@ struct Sysinfo {
     kernel: String,
     os: String,
     ram: u64,
-    cpu: String,
     cpu_count: usize,
-    cpu_fq: u64,
+    cpu: Vec<String>,
+    cpu_fq: Vec<u64>,
 }
 
 impl Sysinfo {
     pub fn new() -> Self {
         let mut sys = sysinfo::System::new();
-        sys.refresh_cpu();
+        sys.refresh_cpu_all();
         sys.refresh_memory_specifics(sysinfo::MemoryRefreshKind::new().with_ram());
         Self {
             name: sysinfo::System::name().unwrap(),
             kernel: sysinfo::System::kernel_version().unwrap(),
             os: sysinfo::System::os_version().unwrap(),
             ram: sys.total_memory(),
-            cpu: sys.global_cpu_info().name().to_owned(),
             cpu_count: sys.cpus().len(),
-            cpu_fq: sys.global_cpu_info().frequency(),
+            cpu: sys.cpus().iter().map(|cpu| cpu.name().to_owned()).collect(),
+            cpu_fq: sys.cpus().iter().map(|cpu| cpu.frequency()).collect(),
         }
     }
 }

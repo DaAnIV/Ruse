@@ -17,7 +17,7 @@ ruse_ts_synthesizer = { path = "../lib/ts_synthesizer" }
 itertools = "*"
 clap = { version = "*", features = ["derive"] }
 chrono = "*"
-sysinfo = { version = "*", default-features = false, features = ["serde"] }
+sysinfo = { version = "*", default-features = false, features = ["serde", "system"] }
 walkdir = "*"
 
 serde = { version = "*", features = ["derive"] }

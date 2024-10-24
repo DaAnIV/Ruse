@@ -43,6 +43,7 @@ impl ExprOpcode for IdentOp {
             span: DUMMY_SP,
             sym: self.name.as_str().into(),
             optional: false,
+            ctxt: Default::default(),
         };
 
         TsExprAst::create(ast::Expr::Ident(expr))

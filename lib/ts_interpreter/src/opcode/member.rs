@@ -42,7 +42,7 @@ impl ExprOpcode for MemberOp {
         let expr = ast::MemberExpr {
             span: DUMMY_SP,
             obj: TsExprAst::from(children[0].as_ref()).get_paren_expr(),
-            prop: ast::MemberProp::Ident(ast::Ident::from(self.field_name.as_str())),
+            prop: ast::MemberProp::Ident(ast::IdentName::from(self.field_name.as_str())),
         };
 
         TsExprAst::create(ast::Expr::Member(expr))

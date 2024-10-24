@@ -18,7 +18,7 @@ use swc_common::{
 use swc_ecma_ast::{self as ast, ClassDecl};
 
 use anyhow::Error;
-use swc_ecma_parser::{Syntax, TsConfig};
+use swc_ecma_parser::{Syntax, TsSyntax};
 use ruse_object_graph::value::*;
 
 use crate::{
@@ -126,14 +126,14 @@ impl TsClasses {
         let mut file = std::fs::File::open(full_path)?;
         let mut src = String::new();
         file.read_to_string(&mut src)?;
-        let fm = cm.new_source_file(FileName::Real(full_path.clone()), src);
+        let fm = cm.new_source_file(FileName::Real(full_path.clone()).into(), src);
 
         let script = c
             .parse_js(
                 fm,
                 &handler,
                 ast::EsVersion::Es2022,
-                Syntax::Typescript(TsConfig::default()),
+                Syntax::Typescript(TsSyntax::default()),
                 swc::config::IsModule::Bool(false),
                 None,
             )?
@@ -303,13 +303,13 @@ impl TsClass {
         let handler = Handler::with_tty_emitter(ColorConfig::Auto, true, false, Some(cm.clone()));
         let c = swc::Compiler::new(cm.clone());
 
-        let fm = cm.new_source_file(FileName::Anon, code.to_owned());
+        let fm = cm.new_source_file(FileName::Anon.into(), code.to_owned());
 
         match c.parse_js(
             fm,
             &handler,
             ast::EsVersion::Es2022,
-            Syntax::Typescript(TsConfig::default()),
+            Syntax::Typescript(TsSyntax::default()),
             swc::config::IsModule::Bool(false),
             None,
         ) {

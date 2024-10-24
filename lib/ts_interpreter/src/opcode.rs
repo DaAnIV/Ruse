@@ -73,11 +73,7 @@ fn member_call_ast(callee_name: &str, children: &[Box<dyn ExprAst>]) -> Box<dyn 
     let callee_expr = ast::MemberExpr {
         span: DUMMY_SP,
         obj: TsExprAst::from(children[0].as_ref()).get_paren_expr(),
-        prop: ast::MemberProp::Ident(ast::Ident {
-            span: DUMMY_SP,
-            sym: callee_name.into(),
-            optional: false,
-        }),
+        prop: ast::MemberProp::Ident(ast::IdentName::from(callee_name)),
     };
 
     let args = children
@@ -97,6 +93,7 @@ fn member_call_ast(callee_name: &str, children: &[Box<dyn ExprAst>]) -> Box<dyn 
         callee: ast::Callee::Expr(ast::Expr::Member(callee_expr).into()),
         args,
         type_args: None,
+        ctxt: Default::default(),
     };
 
     TsExprAst::create(ast::Expr::Call(expr))
