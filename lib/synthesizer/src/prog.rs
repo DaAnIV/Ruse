@@ -1,5 +1,5 @@
 use std::cmp::max;
-use std::fmt::{Display, Debug};
+use std::fmt::{Debug, Display};
 use std::hash::Hash;
 use std::sync::Arc;
 
@@ -218,17 +218,18 @@ impl Debug for SubProgram {
 }
 
 impl Display for SubProgram {
-    fn fmt(
-        &self,
-        f: &mut core::fmt::Formatter<'_>,
-    ) -> core::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        writeln!(f, "pre ctx: ({})", self.pre_ctx()[0])?;
+        writeln!(f, "code: {{ {} }}", self.get_code())?;
         write!(
             f,
-            "({}) {{ {} }} ({}; {})",
-            self.pre_ctx()[0],
-            self.get_code(),
-            self.out_value()[0].val().wrap(&self.post_ctx()[0].graphs_map),
+            "(output: {}; post ctx: {})",
+            self.out_value()[0]
+                .val()
+                .wrap(&self.post_ctx()[0].graphs_map),
             self.post_ctx()[0]
-        )
+        )?;
+
+        Ok(())
     }
 }

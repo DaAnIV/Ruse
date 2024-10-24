@@ -627,3 +627,15 @@ impl PartialEq for ContextArray {
         self.inner == other.inner
     }
 }
+
+impl Display for ContextArray {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "[")?;
+        for ctx in &self.inner {
+            writeln!(f, "{}", ctx)?;
+        }
+        writeln!(f, "]")?;
+
+        Ok(())
+    }
+}
