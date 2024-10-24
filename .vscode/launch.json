@@ -1,0 +1,26 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'ruse benchmarks'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--package=ruse_benchmarks"
+                ]
+            },
+            "args": [
+                "-b", "${workspaceFolder}/benchmarks/tasks/simple/user_full_name_1_example.sy",
+                "-o", "benchmarks_output/test.json",
+                "-t", "5000",
+                "--single-thread"
+            ],
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}
