@@ -81,6 +81,7 @@ impl std::fmt::Display for VerifyError {
 
 #[derive(Debug)]
 pub enum SnythesisTaskError {
+    IO(std::io::Error),
     Verify(VerifyError),
     Parse(ParseError),
 }
@@ -107,6 +108,7 @@ macro_rules! verify_err {
 impl std::fmt::Display for SnythesisTaskError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            SnythesisTaskError::IO(e) => write!(f, "{}", e),
             SnythesisTaskError::Verify(e) => write!(f, "{}", e),
             SnythesisTaskError::Parse(e) => write!(f, "{}", e),
         }
@@ -843,7 +845,7 @@ impl SnythesisTask {
     }
 
     pub fn from_json_file(path: &Path, cache: &Cache) -> Result<SnythesisTask, SnythesisTaskError> {
-        let reader = std::fs::File::open(path).unwrap();
+        let reader = std::fs::File::open(path).map_err(|e| SnythesisTaskError::IO(e))?;
         let mut inner: SnythesisTaskInner = match serde_json::from_reader(reader) {
             Ok(val) => val,
             Err(e) => {

@@ -193,7 +193,9 @@ fn main() -> ExitCode {
     let mut writer = get_writer(&bench_config);
 
     for benchmark in &bench_config.benchmarks {
-        if benchmark.is_dir() {
+        if !benchmark.exists() {
+            eprintln!("Path doesn't exist {}", benchmark.to_str().unwrap());
+        } else if benchmark.is_dir() {
             for entry in walkdir::WalkDir::new(benchmark)
                 .into_iter()
                 .filter_map(Result::ok)
