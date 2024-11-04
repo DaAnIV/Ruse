@@ -4,7 +4,7 @@ use ruse_synthesizer::context::*;
 use ruse_synthesizer::location::*;
 use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};
 
-use crate::opcode::{get_end_index, get_start_index, member_call_ast};
+use crate::opcode::{get_end_index, get_start_index, member_call_ast, member_field_ast};
 
 #[derive(Debug)]
 pub struct StringSplitOp {
@@ -160,6 +160,47 @@ impl ExprOpcode for StringSliceOp {
 }
 
 #[derive(Debug)]
+pub struct StringLengthOp {
+    arg_types: Vec<ValueType>,
+}
+
+impl StringLengthOp {
+    pub fn new() -> Self {
+        let arg_types = vec![ValueType::String];
+        Self { arg_types }
+    }
+}
+
+impl Default for StringLengthOp {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ExprOpcode for StringLengthOp {
+    fn eval(
+        &self,
+        args: &[&LocValue],
+        post_ctx: &mut Context,
+        _: &SynthesizerContext,
+    ) -> EvalResult {
+        debug_assert_eq!(args.len(), 1);
+
+        let string = args[0].val().string_value().unwrap();
+
+        EvalResult::NoModification(post_ctx.temp_value(vnum!(string.len().into())))
+    }
+
+    fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
+        member_field_ast(&children[0], "length")
+    }
+
+    fn arg_types(&self) -> &[ValueType] {
+        &self.arg_types
+    }
+}
+
+#[derive(Debug)]
 pub struct StringLastIndexOfOp {
     arg_types: [ValueType; 2],
 }
@@ -200,6 +241,54 @@ impl ExprOpcode for StringLastIndexOfOp {
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
         member_call_ast("lastIndexOf", children)
+    }
+
+    fn arg_types(&self) -> &[ValueType] {
+        &self.arg_types
+    }
+}
+
+#[derive(Debug)]
+pub struct StringIndexOfOp {
+    arg_types: [ValueType; 2],
+}
+
+impl StringIndexOfOp {
+    pub fn new() -> Self {
+        Self {
+            arg_types: [ValueType::String, ValueType::String],
+        }
+    }
+}
+
+impl Default for StringIndexOfOp {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ExprOpcode for StringIndexOfOp {
+    fn eval(
+        &self,
+        args: &[&LocValue],
+        post_ctx: &mut Context,
+        _: &SynthesizerContext,
+    ) -> EvalResult {
+        debug_assert_eq!(args.len(), 2);
+
+        let string = args[0].val().string_value().unwrap();
+        let pat = args[1].val().string_value().unwrap();
+
+        let index = match string.find(pat.as_str()) {
+            Some(i) => Number::from(i),
+            None => Number::from(-1),
+        };
+
+        EvalResult::NoModification(post_ctx.temp_value(vnum!(index)))
+    }
+
+    fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
+        member_call_ast("indexOf", children)
     }
 
     fn arg_types(&self) -> &[ValueType] {

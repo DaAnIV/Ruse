@@ -134,14 +134,17 @@ pub fn add_str_opcodes(opcodes: &mut OpcodesList, str_bool_opcodes: &[ast::Binar
         });
         opcodes.push(op);
     }
+    opcodes.push(Arc::new(opcode::StringLengthOp::new()));
     opcodes.push(Arc::new(opcode::StringSplitOp::new()));
     opcodes.push(Arc::new(opcode::StringSliceOp::new(false)));
     opcodes.push(Arc::new(opcode::StringSliceOp::new(true)));
+    opcodes.push(Arc::new(opcode::StringIndexOfOp::new()));
     opcodes.push(Arc::new(opcode::StringLastIndexOfOp::new()));
 }
 
 pub fn add_array_opcodes(opcodes: &mut OpcodesList, array_types: &[ValueType], cache: &Cache) {
     for t in array_types {
+        opcodes.push(Arc::new(opcode::ArrayLengthOp::new(t, cache)));
         opcodes.push(Arc::new(opcode::ArrayIndexOp::new(t, cache)));
         opcodes.push(Arc::new(opcode::ArraySliceOp::new(t, false, cache)));
         opcodes.push(Arc::new(opcode::ArraySliceOp::new(t, true, cache)));

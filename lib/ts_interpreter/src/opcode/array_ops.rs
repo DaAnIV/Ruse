@@ -9,7 +9,7 @@ use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};
 use swc_common::DUMMY_SP;
 use swc_ecma_ast as ast;
 
-use crate::opcode::{get_end_index, get_start_index, member_call_ast};
+use crate::opcode::{get_end_index, get_start_index, member_call_ast, member_field_ast};
 
 use super::TsExprAst;
 
@@ -61,6 +61,44 @@ impl ExprOpcode for ArrayIndexOp {
         };
 
         TsExprAst::create(ast::Expr::Member(expr))
+    }
+
+    fn arg_types(&self) -> &[ValueType] {
+        &self.arg_types
+    }
+}
+
+#[derive(Debug)]
+pub struct ArrayLengthOp {
+    arg_types: [ValueType; 1],
+}
+
+impl ArrayLengthOp {
+    pub fn new(elem_type: &ValueType, cache: &Cache) -> Self {
+        Self {
+            arg_types: [ValueType::array_value_type(elem_type, cache)],
+        }
+    }
+}
+
+impl ExprOpcode for ArrayLengthOp {
+    fn eval(
+        &self,
+        args: &[&LocValue],
+        post_ctx: &mut Context,
+        _syn_ctx: &SynthesizerContext,
+    ) -> EvalResult {
+        debug_assert_eq!(args.len(), 1);
+
+        let arr = args[0].val().obj().unwrap();
+        let len = arr.total_field_count(&post_ctx.graphs_map);
+
+        EvalResult::NoModification(post_ctx.temp_value(vnum!(len.into())))
+    }
+
+    fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
+        debug_assert_eq!(children.len(), 1);
+        member_field_ast(&children[0], "length")
     }
 
     fn arg_types(&self) -> &[ValueType] {

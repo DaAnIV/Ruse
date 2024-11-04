@@ -69,6 +69,16 @@ impl Default for TsExprAst {
     }
 }
 
+fn member_field_ast(obj: &Box<dyn ExprAst>, field_name: &str) -> Box<dyn ExprAst> {
+    let field_expr = ast::MemberExpr {
+        span: DUMMY_SP,
+        obj: TsExprAst::from(obj.as_ref()).get_paren_expr(),
+        prop: ast::MemberProp::Ident(ast::IdentName::from(field_name)),
+    };
+
+    TsExprAst::create(ast::Expr::Member(field_expr))
+}
+
 fn member_call_ast(callee_name: &str, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
     let callee_expr = ast::MemberExpr {
         span: DUMMY_SP,
