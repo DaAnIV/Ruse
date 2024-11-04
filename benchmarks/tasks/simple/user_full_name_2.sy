@@ -12,17 +12,17 @@
   "examples": [
     {
       "input": {
-        "a": "{\"name\": \"'John'\", \"surname\": \"'Doe'\"}",
-        "b": "{\"name\": \"'Alex'\", \"surname\": \"'Man'\"}"
+        "a": {"name": "John", "surname": "Doe"},
+        "b": {"name": "Alex", "surname": "Man"}
       },
-      "output": "'John Alex'"
+      "output": "John Alex"
     },
     {
       "input": {
-        "a": "{\"name\": \"'Alan'\", \"surname\": \"'Wake'\"}",
-        "b": "{\"name\": \"'Kevin'\", \"surname\": \"'Duck'\"}"
+        "a": {"name": "Alan", "surname": "Wake"},
+        "b": {"name": "Kevin", "surname": "Duck"}
       },
-      "output": "'Alan Kevin'"
+      "output": "Alan Kevin"
     }
   ],
   "solution": [ "a.name + \" \" b.name" ]

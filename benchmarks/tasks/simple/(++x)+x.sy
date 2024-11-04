@@ -7,15 +7,15 @@
     "examples": [
       {
         "input": {
-          "x": "5"
+          "x": 5
         },
-        "output": "12"
+        "output": 12
       },
       {
         "input": {
-          "x": "7"
+          "x": 7
         },
-        "output": "16"
+        "output": 16
       }
     ],
     "solution": [ "(++x) + x" ]
