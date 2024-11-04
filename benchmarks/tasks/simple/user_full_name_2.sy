@@ -1,4 +1,5 @@
 {
+  "version": 2,
   "classes": [
     "class User {\nconstructor(public name: string,\npublic surname: string) {}\n}"
   ],

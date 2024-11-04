@@ -1,4 +1,5 @@
 {
+  "version": 2,
   "classes": [
     "class User {\nconstructor(public name: string,\npublic surname: string) {}\n}",
     "class ComplexUser {\nconstructor(public user_a: User,\npublic user_b: User) {}\n}"

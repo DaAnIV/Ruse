@@ -24,6 +24,7 @@ use ruse_ts_synthesizer::{
     ALL_UPDATE_NUM_OPCODES,
 };
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde_json::json;
 
 #[derive(Debug)]
 pub struct TodoError {
@@ -294,14 +295,8 @@ impl TaskType {
                         .iter()
                         .map(|(k, v)| (k.to_string(), TaskType::from(v))),
                 );
-                let values = values_map_to_value_map(
-                    &fields,
-                    &fields_types,
-                    graphs_map,
-                    id_gen,
-                    classes,
-                    cache,
-                )?;
+                let values =
+                    parse_json_values(&fields, &fields_types, graphs_map, id_gen, classes, cache)?;
 
                 let obj = class.generate_object(values, graph, id_gen);
 
@@ -339,6 +334,92 @@ impl TaskType {
         match self {
             TaskType::VarRef(_) => true,
             _ => false,
+        }
+    }
+
+    fn is_object(&self) -> bool {
+        match self {
+            TaskType::Object(_) => true,
+            _ => false,
+        }
+    }
+
+    fn strip_string(value_string: &str) -> Result<&str, SnythesisTaskError> {
+        let stripped = match value_string.strip_prefix('\'') {
+            Some(s1) => match s1.strip_suffix('\'') {
+                Some(s2) => s2,
+                None => return Err(parse_err!(value_string, "String suffix is missing")),
+            },
+            None => return Err(parse_err!(value_string, "String prefix is missing")),
+        };
+        Ok(stripped)
+    }
+
+    fn parse_string(value_string: &str) -> Result<serde_json::Value, SnythesisTaskError> {
+        Ok(json!(Self::strip_string(value_string)?))
+    }
+
+    fn parse_string_array(value_string: &str) -> Result<serde_json::Value, SnythesisTaskError> {
+        let mut part = String::new();
+        let mut collected = Vec::new();
+
+        let mut char_iter = value_string.chars();
+
+        if char_iter.next() != Some('[') {
+            return Err(parse_err!(value_string, "Missing opening bracket"));
+        }
+
+        loop {
+            match char_iter
+                .next()
+                .ok_or(parse_err!(value_string, "Missing closing bracket"))?
+            {
+                ']' => {
+                    collected.push(Self::strip_string(&part)?.to_string());
+                    return Ok(json!(collected));
+                }
+                ',' | ' ' => {
+                    if !part.is_empty() {
+                        collected.push(Self::strip_string(&part)?.to_string());
+                        part = String::new();
+                    }
+                }
+                x => part.push(x),
+            }
+        }
+    }
+
+    fn json_value_from_string(
+        &self,
+        value_string: &str,
+    ) -> Result<serde_json::Value, SnythesisTaskError> {
+        match self {
+            TaskType::Number => match value_string.parse::<i64>() {
+                Ok(num) => Ok(json!(num)),
+                Err(e) => Err(parse_err!(value_string, e)),
+            },
+            TaskType::NumberArray => match serde_json::from_str::<Vec<i64>>(value_string) {
+                Ok(numbers) => Ok(json!(numbers)),
+                Err(e) => Err(parse_err!(value_string, e)),
+            },
+            TaskType::Bool => match value_string.parse::<bool>() {
+                Ok(b) => Ok(json!(b)),
+                Err(e) => Err(parse_err!(value_string, e)),
+            },
+            TaskType::String => Self::parse_string(value_string),
+            TaskType::StringArray => Self::parse_string_array(value_string),
+            TaskType::NumberSet => Err(parse_err!(value_string, TodoError::new("Number set"))),
+            TaskType::StringSet => Err(parse_err!(value_string, TodoError::new("String set"))),
+            TaskType::Dom => Ok(json!(value_string)),
+            TaskType::DOMElement => Ok(json!(value_string)),
+            TaskType::VarRef(_) => Err(parse_err!(
+                value_string,
+                "Doesn't support converting from string to object value"
+            )),
+            TaskType::Object(_) => Err(parse_err!(
+                value_string,
+                "Doesn't support converting from string to object value"
+            )),
         }
     }
 }
@@ -413,17 +494,29 @@ impl Serialize for TaskType {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug)]
-pub struct SnythesisTaskExamples {
-    input: serde_json::Map<String, serde_json::Value>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    output: Option<serde_json::Value>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    state: Option<serde_json::Map<String, serde_json::Value>>,
+type JsonValuesMap = serde_json::Map<String, serde_json::Value>;
+
+fn upgrade_values_map(
+    map: &mut JsonValuesMap,
+    types: &HashMap<String, TaskType>,
+) -> Result<(), SnythesisTaskError> {
+    for (k, v) in map.iter_mut() {
+        let value_type = &match types.get(k) {
+            Some(value_type) => value_type,
+            None => return Err(verify_err!(format!("{} type is unknown", k))),
+        };
+
+        let value_str = v.as_str().ok_or(verify_err!(format!(
+            "All values must be given as string in version 1"
+        )))?;
+        *v = value_type.json_value_from_string(value_str)?;
+    }
+
+    Ok(())
 }
 
-fn values_map_to_value_map(
-    map: &serde_json::Map<String, serde_json::Value>,
+fn parse_json_values(
+    map: &JsonValuesMap,
     types: &HashMap<String, TaskType>,
     graphs_map: &mut GraphsMap,
     id_gen: &GraphIdGenerator,
@@ -448,6 +541,15 @@ fn values_map_to_value_map(
     }
 
     Ok(values)
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+struct SnythesisTaskExamples {
+    input: JsonValuesMap,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    output: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    state: Option<JsonValuesMap>,
 }
 
 fn set_var_refs_variables(
@@ -480,6 +582,23 @@ fn set_var_refs_variables(
 }
 
 impl SnythesisTaskExamples {
+    fn upgrade_from_version_1(
+        &mut self,
+        variables: &HashMap<String, TaskType>,
+        return_type: &Option<TaskType>,
+    ) -> Result<(), SnythesisTaskError> {
+        upgrade_values_map(&mut self.input, variables)?;
+        if let Some(state) = &mut self.state {
+            upgrade_values_map(state, variables)?;
+        }
+        if let Some(return_type) = return_type {
+            let output = self.output.as_ref().unwrap();
+            self.output = Some(return_type.json_value_from_string(output.as_str().unwrap())?)
+        }
+
+        Ok(())
+    }
+
     fn create_context(
         &self,
         variables: &HashMap<String, TaskType>,
@@ -488,7 +607,7 @@ impl SnythesisTaskExamples {
     ) -> Result<Context, SnythesisTaskError> {
         let id_gen = Arc::new(GraphIdGenerator::default());
         let mut graphs_map = GraphsMap::default();
-        let mut values = values_map_to_value_map(
+        let mut values = parse_json_values(
             &self.input,
             variables,
             &mut graphs_map,
@@ -527,8 +646,14 @@ impl SnythesisTaskExamples {
     }
 }
 
+fn default_version() -> u32 {
+    1
+}
+
 #[derive(Deserialize, Serialize, Debug)]
 struct SnythesisTaskInner {
+    #[serde(default = "default_version")]
+    version: u32,
     #[serde(skip_serializing_if = "Option::is_none")]
     source: Option<String>,
     variables: HashMap<String, TaskType>,
@@ -587,6 +712,38 @@ impl SnythesisTaskInner {
             ));
         }
 
+        if self.version == 1 {
+            if self.classes.is_some() {
+                return Err(verify_err!("classes is only supported from .sy version 2"));
+            }
+            if self.ts_files.is_some() {
+                return Err(verify_err!("import is only supported from .sy version 2"));
+            }
+
+            if let Some(return_type) = &self.return_type {
+                if return_type.is_object() {
+                    return Err(verify_err!(
+                        "Object type is only supported from .sy version 2"
+                    ));
+                }
+                if return_type.is_var_ref() {
+                    return Err(verify_err!(
+                        "Var Ref type is only supported from .sy version 2"
+                    ));
+                }
+            }
+            if self.variables.iter().any(|var| var.1.is_object()) {
+                return Err(verify_err!(
+                    "Object type is only supported from .sy version 2"
+                ));
+            }
+            if self.variables.iter().any(|var| var.1.is_var_ref()) {
+                return Err(verify_err!(
+                    "Var Ref type is only supported from .sy version 2"
+                ));
+            }
+        }
+
         for (var, var_type) in &self.variables {
             if var == "document" && var_type != &TaskType::Dom {
                 return Err(verify_err!("document variable must be of type DOM"));
@@ -609,6 +766,14 @@ impl SnythesisTaskInner {
             return Err(verify_err!(
                 "All examples should contain values for all non-var-ref variables"
             ));
+        }
+
+        Ok(())
+    }
+
+    fn upgrade_from_version_1(&mut self) -> Result<(), SnythesisTaskError> {
+        for example in self.examples.iter_mut() {
+            example.upgrade_from_version_1(&self.variables, &self.return_type)?
         }
 
         Ok(())
@@ -701,7 +866,7 @@ impl SnythesisTask {
             Some(_) => {
                 let mut array = Vec::with_capacity(self.inner.examples.len());
                 for example in &self.inner.examples {
-                    let state_map = values_map_to_value_map(
+                    let state_map = parse_json_values(
                         example.state.as_ref().unwrap(),
                         &self.inner.variables,
                         &mut predicate_graphs_map,
@@ -898,6 +1063,10 @@ impl SnythesisTask {
             for example in &mut inner.examples {
                 example.load_output_value(dir.as_path())?;
             }
+        }
+
+        if inner.version == 1 {
+            inner.upgrade_from_version_1()?;
         }
 
         Ok(Self {

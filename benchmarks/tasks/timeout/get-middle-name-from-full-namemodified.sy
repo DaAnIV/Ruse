@@ -1,4 +1,5 @@
 {
+  "version": 2,
   "source": "https=//exceljet.net/formula/get-middle-name-from-full-name",
   "variables": {
     "_arg_0": "String"
