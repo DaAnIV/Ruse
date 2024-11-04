@@ -7,11 +7,11 @@ use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};
 use crate::opcode::{get_end_index, get_start_index, member_call_ast};
 
 #[derive(Debug)]
-pub struct SplitOp {
+pub struct StringSplitOp {
     arg_types: [ValueType; 2],
 }
 
-impl SplitOp {
+impl StringSplitOp {
     pub fn new() -> Self {
         Self {
             arg_types: [ValueType::String, ValueType::String],
@@ -19,13 +19,13 @@ impl SplitOp {
     }
 }
 
-impl Default for SplitOp {
+impl Default for StringSplitOp {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl ExprOpcode for SplitOp {
+impl ExprOpcode for StringSplitOp {
     fn eval(
         &self,
         args: &[&LocValue],
@@ -58,11 +58,11 @@ impl ExprOpcode for SplitOp {
 }
 
 #[derive(Debug)]
-pub struct ConcatOp {
+pub struct StringConcatOp {
     arg_types: [ValueType; 2],
 }
 
-impl ConcatOp {
+impl StringConcatOp {
     pub fn new() -> Self {
         Self {
             arg_types: [ValueType::String, ValueType::String],
@@ -70,13 +70,13 @@ impl ConcatOp {
     }
 }
 
-impl Default for ConcatOp {
+impl Default for StringConcatOp {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl ExprOpcode for ConcatOp {
+impl ExprOpcode for StringConcatOp {
     fn eval(
         &self,
         args: &[&LocValue],
@@ -108,11 +108,11 @@ impl ExprOpcode for ConcatOp {
 }
 
 #[derive(Debug)]
-pub struct SliceOp {
+pub struct StringSliceOp {
     arg_types: Vec<ValueType>,
 }
 
-impl SliceOp {
+impl StringSliceOp {
     pub fn new(with_end: bool) -> Self {
         let mut arg_types = vec![ValueType::String, ValueType::Number];
         if with_end {
@@ -122,7 +122,7 @@ impl SliceOp {
     }
 }
 
-impl ExprOpcode for SliceOp {
+impl ExprOpcode for StringSliceOp {
     fn eval(
         &self,
         args: &[&LocValue],
@@ -160,11 +160,11 @@ impl ExprOpcode for SliceOp {
 }
 
 #[derive(Debug)]
-pub struct LastIndexOfOp {
+pub struct StringLastIndexOfOp {
     arg_types: [ValueType; 2],
 }
 
-impl LastIndexOfOp {
+impl StringLastIndexOfOp {
     pub fn new() -> Self {
         Self {
             arg_types: [ValueType::String, ValueType::String],
@@ -172,13 +172,13 @@ impl LastIndexOfOp {
     }
 }
 
-impl Default for LastIndexOfOp {
+impl Default for StringLastIndexOfOp {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl ExprOpcode for LastIndexOfOp {
+impl ExprOpcode for StringLastIndexOfOp {
     fn eval(
         &self,
         args: &[&LocValue],

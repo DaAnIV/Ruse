@@ -14,11 +14,11 @@ use crate::opcode::{get_end_index, get_start_index, member_call_ast};
 use super::TsExprAst;
 
 #[derive(Debug)]
-pub struct IndexOp {
+pub struct ArrayIndexOp {
     arg_types: [ValueType; 2],
 }
 
-impl IndexOp {
+impl ArrayIndexOp {
     pub fn new(elem_type: &ValueType, cache: &Cache) -> Self {
         Self {
             arg_types: [
@@ -29,7 +29,7 @@ impl IndexOp {
     }
 }
 
-impl ExprOpcode for IndexOp {
+impl ExprOpcode for ArrayIndexOp {
     fn eval(
         &self,
         args: &[&LocValue],
@@ -41,7 +41,9 @@ impl ExprOpcode for IndexOp {
         let num = args[1].val().number_value().unwrap();
         let field_name = syn_ctx.cached_string(&(num.0 as usize).to_string());
 
-        args[0].get_obj_field_loc_value(&post_ctx.graphs_map, &field_name).into()
+        args[0]
+            .get_obj_field_loc_value(&post_ctx.graphs_map, &field_name)
+            .into()
     }
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
@@ -67,11 +69,11 @@ impl ExprOpcode for IndexOp {
 }
 
 #[derive(Debug)]
-pub struct PushOp {
+pub struct ArrayPushOp {
     arg_types: [ValueType; 2],
 }
 
-impl PushOp {
+impl ArrayPushOp {
     pub fn new(elem_type: &ValueType, cache: &Cache) -> Self {
         Self {
             arg_types: [
@@ -82,7 +84,7 @@ impl PushOp {
     }
 }
 
-impl ExprOpcode for PushOp {
+impl ExprOpcode for ArrayPushOp {
     fn eval(
         &self,
         args: &[&LocValue],
@@ -96,7 +98,9 @@ impl ExprOpcode for PushOp {
         let idx_field_name = syn_ctx.cached_string(&new_idx.to_string());
         post_ctx.set_field(arr.graph_id, arr.node, idx_field_name, args[1].val());
 
-        let result = post_ctx.temp_value(vnum!(Number::from(arr.total_field_count(&post_ctx.graphs_map) + 1)));
+        let result = post_ctx.temp_value(vnum!(Number::from(
+            arr.total_field_count(&post_ctx.graphs_map) + 1
+        )));
 
         EvalResult::DirtyContext(result)
     }
@@ -150,16 +154,13 @@ impl ExprOpcode for ArraySliceOp {
         };
 
         if start >= end {
-            let empty_arr = post_ctx.create_output_array_object(
-                &self.elem_type,
-                [],
-                &syn_ctx,
-            );
+            let empty_arr = post_ctx.create_output_array_object(&self.elem_type, [], &syn_ctx);
             return EvalResult::NoModification(post_ctx.temp_value(Value::Object(empty_arr)));
         }
 
         let new_arr = if self.elem_type.is_primitive() {
-            let fields = graph.fields(&arr.node)
+            let fields = graph
+                .fields(&arr.node)
                 .skip(start)
                 .take(end - start)
                 .map(|(_, p)| p.clone());
@@ -169,10 +170,12 @@ impl ExprOpcode for ArraySliceOp {
                 .neighbors(&arr.node)
                 .skip(start)
                 .take(end - start)
-                .map(|(_, n)| {
-                    match n {
-                        ruse_object_graph::EdgeEndPoint::Internal(node_index) => vobj!(arr.graph_id, *node_index),
-                        ruse_object_graph::EdgeEndPoint::Chain(graph_id, node_index) => vobj!(*graph_id, *node_index),
+                .map(|(_, n)| match n {
+                    ruse_object_graph::EdgeEndPoint::Internal(node_index) => {
+                        vobj!(arr.graph_id, *node_index)
+                    }
+                    ruse_object_graph::EdgeEndPoint::Chain(graph_id, node_index) => {
+                        vobj!(*graph_id, *node_index)
                     }
                 });
             post_ctx.create_output_array_object(&self.elem_type, fields, &syn_ctx)
@@ -228,10 +231,12 @@ impl ExprOpcode for ArrayConcatOp {
         } else {
             let values = graph
                 .neighbors(&arr.node)
-                .map(|(_, n)| {
-                    match n {
-                        ruse_object_graph::EdgeEndPoint::Internal(node_index) => vobj!(arr.graph_id, *node_index),
-                        ruse_object_graph::EdgeEndPoint::Chain(graph_id, node_index) => vobj!(*graph_id, *node_index),
+                .map(|(_, n)| match n {
+                    ruse_object_graph::EdgeEndPoint::Internal(node_index) => {
+                        vobj!(arr.graph_id, *node_index)
+                    }
+                    ruse_object_graph::EdgeEndPoint::Chain(graph_id, node_index) => {
+                        vobj!(*graph_id, *node_index)
                     }
                 })
                 .chain(args.iter().skip(1).map(|x| x.val().clone()));
@@ -306,7 +311,8 @@ impl ExprOpcode for ArraySpliceOp {
                 .map(|(_, p)| p.clone())
                 .chain(items_to_add)
                 .chain(
-                    graph.fields(&arr.node)
+                    graph
+                        .fields(&arr.node)
                         .skip(start + delete_count)
                         .map(|(_, p)| p.clone()),
                 );
@@ -318,20 +324,26 @@ impl ExprOpcode for ArraySpliceOp {
             let fields = graph
                 .neighbors(&arr.node)
                 .take(start)
-                .map(|(_, n)| {
-                    match n {
-                        ruse_object_graph::EdgeEndPoint::Internal(node_index) => vobj!(arr.graph_id, *node_index),
-                        ruse_object_graph::EdgeEndPoint::Chain(graph_id, node_index) => vobj!(*graph_id, *node_index),
+                .map(|(_, n)| match n {
+                    ruse_object_graph::EdgeEndPoint::Internal(node_index) => {
+                        vobj!(arr.graph_id, *node_index)
+                    }
+                    ruse_object_graph::EdgeEndPoint::Chain(graph_id, node_index) => {
+                        vobj!(*graph_id, *node_index)
                     }
                 })
                 .chain(items_to_add)
-                .chain(graph.neighbors(&arr.node).skip(start + delete_count).map(|(_, n)| {
-                    match n {
-                        ruse_object_graph::EdgeEndPoint::Internal(node_index) => vobj!(arr.graph_id, *node_index),
-                        ruse_object_graph::EdgeEndPoint::Chain(graph_id, node_index) => vobj!(*graph_id, *node_index),
-                    }
-                }));
-                post_ctx.create_output_array_object(&self.elem_type, fields, &syn_ctx)
+                .chain(graph.neighbors(&arr.node).skip(start + delete_count).map(
+                    |(_, n)| match n {
+                        ruse_object_graph::EdgeEndPoint::Internal(node_index) => {
+                            vobj!(arr.graph_id, *node_index)
+                        }
+                        ruse_object_graph::EdgeEndPoint::Chain(graph_id, node_index) => {
+                            vobj!(*graph_id, *node_index)
+                        }
+                    },
+                ));
+            post_ctx.create_output_array_object(&self.elem_type, fields, &syn_ctx)
         };
 
         let mut new_arr_loc = args[0].loc().clone();
@@ -351,13 +363,15 @@ impl ExprOpcode for ArraySpliceOp {
                 .neighbors(&arr.node)
                 .skip(start)
                 .take(delete_count)
-                .map(|(_, n)| {
-                    match n {
-                        ruse_object_graph::EdgeEndPoint::Internal(node_index) => vobj!(arr.graph_id, *node_index),
-                        ruse_object_graph::EdgeEndPoint::Chain(graph_id, node_index) => vobj!(*graph_id, *node_index),
+                .map(|(_, n)| match n {
+                    ruse_object_graph::EdgeEndPoint::Internal(node_index) => {
+                        vobj!(arr.graph_id, *node_index)
+                    }
+                    ruse_object_graph::EdgeEndPoint::Chain(graph_id, node_index) => {
+                        vobj!(*graph_id, *node_index)
                     }
                 });
-                post_ctx.create_output_array_object(&self.elem_type, fields, &syn_ctx)
+            post_ctx.create_output_array_object(&self.elem_type, fields, &syn_ctx)
         };
         EvalResult::NoModification(post_ctx.temp_value(Value::Object(deleted_items_arr)))
     }
@@ -411,19 +425,27 @@ impl ExprOpcode for ArrayConcatArrayOp {
         } else {
             let values = graph
                 .neighbors(&arr.node)
-                .map(|(_, n)| {
-                    match n {
-                        ruse_object_graph::EdgeEndPoint::Internal(node_index) => vobj!(arr.graph_id, *node_index),
-                        ruse_object_graph::EdgeEndPoint::Chain(graph_id, node_index) => vobj!(*graph_id, *node_index),
+                .map(|(_, n)| match n {
+                    ruse_object_graph::EdgeEndPoint::Internal(node_index) => {
+                        vobj!(arr.graph_id, *node_index)
+                    }
+                    ruse_object_graph::EdgeEndPoint::Chain(graph_id, node_index) => {
+                        vobj!(*graph_id, *node_index)
                     }
                 })
-                .chain(graph_to_add.neighbors(&arr_to_add.node).map(|(_, n)| {
-                    match n {
-                        ruse_object_graph::EdgeEndPoint::Internal(node_index) => vobj!(arr_to_add.graph_id, *node_index),
-                        ruse_object_graph::EdgeEndPoint::Chain(graph_id, node_index) => vobj!(*graph_id, *node_index),
-                    }
-                }));
-                post_ctx.create_output_array_object(&self.elem_type, values, &syn_ctx)
+                .chain(
+                    graph_to_add
+                        .neighbors(&arr_to_add.node)
+                        .map(|(_, n)| match n {
+                            ruse_object_graph::EdgeEndPoint::Internal(node_index) => {
+                                vobj!(arr_to_add.graph_id, *node_index)
+                            }
+                            ruse_object_graph::EdgeEndPoint::Chain(graph_id, node_index) => {
+                                vobj!(*graph_id, *node_index)
+                            }
+                        }),
+                );
+            post_ctx.create_output_array_object(&self.elem_type, values, &syn_ctx)
         };
 
         EvalResult::NoModification(post_ctx.temp_value(Value::Object(new_arr)))
