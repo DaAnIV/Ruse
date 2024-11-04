@@ -294,13 +294,22 @@ impl Synthesizer {
         self.init_context::<true>(&current_iteration_map, &self.context.start_context)
     }
 
+    async fn is_cancelled(&self) -> bool {
+        tokio::task::yield_now().await;
+        self.cancel_token.is_cancelled()
+    }
+
     async fn run_composite_iteration(
         this: Arc<Self>,
         current_iteration_map: Arc<TypeMap>,
     ) -> Option<Arc<SubProgram>> {
         let handler = Self::handler(this.clone(), current_iteration_map);
+        
         for (arg_types, ops) in this.composite_opcodes() {
             for triplet in bank_iterator(&this.bank, arg_types) {
+                if this.is_cancelled().await {
+                    return None;
+                }
                 for op in ops {
                     if let Some(found) = handler(op.clone(), triplet.clone()) {
                         return Some(found);
