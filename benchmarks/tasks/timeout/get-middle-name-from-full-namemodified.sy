@@ -7,21 +7,21 @@
   "examples": [
     {
       "input": {
-        "_arg_0": "'susan ann chang'"
+        "_arg_0": "susan ann chang"
       },
-      "output": "'ann'"
+      "output": "ann"
     },
     {
       "input": {
-        "_arg_0": "'ayako tanaka'"
+        "_arg_0": "ayako tanaka"
       },
-      "output": "''"
+      "output": ""
     },
     {
       "input": {
-        "_arg_0": "'anthory r. tom brown'"
+        "_arg_0": "anthory r. tom brown"
       },
-      "output": "'r. tom'"
+      "output": "r. tom"
     }
   ],
   "solution": [
