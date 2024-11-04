@@ -719,8 +719,8 @@ impl SnythesisTask {
                 for (actual, actual_ctx, expected) in
                     izip!(p.out_value().iter(), p.post_ctx().iter(), array)
                 {
-                    if actual.val().wrap(&predicate_graphs_map)
-                        != expected.wrap(&actual_ctx.graphs_map)
+                    if actual.val().wrap(&actual_ctx.graphs_map)
+                        != expected.wrap(&predicate_graphs_map)
                     {
                         return false;
                     }
