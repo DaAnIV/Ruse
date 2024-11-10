@@ -1,5 +1,10 @@
 use crate::{
-    graph_equality::equal_graphs_by_node, graph_map_value::*, graph_node::{EdgeEndPoint, FieldName, ObjectType}, scached, Cache, CachedString, GraphIndex, GraphsMap, NodeIndex, Number, ObjectGraph, PrimitiveValue
+    graph_equality::equal_graphs_by_node,
+    graph_map_value::*,
+    graph_node::{EdgeEndPoint, FieldName, ObjectType},
+    graph_walk::ObjectGraphWalker,
+    scached, Cache, CachedString, GraphIndex, GraphsMap, NodeIndex, Number, ObjectGraph,
+    PrimitiveValue,
 };
 use core::fmt;
 use std::{fmt::Debug, hash::Hash, sync::Arc};
@@ -236,8 +241,9 @@ impl GraphMapEq for ObjectValue {
 
 impl GraphMapHash for ObjectValue {
     fn calculate_hash<H: std::hash::Hasher>(&self, state: &mut H, graphs_map: &GraphsMap) {
-        self.graph(graphs_map).calculate_hash(state, graphs_map);
-        self.node.hash(state);
+        for (_, node) in ObjectGraphWalker::from_node(graphs_map, self.graph_id, self.node) {
+            node.hash(state);
+        }
     }
 }
 

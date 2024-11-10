@@ -1,9 +1,20 @@
 #[cfg(test)]
 mod helpers {
-    use ruse_object_graph::value::ValueType;
+    use std::{
+        hash::{DefaultHasher, Hash, Hasher},
+        sync::Arc,
+    };
+
+    use rand::{seq::IteratorRandom, Rng};
+    use ruse_object_graph::{
+        generator::object_graph_generator::generate_random_str,
+        scached,
+        value::{ObjectValue, Value, ValueType},
+        Cache, CachedString, FieldsMap, GraphsMap, Number, ObjectGraph, PrimitiveValue,
+    };
 
     use crate::{
-        context::{Context, SynthesizerContext},
+        context::{Context, GraphIdGenerator, SynthesizerContext, ValuesMap},
         location::LocValue,
         opcode::{EvalResult, ExprAst, ExprOpcode},
     };
@@ -39,13 +50,132 @@ mod helpers {
             Box::new(TestAst {})
         }
     }
-}
 
+    pub fn calculate_hash<T: Hash>(t: &T) -> u64 {
+        let mut s = DefaultHasher::new();
+        t.hash(&mut s);
+        s.finish()
+    }
+
+    fn generate_random_primitive_value<R: Rng + ?Sized>(
+        rng: &mut R,
+        cache: &Cache,
+    ) -> PrimitiveValue {
+        let types = [ValueType::Bool, ValueType::Number, ValueType::String];
+        match types.iter().choose(rng).unwrap() {
+            ValueType::Number => PrimitiveValue::Number(Number::from(rng.next_u64())),
+            ValueType::Bool => PrimitiveValue::Bool(rng.gen_bool(0.5)),
+            ValueType::String => {
+                PrimitiveValue::String(scached!(cache; generate_random_str(4, rng)))
+            }
+            _ => unreachable!(),
+        }
+    }
+
+    fn generate_fields<R: Rng + ?Sized>(count: usize, rng: &mut R, cache: &Cache) -> FieldsMap {
+        let mut fields = FieldsMap::new();
+        for _ in 0..count {
+            let key = scached!(cache; generate_random_str(4, rng));
+            let value = generate_random_primitive_value(rng, cache);
+            fields.insert(key, value);
+        }
+
+        fields
+    }
+
+    fn generate_random_object_value<R: Rng + ?Sized>(
+        root_name: CachedString,
+        rng: &mut R,
+        graphs_map: &mut GraphsMap,
+        graph_id_gen: &GraphIdGenerator,
+        cache: &Cache,
+    ) -> ObjectValue {
+        let graph_id = graph_id_gen.get_id_for_graph();
+        let root_id = graph_id_gen.get_id_for_node();
+        let mut graph = ObjectGraph::new(graph_id);
+
+        let fields = generate_fields(4, rng, cache);
+        let obj_type = scached!(cache; generate_random_str(4, rng));
+        graph.add_node(root_id, obj_type, fields);
+        graph.set_as_root(root_name, root_id);
+
+        for _ in 0..4 {
+            let neig_id = graph_id_gen.get_id_for_node();
+            let fields = generate_fields(4, rng, cache);
+            let obj_type = scached!(cache; generate_random_str(4, rng));
+            graph.add_node(neig_id, obj_type, fields);
+
+            let edge_name = scached!(cache; generate_random_str(4, rng));
+            graph.set_edge(&root_id, neig_id, edge_name);
+        }
+
+        graphs_map.insert_graph(graph.into());
+
+        ObjectValue {
+            graph_id: graph_id,
+            node: root_id,
+        }
+    }
+
+    pub fn generate_random_context<R: Rng + ?Sized>(
+        rng: &mut R,
+        num_primitive: usize,
+        num_objects: usize,
+        cache: &Cache,
+    ) -> Context {
+        let graph_id_gen = Arc::new(GraphIdGenerator::default());
+        let mut graphs_map = GraphsMap::default();
+
+        let mut values = ValuesMap::new();
+        for _ in 0..num_primitive {
+            let key = scached!(cache; generate_random_str(4, rng));
+            let value = generate_random_primitive_value(rng, cache);
+            values.insert(key, Value::Primitive(value));
+        }
+        for _ in 0..num_objects {
+            let key = scached!(cache; generate_random_str(4, rng));
+            let value = generate_random_object_value(
+                key.clone(),
+                rng,
+                &mut graphs_map,
+                &graph_id_gen,
+                cache,
+            );
+            values.insert(key, Value::Object(value));
+        }
+
+        Context::with_values(values, graphs_map.into(), graph_id_gen)
+    }
+
+    pub fn generate_context_from_array<I>(
+        key: CachedString,
+        elem_type: &ValueType,
+        elements: I,
+        cache: &Cache,
+    ) -> Context
+    where
+        I: IntoIterator<Item = Value>,
+    {
+        let graph_id_gen = Arc::new(GraphIdGenerator::default());
+        let mut graphs_map = GraphsMap::default();
+
+        let mut values = ValuesMap::new();
+        let graph_id = graph_id_gen.get_id_for_graph();
+        let mut graph = ObjectGraph::new(graph_id);
+        let node =
+            graph.add_array_object(graph_id_gen.get_id_for_node(), elem_type, elements, cache);
+        graphs_map.insert_graph(graph.into());
+        values.insert(key, Value::Object(ObjectValue { graph_id, node }));
+
+        Context::with_values(values, graphs_map.into(), graph_id_gen)
+    }
+}
 
 #[cfg(test)]
 mod bank_iterator_tests {
     use crate::{
-        bank::ProgramsMap, bank_iterator::bank_iterator, context::GraphIdGenerator, multi_programs_map_product::multi_programs_map_product, test::helpers::*
+        bank::ProgramsMap, bank_iterator::bank_iterator, context::GraphIdGenerator,
+        multi_programs_map_product::multi_programs_map_product, test::helpers::*,
     };
     use std::sync::Arc;
 
@@ -64,15 +194,12 @@ mod bank_iterator_tests {
         prog::SubProgram,
     };
 
-    async fn run_gatherer(
-        bank: &ProgBank,
-        op: &Arc<dyn ExprOpcode>,
-    ) -> Vec<Vec<Arc<SubProgram>>> {
+    async fn run_gatherer(bank: &ProgBank, op: &Arc<dyn ExprOpcode>) -> Vec<Vec<Arc<SubProgram>>> {
         let all_children = Arc::new(DashMap::<usize, Vec<Arc<SubProgram>>>::default());
         for triplet in bank_iterator(bank, op.arg_types()) {
             all_children.insert(all_children.len(), triplet.children);
         }
-        
+
         all_children.iter().map(|x| x.value().clone()).collect()
     }
 
@@ -137,7 +264,7 @@ mod bank_iterator_tests {
         let map = create_programs_map(5, &syn_ctx);
         for p in map.iter() {
             println!("{}", p.out_value()[0].val.number_value().unwrap());
-        }    
+        }
     }
 
     #[test]
@@ -150,7 +277,7 @@ mod bank_iterator_tests {
             let n1 = p1.out_value()[0].val.number_value().unwrap();
             let n2 = p2.out_value()[0].val.number_value().unwrap();
             println!("({}, {})", n1, n2);
-        }    
+        }
     }
 
     #[test]
@@ -161,8 +288,15 @@ mod bank_iterator_tests {
         let map = create_programs_map(2, &syn_ctx);
         let map_ptr = std::ptr::from_ref(&map);
         for triplet in multi_programs_map_product([map_ptr, map_ptr].into_iter()) {
-            println!("{:#?}", triplet.children.iter().map(|p| p.out_value()[0].val.number_value().unwrap()).collect_vec());
-        }    
+            println!(
+                "{:#?}",
+                triplet
+                    .children
+                    .iter()
+                    .map(|p| p.out_value()[0].val.number_value().unwrap())
+                    .collect_vec()
+            );
+        }
     }
 
     #[tokio::test(flavor = "current_thread")]
@@ -273,5 +407,129 @@ mod bank_iterator_tests {
             }));
         }
         // print_all_children(&all_children);
+    }
+}
+
+#[cfg(test)]
+mod context_tests {
+    use crate::{
+        context::ContextArray,
+        test::helpers::*,
+    };
+    use rand::{rngs::StdRng, SeedableRng};
+    use ruse_object_graph::{str_cached, value::ValueType, vstr, Cache};
+
+    const SEED: u64 = 10;
+
+    #[test]
+    fn simple_context_eq_self_test() {
+        let mut rng = StdRng::seed_from_u64(SEED);
+        let cache = Cache::new();
+
+        let ctx = generate_random_context(&mut rng, 4, 0, &cache);
+
+        assert_eq!(calculate_hash(&ctx), calculate_hash(&ctx));
+        assert_eq!(ctx, ctx);
+    }
+
+    #[test]
+    fn simple_context_eq_test() {
+        let mut rng1 = StdRng::seed_from_u64(SEED);
+        let mut rng2 = StdRng::seed_from_u64(SEED);
+        let cache = Cache::new();
+
+        let ctx1 = generate_random_context(&mut rng1, 4, 0, &cache);
+        let ctx2 = generate_random_context(&mut rng2, 4, 0, &cache);
+
+        assert_eq!(calculate_hash(&ctx1), calculate_hash(&ctx2));
+        assert_eq!(ctx1, ctx2);
+    }
+
+    #[test]
+    fn simple_context_array_eq_test() {
+        let mut rng1 = StdRng::seed_from_u64(SEED);
+        let mut rng2 = StdRng::seed_from_u64(SEED);
+        let cache = Cache::new();
+
+        let ctx_arr1 = ContextArray::from(vec![
+            generate_random_context(&mut rng1, 4, 0, &cache),
+            generate_random_context(&mut rng1, 5, 0, &cache),
+            generate_random_context(&mut rng1, 4, 0, &cache),
+        ]);
+        let ctx_arr2 = ContextArray::from(vec![
+            generate_random_context(&mut rng2, 4, 0, &cache),
+            generate_random_context(&mut rng2, 5, 0, &cache),
+            generate_random_context(&mut rng2, 4, 0, &cache),
+        ]);
+
+        assert_eq!(calculate_hash(&ctx_arr1), calculate_hash(&ctx_arr2));
+        assert_eq!(ctx_arr1, ctx_arr2);
+    }
+
+    #[test]
+    fn context_eq_self_test() {
+        let mut rng = StdRng::seed_from_u64(SEED);
+        let cache = Cache::new();
+
+        let ctx = generate_random_context(&mut rng, 4, 4, &cache);
+
+        assert_eq!(calculate_hash(&ctx), calculate_hash(&ctx));
+        assert_eq!(ctx, ctx);
+    }
+
+    #[test]
+    fn context_eq_test() {
+        let mut rng1 = StdRng::seed_from_u64(SEED);
+        let mut rng2 = StdRng::seed_from_u64(SEED);
+        let cache = Cache::new();
+
+        let ctx1 = generate_random_context(&mut rng1, 4, 4, &cache);
+        let ctx2 = generate_random_context(&mut rng2, 4, 4, &cache);
+
+        assert_eq!(calculate_hash(&ctx1), calculate_hash(&ctx2));
+        assert_eq!(ctx1, ctx2);
+    }
+
+    #[test]
+    fn context_array_eq_test() {
+        let mut rng1 = StdRng::seed_from_u64(SEED);
+        let mut rng2 = StdRng::seed_from_u64(SEED);
+        let cache = Cache::new();
+
+        let ctx_arr1 = ContextArray::from(vec![
+            generate_random_context(&mut rng1, 4, 4, &cache),
+            generate_random_context(&mut rng1, 5, 5, &cache),
+            generate_random_context(&mut rng1, 4, 4, &cache),
+        ]);
+        let ctx_arr2 = ContextArray::from(vec![
+            generate_random_context(&mut rng2, 4, 4, &cache),
+            generate_random_context(&mut rng2, 5, 5, &cache),
+            generate_random_context(&mut rng2, 4, 4, &cache),
+        ]);
+
+        assert_eq!(calculate_hash(&ctx_arr1), calculate_hash(&ctx_arr2));
+        assert_eq!(ctx_arr1, ctx_arr2);
+    }
+
+    #[test]
+    fn context_with_array_value_eq_test() {
+        let cache = Cache::new();
+
+        let ctx1 = generate_context_from_array(
+            str_cached!(cache; "names"),
+            &ValueType::String,
+            ["Augusta", "Ada", "King"].iter().map(|s| vstr!(cache; s)),
+            &cache,
+        );
+
+        let ctx2 = generate_context_from_array(
+            str_cached!(cache; "names"),
+            &ValueType::String,
+            ["Augusta", "Ada", "King"].iter().map(|s| vstr!(cache; s)),
+            &cache,
+        );
+
+        assert_eq!(calculate_hash(&ctx1), calculate_hash(&ctx2));
+        assert_eq!(ctx1, ctx2);
     }
 }

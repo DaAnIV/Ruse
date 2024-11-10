@@ -1,4 +1,5 @@
 use crate::location::{LocValue, Location, VarLoc};
+use graph_equality::equal_graphs_by_nodes;
 use itertools::Itertools;
 use ruse_object_graph::{
     graph_map_value::*,
@@ -6,7 +7,7 @@ use ruse_object_graph::{
     *,
 };
 use std::{
-    collections::{HashMap, HashSet, VecDeque},
+    collections::{BTreeMap, HashMap, HashSet, VecDeque},
     fmt::Display,
     hash::{DefaultHasher, Hash, Hasher},
     ops::Index,
@@ -88,17 +89,19 @@ impl SynthesizerContext {
     }
 }
 
+pub type ValuesMap = BTreeMap<VariableName, Value>;
+
 #[derive(Clone, Debug)]
 pub struct Context {
     hash: u64,
-    pub(crate) values: Arc<HashMap<VariableName, Value>>,
+    pub(crate) values: Arc<ValuesMap>,
     pub graphs_map: Arc<GraphsMap>,
     pub graph_id_gen: Arc<GraphIdGenerator>,
 }
 
 impl Context {
     pub fn with_values(
-        values: HashMap<VariableName, Value>,
+        values: ValuesMap,
         graphs_map: Arc<GraphsMap>,
         graph_id_gen: Arc<GraphIdGenerator>,
     ) -> Self {
@@ -118,7 +121,7 @@ impl Context {
     //     &self.graph
     // }
 
-    fn get_hash_for_values(values: &HashMap<VariableName, Value>, graphs_map: &GraphsMap) -> u64 {
+    fn get_hash_for_values(values: &ValuesMap, graphs_map: &GraphsMap) -> u64 {
         let mut hasher = DefaultHasher::new();
         for (k, v) in values {
             k.hash(&mut hasher);
@@ -135,7 +138,7 @@ impl Context {
         self.hash = new_hash;
     }
 
-    fn set_values(&mut self, values: HashMap<VariableName, Value>) {
+    fn set_values(&mut self, values: ValuesMap) {
         self.values = values.into();
         self.update_hash();
     }
@@ -236,7 +239,7 @@ impl Context {
     pub fn variable_values(&self) -> impl std::iter::Iterator<Item = &Value> {
         self.values.values()
     }
-    
+
     fn extend_graphs_map(&mut self, other: &Context) {
         let mut new_map = self.graphs_map.as_ref().clone();
         new_map.extend(&other.graphs_map);
@@ -468,14 +471,36 @@ impl Eq for Context {}
 
 impl PartialEq for Context {
     fn eq(&self, other: &Self) -> bool {
-        self.hash == other.hash
-            && self.values.len() == other.values.len()
-            && self.values.iter().zip(other.values.iter()).all(
-                |((self_key, self_value), (other_key, other_value))| {
-                    self_key == other_key
-                        && self_value.wrap(&self.graphs_map) == other_value.wrap(&other.graphs_map)
-                },
-            )
+        if self.hash != other.hash || self.values.len() != other.values.len() {
+            return false;
+        }
+
+        if self.values.keys().ne(other.values.keys()) {
+            return false;
+        }
+
+        if !self
+            .values
+            .iter()
+            .filter(|(_, v)| v.is_primitive())
+            .all(|(key, self_value)| {
+                let other_value = &other.values[key];
+                self_value.wrap(&self.graphs_map) == other_value.wrap(&other.graphs_map)
+            })
+        {
+            return false;
+        }
+
+        let nodes_a = self.values.values().filter(|v| v.is_obj()).map(|v| {
+            let obj = v.obj().unwrap();
+            (obj.graph_id, obj.node)
+        });
+        let nodes_b = other.values.values().filter(|v| v.is_obj()).map(|v| {
+            let obj = v.obj().unwrap();
+            (obj.graph_id, obj.node)
+        });
+
+        equal_graphs_by_nodes(&self.graphs_map, &other.graphs_map, nodes_a, nodes_b)
     }
 }
 
@@ -490,8 +515,9 @@ impl Display for Context {
                 write!(f, ", ")?;
             }
         }
-        write!(f, "Graphs: {:?}", self.graphs_map.keys().collect_vec())?;
-        
+        write!(f, "; Hash: {}", self.hash)?;
+        write!(f, "; Graphs: {:?}", self.graphs_map.keys().collect_vec())?;
+
         Ok(())
     }
 }
@@ -539,7 +565,7 @@ impl ContextArray {
         let mut ctxs = Vec::<Context>::with_capacity(self.len());
 
         for ctx in self.iter() {
-            let mut values = HashMap::new();
+            let mut values = ValuesMap::new();
             for var in required_variables {
                 let var_value = ctx.values.get(var)?.clone();
                 values.insert((*var).clone(), var_value);

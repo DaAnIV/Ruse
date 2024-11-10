@@ -13,7 +13,7 @@ use ruse_object_graph::{
     *,
 };
 use ruse_synthesizer::{
-    context::{Context, ContextArray, GraphIdGenerator},
+    context::{Context, ContextArray, GraphIdGenerator, ValuesMap},
     prog::SubProgram,
     synthesizer::{OpcodesList, SynthesizerPredicate},
 };
@@ -125,7 +125,7 @@ struct VarRef {
 impl VarRef {
     fn create_value(
         &self,
-        values: &HashMap<Arc<String>, Value>,
+        values: &ValuesMap,
         graphs_map: &GraphsMap,
     ) -> Result<Value, SnythesisTaskError> {
         let value = values.get(&self.var).ok_or(parse_err!(
@@ -522,8 +522,8 @@ fn parse_json_values(
     id_gen: &GraphIdGenerator,
     classes: &TsClasses,
     cache: &Cache,
-) -> Result<HashMap<CachedString, Value>, SnythesisTaskError> {
-    let mut values = HashMap::with_capacity(map.len());
+) -> Result<ValuesMap, SnythesisTaskError> {
+    let mut values = ValuesMap::new();
     for (k, v) in map {
         let key = str_cached!(cache; k);
         let value_type = &match types.get(k) {
@@ -554,7 +554,7 @@ struct SnythesisTaskExamples {
 
 fn set_var_refs_variables(
     variables: &HashMap<String, TaskType>,
-    values: &mut HashMap<CachedString, Value>,
+    values: &mut ValuesMap,
     graphs_map: &mut GraphsMap,
     cache: &Cache,
 ) -> Result<(), SnythesisTaskError> {

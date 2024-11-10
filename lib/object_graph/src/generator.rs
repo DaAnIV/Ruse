@@ -12,7 +12,7 @@ pub mod object_graph_generator {
         (0..n).find(|i| seen.visit(*i))
     }
 
-    fn generate_random_str<R: Rng + ?Sized>(max_size: usize, rng: &mut R) -> String {
+    pub fn generate_random_str<R: Rng + ?Sized>(max_size: usize, rng: &mut R) -> String {
         let str_size = rng.gen_range(0..=max_size);
         let mut rstr = Vec::with_capacity(str_size);
         for _ in 0..max_size {
