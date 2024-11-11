@@ -136,7 +136,7 @@ impl ObjectValue {
 impl GraphMapDisplay for ObjectValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>, graphs_map: &GraphsMap) -> fmt::Result {
         let graph = self.graph(graphs_map);
-        if self.is_array(graphs_map) && self.primitive_field_count(graphs_map) > 0 {
+        if self.is_array(graphs_map) && self.pointers_field_count(graphs_map) == 0 {
             write!(f, "[")?;
             let mut iter = graph.fields(&self.node);
             match iter.next() {
