@@ -57,6 +57,9 @@ struct MultiProgramsMapsInner<'a> {
     iters: Vec<MultiProgramsMapsIter<'a>>,
     /// Not populated at the beginning then it holds the current item of each iterator.
     cur: CurrentItems<(Vec<Arc<SubProgram>>, Vec<(ContextArray, ContextArray)>)>,
+
+    /// If set_ctx fails need to restart at last failure (or earlier)
+    last_fail: usize
 }
 
 /// Holds the state of a single iterator within a `MultiProduct`.
@@ -88,6 +91,7 @@ where
             MultiProgramsMapsIter::new(map_ref.iter())
     }).collect(),
         cur: NotYetPopulated,
+        last_fail: 0
     };
     MultiProgramsMaps(ProductInProgress(inner))
 }
@@ -138,6 +142,8 @@ impl<'a> MultiProgramsMapsInner<'a> {
     fn set_ctxs(&mut self, mut from: usize) -> Option<ProgTriplet> {
         let (cur_progs, cur_ctxs) = self.cur.as_mut().unwrap();
 
+        from = from.min(self.last_fail);
+
         if from == 0 {
             cur_ctxs[0] = (
                 cur_progs[0].pre_ctx().clone(),
@@ -154,6 +160,7 @@ impl<'a> MultiProgramsMapsInner<'a> {
             {
                 cur_ctxs[i] = merged_ctx;
             } else {
+                self.last_fail = i;
                 return None;
             }
         }
