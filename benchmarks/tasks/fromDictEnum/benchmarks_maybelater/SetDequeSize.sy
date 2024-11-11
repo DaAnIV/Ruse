@@ -1,0 +1,36 @@
+{
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/SetDequeSize.java",
+  "variables": {
+    "deque": "[String]",
+    "size": "Int",
+    "element": "String"
+  },
+  "returnType": "[String]",
+  "examples": [
+    {
+      "input": {
+        "deque": "['a','b','c','d','e']",
+        "size": "9",
+        "element": "'xyz'"
+      },
+      "output": "['a','b','c','d','e','xyz','xyz','xyz','xyz']"
+    },
+    {
+      "input": {
+        "deque": "['a','b','c','d','e']",
+        "size": "4",
+        "element": "'xyz'"
+      },
+      "output": "['a','b','c','d']"
+    },
+    {
+      "input": {
+        "deque": "[]",
+        "size": "3",
+        "element": "'a'"
+      },
+      "output": "['a','a','a']"
+    }
+  ],
+  "solution": [ "(deque.concat(Array(size).fill(element))).slice(0,size)" ]
+}

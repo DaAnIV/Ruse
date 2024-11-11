@@ -1,0 +1,86 @@
+{
+  "source": "https://github.com/KasraF/SnippySynthesizer/blob/loopy/src/test/resources/frangel_control/is_all_positive_loopy.examples.json",
+  "variables": {
+    "inp": "[Int]",
+    "elem": "Int",
+    "out": "Bool"
+  },
+  "stringLiterals": [],
+  "intLiterals": [],
+  "immutable": ["inp", "elem"],
+  "examples": [
+    {
+      "input": {
+        "inp": "[1, 2, 12, -1, 123, 1, 2]",
+        "elem": "1",
+        "out": "true"
+      },
+      "state": {
+        "out": "true"
+      }
+    },
+    {
+      "input": {
+        "inp": "[1, 2, 12, -1, 123, 1, 2]",
+        "elem": "2",
+        "out": "true"
+      },
+      "state": {
+        "out": "true"
+      }
+    },
+    {
+      "input": {
+        "inp": "[1, 2, 12, -1, 123, 1, 2]",
+        "elem": "12",
+        "out": "true"
+      },
+      "state": {
+        "out": "true"
+      }
+    },
+    {
+      "input": {
+        "inp": "[1, 2, 12, -1, 123, 1, 2]",
+        "elem": "-1",
+        "out": "true"
+      },
+      "state": {
+        "out": "false"
+      }
+    },
+    {
+      "input": {
+        "inp": "[1, 2, 12, -1, 123, 1, 2]",
+        "elem": "123",
+        "out": "false"
+      },
+      "state": {
+        "out": "false"
+      }
+    },
+    {
+      "input": {
+        "inp": "[1, 2, 12, -1, 123, 1, 2]",
+        "elem": "1",
+        "out": "false"
+      },
+      "state": {
+        "out": "false"
+      }
+    },
+    {
+      "input": {
+        "inp": "[1, 2, 12, -1, 123, 1, 2]",
+        "elem": "2",
+        "out": "false"
+      },
+      "state": {
+        "out": "false"
+      }
+    }
+  ],
+  "solution": [
+    "out = out && elem >= 0"
+  ]
+}

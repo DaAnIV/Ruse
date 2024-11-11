@@ -1,0 +1,29 @@
+{
+  "source": "https=//exceljet.net/formula/strip-numeric-characters-from-cell",
+  "variables": {
+    "_arg_0": "String"
+  },
+  "stringLiterals": ["0","1","2","3","4","5","6","7","8","9"],
+  "returnType": "String",
+  "examples": [
+    {
+      "input": {
+        "_arg_0": "'34653 jim mcdonald'"
+      },
+      "output": "' jim mcdonald'"
+    },
+    {
+      "input": {
+        "_arg_0": "'price is 500'"
+      },
+      "output": "'price is '"
+    },
+    {
+      "input": {
+        "_arg_0": "'100 apples'"
+      },
+      "output": "' apples'"
+    }
+  ],
+  "solution": [ "_arg_0.replaceAll('0','').replaceAll('1','').replaceAll('2','').replaceAll('3','').replaceAll('4','').replaceAll('5','').replaceAll('6','').replaceAll('7','').replaceAll('8','').replaceAll('9','')" ]
+}

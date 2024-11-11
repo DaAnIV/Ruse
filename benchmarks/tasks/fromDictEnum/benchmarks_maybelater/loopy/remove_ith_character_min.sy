@@ -1,0 +1,24 @@
+{
+  "source": "https://github.com/KasraF/SnippySynthesizer/blob/loopy/src/test/resources/.examples.json",
+  "variables": {
+    "inp": "String",
+    "n": "Int",
+    "out": "String"
+  },
+  "immutable": ["inp", "n"],
+  "examples": [
+    {
+      "input": {
+        "inp": "'GeeksForGeeks'",
+        "n": "4",
+        "out": "''"
+      },
+      "state": {
+        "out": "'GeesForGeeks'"
+      }
+    }
+  ],
+  "solution": [
+    "out = inp.slice(0, n - 1) + inp.slice(n)"
+  ]
+}

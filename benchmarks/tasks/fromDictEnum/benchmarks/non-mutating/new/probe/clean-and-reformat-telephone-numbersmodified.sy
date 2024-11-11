@@ -1,0 +1,29 @@
+{
+  "source": "https=//exceljet.net/formula/clean-and-reformat-telephone-numbers",
+  "variables": {
+    "_arg_0": "String"
+  },
+  "stringLiterals": ["<",">",".","-"],
+  "returnType": "String",
+  "examples": [
+    {
+      "input": {
+        "_arg_0": "'801-456-8765'"
+      },
+      "output": "'8014568765'"
+    },
+    {
+      "input": {
+        "_arg_0": "'<978> 654-0299'"
+      },
+      "output": "'9786540299'"
+    },
+    {
+      "input": {
+        "_arg_0": "'978.654.0299'"
+      },
+      "output": "'9786540299'"
+    }
+  ],
+  "solution": [ "_arg_0.replaceAll('<','').replaceAll('>','').replaceAll('.','').replaceAll('-','').replaceAll(' ','')" ]
+}

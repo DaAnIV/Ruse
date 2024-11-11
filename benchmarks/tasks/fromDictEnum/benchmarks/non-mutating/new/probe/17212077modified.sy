@@ -1,0 +1,34 @@
+{
+  "source": "https=//stackoverflow.com/questions/17212077/stuck-substring-month-and-year-in-excel",
+  "variables": {
+    "_arg_0": "String"
+  },
+  "stringLiterals": [
+    "/"
+  ],
+  "returnType": "String",
+  "examples": [
+    {
+      "input": {
+        "_arg_0": "'01/15/2013'"
+      },
+      "output": "'01/2013'"
+    },
+    {
+      "input": {
+        "_arg_0": "'03/07/2011'"
+      },
+      "output": "'03/2011'"
+    },
+    {
+      "input": {
+        "_arg_0": "'05/09/2009'"
+      },
+      "output": "'05/2009'"
+    }
+  ],
+  "solution": [
+    "(_arg_0.split('/')[0]).concat('/'.concat(_arg_0.split('/')[2]))",
+    "_arg_0.slice(0,2) + _arg_0.slice(_arg_0.lastIndexOf('/'))"
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "source": "https=//stackoverflow.com/questions/28627624/excel-single-cell-to-multiple-rows-and-get-substring",
+  "variables": {
+    "_arg_0": "String"
+  },
+  "stringLiterals": ["= "],
+  "returnType": "String",
+  "examples": [
+    {
+      "input": {
+        "_arg_0": "'Dec 2, 2014, 11=23 PM - +91 90000 80000= loren ipsum'"
+      },
+      "output": "'loren ipsum'"
+    },
+    {
+      "input": {
+        "_arg_0": "'Dec 2, 2014, 11=24 PM - +91 90000 80000= loren'"
+      },
+      "output": "'loren'"
+    }
+  ],
+  "solution": [
+    "_arg_0.replace('= ', '').slice(_arg_0.indexOf('= '))",
+    "_arg_0.split('= ')[1]",
+    "_arg_0.split('= ').slice(-1)[0]"
+  ]
+}

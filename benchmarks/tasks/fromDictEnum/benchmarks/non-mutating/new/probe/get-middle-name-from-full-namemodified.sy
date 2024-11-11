@@ -1,0 +1,31 @@
+{
+  "source": "https=//exceljet.net/formula/get-middle-name-from-full-name",
+  "variables": {
+    "_arg_0": "String"
+  },
+  "returnType": "String",
+  "examples": [
+    {
+      "input": {
+        "_arg_0": "'susan ann chang'"
+      },
+      "output": "'ann'"
+    },
+    {
+      "input": {
+        "_arg_0": "'ayako tanaka'"
+      },
+      "output": "''"
+    },
+    {
+      "input": {
+        "_arg_0": "'anthory r. tom brown'"
+      },
+      "output": "'r. tom'"
+    }
+  ],
+  "solution": [
+    "_arg_0.slice(_arg_0.indexOf(' '),_arg_0.lastIndexOf(' ')).trim()",
+    "(_arg_0.split(' ').slice(1,_arg_0.split(' ').length - 1)).join(' ')"
+  ]
+}

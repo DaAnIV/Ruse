@@ -1,0 +1,28 @@
+{
+"source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/CountUnique.java",
+"variables": {
+  "arr": "[String]"
+  },
+"returnType": "Int",
+  "examples": [
+    {
+      "input": {
+        "arr": "['a','d','a','!@#','c','a','?!','A',' ','b','c','123']"
+      },
+      "output": "9"
+    },
+    {
+      "input": {
+        "arr": "['a','d','a','!@#','c','a','?!','a',' ','b','c','123']"
+      },
+      "output": "8"
+    },
+    {
+      "input": {
+        "arr": "['','a',' ','null','NULL','  ']"
+      },
+      "output": "6"
+    }
+  ],
+  "solution": [ "arr.filter((x,i) => arr.indexOf(x,i+1) == -1).length" ]
+}

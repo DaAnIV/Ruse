@@ -1,0 +1,55 @@
+{
+  "source": "https://github.com/KasraF/SnippySynthesizer/blob/loopy/src/test/resources/frangel_control/add_numbers.examples.json",
+  "variables": {
+    "d": "Int",
+    "fst": "[Int]",
+    "snd": "[Int]",
+    "carry": "Int"
+  },
+  "intLiterals": [10],
+  "returnType": "Int",
+  "examples": [
+    {
+      "input": {
+        "d": "0",
+        "fst": "[2, 2, 1]",
+        "snd": "[0, 9, 8]",
+        "carry": "0"
+      },
+      "output": "9",
+      "state": {
+        "carry": "0",
+        "d": "9"
+      }
+    },
+    {
+      "input": {
+        "fst": "[2, 2]",
+        "snd": "[0, 9]",
+        "carry": "0",
+        "d": "9"
+      },
+      "output": "1",
+      "state": {
+        "carry": "1",
+        "d": "11"
+      }
+    },
+    {
+      "input": {
+        "fst": "[2]",
+        "snd": "[0]",
+        "carry": "1",
+        "d": "11"
+      },
+      "output": "3",
+      "state": {
+        "carry": "0",
+        "d": "3"
+      }
+    }
+  ],
+  "solution": [
+    "d = fst.pop() + snd.pop() + carry, carry = Math.floor(d / 10), d % 10"
+  ]
+}

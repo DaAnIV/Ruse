@@ -1,0 +1,32 @@
+{
+"source": "",
+"variables": {
+    "_arg_0": "String"
+},
+"stringLiterals": ["+"],
+"returnType": "String",
+"examples": [
+  {
+    "input": {
+      "_arg_0": "'+106 769-858-438'"
+    },
+    "output": "'106'"
+  },
+  {
+    "input": {
+      "_arg_0": "'+95 310-537-401'"
+    },
+    "output": "'95'"
+  },
+  {
+    "input": {
+      "_arg_0": "'+118 165-041-038'"
+    },
+    "output": "'118'"
+  }
+],
+  "solution": [
+    "_arg_0.slice(1,_arg_0.indexOf(' '))",
+    "_arg_0.split(' ')[0].replace('+', '')"
+  ]
+}

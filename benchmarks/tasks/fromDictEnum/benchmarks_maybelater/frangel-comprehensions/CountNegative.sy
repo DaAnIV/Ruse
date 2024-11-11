@@ -1,0 +1,28 @@
+{
+"source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/CountNegative.java",
+"variables": {
+  "arr": "[Int]"
+  },
+"returnType": "Int",
+  "examples": [
+    {
+      "input": {
+        "arr": "[0, -3, 1, -1, 0, -4, -1, -4, -2]"
+      },
+      "output": "6"
+    },
+    {
+      "input": {
+        "arr": "[1, -1]"
+      },
+      "output": "1"
+    },
+    {
+      "input": {
+        "arr": "[123]"
+      },
+      "output": "0"
+    }
+  ],
+  "solution": ["(arr.filter(value => (value < 0))).length" ]
+}

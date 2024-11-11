@@ -1,0 +1,64 @@
+{
+  "source": "https://github.com/KasraF/SnippySynthesizer/blob/loopy/src/test/resources/frangel_control/is_increasing_loopy.examples.json",
+  "variables": {
+    "elem1": "Int",
+    "elem2": "Int",
+    "out": "Bool"
+  },
+  "immutable": ["elem1", "elem2"],
+  "examples": [
+    {
+      "input": {
+        "elem1": "67",
+        "elem2": "68",
+        "out": "true"
+      },
+      "state": {
+        "out": "true"
+      }
+    },
+    {
+      "input": {
+        "elem1": "68",
+        "elem2": "69",
+        "out": "true"
+      },
+      "state": {
+        "out": "true"
+      }
+    },
+    {
+      "input": {
+        "elem1": "69",
+        "elem2": "73",
+        "out": "true"
+      },
+      "state": {
+        "out": "true"
+      }
+    },
+    {
+      "input": {
+        "elem1": "73",
+        "elem2": "70",
+        "out": "true"
+      },
+      "state": {
+        "out": "false"
+      }
+    },
+    {
+      "input": {
+        "elem1": "70",
+        "elem2": "71",
+        "out": "false"
+      },
+      "state": {
+        "out": "false"
+      }
+    }
+  ],
+  "solution": [
+    "out = out && (elem1 <= elem2)"
+  ]
+}

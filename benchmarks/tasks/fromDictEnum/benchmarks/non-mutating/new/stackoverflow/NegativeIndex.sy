@@ -1,0 +1,26 @@
+{
+  "variables": {
+    "str": "String",
+    "char": "String"
+  },
+  "returnType": "Int",
+  "examples": [
+    {
+      "input": {
+        "str": "'1234'",
+        "char": "'2'"
+      },
+      "output": "-3"
+    },
+    {
+      "input": {
+        "str": "'1234'",
+        "char": "'3'"
+      },
+      "output": "-2"
+    }
+  ],
+  "solution": [
+    "str.indexOf(char) - str.length"
+  ]
+}

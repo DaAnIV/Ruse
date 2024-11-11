@@ -1,0 +1,19 @@
+{
+  "source": "https://github.com/KasraF/SnippySynthesizer/blob/loopy/src/test/resources/frangel_control/uppercase_first_char_loopy.examples.json",
+  "variables": {
+    "inp": "String"
+  },
+  "returnType": "String",
+  "immutable": ["inp"],
+  "examples": [
+    {
+      "input": {
+        "inp": "'computer science is COOL'"
+      },
+      "output": "'Computer science is COOL'"
+    }
+  ],
+  "solution": [
+    "inp.toUpperCase()[0] + inp.slice(1)"
+  ]
+}

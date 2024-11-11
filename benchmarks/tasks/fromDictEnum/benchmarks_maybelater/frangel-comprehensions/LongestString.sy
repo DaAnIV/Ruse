@@ -1,0 +1,28 @@
+{
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/LongestString.java",
+  "variables": {
+    "list": "[String]"
+  },
+  "returnType": "String",
+  "examples": [
+    {
+      "input": {
+        "list": "['long','short','','longest','longer']"
+      },
+      "output": "'longest'"
+    },
+    {
+      "input": {
+        "list": "['123456','abcde','wxyz!']"
+      },
+      "output": "'123456'"
+    },
+    {
+      "input": {
+        "list": "['ABC','12345']"
+      },
+      "output": "'12345'"
+    }
+  ],
+  "solution": [ "list.reduce((r, e) => r.length < e.length ? e : r, ', ')" ]
+}

@@ -1,0 +1,32 @@
+{
+"source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/ArrayIntersection.java",
+"variables": {
+  "arr1": "[String]",
+  "arr2": "[String]"
+},
+"returnType": "[String]",
+  "examples": [
+    {
+      "input": {
+        "arr1": "['abc' , '', 'hi', '1', 'x']",
+        "arr2": "['x!', 'hi', 'hi', 'abc', '1', 'def']"
+      },
+      "output": "['abc' ,'hi', '1']"
+    },
+    {
+      "input": {
+        "arr1": "['abc' , 'x', 'hi']",
+        "arr2": "['hi', 'x']"
+      },
+      "output": "['x', 'hi']"
+    },
+    {
+      "input": {
+        "arr1": "['abc', 'x', 'hi']",
+        "arr2": "['oh hi', 'X', 'xy']"
+      },
+      "output": "[]"
+    }
+  ],
+  "solution": ["arr1.filter(value => arr2.includes(value))"]
+}

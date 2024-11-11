@@ -1,0 +1,32 @@
+{
+"source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/FilterStringStart.java",
+"variables": {
+  "list": "[String]",
+  "start":  "String"
+  },
+"returnType": "[String]",
+  "examples": [
+    {
+      "input": {
+        "list": "['start','startswith','xstart','Start','start 123','   ']",
+        "start": "'start'"
+      },
+      "output": "['start','startswith', 'start 123']"
+    },
+    {
+      "input": {
+        "list": "['aaa','aAaaa']",
+        "start": "'aa'"
+      },
+      "output": "['aaa']"
+    },
+    {
+      "input": {
+        "list": "['aba','aAaaaa']",
+        "start": "'aa'"
+      },
+      "output": "[]"
+    }
+  ],
+  "solution": [ "list.filter(str => str.lastIndexOf(start, 0) == 0)" ]
+}

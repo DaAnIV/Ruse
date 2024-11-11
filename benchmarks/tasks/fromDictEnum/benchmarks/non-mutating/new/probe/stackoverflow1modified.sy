@@ -1,0 +1,32 @@
+{
+  "source": "https=//stackoverflow.com/questions/11891093/excel-function-to-replace-substring",
+  "variables": {
+    "_arg_0": "String"
+  },
+  "stringLiterals": [" Inc"],
+  "returnType": "String",
+  "examples": [
+    {
+      "input": {
+        "_arg_0": "'Trucking Inc.'"
+      },
+      "output": "'Trucking'"
+    },
+    {
+      "input": {
+        "_arg_0": "'New Truck Inc'"
+      },
+      "output": "'New Truck'"
+    },
+    {
+      "input": {
+        "_arg_0": "'ABV Trucking Inc, LLC'"
+      },
+      "output": "'ABV Trucking'"
+    }
+  ],
+  "solution": [
+    "_arg_0.slice(0, _arg_0.indexOf(' Inc'))",
+    "_arg_0.split(' Inc')[0]"
+  ]
+}

@@ -1,0 +1,88 @@
+{
+  "source": "https://github.com/KasraF/SnippySynthesizer/blob/loopy/src/test/resources/.examples.json",
+  "variables": {
+    "num": "Int",
+    "rev": "Int",
+    "a": "Int"
+  },
+  "intLiterals": [10],
+  "returnType": "Int",
+  "immutable": [ "num" ],
+  "examples": [
+    {
+      "input": {
+        "num": "123",
+        "rev": "0",
+        "a": "0"
+      },
+      "output": "12",
+      "state": {
+        "rev": "3",
+        "a": "3"
+      }
+    },
+    {
+      "input": {
+        "num": "12",
+        "rev": "3",
+        "a": "3"
+      },
+      "output": "1",
+      "state": {
+        "rev": "32",
+        "a": "2"
+      }
+    },
+    {
+      "input": {
+        "num": "1",
+        "rev": "32",
+        "a": "2"
+      },
+      "output": "0",
+      "state": {
+        "rev": "321",
+        "a": "1"
+      }
+    },
+    {
+      "input": {
+        "num": "321",
+        "rev": "0",
+        "a": "0"
+      },
+      "output": "32",
+      "state": {
+        "rev": "1",
+        "a": "1"
+      }
+    },
+    {
+      "input": {
+        "num": "32",
+        "rev": "1",
+        "a": "1"
+      },
+      "output": "3",
+      "state": {
+        "rev": "12",
+        "a": "2"
+      }
+    },
+    {
+      "input": {
+        "num": "3",
+        "rev": "12",
+        "a": "2"
+      },
+      "output": "0",
+      "state": {
+        "rev": "123",
+        "a": "3"
+      }
+    }
+  ],
+  "solution": [
+    "a = num % 10, rev = rev * 10 + a, Math.floor(num / 10)"
+  ]
+}

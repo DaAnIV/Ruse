@@ -1,0 +1,44 @@
+{
+  "source": "https://leetcode.com/problems/running-sum-of-1d-array/",
+  "variables": {
+    "nums": "[Int]",
+    "n": "Int",
+    "runningSum": "[Int]"
+  },
+  "returnType": "[Int]",
+  "examples": [
+    {
+      "input": {
+        "nums": "[1,2,3,4]",
+        "n": "1",
+        "runningSum": "[]"
+      },
+      "output": "[1]"
+    },
+    {
+      "input": {
+        "nums": "[1,2,3,4]",
+        "n": "2",
+        "runningSum": "[1]"
+      },
+      "output": "[1,3]"
+    },
+    {
+      "input": {
+        "nums": "[1,2,3,4]",
+        "n": "3",
+        "runningSum": "[1,3]"
+      },
+      "output": "[1,3,6]"
+    },
+    {
+      "input": {
+        "nums": "[1,1,1,1,1]",
+        "n": "1",
+        "runningSum": "[1]"
+      },
+      "output": "[1,2]"
+    }
+  ],
+  "solution": [ "runningSum.push(runningSum.slice(-1) + n); runningSum" ]
+}

@@ -1,0 +1,17 @@
+{
+  "variables": {
+    "digits": "[Int]"
+  },
+  "returnType": "String",
+  "examples": [
+    {
+      "input": {
+        "digits": "[1, 2, 3, 4, 5]"
+      },
+      "output": "'54321'"
+    }
+  ],
+  "solution": [
+    "digits.reverse().join('')"
+  ]
+}

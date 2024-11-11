@@ -1,0 +1,44 @@
+{
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/SortAndOrReverse.java",
+  "variables": {
+    "list": "[String]",
+    "sort": "Bool",
+    "reverse": "Bool"
+  },
+  "returnType": "[String]",
+  "examples": [
+    {
+      "input": {
+        "list": "['b','e','a','d','c']",
+        "sort": "true",
+        "reverse": "true"
+      },
+      "output": "['e','d','c','b','a']"
+    },
+    {
+      "input": {
+        "list": "['b','e','a','d','c']",
+        "sort": "true",
+        "reverse": "false"
+      },
+      "output": "['a','b','c','d','e']"
+    },
+    {
+      "input": {
+        "list": "['b','e','a','d','c']",
+        "sort": "false",
+        "reverse": "true"
+      },
+      "output": "['c','d','a','e','b']"
+    },
+    {
+      "input": {
+        "list": "['b','e','a','d','c']",
+        "sort": "false",
+        "reverse": "false"
+      },
+      "output": "['b','e','a','d','c']"
+    }
+  ],
+  "solution": [ "(reverse ? (sort ? list.sort() : list ).reverse() : (sort ? list.sort() : list) )" ]
+}

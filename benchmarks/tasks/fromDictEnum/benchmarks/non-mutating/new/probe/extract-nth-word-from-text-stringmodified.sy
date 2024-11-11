@@ -1,0 +1,32 @@
+{
+  "source": "https=//exceljet.net/formula/extract-nth-word-from-text-string",
+  "variables": {
+    "_arg_0": "String",
+    "_arg_1": "Int"
+  },
+  "returnType": "String",
+  "examples": [
+    {
+      "input": {
+        "_arg_0": "'you can do anything but you cant do everything.'",
+        "_arg_1": "4"
+      },
+      "output": "'anything'"
+    },
+    {
+      "input": {
+        "_arg_0": "'you can do anything but you cant do everything.'",
+        "_arg_1": "1"
+      },
+      "output": "'you'"
+    },
+    {
+      "input": {
+        "_arg_0": "'you can do anything but you cant do everything.'",
+        "_arg_1": "2"
+      },
+      "output": "'can'"
+    }
+  ],
+  "solution": [ "_arg_0.split(' ')[_arg_1 - 1]" ]
+}

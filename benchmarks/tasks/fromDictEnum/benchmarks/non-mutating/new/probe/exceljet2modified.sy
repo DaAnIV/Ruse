@@ -1,0 +1,35 @@
+{
+  "source": "https=//exceljet.net/formula/get-top-level-domain-tld",
+  "variables": {
+    "_arg_0": "String"
+  },
+  "stringLiterals": [
+    "."
+  ],
+  "returnType": "String",
+  "examples": [
+    {
+      "input": {
+        "_arg_0": "'www.domain.com'"
+      },
+      "output": "'com'"
+    },
+    {
+      "input": {
+        "_arg_0": "'mail.net'"
+      },
+      "output": "'net'"
+    },
+    {
+      "input": {
+        "_arg_0": "'www.amaon.co.uk'"
+      },
+      "output": "'uk'"
+    }
+  ],
+  "solution": [
+    "_arg_0.replace('.','').slice(_arg_0.lastIndexOf('.'))",
+    "_arg_0.split('.').slice(-1)[0]",
+    "_arg_0.slice(1).slice(_arg_0.lastIndexOf('.'))"
+  ]
+}

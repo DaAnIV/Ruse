@@ -1,0 +1,28 @@
+{
+"source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/FindFactos.java",
+  "variables": {
+    "num": "Int"
+  },
+"returnType": "[Int]",
+  "examples": [
+    {
+      "input": {
+        "num": "18"
+      },
+      "output": "[1,2,3,6,9,18]"
+    },
+    {
+      "input": {
+        "num": "17"
+      },
+      "output": "[1,17]"
+    },
+    {
+      "input": {
+        "num": "1"
+      },
+      "output": "[1]"
+    }
+  ],
+  "solution": [ "(number => [...Array(number + 1).keys()].filter(i=>number % i === 0))(num)" ]
+}

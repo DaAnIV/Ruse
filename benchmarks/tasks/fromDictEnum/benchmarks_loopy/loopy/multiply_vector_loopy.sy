@@ -1,0 +1,92 @@
+{
+  "source": "https://github.com/KasraF/SnippySynthesizer/blob/loopy/src/test/resources/frangel_control/multiply_vector_loopy.examples.json",
+  "variables": {
+    "inp": "[Int]",
+    "n": "Int",
+    "elem": "Int",
+    "out": "[Int]"
+  },
+  "immutable": ["inp", "n", "elem"],
+  "examples": [
+    {
+      "input": {
+        "inp": "[1, 3, 17, 0, -1, 0, 100]",
+        "n": "5",
+        "elem": "1",
+        "out": "[]"
+      },
+      "state": {
+        "out": "[5]"
+      }
+    },
+    {
+      "input": {
+        "inp": "[1, 3, 17, 0, -1, 0, 100]",
+        "n": "5",
+        "elem": "3",
+        "out": "[5]"
+      },
+      "state": {
+        "out": "[5, 15]"
+      }
+    },
+    {
+      "input": {
+        "inp": "[1, 3, 17, 0, -1, 0, 100]",
+        "n": "5",
+        "elem": "17",
+        "out": "[5, 15]"
+      },
+      "state": {
+        "out": "[5, 15, 85]"
+      }
+    },
+    {
+      "input": {
+        "inp": "[1, 3, 17, 0, -1, 0, 100]",
+        "n": "5",
+        "elem": "0",
+        "out": "[5, 15, 85]"
+      },
+      "state": {
+        "out": "[5, 15, 85, 0]"
+      }
+    },
+    {
+      "input": {
+        "inp": "[1, 3, 17, 0, -1, 0, 100]",
+        "n": "5",
+        "elem": "-1",
+        "out": "[5, 15, 85, 0]"
+      },
+      "state": {
+        "out": "[5, 15, 85, 0, -5]"
+      }
+    },
+    {
+      "input": {
+        "inp": "[1, 3, 17, 0, -1, 0, 100]",
+        "n": "5",
+        "elem": "0",
+        "out": "[5, 15, 85, 0, -5]"
+      },
+      "state": {
+        "out": "[5, 15, 85, 0, -5, 0]"
+      }
+    },
+    {
+      "input": {
+        "inp": "[1, 3, 17, 0, -1, 0, 100]",
+        "n": "5",
+        "elem": "100",
+        "out": "[5, 15, 85, 0, -5, 0]"
+      },
+      "state": {
+        "out": "[5, 15, 85, 0, -5, 0, 500]"
+      }
+    }
+  ],
+  "solution": [
+    "out.push(n * elem)"
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "source": "https=//exceljet.net/formula/get-domain-from-email-address",
+  "variables": {
+    "_arg_0": "String",
+    "_arg_1": "String"
+  },
+  "stringLiterals": [
+    "_"
+  ],
+  "returnType": "String",
+  "examples": [
+    {
+      "input": {
+        "_arg_0": "'ann chang'",
+        "_arg_1": "'achang_maaker.com'"
+      },
+      "output": "'maaker.com'"
+    },
+    {
+      "input": {
+        "_arg_0": "'bobby smith'",
+        "_arg_1": "'bobt_sphynx.uk.co'"
+      },
+      "output": "'sphynx.uk.co'"
+    },
+    {
+      "input": {
+        "_arg_0": "'art lennox'",
+        "_arg_1": "'art.lennox_svxn.com'"
+      },
+      "output": "'svxn.com'"
+    }
+  ],
+  "solution": [
+    "_arg_1.replace('_','').slice(_arg_1.indexOf('_'))",
+    "_arg_1.split('_')[1]",
+    "_arg_1.slice(1).slice(_arg_1.indexOf('_'))"
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "source": "https://github.com/KasraF/SnippySynthesizer/blob/loopy/src/test/resources/frangel_control/fill_fibonacci_loopy.examples.json",
+  "variables": {
+    "idx": "Int",
+    "out": "[Int]"
+  },
+  "stringLiterals": [],
+  "intLiterals": [2],
+  "immutable": ["idx"],
+  "examples": [
+    {
+      "input": {
+        "idx": "0",
+        "out": "[1, 1]"
+      },
+      "state": {
+        "idx": "0",
+        "out": "[1, 2]"
+      }
+    },
+    {
+      "input": {
+        "idx": "1",
+        "out": "[1, 2]"
+      },
+      "state": {
+        "idx": "1",
+        "out": "[2, 3]"
+      }
+    },
+    {
+      "input": {
+        "idx": "2",
+        "out": "[2, 3]"
+      },
+      "state": {
+        "idx": "2",
+        "out": "[3, 5]"
+      }
+    }
+  ],
+  "solution": [
+    "out.push(out.splice(0, 1)[0] + out[0])"
+  ]
+}

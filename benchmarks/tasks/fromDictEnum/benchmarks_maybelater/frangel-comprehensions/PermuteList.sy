@@ -1,0 +1,32 @@
+{
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/PermuteList.java",
+  "variables": {
+    "list": "[String]",
+    "permutation": "[Int]"
+  },
+  "returnType": "[String]",
+  "examples": [
+    {
+      "input": {
+        "list": "['a','b','c','d','e']",
+        "permutation": "[3, 2, 5, 4, 1]"
+      },
+      "output": "['c','b','e','d','a']"
+    },
+    {
+      "input": {
+        "list": "['a','b']",
+        "permutation": "[2,1]"
+      },
+      "output": "['b','a']"
+    },
+    {
+      "input": {
+        "list": "['a']",
+        "permutation": "[1]"
+      },
+      "output": "['a']"
+    }
+  ],
+  "solution": [ "permutation.map(idx => list[idx-1])" ]
+}

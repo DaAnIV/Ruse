@@ -1,0 +1,32 @@
+{
+  "source": "https=//exceljet.net/formula/extract-text-between-parentheses",
+  "variables": {
+    "_arg_0": "String"
+  },
+  "stringLiterals": ["<",">"],
+  "returnType": "String",
+  "examples": [
+    {
+      "input": {
+        "_arg_0": "'Jones <60>'"
+      },
+      "output": "'60'"
+    },
+    {
+      "input": {
+        "_arg_0": "'Jones <57>'"
+      },
+      "output": "'57'"
+    },
+    {
+      "input": {
+        "_arg_0": "'Jones <55>'"
+      },
+      "output": "'55'"
+    }
+  ],
+  "solution": [
+    "_arg_0.slice(1).slice(_arg_0.indexOf('<'), -1)",
+    "(_arg_0.split(' ').slice(-1)[0]).replaceAll('<', '').replaceAll('>', '')"
+  ]
+}

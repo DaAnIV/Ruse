@@ -1,0 +1,49 @@
+{
+  "source": "https://github.com/KasraF/SnippySynthesizer/blob/loopy/src/test/resources/frangel_control/int_power_loopy.examples.json",
+  "variables": {
+    "base": "Int",
+    "out": "Int"
+  },
+  "immutable": [ "base" ],
+  "examples": [
+    {
+      "input": {
+        "base": "11",
+        "out": "1"
+      },
+      "state": {
+        "out": "11"
+      }
+    },
+    {
+      "input": {
+        "base": "11",
+        "out": "11"
+      },
+      "state": {
+        "out": "121"
+      }
+    },
+    {
+      "input": {
+        "base": "11",
+        "out": "121"
+      },
+      "state": {
+        "out": "1331"
+      }
+    },
+    {
+      "input": {
+        "base": "11",
+        "out": "1331"
+      },
+      "state": {
+        "out": "14641"
+      }
+    }
+  ],
+  "solution": [
+    "out = base * out"
+  ]
+}

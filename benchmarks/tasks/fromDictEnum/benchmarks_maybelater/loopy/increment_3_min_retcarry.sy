@@ -1,0 +1,56 @@
+{
+  "source": "https://github.com/KasraF/SnippySynthesizer/blob/loopy/src/test/resources/loopy/user_study_candidate_benchmarks/increment_2.examples.json",
+  "variables": {
+    "rs": "[Int]",
+    "carry": "Int",
+    "d": "Int",
+    "v": "Int"
+  },
+  "intLiterals": [10],
+  "returnType": "Int",
+  "immutable": [ "d", "carry" ],
+  "examples": [
+    {
+      "input": {
+        "rs": "[]",
+        "carry": "1",
+        "d": "9",
+        "v": "0"
+      },
+      "output": "1",
+      "state": {
+        "rs": "[0]",
+        "v": "10"
+      }
+    },
+    {
+      "input": {
+        "rs": "[0]",
+        "carry": "1",
+        "d": "2",
+        "v": "10"
+      },
+      "output": "0",
+      "state": {
+        "rs": "[3, 0]",
+        "v": "3"
+      }
+    },
+    {
+      "input": {
+        "rs": "[3, 0]",
+        "carry": "0",
+        "d": "1",
+        "v": "3"
+      },
+      "output": "0",
+      "state": {
+        "rs": "[1, 3, 0]",
+        "v": "1"
+      }
+    }
+  ],
+  "solution": [
+    "v = d + carry, rs.splice(0, 0, v % 10), Math.floor(v / 10)"
+  ]
+}

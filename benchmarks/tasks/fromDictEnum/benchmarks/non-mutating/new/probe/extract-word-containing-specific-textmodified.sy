@@ -1,0 +1,23 @@
+{
+  "source": "https=//exceljet.net/formula/extract-word-containing-specific-text",
+  "variables": {
+    "_arg_0": "String"
+  },
+  "stringLiterals": ["_"],
+  "returnType": "String",
+  "examples": [
+    {
+      "input": {
+        "_arg_0": "'send email to json_acme.com'"
+      },
+      "output": "'json_acme.com'"
+    },
+    {
+      "input": {
+        "_arg_0": "'contact help_robot.com for all support requests'"
+      },
+      "output": "'help_robot.com'"
+    }
+  ],
+  "solution": [ "_arg_0.slice(_arg_0.lastIndexOf(' ',_arg_0.indexOf('_')) + 1).split(' ')[0]" ]
+}

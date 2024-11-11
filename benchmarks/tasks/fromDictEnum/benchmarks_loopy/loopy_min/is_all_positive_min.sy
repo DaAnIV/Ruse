@@ -1,0 +1,87 @@
+{
+  "source": "https://github.com/KasraF/SnippySynthesizer/blob/loopy/src/test/resources/frangel_control/is_all_positive_loopy.examples.json",
+  "variables": {
+    "elem": "Int",
+    "out": "Bool"
+  },
+  "returnType": "Bool",
+  "immutable": ["elem"],
+  "examples": [
+    {
+      "input": {
+        "elem": "1",
+        "out": "true"
+      },
+      "output": "true",
+      "state": {
+        "out": "true"
+      }
+    },
+    {
+      "input": {
+        "elem": "2",
+        "out": "true"
+      },
+      "output": "true",
+      "state": {
+        "out": "true"
+      }
+    },
+    {
+      "input": {
+        "elem": "12",
+        "out": "true"
+      },
+      "output": "true",
+      "state": {
+        "out": "true"
+      }
+    },
+    {
+      "input": {
+        "elem": "-1",
+        "out": "true"
+      },
+      "output": "false",
+      "state": {
+        "out": "false"
+      }
+    },
+    {
+      "input": {
+        "elem": "123",
+        "out": "false"
+      },
+      "output": "false",
+      "state": {
+        "out": "false"
+      }
+    },
+    {
+      "input": {
+        "elem": "1",
+        "out": "false"
+      },
+      "output": "false",
+      "state": {
+        "out": "false"
+      }
+    },
+    {
+      "input": {
+        "elem": "2",
+        "out": "false"
+      },
+      "output": "false",
+      "state": {
+        "out": "false"
+      }
+    }
+  ],
+  "solution": [
+    "out = out && elem >= 0",
+    "out = out && 0 < elem",
+    "out = out && (out = elem >= 0)",
+    "out = out && (out = 0 < elem)"
+  ]
+}

@@ -1,0 +1,44 @@
+{
+"source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/DelimitedStringConcat.java",
+"variables": {
+    "a0": "[String]",
+    "a1": "String",
+    "a2": "String"
+},
+"returnType": "String",
+"examples": [
+    {
+        "input": {
+            "a0": "['abc', 'DEF', '12345', '?!']",
+            "a1": "', '",
+            "a2": "'init.'"
+        },
+        "output": "'init.abc, DEF, 12345, ?!'"
+    },
+    {
+        "input": {
+            "a0": "['abc', 'DEF']",
+            "a1": "', '",
+            "a2": "'abc'"
+        },
+        "output": "'abcabc, DEF'"
+    },
+    {
+        "input": {
+            "a0": "['abc']",
+            "a1": "' '",
+            "a2": "'xyz '"
+        },
+        "output": "'xyz abc'"
+    },
+    {
+        "input": {
+            "a0": "['','']",
+            "a1": "', '",
+            "a2": "''"
+        },
+        "output": "', '"
+    }
+],
+"solution": ["a2 + a0.join(a1)"]
+}

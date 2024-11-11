@@ -1,0 +1,33 @@
+{
+  "source": "https=//exceljet.net/formula/split-text-string-at-specific-character",
+  "variables": {
+    "_arg_0": "String",
+    "_arg_1": "Int"
+  },
+  "stringLiterals": ["_"],
+  "returnType": "String",
+  "examples": [
+    {
+      "input": {
+        "_arg_0": "'011016_assignment.xlsx'",
+        "_arg_1": "1"
+      },
+      "output": "'011016'"
+    },
+    {
+      "input": {
+        "_arg_0": "'011016_assignment.xlsx'",
+        "_arg_1": "2"
+      },
+      "output": "'assignment.xlsx'"
+    },
+    {
+      "input": {
+        "_arg_0": "'030116_cost.xlsx'",
+        "_arg_1": "1"
+      },
+      "output": "'030116'"
+    }
+  ],
+  "solution": [ "_arg_0.split('_')[_arg_1 - 1]" ]
+}

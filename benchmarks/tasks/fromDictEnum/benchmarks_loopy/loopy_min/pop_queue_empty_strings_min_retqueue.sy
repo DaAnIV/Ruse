@@ -1,0 +1,38 @@
+{
+  "source": "https://github.com/KasraF/SnippySynthesizer/blob/loopy/src/test/resources/frangel_control/pop_queue_empty_strings.examples.json",
+  "variables": {
+    "queue": "[String]"
+  },
+  "returnType": "[String]",
+  "examples": [
+    {
+      "input": {
+        "queue": "['','','','','not','','empty','']"
+      },
+      "output": "['','','','not','','empty','']"
+    },
+    {
+      "input": {
+        "queue": "['','','','not','','empty','']"
+      },
+      "output": "['','','not','','empty','']"
+    },
+    {
+      "input": {
+        "queue": "['','','not','','empty','']"
+      },
+      "output": "['','not','','empty','']"
+    },
+    {
+      "input": {
+        "queue": "['','not','','empty','']"
+      },
+      "output": "['not','','empty','']"
+    }
+  ],
+  "solution": [
+    "queue.slice(1)",
+    "queue = queue.slice(1)",
+    "queue.shift(), queue"
+  ]
+}

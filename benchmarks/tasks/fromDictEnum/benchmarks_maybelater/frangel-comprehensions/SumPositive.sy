@@ -1,0 +1,28 @@
+{
+"source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/SumPositive.java",
+"variables": {
+  "arr": "[Int]"
+  },
+"returnType": "Int",
+  "examples": [
+    {
+      "input": {
+        "arr": "[1, -3, 10, -1, 0, 300]"
+      },
+      "output": "311"
+    },
+    {
+      "input": {
+        "arr": "[3, 4]"
+      },
+      "output": "7"
+    },
+    {
+      "input": {
+        "arr": "[-3, -4]"
+      },
+      "output": "0"
+    }
+  ],
+  "solution": ["arr.filter(a => a > 0).reduce((a,b) => a+b , 0)" ]
+}

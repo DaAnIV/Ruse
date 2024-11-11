@@ -1,0 +1,32 @@
+{
+  "source": "",
+  "variables": {
+    "_arg_0": "String"
+  },
+  "stringLiterals": ["-"],
+  "returnType": "String",
+  "examples": [
+    {
+      "input": {
+        "_arg_0": "'+106 769-858-438'"
+      },
+      "output": "'769'"
+    },
+    {
+      "input": {
+        "_arg_0": "'+83 973-757-831'"
+      },
+      "output": "'973'"
+    },
+    {
+      "input": {
+        "_arg_0": "'+72 001-050-856'"
+      },
+      "output": "'001'"
+    }
+  ],
+  "solution": [
+    "_arg_0.slice(_arg_0.indexOf(' '),_arg_0.indexOf('-')).trim()",
+    "_arg_0.split(' ')[1].split('-')[0]"
+  ]
+}

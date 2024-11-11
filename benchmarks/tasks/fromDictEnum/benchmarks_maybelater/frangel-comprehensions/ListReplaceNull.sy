@@ -1,0 +1,32 @@
+{
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/ListReplaceNull.java",
+  "variables": {
+    "list": "[String]",
+    "nullStr": "String"
+  },
+  "returnType": "[String]",
+  "examples": [
+    {
+      "input": {
+        "list": "['null','aa','bb', 'null','null','null']",
+        "nullStr": "'<NULL>'"
+      },
+      "output": "['<NULL>','aa', 'bb','<NULL>','<NULL>','<NULL>']"
+    },
+    {
+      "input": {
+        "list": "['null','null']",
+        "nullStr": "'<NULL>'"
+      },
+      "output": "['<NULL>', '<NULL>']"
+    },
+    {
+      "input": {
+        "list": "['abc','null']",
+        "nullStr": "'null'"
+      },
+      "output": "['abc','null']"
+    }
+  ],
+  "solution": [ "list.map(str => ((str === 'null') ? nullStr : str))" ]
+}

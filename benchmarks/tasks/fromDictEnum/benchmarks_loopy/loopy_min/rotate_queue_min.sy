@@ -1,0 +1,43 @@
+{
+  "source": "https://github.com/KasraF/SnippySynthesizer/blob/loopy/src/test/resources/frangel_control/rotate_queue.examples.json",
+  "variables": {
+    "inp": "[String]"
+  },
+  "examples": [
+    {
+      "input": {
+        "inp": "['b','c','d','e','a']"
+      },
+      "state": {
+        "inp": "['c','d','e','a','b']"
+      }
+    },
+    {
+      "input": {
+        "inp": "['c','d','e','a','b']"
+      },
+      "state": {
+        "inp": "['d','e','a','b','c']"
+      }
+    },
+    {
+      "input": {
+        "inp": "['d','e','a','b','c']"
+      },
+      "state": {
+        "inp": "['e','a','b','c','d']"
+      }
+    },
+    {
+      "input": {
+        "inp": "['e','a','b','c','d']"
+      },
+      "state": {
+        "inp": "['a','b','c','d','e']"
+      }
+    }
+  ],
+  "solution": [
+    "inp.push(inp.shift())"
+  ]
+}

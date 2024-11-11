@@ -1,0 +1,31 @@
+{
+"source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/IsIncreasing.java",
+"variables": {
+    "arr": "[Int]"
+},
+"returnType": "Bool",
+"examples": [
+    {
+        "input": {
+            "arr": "[ 67, 67, 68, 69, 70, 71 ]"
+        },
+        "output": "true"
+    },
+    {
+        "input": {
+            "arr": "[ 67, 67, 69, 68, 70, 71 ]"
+        },
+        "output": "false"
+    },
+    {
+        "input": {
+            "arr": "[ -68, -67, -67 ]"
+        },
+        "output": "true"
+    }
+],
+"solution": [
+  "arr.join('') === arr.sort((n1,n2) => n1 - n2).join('')",
+  "arr.join(',') === arr.sort((n1,n2) => n1 - n2).join(',')"
+]
+}

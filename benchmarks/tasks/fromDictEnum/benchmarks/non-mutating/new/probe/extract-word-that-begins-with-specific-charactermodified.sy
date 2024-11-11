@@ -1,0 +1,29 @@
+{
+  "source": "https=//exceljet.net/formula/extract-word-that-begins-with-specific-character",
+  "variables": {
+    "_arg_0": "String"
+  },
+  "stringLiterals": ["_"],
+  "returnType": "String",
+  "examples": [
+    {
+      "input": {
+        "_arg_0": "'this is a _username in the middle'"
+      },
+      "output": "'_username'"
+    },
+    {
+      "input": {
+        "_arg_0": "'twitter names look like= _name'"
+      },
+      "output": "'_name'"
+    },
+    {
+      "input": {
+        "_arg_0": "'with two _name1 and _name2'"
+      },
+      "output": "'_name1'"
+    }
+  ],
+  "solution": [ "'_' + _arg_0.split('_')[1].split(' ')[0]" ]
+}

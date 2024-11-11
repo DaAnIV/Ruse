@@ -1,0 +1,35 @@
+{
+  "source": "https://github.com/KasraF/SnippySynthesizer/blob/loopy/src/test/resources/.examples.json",
+  "variables": {
+    "num": "Int",
+    "rev": "Int"
+  },
+  "intLiterals": [10],
+  "returnType": "Int",
+  "immutable": [ "num" ],
+  "examples": [
+    {
+      "input": {
+        "num": "123",
+        "rev": "0"
+      },
+      "output": "12",
+      "state": {
+        "rev": "3"
+      }
+    },
+    {
+      "input": {
+        "num": "12",
+        "rev": "3"
+      },
+      "output": "1",
+      "state": {
+        "rev": "32"
+      }
+    }
+  ],
+  "solution": [
+    "rev = rev * 10 + num % 10, Math.trunc(num / 10)"
+  ]
+}

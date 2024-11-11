@@ -1,0 +1,29 @@
+{
+  "source": "",
+  "variables": {
+    "count": "[Int]",
+    "index": "Int"
+  },
+  "returnType": "[Int]",
+  "examples": [
+    {
+      "input": {
+        "count": "[8, 9, 7]",
+        "index": "2"
+      },
+      "output": "[8, 9, 8]"
+    },
+    {
+      "input": {
+        "count": "[9]",
+        "index": "0"
+      },
+      "output": "[10]"
+    }
+  ],
+  "solution": [
+    "count[index]++, count",
+    "(count[index]++, count)",
+    "count.slice(0,index).concat(count[index] + 1).concat(count.slice(index + 1))"
+  ]
+}

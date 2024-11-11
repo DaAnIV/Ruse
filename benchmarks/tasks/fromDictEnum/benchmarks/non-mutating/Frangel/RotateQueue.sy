@@ -1,0 +1,37 @@
+{
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/RotateQueue.java",
+  "variables": {
+    "queue": "[String]",
+    "amount": "Int"
+  },
+  "returnType": "[String]",
+  "examples": [
+    {
+      "input": {
+        "queue": "[ 'a', 'b', 'c', 'd', 'e' ]",
+        "amount": "1"
+      },
+      "output": "[ 'b', 'c', 'd', 'e', 'a' ]"
+    },
+    {
+      "input": {
+        "queue": "[ 'b', 'c', 'd', 'e', 'a' ]",
+        "amount": "4"
+      },
+      "output": "[ 'a', 'b', 'c', 'd', 'e' ]"
+    },
+    {
+      "input": {
+        "queue": "[ 'b', 'c', 'd', 'e', 'a' ]",
+        "amount": "5"
+      },
+      "output": "[ 'b', 'c', 'd', 'e', 'a' ]"
+    }
+  ],
+  "solution": [
+    "queue.slice(amount).concat(queue.slice(0, amount))",
+    "queue.splice(amount,queue.length).concat(queue)",
+    "queue.splice(amount).concat(queue)",
+    "queue.concat(queue.splice(0,amount))"
+  ]
+}

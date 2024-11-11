@@ -1,0 +1,26 @@
+{
+  "source": "https=//stackoverflow.com/questions/38871714/excel-vba-how-to-remove-substrings-from-a-cell",
+  "variables": {
+    "_arg_0": "String"
+  },
+  "stringLiterals": ["<", ">"],
+  "returnType": "String",
+  "examples": [
+    {
+      "input": {
+        "_arg_0": "'This is a <string>, It should be <changed> to <a> number.'"
+      },
+      "output": "'This is a string, It should be changed to a number.'"
+    },
+    {
+      "input": {
+        "_arg_0": "'a < 4 and a > 0'"
+      },
+      "output": "'a  4 and a  0'"
+    }
+  ],
+  "solution": [
+    "_arg_0.replaceAll('<', '').replaceAll('>', '')",
+    "_arg_0.replaceAll('>', '').replaceAll('<', '')"
+  ]
+}

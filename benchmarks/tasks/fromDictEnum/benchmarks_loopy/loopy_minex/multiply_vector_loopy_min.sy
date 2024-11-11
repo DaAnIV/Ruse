@@ -1,0 +1,45 @@
+{
+  "source": "https://github.com/KasraF/SnippySynthesizer/blob/loopy/src/test/resources/frangel_control/multiply_vector_loopy.examples.json",
+  "variables": {
+    "n": "Int",
+    "elem": "Int",
+    "out": "[Int]"
+  },
+  "immutable": ["n", "elem"],
+  "examples": [
+    {
+      "input": {
+        "n": "5",
+        "elem": "1",
+        "out": "[]"
+      },
+      "state": {
+        "out": "[5]"
+      }
+    },
+    {
+      "input": {
+        "n": "5",
+        "elem": "3",
+        "out": "[5]"
+      },
+      "state": {
+        "out": "[5, 15]"
+      }
+    },
+    {
+      "input": {
+        "n": "5",
+        "elem": "17",
+        "out": "[5, 15]"
+      },
+      "state": {
+        "out": "[5, 15, 85]"
+      }
+    }
+  ],
+  "solution": [
+    "out.push(n * elem)",
+    "out.push(elem * n)"
+  ]
+}

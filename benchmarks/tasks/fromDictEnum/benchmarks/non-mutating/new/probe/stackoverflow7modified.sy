@@ -1,0 +1,28 @@
+{
+  "source": "https=//stackoverflow.com/questions/29935088/how-to-remove-substring-that-is-in-another-column-in-excel",
+  "variables": {
+    "_arg_0": "String",
+    "_arg_1": "String"
+  },
+  "returnType": "String",
+  "examples": [
+    {
+      "input": {
+        "_arg_0": "'Item 1 AQ-S810W-2AVDF'",
+        "_arg_1": "'AQ-S810W-2AVDF'"
+      },
+      "output": "'Item 1'"
+    },
+    {
+      "input": {
+        "_arg_0": "'Item 2 AQ-230A-1DUQ'",
+        "_arg_1": "'AQ-230A'"
+      },
+      "output": "'Item 2 -1DUQ'"
+    }
+  ],
+  "solution": [
+    "_arg_0.replace(_arg_1, '').trim()",
+    "_arg_0.split(_arg_1).join('').trim()"
+  ]
+}

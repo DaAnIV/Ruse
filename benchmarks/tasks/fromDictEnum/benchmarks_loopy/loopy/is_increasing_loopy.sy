@@ -1,0 +1,76 @@
+{
+  "source": "https://github.com/KasraF/SnippySynthesizer/blob/loopy/src/test/resources/frangel_control/is_increasing_loopy.examples.json",
+  "variables": {
+    "inp": "[Int]",
+    "idx": "Int",
+    "elem1": "Int",
+    "elem2": "Int",
+    "out": "Bool"
+  },
+  "immutable": ["inp", "idx", "elem1", "elem2"],
+  "examples": [
+    {
+      "input": {
+        "inp": "[67, 68, 69, 73, 70, 71]",
+        "idx": "0",
+        "elem1": "67",
+        "elem2": "68",
+        "out": "true"
+      },
+      "state": {
+        "out": "true"
+      }
+    },
+    {
+      "input": {
+        "inp": "[67, 68, 69, 73, 70, 71]",
+        "idx": "1",
+        "elem1": "68",
+        "elem2": "69",
+        "out": "true"
+      },
+      "state": {
+        "out": "true"
+      }
+    },
+    {
+      "input": {
+        "inp": "[67, 68, 69, 73, 70, 71]",
+        "idx": "2",
+        "elem1": "69",
+        "elem2": "73",
+        "out": "true"
+      },
+      "state": {
+        "out": "true"
+      }
+    },
+    {
+      "input": {
+        "inp": "[67, 68, 69, 73, 70, 71]",
+        "idx": "3",
+        "elem1": "73",
+        "elem2": "70",
+        "out": "true"
+      },
+      "state": {
+        "out": "false"
+      }
+    },
+    {
+      "input": {
+        "inp": "[67, 68, 69, 73, 70, 71]",
+        "idx": "0",
+        "elem1": "70",
+        "elem2": "71",
+        "out": "false"
+      },
+      "state": {
+        "out": "false"
+      }
+    }
+  ],
+  "solution": [
+    "out = out && (elem1 <= elem2)"
+  ]
+}

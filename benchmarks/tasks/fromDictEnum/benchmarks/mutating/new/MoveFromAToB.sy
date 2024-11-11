@@ -1,0 +1,33 @@
+{
+  "source": "",
+  "variables": {
+    "a": "[String]",
+    "b": "[String]"
+  },
+  "returnType": "Int",
+  "examples": [
+      {
+        "input": {
+          "a" : "['a','b','c']",
+          "b" : "[]"
+        },
+        "output": "1",
+        "state": {
+          "a" : "['a','b']",
+          "b" : "['c']"
+        }
+      },
+      {
+        "input": {
+          "a" : "['a','b']",
+          "b" : "['c']"
+        },
+        "output": "2",
+        "state": {
+          "a" : "['a']",
+          "b" : "['c','b']"
+        }
+      }
+  ],
+  "solution": []
+}

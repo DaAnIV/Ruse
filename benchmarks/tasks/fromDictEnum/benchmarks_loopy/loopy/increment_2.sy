@@ -1,0 +1,76 @@
+{
+  "source": "https://github.com/KasraF/SnippySynthesizer/blob/loopy/src/test/resources/loopy/user_study_candidate_benchmarks/increment_2.examples.json",
+  "variables": {
+    "digits": "[Int]",
+    "d": "Int",
+    "carry": "Int",
+    "rs": "[Int]"
+  },
+  "intLiterals": [10],
+  "immutable": ["digits", "d"],
+  "examples": [
+    {
+      "input": {
+        "digits": "[1, 2, 9]",
+        "rs": "[]",
+        "carry": "1",
+        "d": "9"
+      },
+      "state": {
+        "rs": "[0]",
+        "carry": "1"
+      }
+    },
+    {
+      "input": {
+        "digits": "[1, 2, 9]",
+        "rs": "[0]",
+        "carry": "1",
+        "d": "2"
+      },
+      "state": {
+        "rs": "[3, 0]",
+        "carry": "0"
+      }
+    },
+    {
+      "input": {
+        "digits": "[1, 2, 9]",
+        "rs": "[3, 0]",
+        "carry": "0",
+        "d": "1"
+      },
+      "state": {
+        "rs": "[1, 3, 0]",
+        "carry": "0"
+      }
+    },
+    {
+      "input": {
+        "digits": "[3, 0]",
+        "rs": "[]",
+        "carry": "1",
+        "d": "0"
+      },
+      "state": {
+        "rs": "[1]",
+        "carry": "0"
+      }
+    },
+    {
+      "input": {
+        "digits": "[3, 0]",
+        "rs": "[1]",
+        "carry": "0",
+        "d": "3"
+      },
+      "state": {
+        "rs": "[3, 1]",
+        "carry": "0"
+      }
+    }
+  ],
+  "solution": [
+    "rs.splice(0, 0, (d + carry) % 10), carry = Math.trunc((d + carry) / 10)"
+  ]
+}

@@ -1,0 +1,74 @@
+{
+  "source": "https://github.com/KasraF/SnippySynthesizer/blob/loopy/src/test/resources/frangel_control/get_range_loopy.examples.json",
+  "variables": {
+    "start": "Int",
+    "i": "Int",
+    "out": "[Int]"
+  },
+  "immutable": [
+    "start"
+  ],
+  "examples": [
+    {
+      "input": {
+        "start": "10",
+        "i": "1",
+        "out": "[]"
+      },
+      "state": {
+        "out": "[11]",
+        "i": "2"
+      }
+    },
+    {
+      "input": {
+        "start": "10",
+        "i": "2",
+        "out": "[11]"
+      },
+      "state": {
+        "out": "[11, 12]",
+        "i": "3"
+      }
+    },
+    {
+      "input": {
+        "start": "10",
+        "i": "3",
+        "out": "[11, 12]"
+      },
+      "state": {
+        "out": "[11, 12, 13]",
+        "i": "4"
+      }
+    },
+    {
+      "input": {
+        "start": "10",
+        "i": "4",
+        "out": "[11, 12, 13]"
+      },
+      "state": {
+        "out": "[11, 12, 13, 14]",
+        "i": "5"
+      }
+    },
+    {
+      "input": {
+        "start": "10",
+        "i": "5",
+        "out": "[11, 12, 13, 14]"
+      },
+      "state": {
+        "out": "[11, 12, 13, 14, 15]",
+        "i": "6"
+      }
+    }
+  ],
+  "solution": [
+    "out.push(start + i++)",
+    "out.push(start + i) + i++",
+    "(out.push(start + i), i++)",
+    "(out.push(start + i), i = i + 1)"
+  ]
+}

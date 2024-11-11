@@ -1,0 +1,36 @@
+{
+  "source": "https=//stackoverflow.com/questions/43606446/extract-substring-from-this-string-inside-excel-cell/43606527%43606527",
+  "variables": {
+    "_arg_0": "String"
+  },
+  "stringLiterals": [
+    "<",
+    ">"
+  ],
+  "returnType": "String",
+  "examples": [
+    {
+      "input": {
+        "_arg_0": "'USD.EUR<IDEALPRO,CASH,EUR>'"
+      },
+      "output": "'EUR'"
+    },
+    {
+      "input": {
+        "_arg_0": "'USD.EUR<IDEALPRO,CASH,USD>'"
+      },
+      "output": "'USD'"
+    },
+    {
+      "input": {
+        "_arg_0": "'KOR.JPN<IDEALPRO,CASH,WON>'"
+      },
+      "output": "'WON'"
+    }
+  ],
+  "solution": [
+    "_arg_0.replaceAll('<','').replaceAll('>','').split(',').slice(-1)[0]",
+    "_arg_0.replace('>','').slice(-3)",
+    "_arg_0.replace('>','').slice(-1 - 2)"
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "variables": {
+    "names": "[String]"
+  },
+  "returnType": "String",
+  "examples": [
+    {
+      "input": {
+        "names": "['Augusta', 'Ada', 'King']"
+      },
+      "output": "'Augusta King'"
+    },
+    {
+      "input": {
+        "names": "['Alister', 'Ali', 'Fogg']"
+      },
+      "output": "'Alister Fogg'"
+    },
+    {
+      "input": {
+        "names": "['Alan', 'Mathison', 'Turing']"
+      },
+      "output": "'Alan Turing'"
+    }
+  ],
+  "solution": [
+    "names.shift() + ' ' + names.pop()",
+    "(names.shift() + ' ') + names.pop()",
+    "names[0] + ' ' + names[names.length - 1]",
+    "((names.splice(1,1), 0), names.join(' '))"
+  ]
+}

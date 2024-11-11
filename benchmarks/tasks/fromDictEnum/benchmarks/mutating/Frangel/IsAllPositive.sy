@@ -1,0 +1,31 @@
+{
+"source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/IsAllPositive.java",
+"variables": {
+    "arr": "[Int]"
+},
+"returnType": "Bool",
+"examples": [
+    {
+        "input": {
+            "arr": "[ 1, 2, 12, 1, 123, 2, 3 ]"
+        },
+        "output": "true"
+    },
+    {
+        "input": {
+            "arr": "[ 1, 2, 12, -1, 123, 2, 3 ]"
+        },
+        "output": "false"
+    },
+    {
+        "input": {
+            "arr": "[ 0 ]"
+        },
+        "output": "false"
+    }
+],
+"solution": [
+  "0 < arr.sort((n1,n2) => n1 - n2).shift()",
+  "0 < arr.sort((n1,n2) => n1 - n2)[0]"
+]
+}

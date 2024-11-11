@@ -1,0 +1,29 @@
+{
+  "source": "https=//stackoverflow.com/questions/2727679/substring-in-excel",
+  "variables": {
+    "_arg_0": "String"
+  },
+  "stringLiterals": ["<",">",","],
+  "returnType": "String",
+  "examples": [
+    {
+      "input": {
+        "_arg_0": "'R/V<208,0,32>'"
+      },
+      "output": "'R/V 208 0 32'"
+    },
+    {
+      "input": {
+        "_arg_0": "'R/S<184,28,16>'"
+      },
+      "output": "'R/S 184 28 16'"
+    },
+    {
+      "input": {
+        "_arg_0": "'R/B<255,88,80>'"
+      },
+      "output": "'R/B 255 88 80'"
+    }
+  ],
+  "solution": [ "_arg_0.replaceAll('<',' ').replaceAll('>','').replaceAll(',',' ')" ]
+}

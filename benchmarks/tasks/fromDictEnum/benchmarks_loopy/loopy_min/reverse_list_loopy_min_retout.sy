@@ -1,0 +1,39 @@
+{
+  "source": "https://github.com/KasraF/SnippySynthesizer/blob/loopy/src/test/resources/loops/loopy_frangel_benchmarks/reverse_list_loopy.examples.json",
+  "variables": {
+    "inp": "[Int]",
+    "idx": "Int",
+    "out": "[Int]"
+  },
+  "returnType": "[Int]",
+  "immutable": ["inp", "idx", "out"],
+  "examples": [
+    {
+      "input": {
+        "inp": "[123, 234, 345]",
+        "out": "[]",
+        "idx": "0"
+      },
+      "output": "[123]"
+    },
+    {
+      "input": {
+        "inp": "[123, 234, 345]",
+        "out": "[123]",
+        "idx": "1"
+      },
+      "output": "[234, 123]"
+    },
+    {
+      "input": {
+        "inp": "[123, 234, 345]",
+        "out": "[234, 123]",
+        "idx": "2"
+      },
+      "output": "[345, 234, 123]"
+    }
+  ],
+  "solution": [
+    "([inp[idx]]).concat(out)"
+  ]
+}

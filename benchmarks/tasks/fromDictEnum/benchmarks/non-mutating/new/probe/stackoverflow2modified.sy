@@ -1,0 +1,26 @@
+{
+"source": "https=//stackoverflow.com/questions/26262269/how-to-find-all-the-strings-in-a-cell-that-contains-a-given-substring-in-excel",
+  "variables": {
+    "_arg_0": "String"
+  },
+"returnType": "String",
+"examples": [
+  {
+    "input": {
+      "_arg_0": "'india china japan'"
+    },
+    "output": "'india china'"
+  },
+  {
+    "input": {
+      "_arg_0": "'indonesia korea'"
+    },
+    "output": "'indonesia'"
+  }
+],
+  "solution": [
+    "_arg_0.slice(0, _arg_0.lastIndexOf(' '))",
+    "_arg_0.split(' ').slice(0, _arg_0.split(' ').length-1).join(' ')",
+    "_arg_0.split(' ').slice(0, -1).join(' ')"
+  ]
+}

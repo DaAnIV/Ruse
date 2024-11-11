@@ -1,0 +1,24 @@
+{
+  "source": "https://github.com/KasraF/SnippySynthesizer/blob/loopy/src/test/resources/.examples.json",
+  "variables": {
+    "inp": "[Int]",
+    "n": "Int"
+  },
+  "returnType": "[Int]",
+  "immutable": ["n"],
+  "examples": [
+    {
+      "input": {
+        "inp": "[4, 5, 1, 2, 9]",
+        "n": "2"
+      },
+      "output": "[9, 5]",
+      "state": {
+        "inp": "[9, 5, 4, 2, 1]"
+      }
+    }
+  ],
+  "solution": [
+    "inp.sort((n1,n2) => n1 - n2).reverse().slice(0, n)"
+  ]
+}

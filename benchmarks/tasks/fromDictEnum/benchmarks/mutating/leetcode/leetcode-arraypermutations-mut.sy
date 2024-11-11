@@ -1,0 +1,48 @@
+{
+  "source": "https://leetcode.com/problems/build-array-from-permutation/",
+  "variables": {
+    "nums": "[Int]",
+    "n": "Int",
+    "ans": "[Int]"
+  },
+  "returnType": "[Int]",
+  "immutable": ["nums"],
+  "examples": [
+    {
+      "input": {
+        "nums": "[0,2,1,5,3,4]",
+        "n": "0",
+        "ans": "[]"
+      },
+      "output": "[0]"
+    },
+    {
+      "input": {
+        "nums": "[0,2,1,5,3,4]",
+        "n": "2",
+        "ans": "[0]"
+      },
+      "output": "[0,1]"
+    },
+    {
+      "input": {
+        "nums": "[0,2,1,5,3,4]",
+        "n": "1",
+        "ans": "[0,1]"
+      },
+      "output": "[0,1,2]"
+    },
+    {
+      "input": {
+        "nums": "[0,2,1,5,3,4]",
+        "n": "5",
+        "ans": "[0,1,2]"
+      },
+      "output": "[0,1,2,4]"
+    }
+  ],
+  "solution": [
+    "ans.push(nums[n]); ans",
+    "ans.concat(nums.splice(n,1))"
+  ]
+}

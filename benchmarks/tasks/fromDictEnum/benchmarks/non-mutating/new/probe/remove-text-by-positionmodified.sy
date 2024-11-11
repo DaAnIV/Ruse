@@ -1,0 +1,33 @@
+{
+  "source": "https=//exceljet.net/formula/remove-text-by-position",
+  "variables": {
+    "_arg_0": "String"
+  },
+  "stringLiterals": ["/"],
+  "returnType": "String",
+  "examples": [
+    {
+      "input": {
+        "_arg_0": "'c=/users/dave/shotcut.xls'"
+      },
+      "output": "'shotcut.xls'"
+    },
+    {
+      "input": {
+        "_arg_0": "'c=/users/dave/formulas.xls'"
+      },
+      "output": "'formulas.xls'"
+    },
+    {
+      "input": {
+        "_arg_0": "'c=/users/dave/pivot table.xls'"
+      },
+      "output": "'pivot table.xls'"
+    }
+  ],
+  "solution": [
+    "_arg_0.replace('/','').slice(_arg_0.lastIndexOf('/'))",
+    "_arg_0.split('/').slice(-1)[0]",
+    "_arg_0.slice(1).slice(_arg_0.lastIndexOf('/'))"
+  ]
+}

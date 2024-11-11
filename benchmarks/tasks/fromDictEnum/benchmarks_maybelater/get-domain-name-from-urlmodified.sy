@@ -1,0 +1,29 @@
+{
+  "source": "https=//exceljet.net/formula/get-domain-name-from-url",
+  "variables": {
+    "_arg_0": "String"
+  },
+  "stringLiterals": ["/"],
+  "returnType": "String",
+  "examples": [
+    {
+      "input": {
+        "_arg_0": "'https=//abc.com/def'"
+      },
+      "output": "'https=//abc.com/'"
+    },
+    {
+      "input": {
+        "_arg_0": "'http=//www.abc.com/def/cef'"
+      },
+      "output": "'http=//www.abc.com/'"
+    },
+    {
+      "input": {
+        "_arg_0": "'http=//chandoo.org/wp/def-def'"
+      },
+      "output": "'http=//chandoo.org/'"
+    }
+  ],
+  "solution": [ "_arg_0.split('/').slice(0,3).join('/') + '/'","_arg_0.slice(0,_arg_0.indexOf('/',_arg_0.indexOf('/',_arg_0.indexOf('/') + 1) + 1) + 1)" ]
+}

@@ -1,0 +1,29 @@
+{
+"source": "",
+"variables": {
+    "_arg_0": "String"
+},
+"stringLiterals": ["."],
+"returnType": "String",
+"examples": [
+  {
+    "input": {
+      "_arg_0": "'Nancy FreeHafer'"
+    },
+    "output": "'N.F.'"
+  },
+  {
+    "input": {
+      "_arg_0": "'Andrew Cencici'"
+    },
+    "output": "'A.C.'"
+  },
+  {
+    "input": {
+      "_arg_0": "'Jan Kotas'"
+    },
+    "output": "'J.K.'"
+  }
+],
+  "solution": [ "_arg_0.split(' ')[0][0] + '.' + _arg_0.split(' ')[1][0] + '.'" ]
+}

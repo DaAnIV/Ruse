@@ -1,0 +1,67 @@
+{
+"source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/IntPower.java",
+"variables": {
+    "base": "Int",
+    "exp": "Int"
+},
+"returnType": "Int",
+"examples": [
+    {
+        "input": {
+            "base": "7",
+            "exp": "11"
+        },
+        "output": "1977326743"
+    },
+    {
+        "input": {
+            "base": "11",
+            "exp": "4"
+        },
+        "output": "14641"
+    },
+    {
+        "input": {
+            "base": "-101",
+            "exp": "3"
+        },
+        "output": "-1030301"
+    },
+    {
+         "input": {
+            "base": "-11111",
+            "exp": "2"
+        },
+        "output": "123454321"
+    },
+    {
+        "input": {
+            "base": "123",
+            "exp": "1"
+        },
+        "output": "123"
+    },
+    {
+        "input": {
+            "base": "123",
+            "exp": "0"
+        },
+        "output": "1"
+    },
+    {
+        "input": {
+            "base": "1",
+            "exp": "10"
+        },
+        "output": "1"
+    },
+    {
+        "input": {
+            "base": "0",
+            "exp": "10"
+        },
+        "output": "0"
+    }
+],
+ "solution": [ "Math.pow(base, exp)" ]
+}

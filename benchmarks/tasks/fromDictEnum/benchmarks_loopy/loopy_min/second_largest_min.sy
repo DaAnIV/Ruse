@@ -1,0 +1,37 @@
+{
+  "source": "https://github.com/KasraF/SnippySynthesizer/blob/loopy/src/test/resources/.examples.json",
+  "variables": {
+    "inp": "[Int]",
+    "second_largest": "Int",
+    "sorted": "[Int]"
+  },
+  "intLiterals": [2],
+  "immutable": ["inp"],
+  "examples": [
+    {
+      "input": {
+        "inp": "[10, 20, 45, 8, 99]",
+        "sorted": "[]",
+        "second_largest": "0"
+      },
+      "state": {
+        "sorted": "[8, 10, 20, 45, 99]",
+        "second_largest": "45"
+      }
+    },
+    {
+      "input": {
+        "inp": "[20, 10, 45, 9, 12]",
+        "sorted": "[]",
+        "second_largest": "0"
+      },
+      "state": {
+        "sorted": "[9, 10, 12, 20, 45]",
+        "second_largest": "20"
+      }
+    }
+  ],
+  "solution": [
+    "sorted = inp.slice(0).sort((n1,n2) => n1 - n2), second_largest = sorted[inp.length - 2]"
+  ]
+}

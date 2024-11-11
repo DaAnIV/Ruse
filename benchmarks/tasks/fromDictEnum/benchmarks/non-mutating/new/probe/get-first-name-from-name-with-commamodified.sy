@@ -1,0 +1,33 @@
+{
+  "source": "https=//exceljet.net/formula/get-first-name-from-name-with-comma",
+  "variables": {
+    "_arg_0": "String",
+    "_arg_1": "Int"
+  },
+  "stringLiterals": [","],
+  "returnType": "String",
+  "examples": [
+    {
+      "input": {
+        "_arg_0": "'Chang,Amy'",
+        "_arg_1": "1"
+      },
+      "output": "'Amy'"
+    },
+    {
+      "input": {
+        "_arg_0": "'Chang,Amy'",
+        "_arg_1": "2"
+      },
+      "output": "'Chang'"
+    },
+    {
+      "input": {
+        "_arg_0": "'smith,bobby'",
+        "_arg_1": "2"
+      },
+      "output": "'smith'"
+    }
+  ],
+  "solution": [ "_arg_0.split(',')[2 - _arg_1]" ]
+}

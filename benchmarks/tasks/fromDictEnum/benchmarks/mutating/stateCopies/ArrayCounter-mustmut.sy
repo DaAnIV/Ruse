@@ -1,0 +1,33 @@
+{
+  "source": "",
+  "variables": {
+    "count": "[Int]",
+    "index": "Int"
+  },
+  "returnType": "[Int]",
+  "examples": [
+    {
+      "input": {
+        "count": "[8, 9, 7]",
+        "index": "2"
+      },
+      "output": "[8, 9, 8]",
+      "state": {
+        "count": "[8, 9, 8]"
+      }
+    },
+    {
+      "input": {
+        "count": "[9]",
+        "index": "0"
+      },
+      "output": "[10]",
+      "state": {
+        "count": "[10]"
+      }
+    }
+  ],
+  "solution": [
+    "count[index]++; count"
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/AddArrayToListOrNull.java",
+  "variables": {
+    "arr": "[String]",
+    "list": "[String]"
+  },
+  "returnType": "[String]",
+  "examples": [
+    {
+      "input": {
+        "arr": "['abc' , 'null', '123', 'false', '']",
+        "list": "['']"
+      },
+      "output": "['abc' , 'null', '123', 'false', '','']"
+    },
+    {
+      "input": {
+        "arr": "['abc' , 'null', '123', 'false', '']",
+        "list": "[]"
+      },
+      "output": "['abc' , 'null', '123', 'false', '']"
+    },
+    {
+      "input": {
+        "arr": "['abc']",
+        "list": "[]"
+      },
+      "output": "['abc']"
+    }
+  ],
+  "solution": [ "arr.concat(list)" ]
+}

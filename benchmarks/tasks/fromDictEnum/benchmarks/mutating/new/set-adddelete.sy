@@ -1,0 +1,42 @@
+{
+  "variables": {
+    "s1": "String",
+    "s2": "String",
+    "seen": "{String}"
+  },
+  "examples": [
+    {
+      "input": {
+        "s1": "'1'",
+        "s2": "'1'",
+        "seen": "{}"
+      },
+      "state": {
+        "seen": "{}"
+      }
+    },
+    {
+      "input": {
+        "s1": "'1'",
+        "s2": "'3'",
+        "seen": "{}"
+      },
+      "state": {
+        "seen": "{'1'}"
+      }
+    },
+    {
+      "input": {
+        "s1": "'3'",
+        "s2": "'1'",
+        "seen": "{'1'}"
+      },
+      "state": {
+        "seen": "{'3'}"
+      }
+    }
+  ],
+  "solution": [
+    "s2.delete(nums[i])"
+  ]
+}

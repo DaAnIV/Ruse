@@ -1,0 +1,29 @@
+{
+  "source": "https://leetcode.com/discuss/interview-question/2042532/on-line-assessment-code-from-one-of-big-tech-companies",
+  "variables": {
+    "dom": "String",
+    "set": "{String}"
+  },
+  "returnType": "{String}",
+  "stringLiterals": ["-"],
+  "intLiterals": [2],
+  "examples": [
+    {
+      "input": {
+        "dom": "'0-0'",
+        "set": "{}"
+      },
+      "output": "{'0-0'}"
+    },
+    {
+      "input": {
+        "dom": "'0-1'",
+        "set": "{'0-0'}"
+      },
+      "output": "{'0-0', '1-0'}"
+    }
+  ],
+  "solution": [
+    "set.add(dom[2] + '-' + dom[1])"
+  ]
+}

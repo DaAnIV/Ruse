@@ -1,0 +1,47 @@
+{
+  "source": "https://leetcode.com/problems/find-the-difference-of-two-arrays/solutions/4245879/solution-with-javascript-using-set-beats-95/?source=post_page-----5913b3410828--------------------------------",
+  "variables": {
+    "nums": "[Int]",
+    "i": "Int",
+    "s2": "{Int}"
+  },
+  "returnType": "Bool",
+  "examples": [
+    {
+      "input": {
+        "nums": "[1, 20, 3]",
+        "i": "0",
+        "s2": "{20, 4, 6}"
+      },
+      "state": {
+        "s2": "{20, 4, 6}"
+      },
+      "output": "false"
+    },
+    {
+      "input": {
+        "nums": "[1, 20, 3]",
+        "i": "1",
+        "s2": "{20, 4, 6}"
+      },
+      "state": {
+        "s2": "{4, 6}"
+      },
+      "output": "true"
+    },
+    {
+      "input": {
+        "nums": "[1, 20, 3]",
+        "i": "2",
+        "s2": "{4, 6}"
+      },
+      "state": {
+        "s2": "{4, 6}"
+      },
+      "output": "false"
+    }
+  ],
+  "solution": [
+    "s2.delete(nums[i])"
+  ]
+}

@@ -1,0 +1,28 @@
+{
+"variables": {
+    "queue": "[Int]"
+},
+"returnType": "[Int]",
+"examples": [
+    {
+        "input": {
+            "queue": "[ 1,2,3,4,5 ]"
+        },
+        "output": "[ 2,3,4,5,1 ]"
+    },
+    {
+        "input": {
+            "queue": "[ 2, 3, 4, 5, 1 ]"
+        },
+        "output": "[ 3, 4, 5, 1, 2 ]"
+    }
+],
+"solution": [
+    "queue.slice(1).concat([queue[0]])",
+    "queue.slice(1).concat(queue.slice(0, 1))",
+    "queue.slice(1).concat(Array(1).fill(queue[0]))",
+    "queue.splice(1, queue.length).concat(queue)",
+    "queue.splice(1).concat(queue)",
+    "queue.concat(queue).slice(1,queue.push(0))"
+]
+}

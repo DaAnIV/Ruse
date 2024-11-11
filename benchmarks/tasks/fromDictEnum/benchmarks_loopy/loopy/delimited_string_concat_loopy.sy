@@ -1,0 +1,27 @@
+{
+  "source": "https://github.com/KasraF/SnippySynthesizer/blob/loopy/src/test/resources/.examples.json",
+  "variables": {
+    "inp1": "[String]",
+    "delim": "String",
+    "join": "String",
+    "out": "String"
+  },
+  "immutable": ["inp1", "delim"],
+  "examples": [
+    {
+      "input": {
+        "inp1": "['abc', 'DEF', '12345']",
+        "delim": "', '",
+        "join": "''",
+        "out": "'init.'"
+      },
+      "state": {
+        "join": "'abc, DEF, 12345'",
+        "out": "'init.abc, DEF, 12345'"
+      }
+    }
+  ],
+  "solution": [
+    "join = inp1.join(delim), out = out + join"
+  ]
+}

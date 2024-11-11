@@ -1,0 +1,28 @@
+{
+  "source": "https=//exceljet.net/formula/count-total-words-in-a-cell",
+  "variables": {
+    "_arg_0": "String"
+  },
+  "returnType": "Int",
+  "examples": [
+    {
+      "input": {
+        "_arg_0": "'humpty dumpty'"
+      },
+      "output": "2"
+    },
+    {
+      "input": {
+        "_arg_0": "'humpty dumpty sat on a wall,'"
+      },
+      "output": "6"
+    },
+    {
+      "input": {
+        "_arg_0": "'couldnt put humpty together again.'"
+      },
+      "output": "5"
+    }
+  ],
+  "solution": [ "_arg_0.split(' ').length" ]
+}

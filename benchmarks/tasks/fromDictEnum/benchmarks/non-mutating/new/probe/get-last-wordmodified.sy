@@ -1,0 +1,32 @@
+{
+  "source": "https=//exceljet.net/formula/get-last-word",
+  "variables": {
+    "_arg_0": "String"
+  },
+  "returnType": "String",
+  "examples": [
+    {
+      "input": {
+        "_arg_0": "'focus on one thing at a time'"
+      },
+      "output": "'time'"
+    },
+    {
+      "input": {
+        "_arg_0": "'premature opt is the root of all evil'"
+      },
+      "output": "'evil'"
+    },
+    {
+      "input": {
+        "_arg_0": "'where is life'"
+      },
+      "output": "'life'"
+    }
+  ],
+  "solution": [
+    "_arg_0.replace(' ','').slice(_arg_0.lastIndexOf(' '))",
+    "_arg_0.split(' ').slice(-1)[0]",
+    "_arg_0.slice(1).slice(_arg_0.lastIndexOf(' '))"
+  ]
+}

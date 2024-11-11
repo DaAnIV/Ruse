@@ -1,0 +1,30 @@
+{
+  "source": "",
+  "variables": {
+    "arr": "[Int]"
+  },
+  "returnType": "Int",
+  "examples": [
+    {
+      "input": {
+        "arr": "[9, 8, 6, -8]"
+      },
+      "output": "1",
+      "state": {
+        "arr": "[ 9, 8, 6, -8]"
+      }
+    },
+    {
+      "input": {
+        "arr": "[11, 100, 23, 90, 99]"
+      },
+      "output": "111",
+      "state" : {
+        "arr": "[ 100, 99, 90, 23, 11 ]"
+      }
+    }
+  ],
+  "solution": [
+    "arr.sort((n1,n2) => n2 - n1)[0] + arr.reverse()[0]"
+  ]
+}
