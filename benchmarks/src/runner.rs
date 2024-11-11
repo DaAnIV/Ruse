@@ -106,9 +106,5 @@ pub fn run_task(path: &Path, cache: Arc<Cache>, bench_config: &BenchmarkConfig) 
         }
     });
 
-    if bench_config.print_inserted_programs {
-        synthesizer.print_all_programs()
-    }
-
     result
 }

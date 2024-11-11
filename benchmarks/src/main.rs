@@ -1,10 +1,7 @@
-use std::{
-    process::ExitCode,
-    sync::Arc,
-    time::Duration,
-};
 use clap_verbosity_flag::{InfoLevel, Verbosity};
-use tracing::{debug, info, error};
+use serde_json::ser::Formatter;
+use std::{clone::Clone, path::PathBuf, process::ExitCode, sync::Arc, time::Duration};
+use tracing::{debug, error, info};
 use tracing_log::AsTrace;
 
 mod results;
@@ -14,8 +11,8 @@ use results::ResultsWriter;
 use ruse_object_graph::Cache;
 
 mod config;
-mod task;
 mod runner;
+mod task;
 
 #[cfg(not(target_env = "msvc"))]
 use jemallocator::Jemalloc;
@@ -24,17 +21,17 @@ use jemallocator::Jemalloc;
 #[global_allocator]
 static GLOBAL: Jemalloc = Jemalloc;
 
-fn get_writer(config: &config::BenchmarkConfig) -> ResultsWriter {
-    if config.output.is_dir() {
-        std::fs::create_dir_all(config.output.as_path()).expect("Failed to create output dir");
-        let mut path = config.output.clone();
+fn get_result_path(cli: &Cli) -> PathBuf {
+    if cli.output.is_dir() {
+        std::fs::create_dir_all(cli.output.as_path()).expect("Failed to create output dir");
+        let mut path = cli.output.clone();
         path.push(format!(
             "benchmarks_{}.json",
             chrono::Local::now().format("%Y-%m-%d-%H:%M:%S%.f")
         ));
-        ResultsWriter::from_path(&path)
+        path
     } else {
-        ResultsWriter::from_path(&config.output)
+        cli.output.clone()
     }
 }
 
@@ -54,7 +51,7 @@ struct Cli {
     #[arg(short, long, default_value_t = 300)]
     timeout: u64,
 
-    /// Timeout per benchmark in seconds
+    /// Max number of synthesizer iterations
     #[arg(short, long, default_value_t = 5)]
     max_iterations: u32,
 
@@ -69,6 +66,10 @@ struct Cli {
 
     #[arg(long, default_value_t = false)]
     tokio_console: bool,
+
+    /// Results are saved pretty json
+    #[arg(long, default_value_t = false)]
+    pretty: bool,
 }
 
 fn set_logger(cli: &Cli) {
@@ -78,28 +79,11 @@ fn set_logger(cli: &Cli) {
     tracing::subscriber::set_global_default(subscriber).unwrap()
 }
 
-fn main() -> ExitCode {
-    let cli = Cli::parse();
-    set_logger(&cli);
-    
-    let bench_config = BenchmarkConfig {
-        benchmarks: cli.benchmarks,
-        output: cli.output,
-        timeout: Duration::from_secs(cli.timeout),
-        max_iterations: cli.max_iterations,
-        print_inserted_programs: cli.print_all_programs,
-        multi_thread: !cli.single_thread,
-    };
-    
-    debug!(target: "ruse::runner", "{}", bench_config);
-
-    if cli.tokio_console {
-        console_subscriber::init();
-    }
-
-    let mut writer = get_writer(&bench_config);
-
-    for benchmark in &bench_config.benchmarks {
+fn run_all_benchmarks<F>(cli: &Cli, bench_config: &config::BenchmarkConfig, mut writer: ResultsWriter<F>)
+where
+    F: Formatter + Clone,
+{
+    for benchmark in &cli.benchmarks {
         if !benchmark.exists() {
             error!(target: "ruse::runner", "Path doesn't exist {}", benchmark.to_str().unwrap());
         } else if benchmark.is_dir() {
@@ -120,8 +104,41 @@ fn main() -> ExitCode {
             writer.write_result(&result);
         }
     }
+}
 
-    info!(target: "ruse::runner", "Results written to {:?}", writer.path());
+fn main() -> ExitCode {
+    let cli = Cli::parse();
+    set_logger(&cli);
+
+    let bench_config = BenchmarkConfig {
+        timeout: Duration::from_secs(cli.timeout),
+        max_iterations: cli.max_iterations,
+        multi_thread: !cli.single_thread,
+    };
+
+    debug!(target: "ruse::runner", "{}", bench_config);
+
+    if cli.tokio_console {
+        console_subscriber::init();
+    }
+
+    let results_path = get_result_path(&cli);
+
+    if cli.pretty {
+        run_all_benchmarks(
+            &cli,
+            &bench_config,
+            ResultsWriter::from_path_pretty(results_path.as_path()),
+        );
+    } else {
+        run_all_benchmarks(
+            &cli,
+            &bench_config,
+            ResultsWriter::from_path(results_path.as_path()),
+        );
+    }
+
+    info!(target: "ruse::runner", "Results written to {:?}", results_path.as_path());
 
     ExitCode::SUCCESS
 }

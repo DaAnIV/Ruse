@@ -1,7 +1,6 @@
 use std::{
     fs::File,
-    io::Write,
-    path::{Path, PathBuf},
+    path::Path,
     sync::Arc,
     time::Duration,
     vec,
@@ -10,6 +9,7 @@ use std::{
 use ruse_synthesizer::{prog::SubProgram, synthesizer::CurrentStatistics};
 
 use serde::{Serialize, Serializer};
+use serde_json::ser::{CompactFormatter, Formatter, PrettyFormatter};
 
 #[derive(Serialize, Debug, Clone)]
 pub struct BenchmarksIteration {
@@ -109,21 +109,47 @@ impl Sysinfo {
 enum State {
     First,
     Rest,
+    FirstArray,
+    RestArray,
 }
 
-pub(crate) struct ResultsWriter {
-    path: PathBuf,
+impl State {
+    fn is_arr(&self) -> bool {
+        match self {
+            State::FirstArray => true,
+            State::RestArray => true,
+            _ => false,
+        }
+    }
+
+    fn is_first(&self) -> bool {
+        match self {
+            State::First => true,
+            State::FirstArray => true,
+            _ => false,
+        }
+    }
+}
+
+pub(crate) struct ResultsWriter<F>
+where
+    F: Formatter + Clone,
+{
     writer: File,
     state: Vec<State>,
+    formatter: F,
 }
 
-impl ResultsWriter {
-    pub fn from_path(path: &Path) -> Self {
+impl<F> ResultsWriter<F>
+where
+    F: Formatter + Clone,
+{
+    fn from_path_with_formatter(path: &Path, formatter: F) -> Self {
         let writer = File::create(path).expect("Failed to open output file");
         let mut this = Self {
-            state: vec![State::First],
+            state: vec![],
             writer,
-            path: PathBuf::from(path),
+            formatter: formatter,
         };
 
         this.begin();
@@ -134,65 +160,121 @@ impl ResultsWriter {
         this
     }
 
-    pub fn path(&self) -> &Path {
-        self.path.as_path()
-    }
-
     pub fn write_result(&mut self, result: &BenchmarkResult) {
         self.serialize_element(result);
     }
 
     fn begin(&mut self) {
-        write!(self.writer, "{{").expect("Failed");
+        self.state.push(State::First);
+        self.formatter
+            .begin_object(&mut self.writer)
+            .expect("Failed");
     }
 
     fn serialize_entry<T: Serialize>(&mut self, key: &str, value: &T) {
-        self.serialize_dividor();
         self.serialize_key(key);
         self.serialize_value(value)
     }
 
     fn serialize_element<T: Serialize>(&mut self, value: &T) {
-        self.serialize_dividor();
         self.serialize_value(value)
     }
 
     fn begin_array(&mut self, key: &str) {
-        self.serialize_dividor();
         self.serialize_key(key);
-        write!(self.writer, "[").expect("Failed");
-        self.state.push(State::First);
-    }
-
-    fn serialize_dividor(&mut self) {
-        if self.state.last().unwrap() == &State::First {
-            self.state.pop();
-            self.state.push(State::Rest);
-        } else {
-            write!(self.writer, ", ").expect("Failed");
-        }
+        self.formatter
+            .begin_object_value(&mut self.writer)
+            .expect("Failed");
+        self.formatter
+            .begin_array(&mut self.writer)
+            .expect("Failed");
+        self.state.push(State::FirstArray);
     }
 
     fn serialize_key(&mut self, key: &str) {
-        write!(self.writer, "\"{}\": ", key).expect("Failed");
+        let state = self.state.last_mut().unwrap();
+
+        self.formatter
+            .begin_object_key(&mut self.writer, state.is_first())
+            .expect("Failed");
+        *state = State::Rest;
+
+        self.formatter
+            .begin_string(&mut self.writer)
+            .expect("Failed");
+        self.formatter
+            .write_string_fragment(&mut self.writer, key)
+            .expect("Failed");
+        self.formatter.end_string(&mut self.writer).expect("Failed");
+        self.formatter
+            .end_object_key(&mut self.writer)
+            .expect("Failed");
     }
 
     fn serialize_value<T: Serialize>(&mut self, value: &T) {
-        serde_json::to_writer(&mut self.writer, value).expect("Failed");
+        self.begin_value();
+
+        let mut ser =
+            serde_json::Serializer::with_formatter(&mut self.writer, self.formatter.clone());
+        value.serialize(&mut ser).expect("Failed");
+
+        self.end_value();
+    }
+
+    fn begin_value(&mut self) {
+        let state = self.state.last_mut().unwrap();
+        if state.is_arr() {
+            self.formatter
+                .begin_array_value(&mut self.writer, state.is_first())
+                .expect("Failed");
+            *state = State::RestArray;
+        } else {
+            self.formatter
+                .begin_object_value(&mut self.writer)
+                .expect("Failed");
+        }
+    }
+
+    fn end_value(&mut self) {
+        let state = self.state.last().unwrap();
+        if state.is_arr() {
+            self.formatter
+                .end_array_value(&mut self.writer)
+                .expect("Failed");
+        } else {
+            self.formatter
+                .end_object_value(&mut self.writer)
+                .expect("Failed");
+        }
     }
 
     fn end_array(&mut self) {
         self.state.pop();
-        write!(self.writer, "]").expect("Failed");
+        self.formatter.end_array(&mut self.writer).expect("Failed");
     }
 
     fn end(&mut self) {
         self.end_array();
-        write!(self.writer, "}}").expect("Failed");
+        self.formatter.end_object(&mut self.writer).expect("Failed");
     }
 }
 
-impl Drop for ResultsWriter {
+impl ResultsWriter<CompactFormatter> {
+    pub fn from_path(path: &Path) -> Self {
+        Self::from_path_with_formatter(path, CompactFormatter)
+    }
+}
+
+impl<'a> ResultsWriter<PrettyFormatter<'a>> {
+    pub fn from_path_pretty(path: &Path) -> Self {
+        Self::from_path_with_formatter(path, PrettyFormatter::new())
+    }
+}
+
+impl<F> Drop for ResultsWriter<F>
+where
+    F: Formatter + Clone,
+{
     fn drop(&mut self) {
         self.end()
     }
