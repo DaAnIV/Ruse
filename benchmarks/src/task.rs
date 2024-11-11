@@ -921,7 +921,6 @@ impl SnythesisTask {
         _cache: &Cache,
     ) -> Result<SynthesizerPredicate, SnythesisTaskError> {
         Ok(Box::new(move |_p| {
-            // println!("{}", p);
             true
         }))
     }

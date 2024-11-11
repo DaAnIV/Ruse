@@ -6,6 +6,10 @@ use std::{
 };
 use tokio_util::sync::CancellationToken;
 
+use clap_verbosity_flag::{InfoLevel, Verbosity};
+use tracing::{debug, info, error};
+use tracing_log::AsTrace;
+
 mod results;
 use clap::Parser;
 use config::BenchmarkConfig;
@@ -60,6 +64,9 @@ struct Cli {
     #[arg(long, default_value_t = false)]
     print_all_programs: bool,
 
+    #[command(flatten)]
+    verbose: Verbosity<InfoLevel>,
+
     #[arg(long, default_value_t = false)]
     single_thread: bool,
 
@@ -109,7 +116,7 @@ async fn run_synthesizer(
     }
     let took = start.elapsed();
     result.finish(found, took, synthesizer.statistics());
-    println!("Benchmark took {:.3}s", took.as_secs_f32());
+    info!(target: "ruse::runner", "Benchmark took {:.3}s", took.as_secs_f32());
 }
 
 fn get_tokio_runtime(bench_config: &BenchmarkConfig) -> tokio::runtime::Runtime {
@@ -122,15 +129,14 @@ fn get_tokio_runtime(bench_config: &BenchmarkConfig) -> tokio::runtime::Runtime 
     runtime_builder.enable_all().build().unwrap()
 }
 
-fn run_task(path: &Path, cache: Arc<Cache>, bench_config: &BenchmarkConfig) -> BenchmarkResult {
+pub fn run_task(path: &Path, cache: Arc<Cache>, bench_config: &BenchmarkConfig) -> BenchmarkResult {
     let task_name = path.file_name().unwrap().to_str().unwrap();
     let mut result = BenchmarkResult::new(task_name);
 
-    // println!("{}", f_name);
     let task = match task::SnythesisTask::from_json_file(path, &cache) {
         Ok(v) => v,
         Err(e) => {
-            eprintln!("Failed to parse task for {}. {}", task_name, e);
+            error!(target: "ruse::runner", "Failed to parse task for {}. {}", task_name, e);
             result.error(&e);
             return result;
         }
@@ -138,12 +144,12 @@ fn run_task(path: &Path, cache: Arc<Cache>, bench_config: &BenchmarkConfig) -> B
     let mut synthesizer = match task.get_synthesizer(&cache) {
         Ok(v) => v,
         Err(e) => {
-            eprintln!("Failed to get synthesizer for task {}. {}", task_name, e);
+            error!(target: "ruse::runner", "Failed to get synthesizer for task {}. {}", task_name, e);
             result.error(&e);
             return result;
         }
     };
-    println!("{}", task_name);
+    info!(target: "ruse::runner", "Running {}", task_name);
 
     let runtime = get_tokio_runtime(bench_config);
 
@@ -159,7 +165,7 @@ fn run_task(path: &Path, cache: Arc<Cache>, bench_config: &BenchmarkConfig) -> B
             ),
         );
         if let Err(e) = timeout.await {
-            eprintln!("Reached timeout");
+            error!(target: "ruse::runner", "Reached timeout");
             cancel_token.cancel();
             result.error(&e);
             result.add_iteration(Duration::from_secs(0), synthesizer.statistics());
@@ -174,8 +180,17 @@ fn run_task(path: &Path, cache: Arc<Cache>, bench_config: &BenchmarkConfig) -> B
     result
 }
 
+fn set_logger(cli: &Cli) {
+    let subscriber = tracing_subscriber::fmt()
+        .with_max_level(cli.verbose.log_level_filter().as_trace())
+        .finish();
+    tracing::subscriber::set_global_default(subscriber).unwrap()
+}
+
 fn main() -> ExitCode {
     let cli = Cli::parse();
+    set_logger(&cli);
+    
     let bench_config = BenchmarkConfig {
         benchmarks: cli.benchmarks,
         output: cli.output,
@@ -184,7 +199,8 @@ fn main() -> ExitCode {
         print_inserted_programs: cli.print_all_programs,
         multi_thread: !cli.single_thread,
     };
-    print!("{}", bench_config);
+    
+    debug!(target: "ruse::runner", "{}", bench_config);
 
     if cli.tokio_console {
         console_subscriber::init();
@@ -194,7 +210,7 @@ fn main() -> ExitCode {
 
     for benchmark in &bench_config.benchmarks {
         if !benchmark.exists() {
-            eprintln!("Path doesn't exist {}", benchmark.to_str().unwrap());
+            error!(target: "ruse::runner", "Path doesn't exist {}", benchmark.to_str().unwrap());
         } else if benchmark.is_dir() {
             for entry in walkdir::WalkDir::new(benchmark)
                 .into_iter()
@@ -204,17 +220,17 @@ fn main() -> ExitCode {
                 })
             {
                 let cache = Arc::new(Cache::new());
-                let result = run_task(entry.path(), cache.clone(), &bench_config);
+                let result = runner::run_task(entry.path(), cache.clone(), &bench_config);
                 writer.write_result(&result);
             }
         } else {
             let cache = Arc::new(Cache::new());
-            let result = run_task(benchmark.as_path(), cache.clone(), &bench_config);
+            let result = runner::run_task(benchmark.as_path(), cache.clone(), &bench_config);
             writer.write_result(&result);
         }
     }
 
-    println!("Results written to {:?}", writer.path());
+    info!(target: "ruse::runner", "Results written to {:?}", writer.path());
 
     ExitCode::SUCCESS
 }

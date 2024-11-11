@@ -1,25 +1,27 @@
+use crate::{
+    bank::*,
+    bank_iterator::bank_iterator,
+    context::{ContextArray, SynthesizerContext},
+    multi_programs_map_product::ProgTriplet,
+    opcode::ExprOpcode,
+    prog::SubProgram,
+};
 use dashmap::DashSet;
 use ruse_object_graph::{
     value::{Value, ValueType},
     Cache, CachedString,
 };
-
-use crate::{
-    bank::*, bank_iterator::bank_iterator, context::{ContextArray, SynthesizerContext}, multi_programs_map_product::ProgTriplet, opcode::ExprOpcode, prog::SubProgram, 
-};
+use serde::ser::SerializeStruct;
 use std::{
     collections::HashMap,
     fmt::Display,
     ops::Index,
     sync::{atomic::*, Arc},
 };
-
-use serde::ser::SerializeStruct;
-
 use tokio_util::sync::CancellationToken;
+use tracing::{debug, trace};
 
 pub type OpcodesList = Vec<Arc<dyn ExprOpcode>>;
-
 const ALLOW_NON_FINITE_NUMBER: bool = false;
 
 #[repr(usize)]
@@ -218,6 +220,8 @@ impl Synthesizer {
         iteration_map: &TypeMap,
         ctx: &ContextArray,
     ) -> Option<Arc<SubProgram>> {
+        debug!(target: "ruse::synthesizer", "Initializing context {}", ctx);
+
         self.found_contexts.insert(ctx.clone());
         for op in self.init_opcodes() {
             let p = match self.get_program_from_init_opcode(op.clone(), ctx) {
@@ -238,8 +242,19 @@ impl Synthesizer {
         None
     }
 
-    fn handler(this: Arc<Self>, current_iteration_map: Arc<TypeMap>) -> Arc<impl Fn(Arc<dyn ExprOpcode>, ProgTriplet) -> Option<Arc<SubProgram>>> {
+    fn handler(
+        this: Arc<Self>,
+        current_iteration_map: Arc<TypeMap>,
+    ) -> Arc<impl Fn(Arc<dyn ExprOpcode>, ProgTriplet) -> Option<Arc<SubProgram>>> {
         Arc::new(move |op: Arc<dyn ExprOpcode>, triplet: ProgTriplet| {
+            trace!(target: "ruse::synthesizer", "Evaluating");
+            trace!(target: "ruse::synthesizer", "pre: {}", triplet.pre_ctx);
+            triplet
+                .children
+                .iter()
+                .for_each(|c| trace!(target: "ruse::synthesizer", "{}", c));
+            trace!(target: "ruse::synthesizer", "post: {}", triplet.post_ctx);
+
             let p = match this.get_program_from_composite_opcode(
                 triplet.pre_ctx,
                 op,
@@ -279,6 +294,8 @@ impl Synthesizer {
         this: Arc<Self>,
         current_iteration_map: Arc<TypeMap>,
     ) -> Option<Arc<SubProgram>> {
+        debug!(target: "ruse::synthesizer", "Starting iteration {}", this.bank.iteration_count());
+
         tokio::spawn(async move {
             if this.bank.iteration_count() == 0 {
                 this.run_init_iteration(current_iteration_map)
@@ -304,7 +321,7 @@ impl Synthesizer {
         current_iteration_map: Arc<TypeMap>,
     ) -> Option<Arc<SubProgram>> {
         let handler = Self::handler(this.clone(), current_iteration_map);
-        
+
         for (arg_types, ops) in this.composite_opcodes() {
             for triplet in bank_iterator(&this.bank, arg_types) {
                 if this.is_cancelled().await {
@@ -401,6 +418,9 @@ impl Synthesizer {
         }
 
         if iteration_map.insert_program(p.clone()) {
+            trace!(target: "ruse::synthesizer", "Inserted program");
+            trace!(target: "ruse::synthesizer", "{}", p);
+
             self.statistics.inc_value(StatisticsTypes::BankSize);
             self.statistics
                 .max_value(StatisticsTypes::MaxDepth, p.depth().into());

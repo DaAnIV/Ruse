@@ -13,6 +13,8 @@ tokio = { version = "*", features = ["rt", "macros"] }
 tokio-util = "*"
 itertools = "*"
 
+tracing = { version = "*" }
+
 [dev-dependencies]
 criterion = "*"
 rand = "*"

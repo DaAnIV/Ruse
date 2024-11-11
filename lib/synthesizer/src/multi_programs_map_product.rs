@@ -11,6 +11,8 @@ use crate::context::ContextArray;
 use crate::embedding::merge_context_arrays;
 use crate::prog::SubProgram;
 
+use tracing::trace;
+
 #[derive(Clone)]
 pub struct ProgTriplet {
     pub pre_ctx: ContextArray,
@@ -156,6 +158,12 @@ impl<'a> MultiProgramsMapsInner<'a> {
             }
         }
 
+        trace!("{} merged ctx:", cur_ctxs.len());
+        cur_ctxs.iter().enumerate().for_each(|(i, c)| {
+            trace!("merged: [{}]", cur_progs.iter().take(i + 1).map(|p| p.get_code()).join(", "));
+            trace!("pre_hat: {}", c.0[0]); 
+            trace!("post_hat: {}", c.1[0]); 
+        });
         let (pre_ctx, post_ctx) = cur_ctxs.last().unwrap().clone();
         Some(ProgTriplet::new(pre_ctx, cur_progs.clone(), post_ctx))
     }

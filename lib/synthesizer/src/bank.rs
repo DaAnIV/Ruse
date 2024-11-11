@@ -8,6 +8,8 @@ use std::hash::Hash;
 
 use crate::{context::ContextArray, location::LocValue, prog::SubProgram};
 
+use tracing::info;
+
 #[derive(Debug)]
 pub struct ValueArray(Arc<Vec<LocValue>>);
 impl ValueArray {
@@ -208,11 +210,11 @@ impl ProgBank {
 
     pub fn print_all_programs(&self) {
         for (i, type_map) in self.0.iter().enumerate() {
-            println!("Iteration {}", i);
+            info!(target: "ruse::synthesizer", "Iteration {}", i);
             for values in type_map.0.iter() {
                 for p in values.value().iter() {
-                    println!("");
-                    println!("{}", p.value());
+                    info!(target: "ruse::synthesizer", "");
+                    info!(target: "ruse::synthesizer", "{}", p.value());
                 }
             }
         }
