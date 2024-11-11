@@ -12,12 +12,16 @@ hashbrown = { version = "*", features = ["raw"], default-features = false }
 tokio = { version = "*", features = ["rt", "macros"] }
 tokio-util = "*"
 itertools = "*"
+rand = { version = "*", optional = true }
 
 tracing = { version = "*" }
 
+[features]
+default = ["test_helpers"]
+test_helpers = ["dep:rand"]
+
 [dev-dependencies]
 criterion = "*"
-rand = "*"
 
 [[bench]]
 name = "benches"

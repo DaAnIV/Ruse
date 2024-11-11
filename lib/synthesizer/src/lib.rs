@@ -8,4 +8,4 @@ pub mod embedding;
 mod multi_programs_map_product;
 mod bank_iterator;
 
-mod test;
+pub mod test;

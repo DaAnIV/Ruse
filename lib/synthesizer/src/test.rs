@@ -1,5 +1,5 @@
-#[cfg(test)]
-mod helpers {
+#[cfg(feature = "test_helpers")]
+pub mod helpers {
     use std::{
         hash::{DefaultHasher, Hash, Hasher},
         sync::Arc,
@@ -83,7 +83,7 @@ mod helpers {
         fields
     }
 
-    fn generate_random_object_value<R: Rng + ?Sized>(
+    pub fn generate_random_object_value<R: Rng + ?Sized>(
         root_name: CachedString,
         rng: &mut R,
         graphs_map: &mut GraphsMap,

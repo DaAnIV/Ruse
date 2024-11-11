@@ -425,3 +425,71 @@ mod ts_class_tests {
         assert_eq!(res.as_string().unwrap(), &js_string!("John Paul"));
     }
 }
+
+#[cfg(test)]
+mod specific_bugs_tests {
+    use std::sync::Arc;
+
+    use object_graph::str_cached;
+    use ruse_object_graph::{
+        self as object_graph, value::ValueType, vstr, Cache, Number
+    };
+    use ruse_synthesizer::{context::{ContextArray, SynthesizerContext}, embedding::merge_context_arrays, opcode::ExprOpcode, prog::SubProgram};
+
+    use crate::opcode::{ArrayLengthOp, ArraySpliceOp, IdentOp, LitOp};
+
+
+    #[test]
+    fn bug_1() {
+        let cache = Arc::new(Cache::new());
+        
+        let ctx = ruse_synthesizer::test::helpers::generate_context_from_array(
+            str_cached!(cache; "names"),
+            &ValueType::String,
+            ["Augusta", "Ada", "King"].iter().map(|s| vstr!(cache; s)),
+            &cache,
+        );
+        let ctx_arr = ContextArray::from(vec![ctx]);
+        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr.clone(), cache);
+
+        let id_op = Arc::new(IdentOp::new(syn_ctx.cached_string("names")));
+        let mut names_prog = SubProgram::with_opcode(id_op, ctx_arr.clone(), ctx_arr.clone());
+        assert!(Arc::get_mut(&mut names_prog).unwrap().evaluate(&syn_ctx));
+        println!("{}", names_prog);
+        
+        let one_op = Arc::new(LitOp::Num(Number::from(1)));
+        let one_ctx = ctx_arr.get_partial_context(one_op.required_variables()).unwrap();
+        let mut one_prog = SubProgram::with_opcode(one_op, one_ctx.clone(), one_ctx.clone());
+        assert!(Arc::get_mut(&mut one_prog).unwrap().evaluate(&syn_ctx));
+        println!("{}", one_prog);
+        println!("");
+
+        let splice_op = Arc::new(ArraySpliceOp::new(&ValueType::String, 0, &syn_ctx.cache));
+        let mut splice_prog = SubProgram::with_opcode_and_children(splice_op, vec![names_prog.clone(), one_prog.clone()], ctx_arr.clone(), ctx_arr.clone());
+        assert!(Arc::get_mut(&mut splice_prog).unwrap().evaluate(&syn_ctx));
+        println!("{}", splice_prog);
+        println!("");
+
+        let len_op = Arc::new(ArrayLengthOp::new(&ValueType::String, &syn_ctx.cache));
+        let mut len_prog = SubProgram::with_opcode_and_children(len_op, vec![names_prog.clone()], ctx_arr.clone(), ctx_arr.clone());
+        assert!(Arc::get_mut(&mut len_prog).unwrap().evaluate(&syn_ctx));
+        println!("{}", len_prog);
+        println!("");
+
+        println!("{}", one_prog);
+        
+
+        let res = merge_context_arrays(splice_prog.pre_ctx(), splice_prog.post_ctx(), len_prog.pre_ctx(), len_prog.post_ctx());
+        assert!(res.is_err());
+        // This isn't really the bug..
+        // The bug was in the iterator, but I'll keep this anyway
+        // The bug occured as if I need 4 children
+        // [1, 2, 3, 4]
+        // the iterator advanced
+        // [1, 2', 3', 4']
+        // Setting the merged contexts failed at 2.
+        // Now we are contiue to the next set of children
+        // [1, 2', 3', 4'']
+        // Now we set the context only for 4
+    }
+}

@@ -558,7 +558,7 @@ impl ContextArray {
             .all(|(self_ctx, other_ctx)| self_ctx.subset(other_ctx))
     }
 
-    pub(crate) fn get_partial_context<'a, I>(&self, required_variables: I) -> Option<Self>
+    pub fn get_partial_context<'a, I>(&self, required_variables: I) -> Option<Self>
     where
         I: IntoIterator<Item = &'a CachedString> + Copy,
     {
