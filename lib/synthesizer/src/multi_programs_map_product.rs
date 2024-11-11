@@ -59,13 +59,14 @@ struct MultiProgramsMapsInner<'a> {
     cur: CurrentItems<(Vec<Arc<SubProgram>>, Vec<(ContextArray, ContextArray)>)>,
 
     /// If set_ctx fails need to restart at last failure (or earlier)
-    last_fail: usize
+    last_fail: Option<usize>
 }
 
 /// Holds the state of a single iterator within a `MultiProduct`.
 struct MultiProgramsMapsIter<'a> {
     iter: ProgramsMapIter<'a>,
     orig_iter: ProgramsMapIter<'a>,
+    restart: bool
 }
 
 impl<'a> MultiProgramsMapsIter<'a> {
@@ -73,6 +74,7 @@ impl<'a> MultiProgramsMapsIter<'a> {
         Self {
             iter: iter.clone(),
             orig_iter: iter,
+            restart: false
         }
     }
 }
@@ -91,7 +93,7 @@ where
             MultiProgramsMapsIter::new(map_ref.iter())
     }).collect(),
         cur: NotYetPopulated,
-        last_fail: 0
+        last_fail: None
     };
     MultiProgramsMaps(ProductInProgress(inner))
 }
@@ -105,16 +107,29 @@ impl<'a> MultiProgramsMapsInner<'a> {
         match &mut self.cur {
             Populated((cur_progs, _)) => {
                 debug_assert!(!self.iters.is_empty());
+
+                // If we failed in a merge we need to advance the program in the failed iterator
+                // Otherwise we'll just iterate a lot of unusable children
+                if let Some(last_fail) = self.last_fail {
+                    // restart all iterators after the failure
+                    for iter in self.iters.iter_mut().skip(last_fail + 1) {
+                        iter.restart = true;
+                    }
+                }
+
                 // Find (from the right) a non-finished iterator and
                 // reset the finished ones encountered.
                 for (i, iter) in self.iters.iter_mut().enumerate().rev() {
-                    if let Some(new) = iter.iter.next() {
-                        cur_progs[i] = new.value().clone();
-                        return Some(i);
-                    } else {
-                        iter.iter = iter.orig_iter.clone();
-                        cur_progs[i] = iter.iter.next().unwrap().value().clone();
+                    if !iter.restart {
+                        if let Some(new) = iter.iter.next() {
+                            cur_progs[i] = new.value().clone();
+                            return Some(i);
+                        }
                     }
+
+                    iter.iter = iter.orig_iter.clone();
+                    iter.restart = false;
+                    cur_progs[i] = iter.iter.next().unwrap().value().clone();
                 }
                 None
             }
@@ -142,7 +157,9 @@ impl<'a> MultiProgramsMapsInner<'a> {
     fn set_ctxs(&mut self, mut from: usize) -> Option<ProgTriplet> {
         let (cur_progs, cur_ctxs) = self.cur.as_mut().unwrap();
 
-        from = from.min(self.last_fail);
+        if let Some(last_fail) = self.last_fail {
+            from = from.min(last_fail);
+        }
 
         if from == 0 {
             cur_ctxs[0] = (
@@ -160,10 +177,11 @@ impl<'a> MultiProgramsMapsInner<'a> {
             {
                 cur_ctxs[i] = merged_ctx;
             } else {
-                self.last_fail = i;
+                self.last_fail = Some(i);
                 return None;
             }
         }
+        self.last_fail = None;
 
         trace!("{} merged ctx:", cur_ctxs.len());
         cur_ctxs.iter().enumerate().for_each(|(i, c)| {
