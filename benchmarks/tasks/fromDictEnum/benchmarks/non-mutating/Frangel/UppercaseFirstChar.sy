@@ -7,21 +7,21 @@
 "examples": [
     {
         "input": {
-            "str": "\"computer science is COOL\""
+            "str": "'computer science is COOL'"
         },
-        "output": "\"Computer science is COOL\""
+        "output": "'Computer science is COOL'"
     },
     {
         "input": {
-            "str": "\"123abc\""
+            "str": "'123abc'"
         },
-        "output": "\"123abc\""
+        "output": "'123abc'"
     },
     {
         "input": {
-            "str": "\"\""
+            "str": "''"
         },
-        "output": "\"\""
+        "output": "''"
     }
 ],
 "solution": [

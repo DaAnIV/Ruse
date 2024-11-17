@@ -11,9 +11,9 @@
     {
       "input": {
         "arr": "[-1,-1,-1,-1]",
-        "beg": 2,
-        "end": 2,
-        "toadd": 18
+        "beg": "2",
+        "end": "2",
+        "toadd": "18"
       },
       "output": "3",
       "state": {

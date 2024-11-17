@@ -345,7 +345,7 @@ impl TaskType {
     }
 
     fn strip_string(value_string: &str) -> Result<&str, SnythesisTaskError> {
-        let stripped = match value_string.strip_prefix('\'') {
+        let stripped = match value_string.trim().strip_prefix('\'') {
             Some(s1) => match s1.strip_suffix('\'') {
                 Some(s2) => s2,
                 None => return Err(parse_err!(value_string, "String suffix is missing")),
@@ -375,11 +375,13 @@ impl TaskType {
                 .ok_or(parse_err!(value_string, "Missing closing bracket"))?
             {
                 ']' => {
-                    collected.push(Self::strip_string(&part)?.to_string());
+                    if !part.is_empty() {
+                        collected.push(Self::strip_string(&part)?.to_string());
+                    }
                     return Ok(json!(collected));
                 }
-                ',' | ' ' => {
-                    if !part.is_empty() {
+                ',' => {
+                    if !part.is_empty() {                        
                         collected.push(Self::strip_string(&part)?.to_string());
                         part = String::new();
                     }
