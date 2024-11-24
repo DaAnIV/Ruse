@@ -211,6 +211,10 @@ impl ObjectGraph {
         self.get_mut_node(node).unwrap().fields.insert(field, value);
     }
 
+    pub fn delete_field(&mut self, node: &NodeIndex, field: &FieldName) -> Option<PrimitiveValue> {
+        self.get_mut_node(node).unwrap().fields.remove(field)
+    }
+
     pub fn fields_count(&self, id: &NodeIndex) -> usize {
         let node = self.get_node(id).unwrap();
         node.fields.len()

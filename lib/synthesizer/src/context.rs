@@ -202,7 +202,6 @@ impl Context {
         let mut new_graph = self.graphs_map[graph].as_ref().clone();
         match value {
             Value::Primitive(p) => {
-                assert!(new_graph.get_field(&node, &field_name).is_some());
                 new_graph.set_field(&node, field_name.clone(), p.clone());
             }
             Value::Object(o) => {
@@ -216,6 +215,37 @@ impl Context {
         self.update_graph(new_graph.into());
         self.update_hash();
         true
+    }
+
+    pub fn delete_field(
+        &mut self,
+        graph: GraphIndex,
+        node: NodeIndex,
+        field_name: &FieldName,
+    ) -> Option<Value> {
+        let mut new_graph = self.graphs_map[graph].as_ref().clone();
+        let result = if let Some(primitive_field) = new_graph.delete_field(&node, field_name) {
+            Value::Primitive(primitive_field)
+        } else {
+            let neig = new_graph.get_neighbor(&node, field_name)?;
+            let obj_val = match neig {
+                EdgeEndPoint::Internal(neig_node) => ObjectValue {
+                    graph_id: graph,
+                    node: *neig_node,
+                },
+                EdgeEndPoint::Chain(chained_graph, neig_node) => ObjectValue {
+                    graph_id: *chained_graph,
+                    node: *neig_node,
+                },
+            };
+
+            new_graph.remove_edge(&node, field_name.clone());
+
+            Value::Object(obj_val)
+        };
+        self.update_graph(new_graph.into());
+        self.update_hash();
+        Some(result)
     }
 
     pub fn create_graph(&self) -> ObjectGraph {
