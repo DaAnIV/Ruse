@@ -1,8 +1,9 @@
 use clap_verbosity_flag::{InfoLevel, Verbosity};
 use serde_json::ser::Formatter;
-use std::{clone::Clone, path::PathBuf, process::ExitCode, sync::Arc, time::Duration};
-use tracing::{debug, error, info};
+use std::{clone::Clone, fs::File, path::PathBuf, process::ExitCode, sync::Arc, time::Duration};
+use tracing::{error, info, level_filters::LevelFilter};
 use tracing_log::AsTrace;
+use tracing_subscriber::{filter::Targets, prelude::*};
 
 mod results;
 use clap::Parser;
@@ -68,30 +69,61 @@ struct Cli {
     tokio_console: bool,
 
     /// Results are saved pretty json
+    #[arg(long)]
+    log: Option<std::path::PathBuf>,
+
+    /// Results are saved pretty json
     #[arg(long, default_value_t = false)]
     pretty: bool,
 }
 
 fn set_logger(cli: &Cli) {
-    let subscriber = tracing_subscriber::fmt()
-        .with_max_level(cli.verbose.log_level_filter().as_trace())
-        .finish();
-    tracing::subscriber::set_global_default(subscriber).unwrap()
+    // let fmt_layer = tracing_subscriber::fmt::layer();
+    let verbose_filter = Targets::default()
+        .with_target("ruse", cli.verbose.log_level_filter().as_trace())
+        .with_default(LevelFilter::OFF);
+
+    if let Some(log_path) = &cli.log {
+        let file = File::create(log_path).unwrap();
+        let file_layer = tracing_subscriber::fmt::layer()
+            .with_writer(file)
+            .json()
+            .with_filter(verbose_filter);
+
+        let info_filter = Targets::default()
+            .with_target("ruse", LevelFilter::INFO)
+            .with_default(LevelFilter::OFF);
+
+        let console_layer = tracing_subscriber::fmt::layer().with_filter(info_filter);
+
+        tracing_subscriber::registry()
+            .with(file_layer)
+            .with(console_layer)
+            .init();
+    } else {
+        let console_layer = tracing_subscriber::fmt::layer().with_filter(verbose_filter);
+
+        tracing_subscriber::registry().with(console_layer).init();
+    }
 }
 
-fn run_all_benchmarks<F>(cli: &Cli, bench_config: &config::BenchmarkConfig, mut writer: ResultsWriter<F>)
-where
+fn run_all_benchmarks<F>(
+    cli: &Cli,
+    bench_config: &config::BenchmarkConfig,
+    mut writer: ResultsWriter<F>,
+) where
     F: Formatter + Clone,
 {
     for benchmark in &cli.benchmarks {
         if !benchmark.exists() {
-            error!(target: "ruse::runner", "Path doesn't exist {}", benchmark.to_str().unwrap());
+            error!(target: "ruse::runner", "Path doesn't exist {}", benchmark.display());
         } else if benchmark.is_dir() {
             for entry in walkdir::WalkDir::new(benchmark)
                 .into_iter()
                 .filter_map(Result::ok)
                 .filter(|e| {
-                    e.file_type().is_file() && e.file_name().to_str().unwrap().ends_with(".sy")
+                    e.file_type().is_file()
+                        && e.path().extension().map(|s| s == "sy").unwrap_or(false)
                 })
             {
                 let cache = Arc::new(Cache::new());
@@ -116,7 +148,8 @@ fn main() -> ExitCode {
         multi_thread: !cli.single_thread,
     };
 
-    debug!(target: "ruse::runner", "{}", bench_config);
+    info!(target: "ruse::runner", "Timeout {:.3} seconds", bench_config.timeout.as_secs_f32());
+    info!(target: "ruse::runner", "Max iterations: {}", bench_config.max_iterations);
 
     if cli.tokio_console {
         console_subscriber::init();

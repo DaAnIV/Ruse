@@ -1,6 +1,6 @@
 use std::{
     fs::File,
-    path::Path,
+    path::{Path, PathBuf},
     sync::Arc,
     time::Duration,
     vec,
@@ -19,7 +19,7 @@ pub struct BenchmarksIteration {
 
 #[derive(Serialize, Debug, Clone)]
 pub struct BenchmarkResult {
-    name: String,
+    path: PathBuf,
     iterations: Vec<BenchmarksIteration>,
     #[serde(serialize_with = "serialize_found")]
     found: Option<Arc<SubProgram>>,
@@ -39,9 +39,9 @@ where
 }
 
 impl BenchmarkResult {
-    pub fn new(name: &str) -> Self {
+    pub fn new(path: &Path) -> Self {
         Self {
-            name: name.to_owned(),
+            path: PathBuf::from(path),
             iterations: vec![],
             found: None,
             total_time: None,

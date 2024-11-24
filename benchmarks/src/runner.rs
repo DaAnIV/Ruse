@@ -1,4 +1,8 @@
-use std::{path::Path, sync::Arc, time::{Duration, Instant}};
+use std::{
+    path::{Path, PathBuf},
+    sync::Arc,
+    time::{Duration, Instant},
+};
 
 use ruse_object_graph::Cache;
 use ruse_ts_synthesizer::TsSynthesizer;
@@ -63,13 +67,13 @@ fn get_tokio_runtime(bench_config: &BenchmarkConfig) -> tokio::runtime::Runtime 
 }
 
 pub fn run_task(path: &Path, cache: Arc<Cache>, bench_config: &BenchmarkConfig) -> BenchmarkResult {
-    let task_name = path.file_name().unwrap().to_str().unwrap();
-    let mut result = BenchmarkResult::new(task_name);
+    let task_name = PathBuf::from(path.file_name().unwrap());
+    let mut result = BenchmarkResult::new(path);
 
     let task = match task::SnythesisTask::from_json_file(path, &cache) {
         Ok(v) => v,
         Err(e) => {
-            error!(target: "ruse::runner", "Failed to parse task for {}. {}", task_name, e);
+            error!(target: "ruse::runner", "Failed to parse task for {}. {}", task_name.display(), e);
             result.error(&e);
             return result;
         }
@@ -77,12 +81,12 @@ pub fn run_task(path: &Path, cache: Arc<Cache>, bench_config: &BenchmarkConfig) 
     let mut synthesizer = match task.get_synthesizer(&cache) {
         Ok(v) => v,
         Err(e) => {
-            error!(target: "ruse::runner", "Failed to get synthesizer for task {}. {}", task_name, e);
+            error!(target: "ruse::runner", "Failed to get synthesizer for task {}. {}", task_name.display(), e);
             result.error(&e);
             return result;
         }
     };
-    info!(target: "ruse::runner", "Running {}", task_name);
+    info!(target: "ruse::runner", "Running {}", path.display());
 
     let runtime = get_tokio_runtime(bench_config);
 
