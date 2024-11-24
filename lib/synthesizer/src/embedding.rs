@@ -1,9 +1,11 @@
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
 
-use crate::context::{Context, ContextArray, GraphIdGenerator, VariableName};
+use crate::context::{Context, ContextArray, VariableName};
 use itertools::{self, izip};
 use ruse_object_graph::{
-    graph_equality, value::Value, vobj, GraphIndex, GraphsMap, NodeIndex, ObjectGraph,
+    graph_equality,
+    value::{ObjectValue, Value},
+    vobj, GraphIndex, GraphsMap, NodeIndex, ObjectGraph,
 };
 
 #[derive(Default)]
@@ -54,8 +56,8 @@ impl<'a> NodeMatchesSingle<'a> {
 
     fn get_match(&self, n: &NodeIndex) -> Option<&(GraphIndex, NodeIndex)> {
         match self.direction {
-            MatchDirection::Graph1To2 => self.matches.direction_1.get(n),
-            MatchDirection::Graph2To1 => self.matches.direction_2.get(n),
+            MatchDirection::Graph1To2 => self.matches.get_match_1_to_2(n),
+            MatchDirection::Graph2To1 => self.matches.get_match_2_to_1(n),
         }
     }
 }
@@ -86,7 +88,42 @@ pub fn merge_context_arrays(
         merged_post_ctx_vec.push(merged_post_ctx);
     }
 
-    Ok((ContextArray::from(merged_pre_ctx_vec), ContextArray::from(merged_post_ctx_vec)))
+    Ok((
+        ContextArray::from(merged_pre_ctx_vec),
+        ContextArray::from(merged_post_ctx_vec),
+    ))
+}
+
+fn embed_object_value(
+    var: &VariableName,
+    obj_val: &ObjectValue,
+    values_hat: &mut BTreeMap<VariableName, Value>,
+    map_hat: &mut GraphsMap,
+    old_ctx: &Context,
+    new_nodes: &HashSet<NodeIndex>,
+    matches: &mut NodeMatchesSingle,
+) -> bool {
+    let mut graph = match map_hat.get(&obj_val.graph_id) {
+        Some(old_graph) => old_graph.as_ref().clone(),
+        None => ObjectGraph::new(obj_val.graph_id),
+    };
+    if !embed(
+        &mut graph,
+        &old_ctx.graphs_map,
+        obj_val.graph_id,
+        obj_val.node,
+        new_nodes,
+        matches,
+    ) {
+        return false;
+    }
+    let new_var_value = matches.get_match(&obj_val.node).unwrap();
+    debug_assert!(new_var_value.0 == graph.id);
+    graph.set_as_root(var.clone(), new_var_value.1);
+    map_hat.insert_graph(graph.into());
+    values_hat.insert(var.clone(), vobj!(new_var_value.0, new_var_value.1));
+
+    true
 }
 
 pub(crate) fn merge_context(
@@ -97,8 +134,8 @@ pub(crate) fn merge_context(
 ) -> Result<(Context, Context), ()> {
     let mut p_1_hat = p_1.values.as_ref().clone();
     let mut q_2_hat = q_2.values.as_ref().clone();
-    let mut p_1_map_hat = p_1.graphs_map.as_ref().clone();
-    let mut q_2_map_hat = q_2.graphs_map.as_ref().clone();
+    let mut p_1_map_hat = GraphsMap::default();
+    let mut q_2_map_hat = GraphsMap::default();
     // let mut p_1_hat_graph = Arc::new(p_1.graph.as_ref().clone());
     // let mut q_2_hat_graph = Arc::new(q_2.graph.as_ref().clone());
 
@@ -146,8 +183,10 @@ pub(crate) fn merge_context(
     }
 
     let mut matches = NodeMatches::default();
+    let new_nodes_1 = triplet_new_nodes(p_1, q_1);
+    let new_nodes_2 = HashSet::default();
 
-    for (_, o_1, o_2) in &intersection {
+    for (var, o_1, o_2) in &intersection {
         if !sim_walk_equal(
             &q_1.graphs_map,
             o_1.graph_id,
@@ -159,44 +198,59 @@ pub(crate) fn merge_context(
         ) {
             return Err(());
         }
-    }
-    for (var, o_2) in &only_p_2 {
-        let mut new_graph = ObjectGraph::new(p_1.graph_id_gen.get_id_for_graph());
-        if !embed(
-            &mut new_graph,
-            &p_2.graph_id_gen,
-            &p_2.graphs_map,
-            o_2.graph_id,
-            o_2.node,
-            triplet_new_nodes(p_1, q_1),
-            &mut matches.get_single_direction(MatchDirection::Graph2To1),
-        ) {
-            return Err(());
+
+        if let Some(q_2_o) = q_2.get_var_loc_value(var) {
+            let mut temp = NodeMatches::default();
+            embed_object_value(
+                var,
+                q_2_o.val().obj().unwrap(),
+                &mut q_2_hat,
+                &mut q_2_map_hat,
+                q_2,
+                &new_nodes_2,
+                &mut temp.get_single_direction(MatchDirection::Graph2To1),
+            );
         }
-        let new_var_value = matches.get_match_2_to_1(&o_2.node).unwrap();
-        debug_assert!(new_var_value.0 == new_graph.id);
-        new_graph.set_as_root((*var).clone(), new_var_value.1);
-        p_1_map_hat.insert_graph(new_graph.into());
-        p_1_hat.insert((*var).clone(), vobj!(new_var_value.0, new_var_value.1));
+
+        if let Some(p_1_o) = p_1.get_var_loc_value(var) {
+            let mut temp = NodeMatches::default();
+            embed_object_value(
+                var,
+                p_1_o.val().obj().unwrap(),
+                &mut p_1_hat,
+                &mut p_1_map_hat,
+                p_1,
+                &new_nodes_2,
+                &mut temp.get_single_direction(MatchDirection::Graph1To2),
+            );
+        }
+    }
+
+    for (var, o_2) in &only_p_2 {
+        embed_object_value(
+            var,
+            o_2,
+            &mut p_1_hat,
+            &mut p_1_map_hat,
+            p_2,
+            &new_nodes_1,
+            &mut matches.get_single_direction(MatchDirection::Graph2To1),
+        );
     }
     for (var, o_1) in &only_q_1 {
-        let mut new_graph = ObjectGraph::new(q_2.graph_id_gen.get_id_for_graph());
-        if !embed(
-            &mut new_graph,
-            &q_1.graph_id_gen,
-            &q_1.graphs_map,
-            o_1.graph_id,
-            o_1.node,
-            HashSet::new(),
+        embed_object_value(
+            var,
+            o_1,
+            &mut q_2_hat,
+            &mut q_2_map_hat,
+            q_1,
+            &new_nodes_2,
             &mut matches.get_single_direction(MatchDirection::Graph1To2),
-        ) {
-            return Err(());
-        }
-        let new_var_value = matches.get_match_1_to_2(&o_1.node).unwrap();
-        new_graph.set_as_root((*var).clone(), new_var_value.1);
-        q_2_map_hat.insert_graph(new_graph.into());
-        q_2_hat.insert((*var).clone(), vobj!(new_var_value.0, new_var_value.1));
+        );
     }
+
+    p_1_map_hat.extend(&p_1.graphs_map);
+    q_2_map_hat.extend(&q_2.graphs_map);
 
     q_2_map_hat.extend(&q_1.graphs_map);
 
@@ -216,11 +270,10 @@ fn triplet_new_nodes(p_ctx: &Context, q_ctx: &Context) -> HashSet<NodeIndex> {
 
 fn embed(
     new_graph: &mut ObjectGraph,
-    graph_id_gen: &GraphIdGenerator,
     graphs_map: &GraphsMap,
     graph_id: GraphIndex,
     node_id: NodeIndex,
-    new: HashSet<NodeIndex>,
+    new_nodes: &HashSet<NodeIndex>,
     matches: &mut NodeMatchesSingle,
 ) -> bool {
     if matches.get_match(&node_id).is_some() {
@@ -230,15 +283,15 @@ fn embed(
     let mut q = VecDeque::new();
     let new_graph_id = new_graph.id;
 
-    q.push_back((graph_id, node_id, graph_id_gen.get_id_for_node()));
-    while let Some((cur_graph_id, cur_node_id, new_id)) = q.pop_front() {
+    q.push_back((graph_id, node_id));
+    while let Some((cur_graph_id, cur_node_id)) = q.pop_front() {
         let graph = &graphs_map[cur_graph_id];
         let node = graph.get_node(&cur_node_id).unwrap();
-        let new_node = new_graph.add_node(new_id, node.obj_type.clone(), node.fields.clone());
+        let new_node = new_graph.add_node(cur_node_id, node.obj_type.clone(), node.fields.clone());
         matches.add_match((cur_graph_id, cur_node_id), (new_graph_id, new_node.id));
         for (field_name, old_neig) in &node.pointers {
             if let Some((new_neig_graph, new_neig_id)) = matches.get_match(old_neig.index()) {
-                if new.contains(new_neig_id) {
+                if new_nodes.contains(new_neig_id) {
                     return false;
                 }
                 if *new_neig_graph == new_graph_id {
@@ -247,14 +300,13 @@ fn embed(
                     new_node.insert_chain_edge(field_name.clone(), *new_neig_graph, *new_neig_id);
                 }
             } else {
-                let new_neig_id = graph_id_gen.get_id_for_node();
-                new_node.insert_internal_edge(field_name.clone(), new_neig_id);
+                new_node.insert_internal_edge(field_name.clone(), *old_neig.index());
                 match old_neig {
                     ruse_object_graph::EdgeEndPoint::Internal(old_neig_node) => {
-                        q.push_back((cur_graph_id, *old_neig_node, new_neig_id))
+                        q.push_back((cur_graph_id, *old_neig_node))
                     }
                     ruse_object_graph::EdgeEndPoint::Chain(old_neig_graph, old_neig_node) => {
-                        q.push_back((*old_neig_graph, *old_neig_node, new_neig_id))
+                        q.push_back((*old_neig_graph, *old_neig_node))
                     }
                 }
             }
