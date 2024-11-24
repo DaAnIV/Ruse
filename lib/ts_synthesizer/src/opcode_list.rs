@@ -151,6 +151,8 @@ pub fn add_array_opcodes(opcodes: &mut OpcodesList, array_types: &[ValueType], c
         opcodes.push(Arc::new(opcode::ArrayConcatOp::new(t, 1, cache)));
         opcodes.push(Arc::new(opcode::ArrayConcatArrayOp::new(t, cache)));
         opcodes.push(Arc::new(opcode::ArraySpliceOp::new(t, 0, cache)));
+        opcodes.push(Arc::new(opcode::ArrayPushOp::new(t, cache)));
+        opcodes.push(Arc::new(opcode::ArrayPopOp::new(t, cache)));
     }
 }
 

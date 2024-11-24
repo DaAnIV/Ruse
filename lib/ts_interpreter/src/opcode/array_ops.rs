@@ -149,7 +149,7 @@ impl ExprOpcode for ArrayPushOp {
         post_ctx.set_field(arr.graph_id, arr.node, idx_field_name, args[1].val());
 
         let result = post_ctx.temp_value(vnum!(Number::from(
-            arr.total_field_count(&post_ctx.graphs_map) + 1
+            arr.total_field_count(&post_ctx.graphs_map)
         )));
 
         EvalResult::DirtyContext(result)
@@ -158,6 +158,55 @@ impl ExprOpcode for ArrayPushOp {
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
         debug_assert_eq!(children.len(), 2);
         member_call_ast("push", children)
+    }
+
+    fn arg_types(&self) -> &[ValueType] {
+        &self.arg_types
+    }
+}
+
+#[derive(Debug)]
+pub struct ArrayPopOp {
+    arg_types: [ValueType; 1],
+}
+
+impl ArrayPopOp {
+    pub fn new(elem_type: &ValueType, cache: &Cache) -> Self {
+        Self {
+            arg_types: [ValueType::array_value_type(elem_type, cache)],
+        }
+    }
+}
+
+impl ExprOpcode for ArrayPopOp {
+    fn op_name(&self) -> &str {
+        "Array.prototype.pop"
+    }
+
+    fn eval(
+        &self,
+        args: &[&LocValue],
+        post_ctx: &mut Context,
+        syn_ctx: &SynthesizerContext,
+    ) -> EvalResult {
+        debug_assert_eq!(args.len(), 1);
+
+        let arr = args[0].val().obj().unwrap();
+        let arr_len = arr.total_field_count(&post_ctx.graphs_map);
+        if arr_len == 0 {
+            return EvalResult::None;
+        }
+        let idx_field_name = syn_ctx.cached_string(&(arr_len - 1).to_string());
+        if let Some(result) = post_ctx.delete_field(arr.graph_id, arr.node, &idx_field_name) {
+            EvalResult::DirtyContext(post_ctx.temp_value(result))
+        } else {
+            EvalResult::None
+        }
+    }
+
+    fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
+        debug_assert_eq!(children.len(), 1);
+        member_call_ast("pop", children)
     }
 
     fn arg_types(&self) -> &[ValueType] {

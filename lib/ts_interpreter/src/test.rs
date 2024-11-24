@@ -163,24 +163,97 @@ mod ts_simple_opcodes_tests {
         assert_eq!(
             ctx.get_var_loc_value(&id.name)
                 .expect("Didn't find var")
-                .val().wrap(&ctx.graphs_map),
+                .val()
+                .wrap(&ctx.graphs_map),
             vnum!(Number::from(7u64)).wrap(&ctx.graphs_map)
         );
-        assert_eq!(x_val.val().wrap(&ctx.graphs_map), vnum!(Number::from(7u64)).wrap(&ctx.graphs_map));
+        assert_eq!(
+            x_val.val().wrap(&ctx.graphs_map),
+            vnum!(Number::from(7u64)).wrap(&ctx.graphs_map)
+        );
         assert_eq!(
             x_val.loc(),
             &Location::Var(VarLoc {
                 var: id.name.clone()
             })
         );
-        assert_eq!(out.val().wrap(&update_out_ctx.graphs_map), vnum!(Number::from(7u64)).wrap(&update_out_ctx.graphs_map));
+        assert_eq!(
+            out.val().wrap(&update_out_ctx.graphs_map),
+            vnum!(Number::from(7u64)).wrap(&update_out_ctx.graphs_map)
+        );
         assert_eq!(out.loc(), &Location::Temp);
         assert_eq!(
             update_out_ctx
                 .get_var_loc_value(&id.name)
                 .expect("Didn't find var")
-                .val().wrap(&update_out_ctx.graphs_map),
+                .val()
+                .wrap(&update_out_ctx.graphs_map),
             vnum!(Number::from(8u64)).wrap(&update_out_ctx.graphs_map)
+        );
+    }
+
+    #[test]
+    fn array_push() {
+        let cache = Arc::new(Cache::new());
+        let mut graphs_map = GraphsMap::default();
+        let id_gen = Arc::new(GraphIdGenerator::default());
+        let mut graph = ObjectGraph::new(id_gen.get_id_for_graph());
+        let arr = ObjectValue {
+            graph_id: graph.id,
+            node: graph.add_array_object(id_gen.get_id_for_node(), &ValueType::Number, [], &cache),
+        };
+        graphs_map.insert_graph(graph.into());
+        let ctx_arr = ContextArray::from(vec![Context::with_values(
+            [(str_cached!(cache; "x"), Value::Object(arr))].into(),
+            graphs_map.into(),
+            id_gen,
+        )]);
+        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr, cache.clone());
+        let ctx = &syn_ctx.start_context[0];
+        let id = IdentOp::new(str_cached!(cache; "x"));
+        let op = ArrayPushOp::new(&ValueType::Number, &syn_ctx.cache);
+
+        let mut id_out_ctx = ctx.clone();
+        let x_val = id.eval(&[], &mut id_out_ctx, &syn_ctx).unwrap();
+
+        let mut update_out_ctx = id_out_ctx.clone();
+        let num_to_push = update_out_ctx.temp_value(vnum!(Number::from(1)));
+        let out = op
+            .eval(&[&x_val, &num_to_push], &mut update_out_ctx, &syn_ctx)
+            .unwrap();
+
+        let orig_array = ctx
+            .get_var_loc_value(&id.name)
+            .expect("Didn't find var")
+            .val()
+            .obj()
+            .unwrap()
+            .clone();
+        let updated_array = update_out_ctx
+            .get_var_loc_value(&id.name)
+            .expect("Didn't find var")
+            .val()
+            .obj()
+            .unwrap()
+            .clone();
+
+        assert_eq!(orig_array.total_field_count(&ctx.graphs_map), 0);
+        assert_eq!(
+            updated_array.total_field_count(&update_out_ctx.graphs_map),
+            1
+        );
+        assert_eq!(
+            updated_array
+                .get_primitive_field_value(&syn_ctx.cached_string("0"), &update_out_ctx.graphs_map)
+                .unwrap()
+                .wrap(&update_out_ctx.graphs_map),
+            vnum!(Number::from(1)).wrap(&update_out_ctx.graphs_map)
+        );
+
+        assert_eq!(out.loc(), &Location::Temp);
+        assert_eq!(
+            out.val().wrap(&update_out_ctx.graphs_map),
+            vnum!(Number::from(1u64)).wrap(&update_out_ctx.graphs_map)
         );
     }
 }
@@ -214,17 +287,23 @@ mod ts_class_tests {
         let user = classes
             .get_class(&user_class_name)
             .unwrap()
-            .generate_object(HashMap::from([
-                (str_cached!(cache; "surname"), vstr!(cache; "Doe")),
-                (str_cached!(cache; "name"), vstr!(cache; "John")),
-            ]),
-            &mut graph,
-            &id_gen
-        );
+            .generate_object(
+                HashMap::from([
+                    (str_cached!(cache; "surname"), vstr!(cache; "Doe")),
+                    (str_cached!(cache; "name"), vstr!(cache; "John")),
+                ]),
+                &mut graph,
+                &id_gen,
+            );
         graphs_map.insert_graph(graph.into());
 
-        let name_field = user.get_field_value(&str_cached!(cache; "name"), &graphs_map).unwrap();
-        assert_eq!(name_field.wrap(&graphs_map), vstr!(cache; "John").wrap(&graphs_map))
+        let name_field = user
+            .get_field_value(&str_cached!(cache; "name"), &graphs_map)
+            .unwrap();
+        assert_eq!(
+            name_field.wrap(&graphs_map),
+            vstr!(cache; "John").wrap(&graphs_map)
+        )
     }
 
     #[test]
@@ -328,11 +407,14 @@ mod ts_class_tests {
             .expect("Failed to add User class");
         let user_class = classes.get_class(&user_class_name).unwrap();
         let mut graph = ObjectGraph::new(id_gen.get_id_for_graph());
-        let user = user_class
-            .generate_object(HashMap::from([
+        let user = user_class.generate_object(
+            HashMap::from([
                 (str_cached!(cache; "surname"), vstr!(cache; "Doe")),
                 (str_cached!(cache; "name"), vstr!(cache; "John")),
-            ]), &mut graph, &id_gen);
+            ]),
+            &mut graph,
+            &id_gen,
+        );
         graphs_map.insert_graph(graph.into());
 
         let mut ctx = Context::with_values([].into(), graphs_map.into(), id_gen);
@@ -381,7 +463,7 @@ mod ts_class_tests {
                 (str_cached!(cache; "name"), vstr!(cache; "John")),
             ]),
             &mut user1_graph,
-            &id_gen
+            &id_gen,
         );
         graphs_map.insert_graph(user1_graph.into());
 
@@ -393,23 +475,22 @@ mod ts_class_tests {
                 (str_cached!(cache; "surname"), vstr!(cache; "Simon")),
             ]),
             &mut user2_graph,
-            &id_gen
+            &id_gen,
         );
         graphs_map.insert_graph(user2_graph.into());
 
         let mut complex_user_graph = ObjectGraph::new(id_gen.get_id_for_graph());
-        let complex_user = user_class_pair
-            .generate_rooted_object(
-                str_cached!(cache; "student_pair"),
-                HashMap::from([
-                    (str_cached!(cache; "user1"), Value::Object(user1)),
-                    (str_cached!(cache; "user2"), Value::Object(user2)),
-                ]),
-                &mut complex_user_graph,
-                &id_gen
-            );
+        let complex_user = user_class_pair.generate_rooted_object(
+            str_cached!(cache; "student_pair"),
+            HashMap::from([
+                (str_cached!(cache; "user1"), Value::Object(user1)),
+                (str_cached!(cache; "user2"), Value::Object(user2)),
+            ]),
+            &mut complex_user_graph,
+            &id_gen,
+        );
         graphs_map.insert_graph(complex_user_graph.into());
-        
+
         let mut ctx = Context::with_values([].into(), graphs_map.into(), id_gen);
         let mut boa_ctx = classes.get_boa_ctx(&mut ctx, &cache);
 
@@ -431,18 +512,20 @@ mod specific_bugs_tests {
     use std::sync::Arc;
 
     use object_graph::str_cached;
-    use ruse_object_graph::{
-        self as object_graph, value::ValueType, vstr, Cache, Number
+    use ruse_object_graph::{self as object_graph, value::ValueType, vstr, Cache, Number};
+    use ruse_synthesizer::{
+        context::{ContextArray, SynthesizerContext},
+        embedding::merge_context_arrays,
+        opcode::ExprOpcode,
+        prog::SubProgram,
     };
-    use ruse_synthesizer::{context::{ContextArray, SynthesizerContext}, embedding::merge_context_arrays, opcode::ExprOpcode, prog::SubProgram};
 
     use crate::opcode::{ArrayLengthOp, ArraySpliceOp, IdentOp, LitOp};
-
 
     #[test]
     fn bug_1() {
         let cache = Arc::new(Cache::new());
-        
+
         let ctx = ruse_synthesizer::test::helpers::generate_context_from_array(
             str_cached!(cache; "names"),
             &ValueType::String,
@@ -456,30 +539,46 @@ mod specific_bugs_tests {
         let mut names_prog = SubProgram::with_opcode(id_op, ctx_arr.clone(), ctx_arr.clone());
         assert!(Arc::get_mut(&mut names_prog).unwrap().evaluate(&syn_ctx));
         println!("{}", names_prog);
-        
+
         let one_op = Arc::new(LitOp::Num(Number::from(1)));
-        let one_ctx = ctx_arr.get_partial_context(one_op.required_variables()).unwrap();
+        let one_ctx = ctx_arr
+            .get_partial_context(one_op.required_variables())
+            .unwrap();
         let mut one_prog = SubProgram::with_opcode(one_op, one_ctx.clone(), one_ctx.clone());
         assert!(Arc::get_mut(&mut one_prog).unwrap().evaluate(&syn_ctx));
         println!("{}", one_prog);
         println!("");
 
         let splice_op = Arc::new(ArraySpliceOp::new(&ValueType::String, 0, &syn_ctx.cache));
-        let mut splice_prog = SubProgram::with_opcode_and_children(splice_op, vec![names_prog.clone(), one_prog.clone()], ctx_arr.clone(), ctx_arr.clone());
+        let mut splice_prog = SubProgram::with_opcode_and_children(
+            splice_op,
+            vec![names_prog.clone(), one_prog.clone()],
+            ctx_arr.clone(),
+            ctx_arr.clone(),
+        );
         assert!(Arc::get_mut(&mut splice_prog).unwrap().evaluate(&syn_ctx));
         println!("{}", splice_prog);
         println!("");
 
         let len_op = Arc::new(ArrayLengthOp::new(&ValueType::String, &syn_ctx.cache));
-        let mut len_prog = SubProgram::with_opcode_and_children(len_op, vec![names_prog.clone()], ctx_arr.clone(), ctx_arr.clone());
+        let mut len_prog = SubProgram::with_opcode_and_children(
+            len_op,
+            vec![names_prog.clone()],
+            ctx_arr.clone(),
+            ctx_arr.clone(),
+        );
         assert!(Arc::get_mut(&mut len_prog).unwrap().evaluate(&syn_ctx));
         println!("{}", len_prog);
         println!("");
 
         println!("{}", one_prog);
-        
 
-        let res = merge_context_arrays(splice_prog.pre_ctx(), splice_prog.post_ctx(), len_prog.pre_ctx(), len_prog.post_ctx());
+        let res = merge_context_arrays(
+            splice_prog.pre_ctx(),
+            splice_prog.post_ctx(),
+            len_prog.pre_ctx(),
+            len_prog.post_ctx(),
+        );
         assert!(res.is_err());
         // This isn't really the bug..
         // The bug was in the iterator, but I'll keep this anyway
