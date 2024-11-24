@@ -12,6 +12,16 @@
 				"kind": "build",
 				"isDefault": true
 			},
+        },
+        {
+            "label": "build profiling",
+            "type": "shell",
+            "command": "$HOME/.cargo/bin/cargo build --profile profiling",
+			"problemMatcher": "$rustc",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
         }
     ]
 }
