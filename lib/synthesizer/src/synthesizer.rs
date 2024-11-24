@@ -220,7 +220,8 @@ impl Synthesizer {
         iteration_map: &TypeMap,
         ctx: &ContextArray,
     ) -> Option<Arc<SubProgram>> {
-        debug!(target: "ruse::synthesizer", "Initializing context {}", ctx);
+        debug!(target: "ruse::synthesizer", "Initializing context");
+        trace!(target: "ruse::synthesizer", "{}", ctx);
 
         self.found_contexts.insert(ctx.clone());
         for op in self.init_opcodes() {
@@ -247,23 +248,22 @@ impl Synthesizer {
         current_iteration_map: Arc<TypeMap>,
     ) -> Arc<impl Fn(Arc<dyn ExprOpcode>, ProgTriplet) -> Option<Arc<SubProgram>>> {
         Arc::new(move |op: Arc<dyn ExprOpcode>, triplet: ProgTriplet| {
-            trace!(target: "ruse::synthesizer", "Evaluating");
+            trace!(target: "ruse::synthesizer", "Evaluating {}", op.op_name());
             trace!(target: "ruse::synthesizer", "pre: {}", triplet.pre_ctx);
             triplet
                 .children
                 .iter()
-                .for_each(|c| trace!(target: "ruse::synthesizer", "{}", c));
-            trace!(target: "ruse::synthesizer", "post: {}", triplet.post_ctx);
+                .enumerate()
+                .for_each(|(i, c)| trace!(target: "ruse::synthesizer", "arg[{i}]: {}", c));
 
-            let p = match this.get_program_from_composite_opcode(
+            let p = this.get_program_from_composite_opcode(
                 triplet.pre_ctx,
                 op,
                 triplet.post_ctx,
                 triplet.children,
-            ) {
-                Some(p) => p,
-                None => return None,
-            };
+            )?;
+            trace!(target: "ruse::synthesizer", "output: {}", p.out_value().wrap(p.post_ctx()));
+            trace!(target: "ruse::synthesizer", "post: {}", p.post_ctx());
             if !this.check_and_insert_program(p.clone(), current_iteration_map.as_ref()) {
                 return None;
             }
@@ -360,12 +360,7 @@ impl Synthesizer {
         debug_assert!(!op.arg_types().is_empty());
 
         let mut p = SubProgram::with_opcode_and_children(op, args, pre_ctx, post_ctx);
-        let res = match self.evaluate_program(&mut p) {
-            true => Some(p),
-            false => None,
-        };
-
-        res
+        self.evaluate_program(&mut p).then(|| p)
     }
 
     fn get_program_from_init_opcode(
