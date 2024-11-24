@@ -25,20 +25,6 @@ pub struct SubProgram {
 }
 
 fn verify_children(opcode: &Arc<dyn ExprOpcode>, children: &[Arc<SubProgram>]) -> bool {
-    let pre_context = &children[0].pre_ctx()[0];
-
-    // Verify all of the examples start from the same pre context keys
-    if !children[0].pre_ctx().iter().any(|x| {
-        for (a, b) in x.variables().zip(pre_context.variables()) {
-            if a != b {
-                return false;
-            }
-        }
-        true
-    }) {
-        return false;
-    }
-
     // Verify the opcode arguments count match the children count
     if opcode.arg_types().len() != children.len() {
         return false;
