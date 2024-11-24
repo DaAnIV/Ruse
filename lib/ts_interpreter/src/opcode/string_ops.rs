@@ -26,6 +26,10 @@ impl Default for StringSplitOp {
 }
 
 impl ExprOpcode for StringSplitOp {
+    fn op_name(&self) -> &str {
+        "String.prototype.split"
+    }
+
     fn eval(
         &self,
         args: &[&LocValue],
@@ -77,6 +81,10 @@ impl Default for StringConcatOp {
 }
 
 impl ExprOpcode for StringConcatOp {
+    fn op_name(&self) -> &str {
+        "String.prototype.concat"
+    }
+
     fn eval(
         &self,
         args: &[&LocValue],
@@ -123,6 +131,10 @@ impl StringSliceOp {
 }
 
 impl ExprOpcode for StringSliceOp {
+    fn op_name(&self) -> &str {
+        "String.prototype.slice"
+    }
+
     fn eval(
         &self,
         args: &[&LocValue],
@@ -178,6 +190,10 @@ impl Default for StringLengthOp {
 }
 
 impl ExprOpcode for StringLengthOp {
+    fn op_name(&self) -> &str {
+        "String: Length"
+    }
+
     fn eval(
         &self,
         args: &[&LocValue],
@@ -220,6 +236,10 @@ impl Default for StringLastIndexOfOp {
 }
 
 impl ExprOpcode for StringLastIndexOfOp {
+    fn op_name(&self) -> &str {
+        "String.prototype.lastIndexOf"
+    }
+
     fn eval(
         &self,
         args: &[&LocValue],
@@ -268,6 +288,10 @@ impl Default for StringIndexOfOp {
 }
 
 impl ExprOpcode for StringIndexOfOp {
+    fn op_name(&self) -> &str {
+        "String.prototype.indexOf"
+    }
+
     fn eval(
         &self,
         args: &[&LocValue],

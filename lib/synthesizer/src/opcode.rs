@@ -43,6 +43,7 @@ impl From<Option<LocValue>> for EvalResult {
 const NO_REQUIRED_VARIABLES: [CachedString; 0] = [];
 
 pub trait ExprOpcode: Debug + Sync + Send {
+    fn op_name(&self) -> &str;
     fn arg_types(&self) -> &[ValueType];
 
     // post_ctx contains the post context of the last argument or the pre context if there are no arguments.

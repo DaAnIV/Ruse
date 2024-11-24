@@ -38,6 +38,10 @@ pub mod helpers {
     }
 
     impl ExprOpcode for TestOpcode {
+        fn op_name(&self) -> &str {
+            "Test"
+        }
+
         fn arg_types(&self) -> &[ValueType] {
             &self.arg_types
         }

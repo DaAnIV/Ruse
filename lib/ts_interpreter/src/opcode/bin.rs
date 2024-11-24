@@ -94,6 +94,36 @@ impl BinOp {
 }
 
 impl ExprOpcode for BinOp {
+    fn op_name(&self) -> &str {
+        match self.op {
+            ast::BinaryOp::EqEq => "Binary EqEq",
+            ast::BinaryOp::NotEq => "Binary NotEq",
+            ast::BinaryOp::EqEqEq => "Binary EqEqEq",
+            ast::BinaryOp::NotEqEq => "Binary NotEqEq",
+            ast::BinaryOp::Lt => "Binary Lt",
+            ast::BinaryOp::LtEq => "Binary LtEq",
+            ast::BinaryOp::Gt => "Binary Gt",
+            ast::BinaryOp::GtEq => "Binary GtEq",
+            ast::BinaryOp::LShift => "Binary LShift",
+            ast::BinaryOp::RShift => "Binary RShift",
+            ast::BinaryOp::ZeroFillRShift => "Binary ZeroFillRShift",
+            ast::BinaryOp::Add => "Binary Add",
+            ast::BinaryOp::Sub => "Binary Sub",
+            ast::BinaryOp::Mul => "Binary Mul",
+            ast::BinaryOp::Div => "Binary Div",
+            ast::BinaryOp::Mod => "Binary Mod",
+            ast::BinaryOp::BitOr => "Binary BitOr",
+            ast::BinaryOp::BitXor => "Binary BitXor",
+            ast::BinaryOp::BitAnd => "Binary BitAnd",
+            ast::BinaryOp::LogicalOr => "Binary LogicalOr",
+            ast::BinaryOp::LogicalAnd => "Binary LogicalAnd",
+            ast::BinaryOp::In => "Binary In",
+            ast::BinaryOp::InstanceOf => "Binary InstanceOf",
+            ast::BinaryOp::Exp => "Binary Exp",
+            ast::BinaryOp::NullishCoalescing => "Binary NullishCoalescing",
+        }
+    }
+
     fn eval(
         &self,
         args: &[&LocValue],
@@ -101,8 +131,14 @@ impl ExprOpcode for BinOp {
         syn_ctx: &SynthesizerContext,
     ) -> EvalResult {
         debug_assert_eq!(args.len(), 2);
-        debug_assert_eq!(args[0].val().val_type(&post_ctx.graphs_map), self.arg_types[0]);
-        debug_assert_eq!(args[1].val().val_type(&post_ctx.graphs_map), self.arg_types[1]);
+        debug_assert_eq!(
+            args[0].val().val_type(&post_ctx.graphs_map),
+            self.arg_types[0]
+        );
+        debug_assert_eq!(
+            args[1].val().val_type(&post_ctx.graphs_map),
+            self.arg_types[1]
+        );
 
         let val = match (&args[0].val(), &args[1].val()) {
             (Value::Primitive(p1), Value::Primitive(p2)) => match (p1, p2) {

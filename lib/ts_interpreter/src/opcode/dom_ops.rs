@@ -33,6 +33,10 @@ impl GetElementByIdOp {
 }
 
 impl ExprOpcode for GetElementByIdOp {
+    fn op_name(&self) -> &str {
+        "Document: getElementById"
+    }
+
     fn eval(
         &self,
         args: &[&LocValue],

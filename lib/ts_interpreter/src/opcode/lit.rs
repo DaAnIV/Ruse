@@ -1,6 +1,6 @@
 use opcode::EvalResult;
-use ruse_object_graph::*;
 use ruse_object_graph::value::*;
+use ruse_object_graph::*;
 use ruse_synthesizer::location::*;
 use ruse_synthesizer::opcode::ExprOpcode;
 use ruse_synthesizer::*;
@@ -19,6 +19,15 @@ pub enum LitOp {
 }
 
 impl ExprOpcode for LitOp {
+    fn op_name(&self) -> &str {
+        match self {
+            LitOp::Null => "NullLiteral",
+            LitOp::Str(_) => "StringLiteral",
+            LitOp::Bool(_) => "BoolLiteral",
+            LitOp::Num(_) => "NumLiteral",
+        }
+    }
+
     fn eval(
         &self,
         args: &[&LocValue],
@@ -81,6 +90,10 @@ impl ArrayLitOp {
 }
 
 impl ExprOpcode for ArrayLitOp {
+    fn op_name(&self) -> &str {
+        "ArrayLiteral"
+    }
+
     fn eval(
         &self,
         args: &[&LocValue],

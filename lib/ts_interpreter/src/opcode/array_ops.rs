@@ -30,6 +30,10 @@ impl ArrayIndexOp {
 }
 
 impl ExprOpcode for ArrayIndexOp {
+    fn op_name(&self) -> &str {
+        "Array.prototype[Symbol.unscopables]"
+    }
+
     fn eval(
         &self,
         args: &[&LocValue],
@@ -82,6 +86,10 @@ impl ArrayLengthOp {
 }
 
 impl ExprOpcode for ArrayLengthOp {
+    fn op_name(&self) -> &str {
+        "Array: length"
+    }
+
     fn eval(
         &self,
         args: &[&LocValue],
@@ -123,6 +131,10 @@ impl ArrayPushOp {
 }
 
 impl ExprOpcode for ArrayPushOp {
+    fn op_name(&self) -> &str {
+        "Array.prototype.push"
+    }
+
     fn eval(
         &self,
         args: &[&LocValue],
@@ -176,6 +188,10 @@ impl ArraySliceOp {
 }
 
 impl ExprOpcode for ArraySliceOp {
+    fn op_name(&self) -> &str {
+        "Array.prototype.slice"
+    }
+
     fn eval(
         &self,
         args: &[&LocValue],
@@ -250,6 +266,10 @@ impl ArrayConcatOp {
 }
 
 impl ExprOpcode for ArrayConcatOp {
+    fn op_name(&self) -> &str {
+        "Array.prototype.concat"
+    }
+
     fn eval(
         &self,
         args: &[&LocValue],
@@ -316,6 +336,10 @@ impl ArraySpliceOp {
 }
 
 impl ExprOpcode for ArraySpliceOp {
+    fn op_name(&self) -> &str {
+        "Array.prototype.splice"
+    }
+
     fn eval(
         &self,
         args: &[&LocValue],
@@ -443,6 +467,10 @@ impl ArrayConcatArrayOp {
 }
 
 impl ExprOpcode for ArrayConcatArrayOp {
+    fn op_name(&self) -> &str {
+        "Array.prototype.concat"
+    }
+
     fn eval(
         &self,
         args: &[&LocValue],

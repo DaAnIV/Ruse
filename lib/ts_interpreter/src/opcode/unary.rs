@@ -47,6 +47,18 @@ impl UnaryOp {
 }
 
 impl ExprOpcode for UnaryOp {
+    fn op_name(&self) -> &str {
+        match self.op {
+            ast::UnaryOp::Minus => "Unary Minus",
+            ast::UnaryOp::Plus => "Unary Plus",
+            ast::UnaryOp::Bang => "Unary Bang",
+            ast::UnaryOp::Tilde => "Unary Tilde",
+            ast::UnaryOp::TypeOf => "Unary TypeOf",
+            ast::UnaryOp::Void => "Unary Void",
+            ast::UnaryOp::Delete => "Unary Delete",
+        }
+    }
+
     fn eval(
         &self,
         args: &[&LocValue],
@@ -90,6 +102,15 @@ impl UpdateOp {
 }
 
 impl ExprOpcode for UpdateOp {
+    fn op_name(&self) -> &str {
+        match (self.op, self.prefix) {
+            (ast::UpdateOp::PlusPlus, true) => "Prefix increment",
+            (ast::UpdateOp::PlusPlus, false) => "Postfix Increment",
+            (ast::UpdateOp::MinusMinus, true) => "Prefix decrement",
+            (ast::UpdateOp::MinusMinus, false) => "Postfix decrement",
+        }
+    }
+
     fn eval(
         &self,
         args: &[&LocValue],

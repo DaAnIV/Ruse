@@ -14,6 +14,7 @@ use crate::{
 pub struct ClassMethodOp {
     classes: TsClasses,
     method_name: String,
+    full_method_name: String,
     arg_types: Vec<ValueType>,
     code: String,
 }
@@ -26,6 +27,7 @@ impl ClassMethodOp {
         function_body: &str,
         classes: TsClasses,
     ) -> Self {
+        let full_method_name = format!("{}.{}", &obj_type, &method_name);
         let mut arg_types = vec![ValueType::Object(obj_type)];
         arg_types.extend(args.iter().map(|(_, value_type)| value_type.clone()));
         let caller_args = (0..(arg_types.len() - 1))
@@ -43,6 +45,7 @@ impl ClassMethodOp {
         );
         Self {
             method_name,
+            full_method_name,
             arg_types,
             code,
             classes,
@@ -51,6 +54,10 @@ impl ClassMethodOp {
 }
 
 impl ExprOpcode for ClassMethodOp {
+    fn op_name(&self) -> &str {
+        &self.full_method_name
+    }
+
     fn arg_types(&self) -> &[ValueType] {
         &self.arg_types
     }
@@ -64,7 +71,13 @@ impl ExprOpcode for ClassMethodOp {
         let mut boa_ctx = self.classes.get_boa_ctx(post_ctx, &syn_ctx.cache);
         for (i, arg) in args.iter().enumerate() {
             let key = boa_engine::js_string!(format!("arg{}", i));
-            let value = value_to_js_value(&self.classes, arg.val(), &mut boa_ctx, post_ctx, &syn_ctx.cache);
+            let value = value_to_js_value(
+                &self.classes,
+                arg.val(),
+                &mut boa_ctx,
+                post_ctx,
+                &syn_ctx.cache,
+            );
             if boa_ctx
                 .register_global_property(key, value, boa_engine::property::Attribute::all())
                 .is_err()

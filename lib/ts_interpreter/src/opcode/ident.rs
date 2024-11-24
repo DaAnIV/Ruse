@@ -1,5 +1,5 @@
-use ruse_object_graph::CachedString;
 use ruse_object_graph::value::*;
+use ruse_object_graph::CachedString;
 use ruse_synthesizer::context::*;
 use ruse_synthesizer::location::*;
 use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};
@@ -25,6 +25,10 @@ impl IdentOp {
 }
 
 impl ExprOpcode for IdentOp {
+    fn op_name(&self) -> &str {
+        &self.name
+    }
+
     fn eval(
         &self,
         args: &[&LocValue],
