@@ -15,9 +15,11 @@
                 ]
             },
             "args": [
-                "-b", "${workspaceFolder}/benchmarks/tasks/simple/user_full_name_1_example.sy",
-                "-o", "benchmarks_output/test.json",
+                "-b", "${workspaceFolder}/failed/",
+                "-o", "failed/failed.json",
+                "--log", "failed/log.json",
                 "-t", "5000",
+                "-vvv",
                 "--single-thread"
             ],
             "cwd": "${workspaceFolder}"
