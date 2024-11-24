@@ -45,7 +45,7 @@ pub struct ObjectValue {
     pub node: NodeIndex,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum Value {
     Primitive(PrimitiveValue),
     Object(ObjectValue),
@@ -256,6 +256,15 @@ impl From<ObjectValue> for Value {
 impl From<PrimitiveValue> for Value {
     fn from(value: PrimitiveValue) -> Self {
         Value::Primitive(value)
+    }
+}
+
+impl fmt::Debug for Value {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Value::Primitive(primitive_value) => write!(f, "{}", primitive_value),
+            Value::Object(object_value) => write!(f, "graph_id: {}, node_id: {}", object_value.graph_id, object_value.node),
+        }
     }
 }
 
