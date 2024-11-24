@@ -1,13 +1,20 @@
 use std::{
     collections::{BTreeMap, HashMap},
-    fmt,
+    fmt::{self, Debug},
     hash::{Hash, Hasher},
     ops::{self, AddAssign, SubAssign},
     sync::Arc,
 };
 
 use crate::{
-    graph_equality, graph_map_value::{GraphMapEq, GraphMapHash, GraphMapValue, GraphMapWrap}, graph_node::*, graph_walk::ObjectGraphWalker, node_index::{DefaultIx, NodeIndex}, scached, value::{ObjectValue, Value, ValueType}, Cache, CachedString, FieldsMap, PrimitiveValue
+    graph_equality,
+    graph_map_value::{GraphMapEq, GraphMapHash, GraphMapValue, GraphMapWrap},
+    graph_node::*,
+    graph_walk::ObjectGraphWalker,
+    node_index::{DefaultIx, NodeIndex},
+    scached,
+    value::{ObjectValue, Value, ValueType},
+    Cache, CachedString, FieldsMap, PrimitiveValue,
 };
 pub type GraphIndex = DefaultIx;
 
@@ -19,8 +26,8 @@ impl GraphsMap {
         self.0.insert(graph.id, graph)
     }
 
-    pub fn get(&self, index: GraphIndex) -> &Arc<ObjectGraph> {
-        self.0.get(&index).unwrap()
+    pub fn get(&self, index: &GraphIndex) -> Option<&Arc<ObjectGraph>> {
+        self.0.get(&index)
     }
 
     pub fn contains(&self, index: GraphIndex) -> bool {
@@ -30,7 +37,7 @@ impl GraphsMap {
     pub fn graphs(&self) -> impl std::iter::Iterator<Item = &GraphIndex> {
         self.0.keys()
     }
-    
+
     pub fn extend(&mut self, other: &GraphsMap) {
         for (key, value) in &other.0 {
             self.0.entry(*key).or_insert(value.clone());
@@ -46,7 +53,8 @@ impl ops::Index<&GraphIndex> for GraphsMap {
     type Output = Arc<ObjectGraph>;
 
     fn index(&self, index: &GraphIndex) -> &Self::Output {
-        self.0.get(index).expect(&format!("No entry found for key {}", index))
+        self.get(index)
+            .expect(&format!("No entry found for key {}", index))
     }
 }
 
@@ -54,7 +62,8 @@ impl ops::Index<GraphIndex> for GraphsMap {
     type Output = Arc<ObjectGraph>;
 
     fn index(&self, index: GraphIndex) -> &Self::Output {
-        self.0.get(&index).expect(&format!("No entry found for key {}", index))
+        self.get(&index)
+            .expect(&format!("No entry found for key {}", index))
     }
 }
 
