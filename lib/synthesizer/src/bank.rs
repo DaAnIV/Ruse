@@ -1,4 +1,4 @@
-use std::{ops::Index, sync::Arc};
+use std::{fmt::Display, ops::Index, sync::Arc};
 
 use dashmap::{mapref::{entry::Entry, multiple::RefMulti}, DashMap};
 use itertools::izip;
@@ -61,27 +61,39 @@ impl ValueArray {
 }
 
 impl ValueArray {
-    pub fn calculate_hash<H: std::hash::Hasher>(
+    pub fn wrap<'a>(&'a self, ctx_arr: &'a ContextArray) -> WrappedValueArray<'a> {
+        debug_assert!(self.len() == ctx_arr.len());
+        WrappedValueArray {
+            value_arr: self,
+            ctx_arr
+        }
+    }
+}
+
+pub struct WrappedValueArray<'a> {
+    value_arr: &'a ValueArray,
+    ctx_arr: &'a ContextArray,
+}
+
+impl<'a> Hash for WrappedValueArray<'a> {
+    fn hash<H: std::hash::Hasher>(
         &self,
         state: &mut H,
-        self_context_array: &ContextArray,
     ) {
-        debug_assert!(self.len() == self_context_array.len());
-        for (val, ctx) in izip!(self.iter(), self_context_array.iter(),) {
+        for (val, ctx) in izip!(self.value_arr.iter(), self.ctx_arr.iter(),) {
             val.wrap(&ctx.graphs_map).hash(state);
         }
     }
 }
 
-// impl ValueArray {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>, self_context_array: &ContextArray) -> std::fmt::Result {
-//         debug_assert!(self.len() == self_context_array.len());
-//         for (val, ctx) in izip!(self.iter(), self_context_array.iter(),) {
-//             write!(f, "{}", val.wrap(&ctx.graphs_map))?;
-//         }
-//         Ok(())
-//     }
-// }
+impl<'a> Display for WrappedValueArray<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for (val, ctx) in izip!(self.value_arr.iter(), self.ctx_arr.iter(),) {
+            write!(f, "{}", val.wrap(&ctx.graphs_map))?;
+        }
+        Ok(())
+    }
+}
 
 #[derive(Debug, Clone)]
 pub(crate) struct Output(Arc<SubProgram>);
@@ -123,7 +135,7 @@ impl PartialEq for Output {
 impl Hash for Output {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.0.out_type().hash(state);
-        self.0.out_value().calculate_hash(state, self.post_ctx());
+        self.0.out_value().wrap(self.post_ctx()).hash(state);
     }
 }
 

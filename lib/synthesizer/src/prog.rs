@@ -184,7 +184,7 @@ impl Hash for SubProgram {
         self.pre_ctx().hash(state);
         self.out_type().hash(state);
         self.post_ctx().hash(state);
-        self.out_value().calculate_hash(state, self.post_ctx());
+        self.out_value().wrap(self.post_ctx()).hash(state);
     }
 }
 
