@@ -75,6 +75,7 @@ impl LocValue {
     pub fn val(&self) -> &Value {
         &self.val
     }
+
     #[inline]
     pub fn loc(&self) -> &Location {
         &self.loc
