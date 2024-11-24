@@ -10,20 +10,24 @@ pub mod helpers {
         generator::object_graph_generator::generate_random_str,
         scached,
         value::{ObjectValue, Value, ValueType},
-        Cache, CachedString, FieldsMap, GraphsMap, Number, ObjectGraph, PrimitiveValue,
+        vbool, Cache, CachedString, FieldName, FieldsMap, GraphsMap, Number, ObjectGraph,
+        ObjectType, PrimitiveValue,
     };
 
     use crate::{
         context::{Context, GraphIdGenerator, SynthesizerContext, ValuesMap},
-        location::LocValue,
+        location::{LocValue, Location, VarLoc},
         opcode::{EvalResult, ExprAst, ExprOpcode},
+        prog::SubProgram,
     };
 
-    pub struct TestAst {}
+    pub struct TestAst {
+        pub code: String,
+    }
 
     impl ExprAst for TestAst {
         fn to_string(&self) -> String {
-            "".to_owned()
+            self.code.clone()
         }
 
         fn as_any(&self) -> &dyn std::any::Any {
@@ -51,8 +55,149 @@ pub mod helpers {
         }
 
         fn to_ast(&self, _: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
-            Box::new(TestAst {})
+            Box::new(TestAst {
+                code: "Test".to_owned(),
+            })
         }
+    }
+
+    #[derive(Debug)]
+    pub struct GetVar {
+        arg_types: Vec<ValueType>,
+        id: CachedString,
+    }
+
+    impl GetVar {
+        pub fn new(id: CachedString) -> Self {
+            Self {
+                id,
+                arg_types: vec![],
+            }
+        }
+    }
+
+    impl ExprOpcode for GetVar {
+        fn op_name(&self) -> &str {
+            "GetVar"
+        }
+
+        fn arg_types(&self) -> &[ValueType] {
+            &self.arg_types
+        }
+
+        fn eval(
+            &self,
+            _: &[&LocValue],
+            post_ctx: &mut Context,
+            _: &SynthesizerContext,
+        ) -> EvalResult {
+            if let Some(var) = post_ctx.get_var_loc_value(&self.id) {
+                EvalResult::NoModification(var)
+            } else {
+                EvalResult::None
+            }
+        }
+
+        fn to_ast(&self, _: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
+            Box::new(TestAst {
+                code: self.id.to_string(),
+            })
+        }
+    }
+
+    #[derive(Debug)]
+    pub struct SetArgField {
+        arg_types: Vec<ValueType>,
+        field: FieldName,
+        field_new_value: PrimitiveValue,
+    }
+
+    impl SetArgField {
+        pub fn new(
+            obj_type: ObjectType,
+            field: FieldName,
+            field_new_value: PrimitiveValue,
+        ) -> Self {
+            Self {
+                arg_types: vec![ValueType::Object(obj_type)],
+                field,
+                field_new_value,
+            }
+        }
+    }
+
+    impl ExprOpcode for SetArgField {
+        fn op_name(&self) -> &str {
+            "SetArgField"
+        }
+
+        fn arg_types(&self) -> &[ValueType] {
+            &self.arg_types
+        }
+
+        fn eval(
+            &self,
+            args: &[&LocValue],
+            post_ctx: &mut Context,
+            _: &SynthesizerContext,
+        ) -> EvalResult {
+            let obj = args[0].val().obj().unwrap();
+            let new_value = Value::Primitive(self.field_new_value.clone());
+            let res = post_ctx.set_field(obj.graph_id, obj.node, self.field.clone(), &new_value);
+            EvalResult::DirtyContext(post_ctx.temp_value(vbool!(res)))
+        }
+
+        fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
+            Box::new(TestAst {
+                code: format!(
+                    "{}.{} = {}",
+                    children[0].to_string(),
+                    self.field,
+                    self.field_new_value
+                ),
+            })
+        }
+    }
+
+    #[derive(Debug)]
+    pub struct UpdateVarOpcode {
+        pub arg_types: Vec<ValueType>,
+        pub id: CachedString,
+        pub new_value: Value,
+        pub returns: EvalResult,
+    }
+
+    impl ExprOpcode for UpdateVarOpcode {
+        fn op_name(&self) -> &str {
+            "UpdateVar"
+        }
+
+        fn arg_types(&self) -> &[ValueType] {
+            &self.arg_types
+        }
+
+        fn eval(
+            &self,
+            _: &[&LocValue],
+            post_ctx: &mut Context,
+            syn_ctx: &SynthesizerContext,
+        ) -> EvalResult {
+            let mut loc = Location::Var(VarLoc {
+                var: self.id.clone(),
+            });
+            post_ctx.update_value(&self.new_value, &mut loc, syn_ctx);
+            self.returns.clone()
+        }
+
+        fn to_ast(&self, _: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
+            Box::new(TestAst {
+                code: "UpdateVar".to_string(),
+            })
+        }
+    }
+
+    pub fn evaluate_prog(p: &mut Arc<SubProgram>, syn_ctx: &SynthesizerContext) {
+        unsafe { Arc::get_mut(p).unwrap_unchecked() }.evaluate(syn_ctx);
     }
 
     pub fn calculate_hash<T: Hash>(t: &T) -> u64 {
@@ -416,10 +561,7 @@ mod bank_iterator_tests {
 
 #[cfg(test)]
 mod context_tests {
-    use crate::{
-        context::ContextArray,
-        test::helpers::*,
-    };
+    use crate::{context::ContextArray, test::helpers::*};
     use rand::{rngs::StdRng, SeedableRng};
     use ruse_object_graph::{str_cached, value::ValueType, vstr, Cache};
 
@@ -535,5 +677,127 @@ mod context_tests {
 
         assert_eq!(calculate_hash(&ctx1), calculate_hash(&ctx2));
         assert_eq!(ctx1, ctx2);
+    }
+}
+
+#[cfg(test)]
+mod prog_tests {
+    use std::sync::Arc;
+
+    use crate::{
+        context::{Context, ContextArray, GraphIdGenerator, SynthesizerContext},
+        embedding::merge_context,
+        prog::SubProgram,
+        test::helpers::*,
+    };
+    use ruse_object_graph::{str_cached, vnum, vobj, vstr, Cache, GraphsMap, Number, ObjectGraph};
+
+    #[test]
+    fn modify_post_ctx_test() {
+        let cache = Arc::new(Cache::new());
+        let graphs_map = GraphsMap::default();
+        let id_gen = Arc::new(GraphIdGenerator::default());
+
+        let pre_ctx = ContextArray::from(vec![Context::with_values(
+            [(str_cached!(cache; "x"), vnum!(Number::from(7u64)))].into(),
+            graphs_map.into(),
+            id_gen,
+        )]);
+        let post_ctx = pre_ctx.clone();
+        let syn_ctx = SynthesizerContext::from_context_array(pre_ctx.clone(), cache);
+
+        let opcode = Arc::new(UpdateVarOpcode {
+            arg_types: vec![],
+            id: syn_ctx.cached_string("x"),
+            new_value: vnum!(Number::from(5)),
+            returns: crate::opcode::EvalResult::DirtyContext(
+                post_ctx[0].temp_value(vnum!(Number::from(0))),
+            ),
+        });
+
+        let mut p = SubProgram::with_opcode(opcode, pre_ctx, post_ctx);
+        evaluate_prog(&mut p, &syn_ctx);
+        println!("{}", p.pre_ctx());
+        println!("{}", p.out_value().wrap(p.post_ctx()));
+        println!("{}", p.post_ctx());
+    }
+
+    #[test]
+    fn embedding_test1() {
+        let cache = Arc::new(Cache::new());
+        let mut graphs_map = GraphsMap::default();
+        let id_gen = Arc::new(GraphIdGenerator::default());
+        let obj_type = str_cached!(cache; "Foo");
+        let field_name = str_cached!(cache; "f");
+
+        let x_graph_id = id_gen.get_id_for_graph();
+        let y_graph_id = id_gen.get_id_for_graph();
+        let x_node_id = id_gen.get_id_for_node();
+        let y_node_id = id_gen.get_id_for_node();
+
+        let mut x_graph = ObjectGraph::new(x_graph_id);
+        let mut y_graph = ObjectGraph::new(y_graph_id);
+
+        x_graph.add_object_from_map(
+            x_node_id,
+            obj_type.clone(),
+            [(field_name.clone(), vstr!(cache; "x"))],
+        );
+        y_graph.add_object_from_map(
+            y_node_id,
+            obj_type.clone(),
+            [(field_name.clone(), vstr!(cache; "y"))],
+        );
+
+        graphs_map.insert_graph(x_graph.into());
+        graphs_map.insert_graph(y_graph.into());
+
+        let start_ctx = ContextArray::from(vec![Context::with_values(
+            [
+                (str_cached!(cache; "x"), vobj!(x_graph_id, x_node_id)),
+                (str_cached!(cache; "y"), vobj!(y_graph_id, y_node_id)),
+            ]
+            .into(),
+            graphs_map.into(),
+            id_gen,
+        )]);
+        let syn_ctx = SynthesizerContext::from_context_array(start_ctx.clone(), cache);
+
+        let get_x = Arc::new(GetVar::new(syn_ctx.cached_string("x")));
+        let get_y = Arc::new(GetVar::new(syn_ctx.cached_string("y")));
+
+        let x_ctx = start_ctx
+            .get_partial_context(&[syn_ctx.cached_string("x")])
+            .unwrap();
+        let y_ctx = start_ctx
+            .get_partial_context(&[syn_ctx.cached_string("y")])
+            .unwrap();
+
+        let mut p_x = SubProgram::with_opcode(get_x, x_ctx.clone(), x_ctx.clone());
+        let mut p_y = SubProgram::with_opcode(get_y, y_ctx.clone(), y_ctx.clone());
+        evaluate_prog(&mut p_x, &syn_ctx);
+        evaluate_prog(&mut p_y, &syn_ctx);
+
+        println!("p_x: {}", p_x);
+        println!("p_y: {}", p_y);
+
+        println!("p_x out: {:?}", p_x.out_value()[0].val());
+        println!("p_y out: {:?}", p_y.out_value()[0].val());
+
+        let (pre_ctx, post_ctx) = merge_context(
+            &p_x.pre_ctx()[0],
+            &p_x.post_ctx()[0],
+            &p_y.pre_ctx()[0],
+            &p_y.post_ctx()[0],
+        )
+        .unwrap();
+
+        println!("merged pre: {}", pre_ctx);
+        println!("merged post: {}", post_ctx);
+        
+        println!("p_x out: {:?}", p_x.out_value()[0].val());
+        println!("p_y out: {:?}", p_y.out_value()[0].val());
+        println!("x: {:?}", post_ctx.get_var_loc_value(&syn_ctx.cached_string("x")).unwrap().val());
+        println!("y: {:?}", post_ctx.get_var_loc_value(&syn_ctx.cached_string("y")).unwrap().val());
     }
 }
