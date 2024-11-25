@@ -20,6 +20,8 @@ pub struct BenchmarksIteration {
 #[derive(Serialize, Debug, Clone)]
 pub struct BenchmarkResult {
     path: PathBuf,
+    string_literals: Option<Vec<String>>,
+    num_literals: Option<Vec<i64>>,
     iterations: Vec<BenchmarksIteration>,
     #[serde(serialize_with = "serialize_found")]
     found: Option<Arc<SubProgram>>,
@@ -43,11 +45,18 @@ impl BenchmarkResult {
         Self {
             path: PathBuf::from(path),
             iterations: vec![],
+            string_literals: None,
+            num_literals: None,
             found: None,
             total_time: None,
             total_statistics: None,
             error: None,
         }
+    }
+    
+    pub fn set_literals(&mut self, string_literals: Vec<String>, num_literals: Vec<i64>) {
+        self.string_literals.replace(string_literals);
+        self.num_literals.replace(num_literals);
     }
 
     pub fn add_iteration(&mut self, time: Duration, statistics: CurrentStatistics) {

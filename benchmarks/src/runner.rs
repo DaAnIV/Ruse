@@ -78,6 +78,9 @@ pub fn run_task(path: &Path, cache: Arc<Cache>, bench_config: &BenchmarkConfig) 
             return result;
         }
     };
+
+    task.populate_results(&mut result);
+
     let mut synthesizer = match task.get_synthesizer(&cache) {
         Ok(v) => v,
         Err(e) => {

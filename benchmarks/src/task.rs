@@ -26,6 +26,8 @@ use ruse_ts_synthesizer::{
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::json;
 
+use crate::results::BenchmarkResult;
+
 #[derive(Debug)]
 pub struct TodoError {
     pub to_implement: &'static str,
@@ -381,7 +383,7 @@ impl TaskType {
                     return Ok(json!(collected));
                 }
                 ',' => {
-                    if !part.is_empty() {                        
+                    if !part.is_empty() {
                         collected.push(Self::strip_string(&part)?.to_string());
                         part = String::new();
                     }
@@ -805,9 +807,14 @@ pub struct SnythesisTask {
     inner: SnythesisTaskInner,
     classes: TsClasses,
     class_names: Vec<CachedString>,
+    string_literals: HashSet<String>,
+    num_literals: HashSet<i64>,
 }
 
 impl SnythesisTask {
+    const DEFAULT_STRING_LITERALS: [&str; 2] = ["", " "];
+    const DEFAULT_NUM_LITERALS: [i64; 2] = [0, 1];
+
     pub fn get_synthesizer(&self, cache: &Arc<Cache>) -> Result<TsSynthesizer, SnythesisTaskError> {
         let opcodes = self.get_opcodes(cache);
         let context_array = self.get_context_array(cache)?;
@@ -922,9 +929,7 @@ impl SnythesisTask {
         &self,
         _cache: &Cache,
     ) -> Result<SynthesizerPredicate, SnythesisTaskError> {
-        Ok(Box::new(move |_p| {
-            true
-        }))
+        Ok(Box::new(move |_p| true))
     }
 
     fn add_classes(
@@ -973,15 +978,16 @@ impl SnythesisTask {
             .keys()
             .map(|x| str_cached!(cache; x))
             .collect();
-        let num_literals = match &self.inner.int_literals {
-            Some(literals) => literals.clone(),
-            None => vec![0, 1],
-        };
-        let string_literals = match &self.inner.string_literals {
-            Some(literals) => literals.iter().map(|x| str_cached!(cache; x)).collect(),
-            None => vec![str_cached!(cache; " ")],
-        };
-        let mut opcodes = construct_opcode_list(&var_names, &num_literals, &string_literals, false);
+
+        let string_literals = self
+            .string_literals
+            .iter()
+            .map(|x| str_cached!(cache; x.as_str()))
+            .collect_vec();
+
+        let mut opcodes =
+            construct_opcode_list(&var_names, &self.num_literals, &string_literals, false);
+
         add_num_opcodes(
             &mut opcodes,
             &ALL_BIN_NUM_OPCODES,
@@ -1022,6 +1028,17 @@ impl SnythesisTask {
 
         let mut dir = PathBuf::from(path);
         dir.pop();
+
+        let mut string_literals =
+            HashSet::from_iter(Self::DEFAULT_STRING_LITERALS.map(|x| x.to_string()));
+        if let Some(user_lit) = &inner.string_literals {
+            string_literals.extend(user_lit.clone());
+        }
+
+        let mut num_literals = HashSet::from(Self::DEFAULT_NUM_LITERALS);
+        if let Some(user_lit) = &inner.int_literals {
+            num_literals.extend(user_lit.clone());
+        }
 
         let classes = TsClasses::new();
         let mut class_names = vec![];
@@ -1071,9 +1088,18 @@ impl SnythesisTask {
         }
 
         Ok(Self {
+            string_literals,
+            num_literals,
             classes,
             class_names,
             inner,
         })
+    }
+
+    pub fn populate_results(&self, results: &mut BenchmarkResult) {
+        results.set_literals(
+            Vec::from_iter(self.string_literals.iter().cloned()),
+            Vec::from_iter(self.num_literals.iter().cloned()),
+        );
     }
 }
