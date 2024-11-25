@@ -319,3 +319,47 @@ impl ExprOpcode for StringIndexOfOp {
         &self.arg_types
     }
 }
+
+#[derive(Debug)]
+pub struct StringReplaceAllOp {
+    arg_types: [ValueType; 3],
+}
+
+impl StringReplaceAllOp {
+    pub fn new() -> Self {
+        Self {
+            arg_types: [ValueType::String, ValueType::String, ValueType::String],
+        }
+    }
+}
+
+impl ExprOpcode for StringReplaceAllOp {
+    fn op_name(&self) -> &str {
+        "String.prototype.replaceAll"
+    }
+
+    fn eval(
+        &self,
+        args: &[&LocValue],
+        post_ctx: &mut Context,
+        syn_ctx: &SynthesizerContext,
+    ) -> EvalResult {
+        debug_assert_eq!(args.len(), 3);
+
+        let string = args[0].val().string_value().unwrap();
+        let pat = args[1].val().string_value().unwrap();
+        let replacement = args[2].val().string_value().unwrap();
+
+        let new_string = string.replace(pat.as_str(), replacement.as_str());
+
+        EvalResult::NoModification(post_ctx.temp_value(vstring!(syn_ctx.cache; new_string)))
+    }
+
+    fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
+        member_call_ast("replaceAll", children)
+    }
+
+    fn arg_types(&self) -> &[ValueType] {
+        &self.arg_types
+    }
+}
