@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use ruse_object_graph::{graph_map_value::*, value::ValueType};
 
-use crate::bank::ValueArray;
+use crate::value_array::ValueArray;
 use crate::context::ContextArray;
 use crate::context::SynthesizerContext;
 use crate::location::*;

@@ -7,5 +7,6 @@ pub mod location;
 pub mod embedding;
 mod multi_programs_map_product;
 mod bank_iterator;
+mod value_array;
 
 pub mod test;
