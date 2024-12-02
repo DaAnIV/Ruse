@@ -12,6 +12,7 @@ use tracing::{error, info};
 use crate::{config::BenchmarkConfig, results::BenchmarkResult, task};
 
 struct TimeoutError {}
+impl std::error::Error for TimeoutError {}
 
 impl std::fmt::Display for TimeoutError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -24,7 +25,19 @@ impl std::fmt::Debug for TimeoutError {
     }
 }
 
-impl std::error::Error for TimeoutError {}
+struct ReachedMaxIterationError {}
+impl std::error::Error for ReachedMaxIterationError {}
+
+impl std::fmt::Display for ReachedMaxIterationError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "ReachedMaxIterationError")
+    }
+}
+impl std::fmt::Debug for ReachedMaxIterationError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ReachedMaxIterationError").finish()
+    }
+}
 
 async fn run_synthesizer(
     synthesizer: &mut TsSynthesizer,
@@ -52,6 +65,12 @@ async fn run_synthesizer(
         }
     }
     let took = start.elapsed();
+    if found.is_none() {
+        error!(target: "ruse::runner", "Reached max iterations");
+        let err = ReachedMaxIterationError {};
+        result.error(&err);
+    }
+
     result.finish(found, took, synthesizer.statistics());
     info!(target: "ruse::runner", "Benchmark took {:.3}s", took.as_secs_f32());
 }
