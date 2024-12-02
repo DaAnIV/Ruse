@@ -60,6 +60,7 @@ pub trait GraphMapWrap<T> {
 }
 
 impl<T: GraphMapWrap<T>> GraphMapWrap<T> for Arc<T> {
+    #[inline]
     fn wrap<'a>(&'a self, graphs_map: &'a GraphsMap) -> GraphMapValue<'a, T> where Self: Sized {
         GraphMapValue::from(self.as_ref(), graphs_map)
     }
