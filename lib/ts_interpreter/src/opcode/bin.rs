@@ -12,10 +12,19 @@ use super::TsExprAst;
 #[derive(Debug)]
 pub struct BinOp {
     pub op: ast::BinaryOp,
-    pub arg_types: [ValueType; 2],
+    op_name: String,
+    arg_types: [ValueType; 2],
 }
 
 impl BinOp {
+    pub fn new(op: ast::BinaryOp, lh_type: ValueType, rh_type: ValueType) -> Self {
+        Self {
+            op,
+            op_name: Self::get_op_name(&op, &lh_type, &rh_type),
+            arg_types: [lh_type, rh_type]
+        }
+    }
+
     fn eval_bin_num(&self, n1: &Number, n2: &Number) -> Value {
         match self.op {
             ast::BinaryOp::EqEq => vbool!(n1 == n2),
@@ -91,37 +100,41 @@ impl BinOp {
             _ => unreachable!(),
         }
     }
+
+    fn get_op_name(op: &ast::BinaryOp, lh_type: &ValueType, rh_type: &ValueType) -> String {
+        match op {
+            ast::BinaryOp::EqEq => format!("Binary EqEq [{}, {}]", lh_type, rh_type),
+            ast::BinaryOp::NotEq => format!("Binary NotEq [{}, {}]", lh_type, rh_type),
+            ast::BinaryOp::EqEqEq => format!("Binary EqEqEq [{}, {}]", lh_type, rh_type),
+            ast::BinaryOp::NotEqEq => format!("Binary NotEqEq [{}, {}]", lh_type, rh_type),
+            ast::BinaryOp::Lt => format!("Binary Lt [{}, {}]", lh_type, rh_type),
+            ast::BinaryOp::LtEq => format!("Binary LtEq [{}, {}]", lh_type, rh_type),
+            ast::BinaryOp::Gt => format!("Binary Gt [{}, {}]", lh_type, rh_type),
+            ast::BinaryOp::GtEq => format!("Binary GtEq [{}, {}]", lh_type, rh_type),
+            ast::BinaryOp::LShift => format!("Binary LShift [{}, {}]", lh_type, rh_type),
+            ast::BinaryOp::RShift => format!("Binary RShift [{}, {}]", lh_type, rh_type),
+            ast::BinaryOp::ZeroFillRShift => format!("Binary ZeroFillRShift [{}, {}]", lh_type, rh_type),
+            ast::BinaryOp::Add => format!("Binary Add [{}, {}]", lh_type, rh_type),
+            ast::BinaryOp::Sub => format!("Binary Sub [{}, {}]", lh_type, rh_type),
+            ast::BinaryOp::Mul => format!("Binary Mul [{}, {}]", lh_type, rh_type),
+            ast::BinaryOp::Div => format!("Binary Div [{}, {}]", lh_type, rh_type),
+            ast::BinaryOp::Mod => format!("Binary Mod [{}, {}]", lh_type, rh_type),
+            ast::BinaryOp::BitOr => format!("Binary BitOr [{}, {}]", lh_type, rh_type),
+            ast::BinaryOp::BitXor => format!("Binary BitXor [{}, {}]", lh_type, rh_type),
+            ast::BinaryOp::BitAnd => format!("Binary BitAnd [{}, {}]", lh_type, rh_type),
+            ast::BinaryOp::LogicalOr => format!("Binary LogicalOr [{}, {}]", lh_type, rh_type),
+            ast::BinaryOp::LogicalAnd => format!("Binary LogicalAnd [{}, {}]", lh_type, rh_type),
+            ast::BinaryOp::In => format!("Binary In [{}, {}]", lh_type, rh_type),
+            ast::BinaryOp::InstanceOf => format!("Binary InstanceOf [{}, {}]", lh_type, rh_type),
+            ast::BinaryOp::Exp => format!("Binary Exp [{}, {}]", lh_type, rh_type),
+            ast::BinaryOp::NullishCoalescing => format!("Binary NullishCoalescing [{}, {}]", lh_type, rh_type),
+        }
+    }
 }
 
 impl ExprOpcode for BinOp {
     fn op_name(&self) -> &str {
-        match self.op {
-            ast::BinaryOp::EqEq => "Binary EqEq",
-            ast::BinaryOp::NotEq => "Binary NotEq",
-            ast::BinaryOp::EqEqEq => "Binary EqEqEq",
-            ast::BinaryOp::NotEqEq => "Binary NotEqEq",
-            ast::BinaryOp::Lt => "Binary Lt",
-            ast::BinaryOp::LtEq => "Binary LtEq",
-            ast::BinaryOp::Gt => "Binary Gt",
-            ast::BinaryOp::GtEq => "Binary GtEq",
-            ast::BinaryOp::LShift => "Binary LShift",
-            ast::BinaryOp::RShift => "Binary RShift",
-            ast::BinaryOp::ZeroFillRShift => "Binary ZeroFillRShift",
-            ast::BinaryOp::Add => "Binary Add",
-            ast::BinaryOp::Sub => "Binary Sub",
-            ast::BinaryOp::Mul => "Binary Mul",
-            ast::BinaryOp::Div => "Binary Div",
-            ast::BinaryOp::Mod => "Binary Mod",
-            ast::BinaryOp::BitOr => "Binary BitOr",
-            ast::BinaryOp::BitXor => "Binary BitXor",
-            ast::BinaryOp::BitAnd => "Binary BitAnd",
-            ast::BinaryOp::LogicalOr => "Binary LogicalOr",
-            ast::BinaryOp::LogicalAnd => "Binary LogicalAnd",
-            ast::BinaryOp::In => "Binary In",
-            ast::BinaryOp::InstanceOf => "Binary InstanceOf",
-            ast::BinaryOp::Exp => "Binary Exp",
-            ast::BinaryOp::NullishCoalescing => "Binary NullishCoalescing",
-        }
+        &self.op_name
     }
 
     fn eval(

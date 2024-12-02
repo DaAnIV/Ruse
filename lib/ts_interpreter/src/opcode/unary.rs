@@ -12,12 +12,14 @@ use super::TsExprAst;
 #[derive(Debug)]
 pub struct UnaryOp {
     pub op: ast::UnaryOp,
+    op_name: String,
     arg_types: [ValueType; 1],
 }
 
 #[derive(Debug)]
 pub struct UpdateOp {
     pub op: ast::UpdateOp,
+    pub op_name: String,
     pub prefix: bool,
 }
 
@@ -25,6 +27,7 @@ impl UnaryOp {
     pub fn new(op: ast::UnaryOp, value_type: ValueType) -> Self {
         Self {
             op,
+            op_name: Self::get_op_name(&op, &value_type),
             arg_types: [value_type],
         }
     }
@@ -44,19 +47,23 @@ impl UnaryOp {
             _ => unreachable!(),
         }
     }
+
+    fn get_op_name(op: &ast::UnaryOp, value_type: &ValueType) -> String {
+        match op {
+            ast::UnaryOp::Minus => format!("Unary {} Minus", value_type),
+            ast::UnaryOp::Plus => format!("Unary {} Plus", value_type),
+            ast::UnaryOp::Bang => format!("Unary {} Bang", value_type),
+            ast::UnaryOp::Tilde => format!("Unary {} Tilde", value_type),
+            ast::UnaryOp::TypeOf => format!("Unary {} TypeOf", value_type),
+            ast::UnaryOp::Void => format!("Unary {} Void", value_type),
+            ast::UnaryOp::Delete => format!("Unary {} Delete", value_type),
+        }
+    }
 }
 
 impl ExprOpcode for UnaryOp {
     fn op_name(&self) -> &str {
-        match self.op {
-            ast::UnaryOp::Minus => "Unary Minus",
-            ast::UnaryOp::Plus => "Unary Plus",
-            ast::UnaryOp::Bang => "Unary Bang",
-            ast::UnaryOp::Tilde => "Unary Tilde",
-            ast::UnaryOp::TypeOf => "Unary TypeOf",
-            ast::UnaryOp::Void => "Unary Void",
-            ast::UnaryOp::Delete => "Unary Delete",
-        }
+        &self.op_name
     }
 
     fn eval(
@@ -97,18 +104,23 @@ impl ExprOpcode for UnaryOp {
 
 impl UpdateOp {
     pub fn new(op: ast::UpdateOp, prefix: bool) -> Self {
-        Self { op, prefix }
+        let value_type = ValueType::Number;
+        Self { op, op_name: Self::get_op_name(&op, prefix, &value_type), prefix }
+    }
+
+    fn get_op_name(op: &ast::UpdateOp, prefix: bool, value_type: &ValueType) -> String {
+        match (op, prefix) {
+            (ast::UpdateOp::PlusPlus, true) => format!("Prefix {} increment", value_type),
+            (ast::UpdateOp::PlusPlus, false) => format!("Postfix {} Increment", value_type),
+            (ast::UpdateOp::MinusMinus, true) => format!("Prefix {} decrement", value_type),
+            (ast::UpdateOp::MinusMinus, false) => format!("Postfix {} decrement", value_type),
+        }
     }
 }
 
 impl ExprOpcode for UpdateOp {
     fn op_name(&self) -> &str {
-        match (self.op, self.prefix) {
-            (ast::UpdateOp::PlusPlus, true) => "Prefix increment",
-            (ast::UpdateOp::PlusPlus, false) => "Postfix Increment",
-            (ast::UpdateOp::MinusMinus, true) => "Prefix decrement",
-            (ast::UpdateOp::MinusMinus, false) => "Postfix decrement",
-        }
+        &self.op_name
     }
 
     fn eval(

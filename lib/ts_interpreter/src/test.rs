@@ -22,10 +22,7 @@ mod ts_simple_opcodes_tests {
         let syn_ctx = SynthesizerContext::from_context_array(ctx_arr, cache.clone());
         let ctx = &syn_ctx.start_context[0].clone();
         let mut out_ctx = ctx.clone();
-        let evaluator = BinOp {
-            op: ast::BinaryOp::Add,
-            arg_types: [ValueType::Number, ValueType::Number],
-        };
+        let evaluator = BinOp::new(ast::BinaryOp::Add, ValueType::Number, ValueType::Number);
 
         let args = [
             &ctx.temp_value(vnum!(Number::from(3u64))),
@@ -46,10 +43,7 @@ mod ts_simple_opcodes_tests {
         let syn_ctx = SynthesizerContext::from_context_array(ctx_arr, cache.clone());
         let ctx = &syn_ctx.start_context[0];
         let mut out_ctx = ctx.clone();
-        let evaluator = BinOp {
-            op: ast::BinaryOp::Add,
-            arg_types: [ValueType::String, ValueType::String],
-        };
+        let evaluator = BinOp::new(ast::BinaryOp::Add, ValueType::String, ValueType::String);
 
         let args = [
             &ctx.temp_value(vstr!(cache; "a")),
@@ -97,10 +91,7 @@ mod ts_simple_opcodes_tests {
         let syn_ctx = SynthesizerContext::from_context_array(ctx_arr, cache.clone());
         let ctx = &syn_ctx.start_context[0];
         let id = IdentOp::new(str_cached!(cache; "x"));
-        let op = UpdateOp {
-            op: ast::UpdateOp::PlusPlus,
-            prefix: true,
-        };
+        let op = UpdateOp::new(ast::UpdateOp::PlusPlus, true);
         let mut id_out_ctx = ctx.clone();
         let x_val = id.eval(&[], &mut id_out_ctx, &syn_ctx).unwrap();
 
@@ -151,10 +142,7 @@ mod ts_simple_opcodes_tests {
         let syn_ctx = SynthesizerContext::from_context_array(ctx_arr, cache.clone());
         let ctx = &syn_ctx.start_context[0];
         let id = IdentOp::new(str_cached!(cache; "x"));
-        let op = UpdateOp {
-            op: ast::UpdateOp::PlusPlus,
-            prefix: false,
-        };
+        let op = UpdateOp::new(ast::UpdateOp::PlusPlus, false);
         let mut id_out_ctx = ctx.clone();
         let x_val = id.eval(&[], &mut id_out_ctx, &syn_ctx).unwrap();
 

@@ -92,10 +92,11 @@ pub fn add_num_opcodes(
     update_num_opcodes: &[ast::UpdateOp],
 ) {
     for op in bin_num_opcodes {
-        let op = Arc::new(opcode::BinOp {
-            arg_types: [ValueType::Number, ValueType::Number],
-            op: *op,
-        });
+        let op = Arc::new(opcode::BinOp::new(
+            *op,
+            ValueType::Number,
+            ValueType::Number,
+        ));
         opcodes.push(op);
     }
     for op in unary_num_opcodes {
@@ -114,10 +115,7 @@ pub fn add_bool_opcodes(
     unary_bool_opcodes: &[ast::UnaryOp],
 ) {
     for op in bin_bool_opcodes {
-        let op = Arc::new(opcode::BinOp {
-            arg_types: [ValueType::Bool, ValueType::Bool],
-            op: *op,
-        });
+        let op = Arc::new(opcode::BinOp::new(*op, ValueType::Bool, ValueType::Bool));
         opcodes.push(op);
     }
     for op in unary_bool_opcodes {
@@ -128,10 +126,11 @@ pub fn add_bool_opcodes(
 
 pub fn add_str_opcodes(opcodes: &mut OpcodesList, str_bool_opcodes: &[ast::BinaryOp]) {
     for op in str_bool_opcodes {
-        let op = Arc::new(opcode::BinOp {
-            arg_types: [ValueType::String, ValueType::String],
-            op: *op,
-        });
+        let op = Arc::new(opcode::BinOp::new(
+            *op,
+            ValueType::String,
+            ValueType::String,
+        ));
         opcodes.push(op);
     }
     opcodes.push(Arc::new(opcode::StringLengthOp::new()));
