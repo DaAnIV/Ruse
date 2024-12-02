@@ -500,7 +500,7 @@ mod specific_bugs_tests {
     use std::sync::Arc;
 
     use object_graph::str_cached;
-    use ruse_object_graph::{self as object_graph, value::ValueType, vstr, Cache, Number};
+    use ruse_object_graph::{self as object_graph, graph_map_value::GraphMapWrap, value::ValueType, vnum, vstr, Cache, Number};
     use ruse_synthesizer::{
         context::{ContextArray, SynthesizerContext},
         embedding::merge_context_arrays,
@@ -508,7 +508,7 @@ mod specific_bugs_tests {
         prog::SubProgram, test::helpers::evaluate_prog,
     };
 
-    use crate::opcode::{ArrayLengthOp, ArraySpliceOp, IdentOp, LitOp};
+    use crate::opcode::{ArrayIndexOp, ArrayLengthOp, ArrayPushOp, ArraySpliceOp, IdentOp, LitOp};
 
     #[test]
     fn bug_1() {
@@ -582,5 +582,93 @@ mod specific_bugs_tests {
         // Now we are contiue to the next set of children
         // [1, 2', 3', 4'']
         // Now we set the context only for 4
+    }
+
+    #[test]
+    fn bug_2() {
+        let cache = Arc::new(Cache::new());
+
+        let ctx = ruse_synthesizer::test::helpers::generate_context_from_array(
+            str_cached!(cache; "arr"),
+            &ValueType::Number,
+            [8, 9, 7].iter().map(|s| vnum!(Number::from(*s))),
+            &cache,
+        );
+        let ctx_arr = ContextArray::from(vec![ctx]);
+        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr.clone(), cache);
+
+        let id_op = Arc::new(IdentOp::new(syn_ctx.cached_string("arr")));
+        let mut arr_prog = SubProgram::with_opcode(id_op, ctx_arr.clone(), ctx_arr.clone());
+        assert!(evaluate_prog(&mut arr_prog, &syn_ctx));
+        println!("{}", arr_prog);
+
+        let one_op = Arc::new(LitOp::Num(Number::from(1)));
+        let one_ctx = ctx_arr
+            .get_partial_context(one_op.required_variables())
+            .unwrap();
+        let mut one_prog = SubProgram::with_opcode(one_op, one_ctx.clone(), one_ctx.clone());
+        assert!(evaluate_prog(&mut one_prog, &syn_ctx));
+        println!("{}", one_prog);
+        println!("");
+
+        let zero_op = Arc::new(LitOp::Num(Number::from(0)));
+        let zero_ctx = ctx_arr
+            .get_partial_context(zero_op.required_variables())
+            .unwrap();
+        let mut zero_prog = SubProgram::with_opcode(zero_op, zero_ctx.clone(), zero_ctx.clone());
+        assert!(evaluate_prog(&mut zero_prog, &syn_ctx));
+        println!("{}", zero_prog);
+        println!("");
+
+        let splice_op = Arc::new(ArraySpliceOp::new(&ValueType::Number, true, &syn_ctx.cache));
+        let mut splice_prog = SubProgram::with_opcode_and_children(
+            splice_op,
+            vec![arr_prog.clone(), one_prog.clone(), one_prog.clone()],
+            ctx_arr.clone(),
+            ctx_arr.clone(),
+        );
+        assert!(evaluate_prog(&mut splice_prog, &syn_ctx));
+        println!("{}", splice_prog);
+        println!("");
+
+        let first_item_op = Arc::new(ArrayIndexOp::new(&ValueType::Number, &syn_ctx.cache));
+        let mut splice_first_prog = SubProgram::with_opcode_and_children(
+            first_item_op,
+            vec![splice_prog.clone(), zero_prog.clone()],
+            splice_prog.pre_ctx().clone(),
+            splice_prog.post_ctx().clone(),
+        );
+        assert!(evaluate_prog(&mut splice_first_prog, &syn_ctx));
+        println!("{}", splice_first_prog);
+        println!("");
+
+        let (merged_pre, merged_post) = merge_context_arrays(
+            arr_prog.pre_ctx(),
+            arr_prog.post_ctx(),
+            splice_first_prog.pre_ctx(),
+            splice_first_prog.post_ctx(),
+        ).unwrap();
+
+        let push_op = Arc::new(ArrayPushOp::new(&ValueType::Number, &syn_ctx.cache));
+        let mut push_prog = SubProgram::with_opcode_and_children(
+            push_op,
+            vec![arr_prog.clone(), splice_first_prog.clone()],
+            merged_pre,
+            merged_post,
+        );
+        assert!(evaluate_prog(&mut push_prog, &syn_ctx));
+        println!("{}", push_prog);
+        println!("");
+
+        let expected_ctx = ruse_synthesizer::test::helpers::generate_context_from_array(
+            syn_ctx.cached_string("arr"),
+            &ValueType::Number,
+            [8, 7, 9].iter().map(|s| vnum!(Number::from(*s))),
+            &syn_ctx.cache,
+        );
+        let final_arr = push_prog.post_ctx()[0].get_var_loc_value(&syn_ctx.cached_string("arr")).unwrap();
+        let expected_arr = expected_ctx.get_var_loc_value(&syn_ctx.cached_string("arr")).unwrap();
+
+        assert_eq!(final_arr.wrap(&push_prog.post_ctx()[0].graphs_map), expected_arr.wrap(&expected_ctx.graphs_map));
     }
 }
