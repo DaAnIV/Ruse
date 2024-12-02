@@ -1,5 +1,5 @@
 use ruse_object_graph::{value::ValueType, Cache, CachedString, Number};
-use ruse_synthesizer::synthesizer::OpcodesList;
+use ruse_synthesizer::{context::VariableName, synthesizer::OpcodesList};
 use ruse_ts_interpreter::opcode;
 use std::sync::Arc;
 
@@ -51,12 +51,17 @@ pub const ALL_UNARY_BOOL_OPCODES: [ast::UnaryOp; 1] = [ast::UnaryOp::Bang];
 
 pub const ALL_BIN_STR_OPCODES: [ast::BinaryOp; 1] = [ast::BinaryOp::Add];
 
-pub fn construct_opcode_list(
-    var_names: &[CachedString],
-    num_literals: &[i64],
-    string_literals: &[CachedString],
+pub fn construct_opcode_list<'a, V, N, S>(
+    var_names: V,
+    num_literals: N,
+    string_literals: S,
     add_bool_lit: bool,
-) -> OpcodesList {
+) -> OpcodesList
+where
+    V: std::iter::IntoIterator<Item = &'a VariableName>,
+    N: std::iter::IntoIterator<Item = &'a i64>,
+    S: std::iter::IntoIterator<Item = &'a CachedString>,
+{
     let mut opcodes: OpcodesList = Vec::new();
 
     // Add variable access
@@ -70,16 +75,16 @@ pub fn construct_opcode_list(
         opcodes.push(Arc::new(opcode::LitOp::Num(Number::from(*n))));
     }
 
+    // Add string literals
+    for s in string_literals {
+        let op = Arc::new(opcode::LitOp::Str(s.clone()));
+        opcodes.push(op);
+    }
+
     // Add bool literals
     if add_bool_lit {
         opcodes.push(Arc::new(opcode::LitOp::Bool(false)));
         opcodes.push(Arc::new(opcode::LitOp::Bool(true)));
-    }
-
-    // Add string literals
-    for str in string_literals {
-        let op = Arc::new(opcode::LitOp::Str(str.clone()));
-        opcodes.push(op);
     }
 
     opcodes
@@ -139,6 +144,7 @@ pub fn add_str_opcodes(opcodes: &mut OpcodesList, str_bool_opcodes: &[ast::Binar
     opcodes.push(Arc::new(opcode::StringSliceOp::new(true)));
     opcodes.push(Arc::new(opcode::StringIndexOfOp::new()));
     opcodes.push(Arc::new(opcode::StringLastIndexOfOp::new()));
+    opcodes.push(Arc::new(opcode::StringReplaceAllOp::new()));
 }
 
 pub fn add_array_opcodes(opcodes: &mut OpcodesList, array_types: &[ValueType], cache: &Cache) {
