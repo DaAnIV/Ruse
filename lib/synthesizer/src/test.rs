@@ -196,8 +196,8 @@ pub mod helpers {
         }
     }
 
-    pub fn evaluate_prog(p: &mut Arc<SubProgram>, syn_ctx: &SynthesizerContext) {
-        unsafe { Arc::get_mut(p).unwrap_unchecked() }.evaluate(syn_ctx);
+    pub fn evaluate_prog(p: &mut Arc<SubProgram>, syn_ctx: &SynthesizerContext) -> bool {
+        unsafe { Arc::get_mut(p).unwrap_unchecked() }.evaluate(syn_ctx)
     }
 
     pub fn calculate_hash<T: Hash>(t: &T) -> u64 {

@@ -505,7 +505,7 @@ mod specific_bugs_tests {
         context::{ContextArray, SynthesizerContext},
         embedding::merge_context_arrays,
         opcode::ExprOpcode,
-        prog::SubProgram,
+        prog::SubProgram, test::helpers::evaluate_prog,
     };
 
     use crate::opcode::{ArrayLengthOp, ArraySpliceOp, IdentOp, LitOp};
@@ -525,7 +525,7 @@ mod specific_bugs_tests {
 
         let id_op = Arc::new(IdentOp::new(syn_ctx.cached_string("names")));
         let mut names_prog = SubProgram::with_opcode(id_op, ctx_arr.clone(), ctx_arr.clone());
-        assert!(Arc::get_mut(&mut names_prog).unwrap().evaluate(&syn_ctx));
+        assert!(evaluate_prog(&mut names_prog, &syn_ctx));
         println!("{}", names_prog);
 
         let one_op = Arc::new(LitOp::Num(Number::from(1)));
@@ -533,7 +533,7 @@ mod specific_bugs_tests {
             .get_partial_context(one_op.required_variables())
             .unwrap();
         let mut one_prog = SubProgram::with_opcode(one_op, one_ctx.clone(), one_ctx.clone());
-        assert!(Arc::get_mut(&mut one_prog).unwrap().evaluate(&syn_ctx));
+        assert!(evaluate_prog(&mut one_prog, &syn_ctx));
         println!("{}", one_prog);
         println!("");
 
@@ -548,7 +548,7 @@ mod specific_bugs_tests {
             ctx_arr.clone(),
             ctx_arr.clone(),
         );
-        assert!(Arc::get_mut(&mut splice_prog).unwrap().evaluate(&syn_ctx));
+        assert!(evaluate_prog(&mut splice_prog, &syn_ctx));
         println!("{}", splice_prog);
         println!("");
 
@@ -559,7 +559,7 @@ mod specific_bugs_tests {
             ctx_arr.clone(),
             ctx_arr.clone(),
         );
-        assert!(Arc::get_mut(&mut len_prog).unwrap().evaluate(&syn_ctx));
+        assert!(evaluate_prog(&mut len_prog, &syn_ctx));
         println!("{}", len_prog);
         println!("");
 
