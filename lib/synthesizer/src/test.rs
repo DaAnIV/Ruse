@@ -275,7 +275,7 @@ pub mod helpers {
         let graph_id_gen = Arc::new(GraphIdGenerator::default());
         let mut graphs_map = GraphsMap::default();
 
-        let mut values = ValuesMap::new();
+        let mut values = ValuesMap::default();
         for _ in 0..num_primitive {
             let key = scached!(cache; generate_random_str(4, rng));
             let value = generate_random_primitive_value(rng, cache);
@@ -308,7 +308,7 @@ pub mod helpers {
         let graph_id_gen = Arc::new(GraphIdGenerator::default());
         let mut graphs_map = GraphsMap::default();
 
-        let mut values = ValuesMap::new();
+        let mut values = ValuesMap::default();
         let graph_id = graph_id_gen.get_id_for_graph();
         let mut graph = ObjectGraph::new(graph_id);
         let node =

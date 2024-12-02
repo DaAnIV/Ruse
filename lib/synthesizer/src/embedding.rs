@@ -1,6 +1,6 @@
-use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 
-use crate::context::{Context, ContextArray, VariableName};
+use crate::context::{Context, ContextArray, ValuesMap, VariableName};
 use itertools::{self, izip};
 use ruse_object_graph::{
     graph_equality,
@@ -97,7 +97,7 @@ pub fn merge_context_arrays(
 fn embed_object_value(
     var: &VariableName,
     obj_val: &ObjectValue,
-    values_hat: &mut BTreeMap<VariableName, Value>,
+    values_hat: &mut ValuesMap,
     map_hat: &mut GraphsMap,
     old_ctx: &Context,
     new_nodes: &HashSet<NodeIndex>,

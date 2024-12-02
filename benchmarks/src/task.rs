@@ -527,7 +527,7 @@ fn parse_json_values(
     classes: &TsClasses,
     cache: &Cache,
 ) -> Result<ValuesMap, SnythesisTaskError> {
-    let mut values = ValuesMap::new();
+    let mut values = ValuesMap::default();
     for (k, v) in map {
         let key = str_cached!(cache; k);
         let value_type = &match types.get(k) {
@@ -907,7 +907,7 @@ impl SnythesisTask {
 
             if let Some(array) = &state_array {
                 for (actual, expected) in p.post_ctx().iter().zip(array) {
-                    for (var, value) in expected {
+                    for (var, value) in expected.iter() {
                         let actual_value = match actual.get_var_loc_value(var) {
                             None => return false,
                             Some(v) => v,

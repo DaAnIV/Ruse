@@ -7,10 +7,10 @@ use ruse_object_graph::{
     *,
 };
 use std::{
-    collections::{BTreeMap, HashMap, HashSet, VecDeque},
+    collections::{btree_map, BTreeMap, HashMap, HashSet, VecDeque},
     fmt::Display,
     hash::{DefaultHasher, Hash, Hasher},
-    ops::Index,
+    ops::{Deref, DerefMut, Index},
     slice::Iter,
     sync::{
         atomic::{self, AtomicUsize},
@@ -53,7 +53,7 @@ impl Default for GraphIdGenerator {
 }
 
 pub struct SynthesizerContext {
-    all_variables: Arc<HashMap<VariableName, Variable>>,
+    all_variables: Arc<BTreeMap<VariableName, Variable>>,
     pub cache: Arc<Cache>,
     pub start_context: ContextArray,
 }
@@ -89,7 +89,56 @@ impl SynthesizerContext {
     }
 }
 
-pub type ValuesMap = BTreeMap<VariableName, Value>;
+#[derive(Debug, Clone, Default)]
+pub struct ValuesMap(BTreeMap<VariableName, Value>);
+
+impl Deref for ValuesMap {
+    type Target = BTreeMap<VariableName, Value>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for ValuesMap {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl<const N: usize> From<[(VariableName, Value); N]> for ValuesMap {
+    fn from(items: [(VariableName, Value); N]) -> Self {
+        ValuesMap(BTreeMap::from(items))
+    }
+}
+
+impl IntoIterator for ValuesMap {
+    type Item = (FieldName, Value);
+
+    type IntoIter = btree_map::IntoIter<VariableName, Value>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
+impl GraphMapWrap<Self> for ValuesMap {
+    fn wrap<'a>(&'a self, graphs_map: &'a GraphsMap) -> GraphMapValue<'a, Self> {
+        GraphMapValue::from(&self, graphs_map)
+    }
+}
+
+impl GraphMapHash for ValuesMap {
+    fn calculate_hash<H: std::hash::Hasher>(&self, state: &mut H, graphs_map: &GraphsMap) {
+        for (k, v) in &self.0 {
+            k.hash(state);
+            match v {
+                Value::Primitive(primitive_value) => primitive_value.hash(state),
+                Value::Object(object_value) => object_value.calculate_hash(state, graphs_map),
+            }
+        }
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct Context {
@@ -117,25 +166,10 @@ impl Context {
         instance
     }
 
-    // pub fn graph(&self) -> &ObjectGraph {
-    //     &self.graph
-    // }
-
-    fn get_hash_for_values(values: &ValuesMap, graphs_map: &GraphsMap) -> u64 {
-        let mut hasher = DefaultHasher::new();
-        for (k, v) in values {
-            k.hash(&mut hasher);
-            match v {
-                Value::Primitive(primitive_value) => primitive_value.hash(&mut hasher),
-                Value::Object(object_value) => object_value.calculate_hash(&mut hasher, graphs_map),
-            }
-        }
-        hasher.finish()
-    }
-
     fn update_hash(&mut self) {
-        let new_hash = Self::get_hash_for_values(&self.values, &self.graphs_map);
-        self.hash = new_hash;
+        let mut state = DefaultHasher::default();
+        self.values.wrap(&self.graphs_map).hash(&mut state);
+        self.hash = state.finish();
     }
 
     fn set_values(&mut self, values: ValuesMap) {
@@ -595,7 +629,7 @@ impl ContextArray {
         let mut ctxs = Vec::<Context>::with_capacity(self.len());
 
         for ctx in self.iter() {
-            let mut values = ValuesMap::new();
+            let mut values = ValuesMap::default();
             for var in required_variables {
                 let var_value = ctx.values.get(var)?.clone();
                 values.insert((*var).clone(), var_value);
@@ -617,9 +651,9 @@ impl ContextArray {
         true
     }
 
-    pub fn get_variables(&self) -> Arc<HashMap<Arc<String>, Variable>> {
+    pub fn get_variables(&self) -> Arc<BTreeMap<VariableName, Variable>> {
         let first = self.inner.first().unwrap();
-        let mut all_vars = HashMap::<CachedString, Variable>::with_capacity(first.values.len());
+        let mut all_vars = BTreeMap::<VariableName, Variable>::default();
         for (name, val) in first.values.iter() {
             all_vars.insert(
                 name.clone(),
