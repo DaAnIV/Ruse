@@ -369,14 +369,17 @@ pub struct ArraySpliceOp {
 }
 
 impl ArraySpliceOp {
-    pub fn new(elem_type: &ValueType, items_count: usize, cache: &Cache) -> Self {
+    pub fn new(elem_type: &ValueType, with_delete: bool, cache: &Cache) -> Self {
         let mut arg_types = vec![
             ValueType::array_value_type(elem_type, cache),
             ValueType::Number,
         ];
-        if items_count > 0 {
-            arg_types.extend(vec![elem_type.clone(); items_count])
+        if with_delete {
+            arg_types.push(ValueType::Number);
         }
+        // if items_count > 0 {
+        //     arg_types.extend(vec![elem_type.clone(); items_count])
+        // }
         Self {
             elem_type: elem_type.clone(),
             arg_types,
@@ -410,57 +413,16 @@ impl ExprOpcode for ArraySpliceOp {
             None => arr_len - start,
         };
 
-        let new_arr = if self.elem_type.is_primitive() {
-            let items_to_add = args
-                .iter()
-                .skip(2)
-                .map(|x| x.val().primitive().unwrap().clone());
+        let items_to_add_len = args.len().max(3) - 3;
+        let items_to_add = args.iter().skip(3).map(|x| x.val().clone());
+        let new_arr_len = items_to_add_len + (arr_len - delete_count);
 
-            let fields = graph
+        let fields = items_to_add.chain(
+            graph
                 .fields(&arr.node)
-                .take(start)
-                .map(|(_, p)| p.clone())
-                .chain(items_to_add)
-                .chain(
-                    graph
-                        .fields(&arr.node)
-                        .skip(start + delete_count)
-                        .map(|(_, p)| p.clone()),
-                );
-
-            post_ctx.create_output_primitive_array(&self.elem_type, fields, &syn_ctx)
-        } else {
-            let items_to_add = args.iter().skip(2).map(|x| x.val().clone());
-
-            let fields = graph
-                .neighbors(&arr.node)
-                .take(start)
-                .map(|(_, n)| match n {
-                    ruse_object_graph::EdgeEndPoint::Internal(node_index) => {
-                        vobj!(arr.graph_id, *node_index)
-                    }
-                    ruse_object_graph::EdgeEndPoint::Chain(graph_id, node_index) => {
-                        vobj!(*graph_id, *node_index)
-                    }
-                })
-                .chain(items_to_add)
-                .chain(graph.neighbors(&arr.node).skip(start + delete_count).map(
-                    |(_, n)| match n {
-                        ruse_object_graph::EdgeEndPoint::Internal(node_index) => {
-                            vobj!(arr.graph_id, *node_index)
-                        }
-                        ruse_object_graph::EdgeEndPoint::Chain(graph_id, node_index) => {
-                            vobj!(*graph_id, *node_index)
-                        }
-                    },
-                ));
-            post_ctx.create_output_array_object(&self.elem_type, fields, &syn_ctx)
-        };
-
-        let mut new_arr_loc = args[0].loc().clone();
-        if !post_ctx.update_value(&Value::Object(new_arr), &mut new_arr_loc, syn_ctx) {
-            return EvalResult::None;
-        }
+                .skip(start + delete_count)
+                .map(|(_, p)| Value::Primitive(p.clone())),
+        );
 
         let deleted_items_arr = if self.elem_type.is_primitive() {
             let fields = graph
@@ -484,7 +446,21 @@ impl ExprOpcode for ArraySpliceOp {
                 });
             post_ctx.create_output_array_object(&self.elem_type, fields, &syn_ctx)
         };
-        EvalResult::NoModification(post_ctx.temp_value(Value::Object(deleted_items_arr)))
+
+        for (i, field) in fields.enumerate() {
+            post_ctx.set_field(
+                graph.id,
+                arr.node,
+                syn_ctx.cached_string(&(i + start).to_string()),
+                &field,
+            );
+        }
+
+        for i in new_arr_len..arr_len {
+            post_ctx.delete_field(graph.id, arr.node, &syn_ctx.cached_string(&(i.to_string())));
+        }
+        
+        EvalResult::DirtyContext(post_ctx.temp_value(Value::Object(deleted_items_arr)))
     }
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {

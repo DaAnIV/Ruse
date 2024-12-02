@@ -537,7 +537,11 @@ mod specific_bugs_tests {
         println!("{}", one_prog);
         println!("");
 
-        let splice_op = Arc::new(ArraySpliceOp::new(&ValueType::String, 0, &syn_ctx.cache));
+        let splice_op = Arc::new(ArraySpliceOp::new(
+            &ValueType::String,
+            false,
+            &syn_ctx.cache,
+        ));
         let mut splice_prog = SubProgram::with_opcode_and_children(
             splice_op,
             vec![names_prog.clone(), one_prog.clone()],
