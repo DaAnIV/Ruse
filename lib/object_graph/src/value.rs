@@ -9,7 +9,7 @@ use crate::{
 use core::fmt;
 use std::{fmt::Debug, hash::Hash, sync::Arc};
 
-#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, PartialEq, Eq, Hash, Debug, PartialOrd, Ord)]
 pub enum ValueType {
     Number,
     Bool,

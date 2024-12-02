@@ -13,7 +13,7 @@ use ruse_object_graph::{
 };
 use serde::ser::SerializeStruct;
 use std::{
-    collections::HashMap,
+    collections::BTreeMap,
     fmt::Display,
     ops::Index,
     sync::{atomic::*, Arc},
@@ -146,7 +146,7 @@ impl serde::Serialize for CurrentStatistics {
 }
 
 pub type SynthesizerPredicate = Box<dyn Fn(&Arc<SubProgram>) -> bool + Send + Sync>;
-type OpcodesMap = HashMap<Vec<ValueType>, Vec<Arc<dyn ExprOpcode>>>;
+type OpcodesMap = BTreeMap<Vec<ValueType>, Vec<Arc<dyn ExprOpcode>>>;
 
 pub struct Synthesizer {
     bank: ProgBank,
@@ -194,7 +194,9 @@ impl Synthesizer {
             }
         }
 
-        sorted_opcodes.shrink_to_fit();
+        for (_, list) in sorted_opcodes.iter_mut() {
+            list.sort_by(|x, y| x.op_name().cmp(y.op_name()));
+        }
 
         sorted_opcodes
     }
