@@ -1,6 +1,8 @@
 use clap_verbosity_flag::{InfoLevel, Verbosity};
+use ruse_ts_interpreter::ts_class::TsClasses;
 use serde_json::ser::Formatter;
 use std::{clone::Clone, fs::File, path::PathBuf, process::ExitCode, sync::Arc, time::Duration};
+use task::SnythesisTask;
 use tracing::{error, info, level_filters::LevelFilter};
 use tracing_log::AsTrace;
 use tracing_subscriber::{filter::Targets, prelude::*};
@@ -22,7 +24,7 @@ use jemallocator::Jemalloc;
 #[global_allocator]
 static GLOBAL: Jemalloc = Jemalloc;
 
-fn get_result_path(cli: &Cli) -> PathBuf {
+fn get_result_path(cli: &RunArgs) -> PathBuf {
     if cli.output.is_dir() {
         std::fs::create_dir_all(cli.output.as_path()).expect("Failed to create output dir");
         let mut path = cli.output.clone();
@@ -39,7 +41,20 @@ fn get_result_path(cli: &Cli) -> PathBuf {
 /// Run benchmarks on the ruse synthesizer
 #[derive(clap::Parser, Debug)]
 #[command(version, about, long_about = None)]
+#[command(propagate_version = true)]
 struct Cli {
+    #[command(subcommand)]
+    command: RuseCommands,
+}
+
+#[derive(clap::Subcommand, Debug)]
+enum RuseCommands {
+    Run(RunArgs),
+    PrintOpcodes(PrintOpcodesArgs),
+}
+
+#[derive(clap::Args, Debug)]
+struct RunArgs {
     /// An .sy benchmark file or directory containing benchmark files
     #[arg(short, long, num_args(1..))]
     benchmarks: Vec<std::path::PathBuf>,
@@ -77,7 +92,14 @@ struct Cli {
     pretty: bool,
 }
 
-fn set_logger(cli: &Cli) {
+#[derive(clap::Args, Debug)]
+struct PrintOpcodesArgs {
+    /// ts files to parse for classes
+    #[arg(short, long, num_args(0..))]
+    ts_files: Vec<std::path::PathBuf>,
+}
+
+fn set_logger(cli: &RunArgs) {
     // let fmt_layer = tracing_subscriber::fmt::layer();
     let verbose_filter = Targets::default()
         .with_target("ruse", cli.verbose.log_level_filter().as_trace())
@@ -108,7 +130,7 @@ fn set_logger(cli: &Cli) {
 }
 
 fn run_all_benchmarks<F>(
-    cli: &Cli,
+    cli: &RunArgs,
     bench_config: &config::BenchmarkConfig,
     mut writer: ResultsWriter<F>,
 ) where
@@ -138,8 +160,7 @@ fn run_all_benchmarks<F>(
     }
 }
 
-fn main() -> ExitCode {
-    let cli = Cli::parse();
+fn run_benchmarks(cli: &RunArgs) -> ExitCode {
     set_logger(&cli);
 
     let bench_config = BenchmarkConfig {
@@ -174,4 +195,33 @@ fn main() -> ExitCode {
     info!(target: "ruse::runner", "Results written to {:?}", results_path.as_path());
 
     ExitCode::SUCCESS
+}
+
+fn print_opcodes(cli: &PrintOpcodesArgs) -> ExitCode {
+    let cache = Cache::new();
+    let classes = TsClasses::new();
+    let mut class_names = vec![];
+
+    class_names.extend(SnythesisTask::add_classes_from_ts_files(
+        &classes,
+        cli.ts_files.iter().cloned(),
+        &cache,
+    ).unwrap());
+
+    let composite_opcodes = SnythesisTask::get_composite_opcodes(&classes, &class_names, &cache);
+
+    composite_opcodes.iter().for_each(|op| {
+        println!("{}", op.op_name());
+    });
+
+    ExitCode::SUCCESS
+}
+
+fn main() -> ExitCode {
+    let cli = Cli::parse();
+
+    match cli.command {
+        RuseCommands::Run(args) => run_benchmarks(&args),
+        RuseCommands::PrintOpcodes(args) => print_opcodes(&args),
+    }
 }

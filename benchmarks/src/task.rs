@@ -674,6 +674,8 @@ struct SnythesisTaskInner {
     immutable: Option<HashSet<String>>,
     examples: Vec<SnythesisTaskExamples>,
     solution: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    opcodes: Option<HashSet<String>>,
 }
 
 impl SnythesisTaskInner {
@@ -806,7 +808,7 @@ impl SnythesisTaskInner {
 pub struct SnythesisTask {
     inner: SnythesisTaskInner,
     classes: TsClasses,
-    class_names: Vec<CachedString>,
+    class_names: Vec<ObjectType>,
     string_literals: HashSet<String>,
     num_literals: HashSet<i64>,
 }
@@ -950,16 +952,16 @@ impl SnythesisTask {
         Ok(names)
     }
 
-    fn add_classes_from_ts_files(
+    pub fn add_classes_from_ts_files<I>(
         classes: &TsClasses,
-        root_path: &Path,
-        ts_file_paths: &Vec<PathBuf>,
+        ts_file_paths: I,
         cache: &Cache,
-    ) -> Result<Vec<CachedString>, SnythesisTaskError> {
+    ) -> Result<Vec<CachedString>, SnythesisTaskError>
+    where
+        I: std::iter::IntoIterator<Item = PathBuf>,
+    {
         let mut names: Vec<CachedString> = vec![];
-        for ts_file_path in ts_file_paths {
-            let mut full_path = PathBuf::from(root_path);
-            full_path.push(ts_file_path);
+        for full_path in ts_file_paths {
             match classes.add_ts_file(&full_path, cache) {
                 Ok(class_names) => names.extend(class_names),
                 Err(e) => {
@@ -988,23 +990,48 @@ impl SnythesisTask {
         let mut opcodes =
             construct_opcode_list(&var_names, &self.num_literals, &string_literals, false);
 
+        let composite_opcodes =
+            Self::get_composite_opcodes(&self.classes, &self.class_names, &cache);
+
+        if let Some(filter) = &self.inner.opcodes {
+            opcodes.extend(
+                composite_opcodes
+                    .into_iter()
+                    .filter(|op| filter.contains(op.op_name())),
+            );
+        } else {
+            opcodes.extend(composite_opcodes.into_iter());
+        }
+
+        opcodes
+    }
+
+    pub fn get_composite_opcodes(
+        classes: &TsClasses,
+        class_names: &Vec<ObjectType>,
+        cache: &Cache,
+    ) -> OpcodesList {
+        let mut composite_opcodes = OpcodesList::new();
         add_num_opcodes(
-            &mut opcodes,
+            &mut composite_opcodes,
             &ALL_BIN_NUM_OPCODES,
             &ALL_UNARY_NUM_OPCODES,
             &ALL_UPDATE_NUM_OPCODES,
         );
-        add_str_opcodes(&mut opcodes, &ALL_BIN_STR_OPCODES);
-        add_array_opcodes(&mut opcodes, &[ValueType::Number, ValueType::String], cache);
-        add_dom_opcodes(&mut opcodes, cache);
+        add_str_opcodes(&mut composite_opcodes, &ALL_BIN_STR_OPCODES);
+        add_array_opcodes(
+            &mut composite_opcodes,
+            &[ValueType::Number, ValueType::String],
+            cache,
+        );
+        add_dom_opcodes(&mut composite_opcodes, cache);
 
-        for class_name in &self.class_names {
-            let class = self.classes.get_class(class_name).unwrap();
-            opcodes.extend_from_slice(&class.member_opcodes);
-            opcodes.extend_from_slice(&class.method_opcodes);
+        for class_name in class_names {
+            let class = classes.get_class(class_name).unwrap();
+            composite_opcodes.extend_from_slice(&class.member_opcodes);
+            composite_opcodes.extend_from_slice(&class.method_opcodes);
         }
-
-        opcodes
+        composite_opcodes
     }
 
     fn get_context_array(&self, cache: &Cache) -> Result<ContextArray, SnythesisTaskError> {
@@ -1049,8 +1076,9 @@ impl SnythesisTask {
         if let Some(ts_files) = &inner.ts_files {
             class_names.extend(Self::add_classes_from_ts_files(
                 &classes,
-                dir.as_path(),
-                ts_files,
+                ts_files
+                    .iter()
+                    .map(|rel_path| PathBuf::from_iter(&[&dir, rel_path])),
                 cache,
             )?);
         }
