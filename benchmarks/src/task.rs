@@ -1,6 +1,7 @@
 use std::{
     collections::{HashMap, HashSet, VecDeque},
     fmt::{Debug, Display},
+    hash::{BuildHasherDefault, DefaultHasher},
     io::Read,
     path::{Path, PathBuf},
     sync::Arc,
@@ -809,8 +810,8 @@ pub struct SnythesisTask {
     inner: SnythesisTaskInner,
     classes: TsClasses,
     class_names: Vec<ObjectType>,
-    string_literals: HashSet<String>,
-    num_literals: HashSet<i64>,
+    string_literals: HashSet<String, BuildHasherDefault<DefaultHasher>>,
+    num_literals: HashSet<i64, BuildHasherDefault<DefaultHasher>>,
 }
 
 impl SnythesisTask {
@@ -1056,13 +1057,15 @@ impl SnythesisTask {
         let mut dir = PathBuf::from(path);
         dir.pop();
 
-        let mut string_literals =
-            HashSet::from_iter(Self::DEFAULT_STRING_LITERALS.map(|x| x.to_string()));
+        let mut string_literals = HashSet::<_, BuildHasherDefault<DefaultHasher>>::from_iter(
+            Self::DEFAULT_STRING_LITERALS.map(|x| x.to_string()),
+        );
         if let Some(user_lit) = &inner.string_literals {
             string_literals.extend(user_lit.clone());
         }
 
-        let mut num_literals = HashSet::from(Self::DEFAULT_NUM_LITERALS);
+        let mut num_literals =
+            HashSet::<_, BuildHasherDefault<DefaultHasher>>::from_iter(Self::DEFAULT_NUM_LITERALS);
         if let Some(user_lit) = &inner.int_literals {
             num_literals.extend(user_lit.clone());
         }
