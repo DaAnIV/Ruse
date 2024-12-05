@@ -1,7 +1,7 @@
 use std::{
     collections::{BTreeMap, HashMap},
     fmt::{self, Debug},
-    hash::{Hash, Hasher},
+    hash::{BuildHasherDefault, DefaultHasher, Hash, Hasher},
     ops::{self, AddAssign, SubAssign},
     sync::Arc,
 };
@@ -19,7 +19,7 @@ use crate::{
 pub type GraphIndex = DefaultIx;
 
 #[derive(Clone, Default, Debug)]
-pub struct GraphsMap(HashMap<GraphIndex, Arc<ObjectGraph>>);
+pub struct GraphsMap(HashMap<GraphIndex, Arc<ObjectGraph>, BuildHasherDefault<DefaultHasher>>);
 
 impl GraphsMap {
     pub fn insert_graph(&mut self, graph: Arc<ObjectGraph>) -> Option<Arc<ObjectGraph>> {
