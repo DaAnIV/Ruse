@@ -15,6 +15,7 @@ use ruse_object_graph::{
 };
 use ruse_synthesizer::{
     context::{Context, ContextArray, GraphIdGenerator, ValuesMap},
+    opcode::ExprOpcode,
     prog::SubProgram,
     synthesizer::{OpcodesList, SynthesizerPredicate},
 };
@@ -26,6 +27,7 @@ use ruse_ts_synthesizer::{
 };
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::json;
+use wildmatch::WildMatch;
 
 use crate::results::BenchmarkResult;
 
@@ -994,17 +996,21 @@ impl SnythesisTask {
         let composite_opcodes =
             Self::get_composite_opcodes(&self.classes, &self.class_names, &cache);
 
-        if let Some(filter) = &self.inner.opcodes {
-            opcodes.extend(
-                composite_opcodes
-                    .into_iter()
-                    .filter(|op| filter.contains(op.op_name())),
-            );
-        } else {
-            opcodes.extend(composite_opcodes.into_iter());
-        }
+        opcodes.extend(composite_opcodes.into_iter().filter(self.get_filter()));
 
         opcodes
+    }
+
+    fn get_filter(&self) -> Box<dyn Fn(&Arc<dyn ExprOpcode>) -> bool> {
+        if let Some(filter) = &self.inner.opcodes {
+            let wildcard_filter = filter
+                .iter()
+                .map(|f| WildMatch::new_case_insensitive(f))
+                .collect_vec();
+            Box::new(move |op| wildcard_filter.iter().any(|wf| wf.matches(op.op_name())))
+        } else {
+            Box::new(move |_op| true)
+        }
     }
 
     pub fn get_composite_opcodes(

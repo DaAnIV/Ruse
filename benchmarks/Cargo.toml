@@ -19,6 +19,7 @@ clap-verbosity-flag = "*"
 tracing = { version = "*" }
 tracing-subscriber = { version = "*", features = ["json"] }
 tracing-log = { version = "*" }
+wildmatch = "*"
 
 chrono = "*"
 sysinfo = { version = "*", default-features = false, features = [
