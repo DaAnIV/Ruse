@@ -1,5 +1,5 @@
 use std::{
-    hash::{BuildHasher, DefaultHasher, Hash},
+    hash::{BuildHasherDefault, DefaultHasher, Hash},
     sync::Arc,
 };
 
@@ -12,30 +12,7 @@ use tracing::info;
 
 use crate::{context::ContextArray, prog::SubProgram, value_array::ValueArray};
 
-#[derive(Clone)]
-pub struct BankRandomState {}
-
-impl BankRandomState {
-    pub fn new() -> Self {
-        Self {}
-    }
-}
-
-impl Default for BankRandomState {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl BuildHasher for BankRandomState {
-    type Hasher = DefaultHasher;
-    #[inline]
-    fn build_hasher(&self) -> DefaultHasher {
-        // This always produces the same hasher
-        // We are not afraid of DDOS attacks
-        DefaultHasher::default()
-    }
-}
+pub type BankHasherBuilder = BuildHasherDefault<DefaultHasher>;
 
 #[derive(Debug, Clone)]
 pub(crate) struct Output(Arc<SubProgram>);
@@ -85,7 +62,7 @@ impl Hash for Output {
 // iteration -> out_type -> sub_prog
 
 #[derive(Debug, Default)]
-pub(crate) struct ProgramsMap(pub DashMap<Output, Arc<SubProgram>, BankRandomState>);
+pub(crate) struct ProgramsMap(pub DashMap<Output, Arc<SubProgram>, BankHasherBuilder>);
 
 impl ProgramsMap {
     fn insert(&self, p: Arc<SubProgram>) -> bool {
@@ -109,7 +86,7 @@ impl ProgramsMap {
         self.0.get(&output).map(|p| p.clone())
     }
 
-    pub fn iter(&self) -> dashmap::iter::Iter<Output, Arc<SubProgram>, BankRandomState> {
+    pub fn iter(&self) -> dashmap::iter::Iter<Output, Arc<SubProgram>, BankHasherBuilder> {
         self.0.iter()
     }
 }
@@ -117,7 +94,7 @@ impl ProgramsMap {
 impl<'a> IntoIterator for &'a ProgramsMap {
     type Item = RefMulti<'a, Output, Arc<SubProgram>>;
 
-    type IntoIter = dashmap::iter::Iter<'a, Output, Arc<SubProgram>, BankRandomState>;
+    type IntoIter = dashmap::iter::Iter<'a, Output, Arc<SubProgram>, BankHasherBuilder>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
@@ -125,7 +102,7 @@ impl<'a> IntoIterator for &'a ProgramsMap {
 }
 
 #[derive(Default, Debug)]
-pub struct TypeMap(DashMap<ValueType, ProgramsMap, BankRandomState>);
+pub struct TypeMap(DashMap<ValueType, ProgramsMap, BankHasherBuilder>);
 
 impl TypeMap {
     pub(crate) fn insert_program(&self, p: Arc<SubProgram>) -> bool {
