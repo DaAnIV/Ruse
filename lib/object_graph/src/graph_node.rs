@@ -28,13 +28,44 @@ pub type PointersMap = BTreeMap<FieldName, EdgeEndPoint>;
 
 #[derive(Clone)]
 pub struct ObjectGraphNode {
-    pub id: NodeIndex,
-    pub obj_type: ObjectType,
-    pub fields: FieldsMap,
-    pub pointers: PointersMap,
+    obj_type: ObjectType,
+    fields: FieldsMap,
+    pointers: PointersMap,
 }
 
 impl ObjectGraphNode {
+    pub fn new(obj_type: ObjectType, fields: FieldsMap, pointers: PointersMap) -> Self {
+        Self {
+            obj_type,
+            fields,
+            pointers: pointers,
+        }
+    }
+
+    pub fn clone_without_pointers(&self) -> Self {
+        Self::new(
+            self.obj_type.clone(),
+            self.fields.clone(),
+            Default::default(),
+        )
+    }
+
+    pub fn obj_type(&self) -> &ObjectType {
+        &self.obj_type
+    }
+
+    pub fn pointers_len(&self) -> usize {
+        self.pointers.len()
+    }
+
+    pub fn pointers_get(&self, field_name: &FieldName) -> Option<&EdgeEndPoint> {
+        self.pointers.get(field_name)
+    }
+
+    pub fn pointers_iter(&self) -> impl std::iter::Iterator<Item = (&FieldName, &EdgeEndPoint)> {
+        self.pointers.iter()
+    }
+
     pub fn insert_internal_edge(&mut self, field_name: FieldName, neig: NodeIndex) {
         self.pointers
             .insert(field_name, EdgeEndPoint::Internal(neig));
@@ -49,6 +80,34 @@ impl ObjectGraphNode {
         self.pointers
             .insert(field_name, EdgeEndPoint::Chain(neig_graph, neig_node));
     }
+
+    pub fn pointers_remove(&mut self, field_name: &FieldName) -> Option<EdgeEndPoint> {
+        self.pointers.remove(field_name)
+    }
+
+    pub fn fields_len(&self) -> usize {
+        self.fields.len()
+    }
+
+    pub fn fields_iter(&self) -> impl std::iter::Iterator<Item = (&FieldName, &PrimitiveValue)> {
+        self.fields.iter()
+    }
+
+    pub fn get_field(&self, field_name: &FieldName) -> Option<&PrimitiveValue> {
+        self.fields.get(field_name)
+    }
+
+    pub fn insert_field(
+        &mut self,
+        field_name: FieldName,
+        value: PrimitiveValue,
+    ) -> Option<PrimitiveValue> {
+        self.fields.insert(field_name, value)
+    }
+
+    pub fn remove_field(&mut self, field_name: &FieldName) -> Option<PrimitiveValue> {
+        self.fields.remove(field_name)
+    }
 }
 
 impl Hash for ObjectGraphNode {
@@ -58,6 +117,15 @@ impl Hash for ObjectGraphNode {
         for (key, _) in &self.pointers {
             key.hash(state);
         }
+    }
+}
+
+impl Eq for ObjectGraphNode {}
+impl PartialEq for ObjectGraphNode {
+    fn eq(&self, other: &Self) -> bool {
+        self.obj_type == other.obj_type
+            && self.fields == other.fields
+            && self.pointers.keys().eq(other.pointers.keys())
     }
 }
 

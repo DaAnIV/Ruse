@@ -120,16 +120,15 @@ pub fn sim_walk_equal(
     let walker_a = ObjectGraphWalker::from_node(graphs_map_a, graph_a, id_a);
     let walker_b = ObjectGraphWalker::from_node(graphs_map_b, graph_b, id_b);
 
-    for ((cur_graph_a, cur_node_a), (cur_graph_b, cur_node_b)) in walker_a.zip(walker_b) {
-        if cur_node_a.obj_type != cur_node_b.obj_type
-            || cur_node_a.fields != cur_node_b.fields
-            || cur_node_a.pointers.keys().ne(cur_node_b.pointers.keys())
-        {
+    for ((cur_graph_a, cur_node_id_a, cur_node_a), (cur_graph_b, cur_node_id_b, cur_node_b)) in
+        walker_a.zip(walker_b)
+    {
+        if cur_node_a != cur_node_b {
             return false;
         }
         nodes_a_to_b.insert(
-            (cur_graph_a.id, cur_node_a.id),
-            (cur_graph_b.id, cur_node_b.id),
+            (cur_graph_a.id, cur_node_id_a),
+            (cur_graph_b.id, cur_node_id_b),
         );
     }
 

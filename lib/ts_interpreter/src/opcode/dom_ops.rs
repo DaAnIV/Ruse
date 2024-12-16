@@ -24,7 +24,7 @@ impl GetElementByIdOp {
     }
 
     fn node_id_equal(&self, node: &ObjectGraphNode, id: &CachedString) -> bool {
-        if let Some(node_id) = node.fields.get(&self.id_field_name) {
+        if let Some(node_id) = node.get_field(&self.id_field_name) {
             node_id.string().as_ref().unwrap() == id
         } else {
             false
@@ -49,10 +49,10 @@ impl ExprOpcode for GetElementByIdOp {
         let id = args[1].val().string_value().unwrap();
         let mut found = EvalResult::None;
 
-        for (graph, node) in
+        for (graph, node_id, node) in
             graph_walk::ObjectGraphWalker::from_node(&post_ctx.graphs_map, obj.graph_id, obj.node)
         {
-            for (field, neig) in &node.pointers {
+            for (field, neig) in node.pointers_iter() {
                 let neig_node = graph.get_node_from_edge_end_point(&neig, &post_ctx.graphs_map);
                 if self.node_id_equal(neig_node, &id) {
                     let val = match neig {
@@ -67,7 +67,7 @@ impl ExprOpcode for GetElementByIdOp {
                     };
                     let loc = ObjectFieldLoc {
                         graph: graph.id,
-                        node: node.id,
+                        node: node_id,
                         field: field.clone(),
                     };
                     found = EvalResult::NoModification(

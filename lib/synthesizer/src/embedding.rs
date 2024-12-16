@@ -287,9 +287,9 @@ fn embed(
     while let Some((cur_graph_id, cur_node_id)) = q.pop_front() {
         let graph = &graphs_map[cur_graph_id];
         let node = graph.get_node(&cur_node_id).unwrap();
-        let new_node = new_graph.add_node(cur_node_id, node.obj_type.clone(), node.fields.clone());
-        matches.add_match((cur_graph_id, cur_node_id), (new_graph_id, new_node.id));
-        for (field_name, old_neig) in &node.pointers {
+        let new_node = new_graph.add_node(cur_node_id, node.clone_without_pointers());
+        matches.add_match((cur_graph_id, cur_node_id), (new_graph_id, cur_node_id));
+        for (field_name, old_neig) in node.pointers_iter() {
             if let Some((new_neig_graph, new_neig_id)) = matches.get_match(old_neig.index()) {
                 if new_nodes.contains(new_neig_id) {
                     return false;

@@ -241,7 +241,7 @@ impl GraphMapEq for ObjectValue {
 
 impl GraphMapHash for ObjectValue {
     fn calculate_hash<H: std::hash::Hasher>(&self, state: &mut H, graphs_map: &GraphsMap) {
-        for (_, node) in ObjectGraphWalker::from_node(graphs_map, self.graph_id, self.node) {
+        for (_, _, node) in ObjectGraphWalker::from_node(graphs_map, self.graph_id, self.node) {
             node.hash(state);
         }
     }

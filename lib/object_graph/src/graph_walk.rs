@@ -57,7 +57,7 @@ impl<'a> ObjectGraphWalker<'a> {
 }
 
 impl<'a> std::iter::Iterator for ObjectGraphWalker<'a> {
-    type Item = (&'a ObjectGraph, &'a ObjectGraphNode);
+    type Item = (&'a ObjectGraph, NodeIndex, &'a ObjectGraphNode);
 
     fn next(&mut self) -> Option<Self::Item> {
         if let Some((graph_id, node_id)) = self.nodes.pop_front() {
@@ -65,7 +65,7 @@ impl<'a> std::iter::Iterator for ObjectGraphWalker<'a> {
             let graph = &self.graphs_map[graph_id];
             let node = graph.get_node(&node_id).unwrap();
 
-            for (_, neig) in &node.pointers {
+            for (_, neig) in node.pointers_iter() {
                 match neig {
                     EdgeEndPoint::Internal(neig_node) => {
                         self.push_node(graph_id, *neig_node)
@@ -75,7 +75,7 @@ impl<'a> std::iter::Iterator for ObjectGraphWalker<'a> {
                     }
                 }
             }
-            Some((graph.as_ref(), node.as_ref()))
+            Some((graph.as_ref(), node_id, node.as_ref()))
         } else {
             None
         }

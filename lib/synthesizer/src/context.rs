@@ -412,7 +412,7 @@ impl Context {
         let out_node_id = self.graph_id_gen.get_id_for_node();
 
         let mut out_graph = ObjectGraph::new(out_graph_id);
-        let node = out_graph.add_node(out_node_id, obj_type, fields);
+        let node = out_graph.construct_node(out_node_id, obj_type, fields);
         for (key, neig) in obj_keys {
             node.insert_chain_edge(key, neig.graph_id, neig.node);
         }

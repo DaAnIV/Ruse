@@ -184,22 +184,21 @@ impl<'a> Dot<'a> {
 
         let mut edges = Vec::new();
 
-        for (cur_graph, cur_node) in
+        for (cur_graph, cur_node_id, cur_node) in
             ObjectGraphWalker::from_graphs(&self.graphs_map, self.graph_ids.clone())
         {
-            write!(f, "{}{} [ ", INDENT, self.get_dot_id(&cur_node.id))?;
+            write!(f, "{}{} [ ", INDENT, self.get_dot_id(&cur_node_id))?;
             write!(f, "label = \"")?;
             Escaped(FnFmt(cur_node, &node_fmt)).fmt(f)?;
             write!(f, "\"")?;
-            if let Some(root_name) = self.is_root(cur_graph, &cur_node.id) {
+            if let Some(root_name) = self.is_root(cur_graph, &cur_node_id) {
                 write!(f, ", xlabel = \"{}:\"", root_name)?;
             }
             writeln!(f, "]")?;
             edges.extend(
                 cur_node
-                    .pointers
-                    .iter()
-                    .map(|(edge_name, neig)| (cur_node.id, edge_name.clone(), *neig)),
+                    .pointers_iter()
+                    .map(|(edge_name, neig)| (cur_node_id, edge_name.clone(), *neig)),
             );
         }
 

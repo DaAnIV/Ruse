@@ -101,7 +101,11 @@ fn graph_eq(c: &mut Criterion) {
         group.throughput(Throughput::Elements(g1.node_count() as u64));
         group.bench_function(format!("Eq {}", g1.node_count()), |b| {
             b.iter(|| {
-                assert_eq!(g1.wrap(&graphs_map), g2.wrap(&graphs_map), "Graphs are not equal");
+                assert_eq!(
+                    g1.wrap(&graphs_map),
+                    g2.wrap(&graphs_map),
+                    "Graphs are not equal"
+                );
             })
         });
     }
@@ -117,9 +121,9 @@ fn graph_almost_eq(c: &mut Criterion) {
     g2.id = 1;
 
     let mut edges = Vec::new();
-    for node in g2.nodes() {
-        for (field, _) in &node.pointers {
-            edges.push((node.id, field.clone()));
+    for (node_id, node) in g2.nodes() {
+        for (field, _) in node.pointers_iter() {
+            edges.push((*node_id, field.clone()));
         }
     }
 
@@ -148,7 +152,11 @@ fn graph_almost_eq(c: &mut Criterion) {
 
     c.bench_function("graph_almost_eq", |b| {
         b.iter(|| {
-            assert_ne!(g1.wrap(&graphs_map), g2.wrap(&graphs_map), "Graphs are equal");
+            assert_ne!(
+                g1.wrap(&graphs_map),
+                g2.wrap(&graphs_map),
+                "Graphs are equal"
+            );
         })
     });
 }
@@ -163,7 +171,11 @@ fn graph_ne(c: &mut Criterion) {
 
     c.bench_function("graph_ne", |b| {
         b.iter(|| {
-            assert_ne!(g1.wrap(&graphs_map), g2.wrap(&graphs_map), "Graphs are equal");
+            assert_ne!(
+                g1.wrap(&graphs_map),
+                g2.wrap(&graphs_map),
+                "Graphs are equal"
+            );
         })
     });
 }

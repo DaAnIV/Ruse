@@ -89,23 +89,22 @@ impl ObjectGraph {
         }
     }
 
-    pub fn add_node(
+    pub fn add_node(&mut self, id: NodeIndex, node: ObjectGraphNode) -> &mut ObjectGraphNode {
+        assert!(!self.nodes.contains_key(&id));
+
+        self.nodes.insert(id, node.into());
+        Arc::get_mut(self.nodes.get_mut(&id).unwrap()).unwrap()
+    }
+
+    pub fn construct_node(
         &mut self,
         id: NodeIndex,
         obj_type: ObjectType,
         fields: FieldsMap,
     ) -> &mut ObjectGraphNode {
-        assert!(!self.nodes.contains_key(&id));
-        let node = ObjectGraphNode {
-            id,
-            obj_type,
-            fields,
-            pointers: Default::default(),
-        };
+        let node = ObjectGraphNode::new(obj_type, fields, Default::default());
 
-        // self.zero_hash();
-        self.nodes.insert(id, node.into());
-        Arc::get_mut(self.nodes.get_mut(&id).unwrap()).unwrap()
+        self.add_node(id, node)
     }
 
     fn add_node_with_pointers(
@@ -115,16 +114,9 @@ impl ObjectGraph {
         fields: FieldsMap,
         pointers: PointersMap,
     ) -> &mut ObjectGraphNode {
-        assert!(!self.nodes.contains_key(&id));
-        let node = ObjectGraphNode {
-            id,
-            obj_type,
-            fields,
-            pointers: pointers,
-        };
+        let node = ObjectGraphNode::new(obj_type, fields, pointers);
 
-        self.nodes.insert(id, node.into());
-        Arc::get_mut(self.nodes.get_mut(&id).unwrap()).unwrap()
+        self.add_node(id, node)
     }
 
     pub fn get_node(&self, id: &NodeIndex) -> Option<&Arc<ObjectGraphNode>> {
@@ -134,7 +126,7 @@ impl ObjectGraph {
     fn get_mut_node(&mut self, id: &NodeIndex) -> Option<&mut ObjectGraphNode> {
         let old_node = self.nodes.get(id)?;
         let node_clone = (**old_node).clone();
-        self.nodes.insert(node_clone.id, node_clone.into());
+        self.nodes.insert(*id, node_clone.into());
 
         Arc::get_mut(self.nodes.get_mut(id).unwrap())
     }
@@ -150,9 +142,7 @@ impl ObjectGraph {
     pub fn set_edge(&mut self, a: &NodeIndex, b: NodeIndex, name: FieldName) {
         assert!(self.nodes.contains_key(&b));
         let node_a = self.get_mut_node(a).unwrap();
-        node_a
-            .pointers
-            .insert(name.clone(), EdgeEndPoint::Internal(b));
+        node_a.insert_internal_edge(name.clone(), b);
     }
 
     pub fn inc_chained_graph_ref(&mut self, graph: GraphIndex) {
@@ -192,7 +182,7 @@ impl ObjectGraph {
 
     pub fn remove_edge(&mut self, a: &NodeIndex, name: FieldName) {
         let node_a = self.get_mut_node(a).unwrap();
-        if let Some(EdgeEndPoint::Chain(graph, _)) = node_a.pointers.remove(&name) {
+        if let Some(EdgeEndPoint::Chain(graph, _)) = node_a.pointers_remove(&name) {
             self.dec_chained_graph_ref(graph);
         }
     }
@@ -209,24 +199,24 @@ impl ObjectGraph {
     }
 
     pub fn obj_type(&self, node: &NodeIndex) -> Option<&ObjectType> {
-        Some(&self.get_node(node)?.obj_type)
+        Some(&self.get_node(node)?.obj_type())
     }
 
     pub fn get_field(&self, node: &NodeIndex, field: &FieldName) -> Option<&PrimitiveValue> {
-        self.get_node(node)?.fields.get(field).clone()
+        self.get_node(node)?.get_field(field).clone()
     }
 
     pub fn set_field(&mut self, node: &NodeIndex, field: FieldName, value: PrimitiveValue) {
-        self.get_mut_node(node).unwrap().fields.insert(field, value);
+        self.get_mut_node(node).unwrap().insert_field(field, value);
     }
 
     pub fn delete_field(&mut self, node: &NodeIndex, field: &FieldName) -> Option<PrimitiveValue> {
-        self.get_mut_node(node).unwrap().fields.remove(field)
+        self.get_mut_node(node).unwrap().remove_field(field)
     }
 
     pub fn fields_count(&self, id: &NodeIndex) -> usize {
         let node = self.get_node(id).unwrap();
-        node.fields.len()
+        node.fields_len()
     }
 
     pub fn fields(
@@ -234,16 +224,16 @@ impl ObjectGraph {
         id: &NodeIndex,
     ) -> impl std::iter::Iterator<Item = (&FieldName, &PrimitiveValue)> {
         let node = self.get_node(id).unwrap();
-        node.fields.iter()
+        node.fields_iter()
     }
 
     pub fn get_neighbor(&self, node: &NodeIndex, field: &FieldName) -> Option<&EdgeEndPoint> {
-        self.get_node(node)?.pointers.get(field)
+        self.get_node(node)?.pointers_get(field)
     }
 
     pub fn neighbors_count(&self, id: &NodeIndex) -> usize {
         let node = self.get_node(id).unwrap();
-        node.pointers.len()
+        node.pointers_len()
     }
 
     pub fn neighbors(
@@ -251,7 +241,7 @@ impl ObjectGraph {
         id: &NodeIndex,
     ) -> impl std::iter::Iterator<Item = (&FieldName, &EdgeEndPoint)> {
         let node = self.get_node(id).unwrap();
-        node.pointers.iter()
+        node.pointers_iter()
     }
 
     pub fn get_root(&self, name: &RootName) -> Option<&NodeIndex> {
@@ -271,8 +261,8 @@ impl ObjectGraph {
         self.nodes.keys()
     }
 
-    pub fn nodes(&self) -> impl std::iter::Iterator<Item = &Arc<ObjectGraphNode>> {
-        self.nodes.values()
+    pub fn nodes(&self) -> impl std::iter::Iterator<Item = (&NodeIndex, &Arc<ObjectGraphNode>)> {
+        self.nodes.iter()
     }
 
     pub fn chained_graphs(&self) -> impl std::iter::Iterator<Item = &GraphIndex> {
@@ -337,15 +327,15 @@ impl ObjectGraph {
 
         let weight = self.get_node(node).unwrap();
 
-        write!(f, "{}{} ", indent_str, weight.obj_type)?;
+        write!(f, "{}{} ", indent_str, weight.obj_type())?;
         if !name.is_empty() {
             write!(f, "{} ", name)?;
         }
         writeln!(f, "{{")?;
-        for (field_name, val) in weight.fields.iter() {
+        for (field_name, val) in weight.fields_iter() {
             writeln!(f, " {}{}: {},", indent_str, field_name, val)?;
         }
-        for (field_name, val) in weight.pointers.iter() {
+        for (field_name, val) in weight.pointers_iter() {
             match val {
                 EdgeEndPoint::Internal(index) => {
                     self.fmt_node_with_indentation_and_name(
@@ -502,7 +492,8 @@ impl ObjectGraph {
         obj_type: ObjectType,
         fields: FieldsMap,
     ) -> NodeIndex {
-        self.add_node(id, obj_type, fields.into()).id
+        self.construct_node(id, obj_type, fields.into());
+        id
     }
 }
 
@@ -524,7 +515,7 @@ impl GraphMapHash for ObjectGraph {
             root_name.hash(state);
         }
 
-        for (_, node) in ObjectGraphWalker::from_graph(graphs_map, self.id) {
+        for (_, _, node) in ObjectGraphWalker::from_graph(graphs_map, self.id) {
             node.hash(state);
         }
     }
