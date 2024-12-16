@@ -15,9 +15,9 @@ use crate::{context::ContextArray, prog::SubProgram, value_array::ValueArray};
 pub type BankHasherBuilder = BuildHasherDefault<DefaultHasher>;
 
 #[derive(Debug, Clone)]
-pub(crate) struct Output(Arc<SubProgram>);
+pub(crate) struct ProgOutput(Arc<SubProgram>);
 
-impl Output {
+impl ProgOutput {
     fn out_type(&self) -> ValueType {
         self.0.out_type()
     }
@@ -32,15 +32,15 @@ impl Output {
     }
 }
 
-impl From<Arc<SubProgram>> for Output {
+impl From<Arc<SubProgram>> for ProgOutput {
     fn from(value: Arc<SubProgram>) -> Self {
         Self(value)
     }
 }
 
-impl Eq for Output {}
+impl Eq for ProgOutput {}
 
-impl PartialEq for Output {
+impl PartialEq for ProgOutput {
     fn eq(&self, other: &Self) -> bool {
         self.out_type() == other.out_type()
             && self
@@ -51,7 +51,7 @@ impl PartialEq for Output {
     }
 }
 
-impl Hash for Output {
+impl Hash for ProgOutput {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.0.out_type().hash(state);
         self.0.out_value().wrap(self.post_ctx()).hash(state);
@@ -62,11 +62,11 @@ impl Hash for Output {
 // iteration -> out_type -> sub_prog
 
 #[derive(Debug, Default)]
-pub(crate) struct ProgramsMap(pub DashMap<Output, Arc<SubProgram>, BankHasherBuilder>);
+pub(crate) struct ProgramsMap(pub DashMap<ProgOutput, Arc<SubProgram>, BankHasherBuilder>);
 
 impl ProgramsMap {
     fn insert(&self, p: Arc<SubProgram>) -> bool {
-        let output: Output = p.clone().into();
+        let output: ProgOutput = p.clone().into();
         match self.0.entry(output) {
             Entry::Occupied(_) => false,
             Entry::Vacant(vacant_entry) => {
@@ -77,24 +77,24 @@ impl ProgramsMap {
     }
 
     fn contains(&self, p: &Arc<SubProgram>) -> bool {
-        let output: Output = p.clone().into();
+        let output: ProgOutput = p.clone().into();
         self.0.contains_key(&output)
     }
 
     fn get_inserted_prog(&self, p: &Arc<SubProgram>) -> Option<Arc<SubProgram>> {
-        let output: Output = p.clone().into();
+        let output: ProgOutput = p.clone().into();
         self.0.get(&output).map(|p| p.clone())
     }
 
-    pub fn iter(&self) -> dashmap::iter::Iter<Output, Arc<SubProgram>, BankHasherBuilder> {
+    pub fn iter(&self) -> dashmap::iter::Iter<ProgOutput, Arc<SubProgram>, BankHasherBuilder> {
         self.0.iter()
     }
 }
 
 impl<'a> IntoIterator for &'a ProgramsMap {
-    type Item = RefMulti<'a, Output, Arc<SubProgram>>;
+    type Item = RefMulti<'a, ProgOutput, Arc<SubProgram>>;
 
-    type IntoIter = dashmap::iter::Iter<'a, Output, Arc<SubProgram>, BankHasherBuilder>;
+    type IntoIter = dashmap::iter::Iter<'a, ProgOutput, Arc<SubProgram>, BankHasherBuilder>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
