@@ -137,6 +137,7 @@ fn get_end_index(value: isize, len: usize) -> usize {
     }
 }
 
+mod set_ops;
 mod array_ops;
 mod bin;
 mod dom_ops;
@@ -147,6 +148,7 @@ mod member;
 mod string_ops;
 mod unary;
 
+pub use set_ops::*;
 pub use array_ops::*;
 pub use bin::*;
 pub use dom_ops::*;

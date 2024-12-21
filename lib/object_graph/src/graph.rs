@@ -409,6 +409,27 @@ impl ObjectGraph {
         self.add_object_from_map(id, obj_type, values_map)
     }
 
+    pub fn add_primitive_set_object<I>(
+        &mut self,
+        id: NodeIndex,
+        elem_type: &ValueType,
+        values: I,
+        cache: &Cache,
+    ) -> NodeIndex
+    where
+        I: IntoIterator,
+        I::Item: Into<PrimitiveValue>,
+    {
+        let obj_type = ValueType::set_obj_cached_string(elem_type, cache);
+        let map = values
+            .into_iter()
+            .map(|v| {
+                let pv: PrimitiveValue = v.into();
+                (scached!(cache; pv.to_string()), pv)
+            });
+        self.add_simple_object_from_map(id, obj_type, map)
+    }
+
     pub fn add_simple_object_from_map<I, T>(
         &mut self,
         id: NodeIndex,

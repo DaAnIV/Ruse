@@ -162,6 +162,15 @@ pub fn add_array_opcodes(opcodes: &mut OpcodesList, array_types: &[ValueType], c
     }
 }
 
+pub fn add_set_opcodes(opcodes: &mut OpcodesList, set_inner_types: &[ValueType], cache: &Cache) {
+    for t in set_inner_types {
+        opcodes.push(Arc::new(opcode::SetAddOp::new(t, cache)));
+        opcodes.push(Arc::new(opcode::SetDeleteOp::new(t, cache)));
+        opcodes.push(Arc::new(opcode::SetHasOp::new(t, cache)));
+        opcodes.push(Arc::new(opcode::SetSizeOp::new(t, cache)));
+    }
+}
+
 pub fn add_dom_opcodes(opcodes: &mut OpcodesList, cache: &Cache) {
     let op = Arc::new(opcode::GetElementByIdOp::new(cache));
     opcodes.push(op);

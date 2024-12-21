@@ -347,6 +347,26 @@ impl Context {
         self.create_output_object_from_map(obj_type, values_map, syn_ctx)
     }
 
+    pub fn create_output_primitive_set<I>(
+        &mut self,
+        elem_type: &ValueType,
+        values: I,
+        syn_ctx: &SynthesizerContext,
+    ) -> ObjectValue
+    where
+        I: IntoIterator,
+        I::Item: Into<PrimitiveValue>,
+    {
+        let obj_type = ValueType::set_obj_cached_string(elem_type, &syn_ctx.cache);
+        let map = values
+            .into_iter()
+            .map(|v| {
+                let pv: PrimitiveValue = v.into();
+                (syn_ctx.cached_string(&pv.to_string()), pv)
+            });
+        self.create_output_simple_object_from_map(obj_type, map, syn_ctx)
+    }
+
     pub fn create_output_simple_object_from_map<I, T>(
         &mut self,
         obj_type: ObjectType,

@@ -21,9 +21,9 @@ use ruse_synthesizer::{
 };
 use ruse_ts_interpreter::{dom, ts_class::TsClasses};
 use ruse_ts_synthesizer::{
-    add_array_opcodes, add_dom_opcodes, add_num_opcodes, add_str_opcodes, construct_opcode_list,
-    TsSynthesizer, ALL_BIN_NUM_OPCODES, ALL_BIN_STR_OPCODES, ALL_UNARY_NUM_OPCODES,
-    ALL_UPDATE_NUM_OPCODES,
+    add_array_opcodes, add_dom_opcodes, add_num_opcodes, add_set_opcodes, add_str_opcodes,
+    construct_opcode_list, TsSynthesizer, ALL_BIN_NUM_OPCODES, ALL_BIN_STR_OPCODES,
+    ALL_UNARY_NUM_OPCODES, ALL_UPDATE_NUM_OPCODES,
 };
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::json;
@@ -282,8 +282,54 @@ impl TaskType {
 
                 Ok(vobj!(graph.id, node))
             }
-            TaskType::NumberSet => Err(parse_err!(value, TodoError::new("Number set"))),
-            TaskType::StringSet => Err(parse_err!(value, TodoError::new("String set"))),
+            TaskType::NumberSet => {
+                let numbers = match value.as_array() {
+                    Some(value_array) => {
+                        if value_array.iter().any(|x| !x.is_i64()) {
+                            return Err(parse_err!(
+                                value,
+                                "Value is an array with an invalid number value"
+                            ));
+                        }
+                        value_array
+                            .iter()
+                            .map(|x| Number::from(x.as_i64().unwrap()))
+                    }
+                    None => return Err(parse_err!(value, "Value is not an array")),
+                };
+                let node = graph.add_primitive_set_object(
+                    id_gen.get_id_for_node(),
+                    &ValueType::Number,
+                    numbers.unique(),
+                    cache,
+                );
+
+                Ok(vobj!(graph.id, node))
+            }
+            TaskType::StringSet => {
+                let strings = match value.as_array() {
+                    Some(value_array) => {
+                        if value_array.iter().any(|x| !x.is_string()) {
+                            return Err(parse_err!(
+                                value,
+                                "Value is an array with an invalid string value"
+                            ));
+                        }
+                        value_array
+                            .iter()
+                            .map(|x| str_cached!(cache; x.as_str().unwrap()))
+                    }
+                    None => return Err(parse_err!(value, "Value is not an array")),
+                };
+                let node = graph.add_primitive_set_object(
+                    id_gen.get_id_for_node(),
+                    &ValueType::String,
+                    strings.unique(),
+                    cache,
+                );
+
+                Ok(vobj!(graph.id, node))
+            }
             TaskType::Object(s) => {
                 let class_name = str_cached!(cache; s);
                 let class = match classes.get_class(&class_name) {
@@ -396,6 +442,52 @@ impl TaskType {
         }
     }
 
+    fn parse_string_set(value_string: &str) -> Result<serde_json::Value, SnythesisTaskError> {
+        let mut part = String::new();
+        let mut collected = Vec::new();
+
+        let mut char_iter = value_string.chars();
+
+        if char_iter.next() != Some('{') {
+            return Err(parse_err!(value_string, "Missing opening bracket"));
+        }
+
+        loop {
+            match char_iter
+                .next()
+                .ok_or(parse_err!(value_string, "Missing closing bracket"))?
+            {
+                '}' => {
+                    if !part.is_empty() {
+                        collected.push(Self::strip_string(&part)?.to_string());
+                    }
+                    return Ok(json!(collected));
+                }
+                ',' => {
+                    if !part.is_empty() {
+                        collected.push(Self::strip_string(&part)?.to_string());
+                        part = String::new();
+                    }
+                }
+                x => part.push(x),
+            }
+        }
+    }
+
+    fn parse_number_set(value_string: &str) -> Result<serde_json::Value, SnythesisTaskError> {
+        if !value_string.starts_with('{') {
+            return Err(parse_err!(value_string, "Missing opening bracket"));
+        }
+        if !value_string.ends_with('}') {
+            return Err(parse_err!(value_string, "Missing closing bracket"));
+        }
+        let array_string = value_string.replace('{', "[").replace('}', "]");
+        match serde_json::from_str::<Vec<i64>>(array_string.as_str()) {
+            Ok(numbers) => Ok(json!(numbers)),
+            Err(e) => Err(parse_err!(value_string, e)),
+        }
+    }
+
     fn json_value_from_string(
         &self,
         value_string: &str,
@@ -415,8 +507,8 @@ impl TaskType {
             },
             TaskType::String => Self::parse_string(value_string),
             TaskType::StringArray => Self::parse_string_array(value_string),
-            TaskType::NumberSet => Err(parse_err!(value_string, TodoError::new("Number set"))),
-            TaskType::StringSet => Err(parse_err!(value_string, TodoError::new("String set"))),
+            TaskType::NumberSet => Self::parse_number_set(value_string),
+            TaskType::StringSet => Self::parse_string_set(value_string),
             TaskType::Dom => Ok(json!(value_string)),
             TaskType::DOMElement => Ok(json!(value_string)),
             TaskType::VarRef(_) => Err(parse_err!(
@@ -1032,7 +1124,9 @@ impl SnythesisTask {
             cache,
         );
         add_dom_opcodes(&mut composite_opcodes, cache);
-
+        
+        add_set_opcodes(&mut composite_opcodes, &[ValueType::Number, ValueType::String], cache);
+        
         for class_name in class_names {
             let class = classes.get_class(class_name).unwrap();
             composite_opcodes.extend_from_slice(&class.member_opcodes);

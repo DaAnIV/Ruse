@@ -34,6 +34,22 @@ impl ValueType {
         ValueType::Object(Self::array_obj_cached_string(elem_type, cache))
     }
 
+    pub fn is_set_obj_type(obj_type: &ObjectType) -> bool {
+        obj_type.starts_with("Set<")
+    }
+
+    pub fn set_obj_string(elem_type: &ValueType) -> String {
+        format!("Set<{}>", elem_type)
+    }
+
+    pub fn set_obj_cached_string(elem_type: &ValueType, cache: &Cache) -> ObjectType {
+        scached!(cache; Self::set_obj_string(elem_type))
+    }
+
+    pub fn set_value_type(elem_type: &ValueType, cache: &Cache) -> ValueType {
+        ValueType::Object(Self::set_obj_cached_string(elem_type, cache))
+    }
+
     pub fn is_primitive(&self) -> bool {
         !matches!(self, ValueType::Object(_))
     }
@@ -118,6 +134,10 @@ impl ObjectValue {
         ValueType::is_array_obj_type(&self.obj_type(graphs_map))
     }
 
+    pub fn is_set(&self, graphs_map: &GraphsMap) -> bool {
+        ValueType::is_set_obj_type(&self.obj_type(graphs_map))
+    }
+
     pub fn fields<'a>(
         &self,
         graphs_map: &'a GraphsMap,
@@ -149,6 +169,20 @@ impl GraphMapDisplay for ObjectValue {
                 }
             }
             write!(f, "]")?;
+            fmt::Result::Ok(())
+        } else if self.is_set(graphs_map) && self.pointers_field_count(graphs_map) == 0 {
+            write!(f, "{{")?;
+            let mut iter = graph.fields(&self.node);
+            match iter.next() {
+                None => (),
+                Some((_, first_val)) => {
+                    write!(f, "{}", first_val).unwrap();
+                    iter.for_each(|(_, val)| {
+                        write!(f, ", {}", val).unwrap();
+                    });
+                }
+            }
+            write!(f, "}}")?;
             fmt::Result::Ok(())
         } else {
             self.graph(graphs_map).fmt_node(f, graphs_map, &self.node)
