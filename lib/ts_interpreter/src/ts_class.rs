@@ -6,7 +6,9 @@ use std::{
 };
 
 use dashmap::DashMap;
-use ruse_object_graph::{scached, str_cached, Cache, CachedString, FieldName, ObjectGraph, RootName};
+use ruse_object_graph::{
+    scached, str_cached, Cache, CachedString, FieldName, ObjectGraph, RootName,
+};
 use ruse_synthesizer::{
     context::{Context, GraphIdGenerator},
     synthesizer::OpcodesList,
@@ -18,8 +20,8 @@ use swc_common::{
 use swc_ecma_ast::{self as ast, ClassDecl};
 
 use anyhow::Error;
-use swc_ecma_parser::{Syntax, TsSyntax};
 use ruse_object_graph::value::*;
+use swc_ecma_parser::{Syntax, TsSyntax};
 
 use crate::{
     js_value::value_to_js_value,
@@ -201,11 +203,17 @@ impl TsClass {
         ValueType::Object(self.class_name.clone())
     }
 
-    pub fn generate_object<I>(&self, map: I, graph: &mut ObjectGraph, graph_id_gen: &GraphIdGenerator) -> ObjectValue
+    pub fn generate_object<I>(
+        &self,
+        map: I,
+        graph: &mut ObjectGraph,
+        graph_id_gen: &GraphIdGenerator,
+    ) -> ObjectValue
     where
         I: IntoIterator<Item = (FieldName, Value)>,
     {
-        let obj_id = graph.add_object_from_map(graph_id_gen.get_id_for_node(), self.class_name.clone(), map);
+        let obj_id =
+            graph.add_object_from_map(graph_id_gen.get_id_for_node(), self.class_name.clone(), map);
 
         ObjectValue {
             graph_id: graph.id,
@@ -213,7 +221,13 @@ impl TsClass {
         }
     }
 
-    pub fn generate_rooted_object<I>(&self, root_name: RootName, map: I, graph: &mut ObjectGraph, graph_id_gen: &GraphIdGenerator) -> ObjectValue
+    pub fn generate_rooted_object<I>(
+        &self,
+        root_name: RootName,
+        map: I,
+        graph: &mut ObjectGraph,
+        graph_id_gen: &GraphIdGenerator,
+    ) -> ObjectValue
     where
         I: IntoIterator<Item = (CachedString, Value)>,
     {
@@ -228,7 +242,7 @@ impl TsClass {
         classes: &TsClasses,
         obj: ObjectValue,
         boa_ctx: &mut boa_engine::Context,
-        cache: &Arc<Cache>
+        cache: &Cache,
     ) -> boa_engine::JsObject {
         let mut builder =
             boa_engine::object::ObjectInitializer::with_native_data(TsObjectValue(obj), boa_ctx);
@@ -245,7 +259,7 @@ impl TsClass {
         obj_initializer: &mut boa_engine::object::ObjectInitializer,
         classes: &TsClasses,
         constructor: &ast::Constructor,
-        cache: &Arc<Cache>,
+        cache: &Cache,
     ) {
         for param in &constructor.params {
             let ts_param = param.as_ts_param_prop().unwrap();

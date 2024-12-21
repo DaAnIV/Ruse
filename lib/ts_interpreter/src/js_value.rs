@@ -22,7 +22,7 @@ pub fn object_value_to_js_value(
     value: &ObjectValue,
     boa_ctx: &mut boa_engine::Context,
     context: &Context,
-    cache: &Arc<Cache>,
+    cache: &Cache,
 ) -> boa_engine::JsValue {
     let class = classes.get_class(&value.obj_type(&context.graphs_map)).unwrap();
     let js_obj = class.generate_js_object(classes, value.clone(), boa_ctx, cache);
@@ -34,7 +34,7 @@ pub fn value_to_js_value(
     value: &Value,
     boa_ctx: &mut boa_engine::Context,
     context: &Context,
-    cache: &Arc<Cache>,
+    cache: &Cache,
 ) -> boa_engine::JsValue {
     match value {
         Value::Primitive(p) => primitive_value_to_js_value(p),
@@ -46,7 +46,7 @@ pub fn js_object_to_value(
     _classes: &TsClasses,
     value: &boa_engine::JsObject,
     _boa_ctx: &mut boa_engine::Context,
-    _cache: &Arc<Cache>,
+    _cache: &Cache,
 ) -> Value {
     match value.downcast_ref::<TsObjectValue>() {
         Some(ts_obj) => {
@@ -61,7 +61,7 @@ pub fn js_value_to_value(
     classes: &TsClasses,
     value: &boa_engine::JsValue,
     boa_ctx: &mut boa_engine::Context,
-    cache: &Arc<Cache>,
+    cache: &Cache,
 ) -> Value {
     match value {
         boa_engine::JsValue::Null => Value::Primitive(PrimitiveValue::Null),
