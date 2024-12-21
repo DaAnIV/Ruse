@@ -68,7 +68,7 @@ impl ExprOpcode for ClassMethodOp {
         post_ctx: &mut Context,
         syn_ctx: &SynthesizerContext,
     ) -> EvalResult {
-        let mut boa_ctx = self.classes.get_boa_ctx(post_ctx, &syn_ctx.cache);
+        let mut boa_ctx = self.classes.get_engine_ctx(post_ctx, &syn_ctx.cache);
         for (i, arg) in args.iter().enumerate() {
             let key = boa_engine::js_string!(format!("arg{}", i));
             let value = value_to_js_value(

@@ -24,7 +24,7 @@ use ruse_object_graph::value::*;
 use swc_ecma_parser::{Syntax, TsSyntax};
 
 use crate::{
-    js_value::value_to_js_value,
+    js_value::{js_value_to_value, value_to_js_value},
     opcode::{ClassMethodOp, MemberOp},
 };
 
@@ -51,6 +51,43 @@ impl boa_engine::context::HostHooks for TsContextHooks {
     }
 }
 
+pub struct EngineContext(boa_engine::Context);
+
+impl EngineContext {
+    fn set_context(&mut self, ctx: &mut Context, cache: &Arc<Cache>) {
+        let global_obj = self.0.global_object();
+        let mut a = global_obj.downcast_mut::<TsGlobalObject>().unwrap();
+        let b = a.deref_mut();
+        b.context = Some(std::ptr::from_mut(ctx));
+        b.cache = Some(cache.clone());
+    }
+}
+
+impl Deref for EngineContext {
+    type Target = boa_engine::Context;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for EngineContext {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl Default for EngineContext {
+    fn default() -> Self {
+        Self(
+            boa_engine::context::ContextBuilder::default()
+                .host_hooks(&TsContextHooks)
+                .build()
+                .expect("Failed to build context"),
+        )
+    }
+}
+
 impl TsClasses {
     pub fn new() -> Self {
         Self {
@@ -69,19 +106,9 @@ impl TsClasses {
         Option::map(self.classes.get(class), |x| x.clone())
     }
 
-    pub fn get_boa_ctx(&self, post_ctx: &mut Context, cache: &Arc<Cache>) -> boa_engine::Context {
-        // Todo: make this thread local somehow
-        let boa_ctx = boa_engine::context::ContextBuilder::default()
-            .host_hooks(&TsContextHooks)
-            .build()
-            .expect("Failed to build context");
-
-        let global_obj = boa_ctx.global_object();
-        let mut a = global_obj.downcast_mut::<TsGlobalObject>().unwrap();
-        let b = a.deref_mut();
-        b.cache = Some(cache.clone());
-        b.context = Some(post_ctx.clone());
-
+    pub fn get_engine_ctx(&self, post_ctx: &mut Context, cache: &Arc<Cache>) -> EngineContext {
+        let mut boa_ctx = EngineContext::default();
+        boa_ctx.set_context(post_ctx, cache);
         boa_ctx
     }
 
@@ -98,22 +125,41 @@ impl TsClasses {
             .unwrap();
         let global_obj = boa_ctx.global_object();
         let global_ctx = global_obj.downcast_ref::<TsGlobalObject>().unwrap();
-        let cache = global_ctx.cache.as_ref().unwrap();
-        let context = global_ctx.context.as_ref().unwrap();
+        let cache = global_ctx.cache();
+        let context = global_ctx.context();
 
-        let field = js_object_value.get_field_value(field_name, &context.graphs_map).unwrap();
+        let field = js_object_value
+            .get_field_value(field_name, &context.graphs_map)
+            .unwrap();
 
         Ok(value_to_js_value(self, &field, boa_ctx, context, cache))
     }
 
     fn object_setter(
         &self,
-        _this: &boa_engine::JsValue,
-        _field_name: &CachedString,
-        _boa_ctx: &mut boa_engine::Context,
-    ) -> boa_engine::JsResult<boa_engine::JsValue> {
-        // Implementation of the object_getter function goes here
-        unimplemented!()
+        this: &boa_engine::JsValue,
+        field_name: &CachedString,
+        new_js_value: &boa_engine::JsValue,
+        boa_ctx: &mut boa_engine::Context,
+    ) {
+        let js_object_value = this
+            .as_object()
+            .unwrap()
+            .downcast_ref::<TsObjectValue>()
+            .unwrap();
+        let global_obj = boa_ctx.global_object();
+        let global_ctx = global_obj.downcast_ref::<TsGlobalObject>().unwrap();
+        let cache = global_ctx.cache();
+        let context = global_ctx.context();
+
+        let new_value = js_value_to_value(self, new_js_value, boa_ctx, cache);
+
+        context.set_field(
+            js_object_value.graph_id,
+            js_object_value.node,
+            field_name.clone(),
+            &new_value,
+        );
     }
 
     pub fn add_ts_file(
@@ -295,8 +341,14 @@ impl TsClass {
                 let setter_classes = classes.clone();
                 let setter = unsafe {
                     boa_engine::native_function::NativeFunction::from_closure(
-                        move |this, _, boa_ctx| {
-                            setter_classes.object_setter(this, &setter_field_name, boa_ctx)
+                        move |this, args, boa_ctx| {
+                            setter_classes.object_setter(
+                                this,
+                                &setter_field_name,
+                                &args[0],
+                                boa_ctx,
+                            );
+                            Ok(boa_engine::JsValue::Undefined)
                         },
                     )
                     .to_js_function(obj_initializer.context().realm())
@@ -510,7 +562,7 @@ impl boa_engine::JsData for TsObjectValue {}
 
 struct TsGlobalObject {
     cache: Option<Arc<Cache>>,
-    context: Option<Context>,
+    context: Option<*mut Context>,
 }
 
 impl boa_gc::Finalize for TsGlobalObject {}
@@ -520,3 +572,12 @@ unsafe impl boa_gc::Trace for TsGlobalObject {
 }
 
 impl boa_engine::JsData for TsGlobalObject {}
+
+impl TsGlobalObject {
+    pub fn context(&self) -> &mut Context {
+        unsafe { self.context.unwrap().as_mut().unwrap() }
+    }
+    pub fn cache(&self) -> &Cache {
+        self.cache.as_ref().unwrap()
+    }
+}

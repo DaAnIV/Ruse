@@ -254,8 +254,9 @@ mod ts_class_tests {
     use graph_map_value::GraphMapWrap;
     use ruse_object_graph::{str_cached, Cache};
     use ruse_object_graph::{value::*, *};
-    use ruse_synthesizer::context::{Context, GraphIdGenerator};
+    use ruse_synthesizer::context::{Context, GraphIdGenerator, ValuesMap};
 
+    use crate::js_value::value_to_js_value;
     use crate::ts_class::TsClasses;
 
     #[test]
@@ -406,7 +407,7 @@ mod ts_class_tests {
         graphs_map.insert_graph(graph.into());
 
         let mut ctx = Context::with_values([].into(), graphs_map.into(), id_gen);
-        let mut boa_ctx = classes.get_boa_ctx(&mut ctx, &cache);
+        let mut boa_ctx = classes.get_engine_ctx(&mut ctx, &cache);
 
         let js_user = user_class.generate_js_object(&classes, user, &mut boa_ctx, &cache);
         boa_ctx
@@ -480,7 +481,7 @@ mod ts_class_tests {
         graphs_map.insert_graph(complex_user_graph.into());
 
         let mut ctx = Context::with_values([].into(), graphs_map.into(), id_gen);
-        let mut boa_ctx = classes.get_boa_ctx(&mut ctx, &cache);
+        let mut boa_ctx = classes.get_engine_ctx(&mut ctx, &cache);
 
         let js_obj =
             user_class_pair.generate_js_object(&classes, complex_user, &mut boa_ctx, &cache);
@@ -492,6 +493,56 @@ mod ts_class_tests {
         let res = boa_ctx.eval(js_code).unwrap();
         assert!(res.is_string());
         assert_eq!(res.as_string().unwrap(), &js_string!("John Paul"));
+    }
+
+    
+    #[test]
+    fn js_object_eval_set() {
+        let code = "class User {
+            constructor(public name: string, 
+                        public surname: string) {}
+
+            
+        }";
+
+        let cache = Arc::new(Cache::new());
+        let mut graphs_map = GraphsMap::default();
+        let id_gen = Arc::new(GraphIdGenerator::default());
+        let classes = TsClasses::new();
+        let user_class_name = classes
+            .add_class(code, &cache)
+            .expect("Failed to add User class");
+        let user_class = classes.get_class(&user_class_name).unwrap();
+        let mut graph = ObjectGraph::new(id_gen.get_id_for_graph());
+        let user = user_class.generate_object(
+            HashMap::from([
+                (str_cached!(cache; "surname"), vstr!(cache; "Doe")),
+                (str_cached!(cache; "name"), vstr!(cache; "John")),
+            ]),
+            &mut graph,
+            &id_gen,
+        );
+        graphs_map.insert_graph(graph.into());
+
+        let mut values = ValuesMap::default();
+        values.insert(str_cached!(cache; "u"), Value::Object(user));
+
+        let mut ctx = Context::with_values(values, graphs_map.into(), id_gen);
+        let mut boa_ctx = classes.get_engine_ctx(&mut ctx, &cache);
+
+        value_to_js_value(&classes, ctx.get_var_loc_value(&str_cached!(cache; "u")).unwrap().val(), &mut boa_ctx, &ctx, &cache);
+
+        let js_user = user_class.generate_js_object(&classes, user, &mut boa_ctx, &cache);
+        boa_ctx
+            .register_global_property(js_string!("u"), js_user, Attribute::all())
+            .expect("Failed to register p");
+
+        let js_code = boa_engine::Source::from_bytes("u.name = \"abc\"");
+        let _res = boa_ctx.eval(js_code).unwrap();
+
+        let user_after = ctx.get_var_loc_value(&str_cached!(cache; "u")).unwrap();
+        let user_name_after = user_after.val().obj().unwrap().get_field_value(&str_cached!(cache; "name"), &ctx.graphs_map);
+        assert_eq!(user_name_after.unwrap().primitive().unwrap().string().unwrap().as_str(), "abc");
     }
 }
 
