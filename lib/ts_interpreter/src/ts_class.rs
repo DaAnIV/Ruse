@@ -43,6 +43,7 @@ impl boa_engine::context::HostHooks for TsContextHooks {
         let global_obj = TsGlobalObject {
             cache: None,
             context: None,
+            dirty: false,
         };
         boa_engine::JsObject::from_proto_and_data(
             intrinsics.constructors().object().prototype(),
@@ -60,6 +61,13 @@ impl EngineContext {
         let b = a.deref_mut();
         b.context = Some(std::ptr::from_mut(ctx));
         b.cache = Some(cache.clone());
+        b.dirty = false
+    }
+
+    pub fn is_dirty(&self) -> bool {
+        let global_obj = self.0.global_object();
+        let a = global_obj.downcast_ref::<TsGlobalObject>().unwrap();
+        a.dirty
     }
 }
 
@@ -148,7 +156,8 @@ impl TsClasses {
             .downcast_ref::<TsObjectValue>()
             .unwrap();
         let global_obj = boa_ctx.global_object();
-        let global_ctx = global_obj.downcast_ref::<TsGlobalObject>().unwrap();
+        let mut global_ctx = global_obj.downcast_mut::<TsGlobalObject>().unwrap();
+        global_ctx.set_dirty();
         let cache = global_ctx.cache();
         let context = global_ctx.context();
 
@@ -490,14 +499,9 @@ impl TsClass {
         self.member_opcodes.push(accessor);
     }
 
-    fn add_method_opcode(
-        &mut self,
-        classes: &TsClasses,
-        method: &ast::ClassMethod,
-        _cache: &Cache,
-    ) {
+    fn add_method_opcode(&mut self, classes: &TsClasses, method: &ast::ClassMethod, cache: &Cache) {
         let method_name = method.key.as_ident().unwrap().sym.to_string();
-        let args = Vec::with_capacity(method.function.params.len());
+        let mut args = Vec::with_capacity(method.function.params.len());
 
         let c = swc::Compiler::new(Arc::<SourceMap>::default());
 
@@ -522,13 +526,8 @@ impl TsClass {
             .print(method.function.body.as_ref().unwrap(), print_args)
             .expect("Failed to get code")
             .code;
-        match &method.function.type_params {
-            Some(params) => {
-                for param in &params.params {
-                    println!("{:?}", param);
-                }
-            }
-            None => (),
+        for param in &method.function.params {
+            args.push(Self::pat_to_name_type(&param.pat, cache));
         }
         let method_op = Arc::new(ClassMethodOp::new(
             self.class_name.clone(),
@@ -538,6 +537,19 @@ impl TsClass {
             classes.clone(),
         ));
         self.method_opcodes.push(method_op);
+    }
+
+    fn pat_to_name_type(pat: &ast::Pat, cache: &Cache) -> (String, ValueType) {
+        match pat {
+            swc_ecma_ast::Pat::Ident(binding_ident) => (
+                binding_ident.id.sym.to_string(),
+                Self::get_value_type(&binding_ident.type_ann.as_ref().unwrap().type_ann, cache),
+            ),
+            swc_ecma_ast::Pat::Assign(assign_pat) => {
+                Self::pat_to_name_type(&assign_pat.left, cache)
+            }
+            _ => todo!(),
+        }
     }
 }
 
@@ -563,6 +575,7 @@ impl boa_engine::JsData for TsObjectValue {}
 struct TsGlobalObject {
     cache: Option<Arc<Cache>>,
     context: Option<*mut Context>,
+    dirty: bool,
 }
 
 impl boa_gc::Finalize for TsGlobalObject {}
@@ -579,5 +592,8 @@ impl TsGlobalObject {
     }
     pub fn cache(&self) -> &Cache {
         self.cache.as_ref().unwrap()
+    }
+    pub fn set_dirty(&mut self) {
+        self.dirty = true;
     }
 }

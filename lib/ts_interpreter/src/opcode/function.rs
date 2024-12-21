@@ -23,7 +23,7 @@ impl ClassMethodOp {
     pub fn new(
         obj_type: CachedString,
         method_name: String,
-        args: &[(&str, ValueType)],
+        args: &[(String, ValueType)],
         function_body: &str,
         classes: TsClasses,
     ) -> Self {
@@ -31,7 +31,7 @@ impl ClassMethodOp {
         let mut arg_types = vec![ValueType::Object(obj_type)];
         arg_types.extend(args.iter().map(|(_, value_type)| value_type.clone()));
         let caller_args = (0..(arg_types.len() - 1))
-            .map(|i| format!("arg {}", i + 1))
+            .map(|i| format!("arg{}", i + 1))
             .collect::<Vec<_>>()
             .join(", ");
         let args_names = args
@@ -88,12 +88,19 @@ impl ExprOpcode for ClassMethodOp {
         let js_souce = boa_engine::Source::from_bytes(self.code.as_str());
         match boa_ctx.eval(js_souce) {
             // Need to check if func changed the context
-            Ok(res) => EvalResult::NoModification(post_ctx.temp_value(js_value_to_value(
+            Ok(res) => {
+                let output = post_ctx.temp_value(js_value_to_value(
                 &self.classes,
                 &res,
                 &mut boa_ctx,
                 &syn_ctx.cache,
-            ))),
+            ));
+            if boa_ctx.is_dirty() {
+                EvalResult::DirtyContext(output)
+            } else {
+                EvalResult::NoModification(output)
+            }
+        },
             Err(_) => EvalResult::None,
         }
     }
