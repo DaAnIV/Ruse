@@ -339,7 +339,7 @@ impl TsClass {
                     self.add_opcodes_from_constructor(constructor, cache);
                 }
                 ast::ClassMember::Method(m) => self.add_method_opcode(classes, m, cache),
-                ast::ClassMember::ClassProp(_) => todo!(),
+                ast::ClassMember::ClassProp(prop) => self.add_opcodes_from_prop(prop, cache),
                 ast::ClassMember::TsIndexSignature(_) => todo!(),
                 ast::ClassMember::StaticBlock(_) => todo!(),
                 ast::ClassMember::AutoAccessor(_) => todo!(),
@@ -409,11 +409,33 @@ impl TsClass {
             let member = str_cached!(cache; ident.sym.as_str());
             let member_type =
                 Self::get_value_type(&ident.type_ann.as_ref().unwrap().type_ann, cache);
+            if let Some(_field_type) = self.fields.get(&member) {
+                // TODO: check field type matches
+                continue;
+            }
             self.fields.insert(member.clone(), member_type);
 
             let accessor = Arc::new(MemberOp::new(self.class_name.clone(), member));
             self.member_opcodes.push(accessor);
         }
+    }
+
+    fn add_opcodes_from_prop(&mut self, prop: &ast::ClassProp, cache: &Cache) {
+        if prop.accessibility.unwrap_or(ast::Accessibility::Public) != ast::Accessibility::Public {
+            return;
+        }
+        let ident = prop.key.as_ident().unwrap();
+
+        let member = str_cached!(cache; ident.sym.as_str());
+        let member_type = Self::get_value_type(&prop.type_ann.as_ref().unwrap().type_ann, cache);
+        if let Some(_field_type) = self.fields.get(&member) {
+            // TODO: check field type matches
+            return;
+        }
+        self.fields.insert(member.clone(), member_type);
+
+        let accessor = Arc::new(MemberOp::new(self.class_name.clone(), member));
+        self.member_opcodes.push(accessor);
     }
 
     fn add_method_opcode(
