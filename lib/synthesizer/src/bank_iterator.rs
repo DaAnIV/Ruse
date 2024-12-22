@@ -7,7 +7,8 @@ use Option::{self as State, None as ProductEnded, Some as ProductInProgress};
 use crate::multi_programs_map_product::MultiProgramsMaps;
 use crate::{
     bank::ProgBank,
-    multi_programs_map_product::{multi_programs_map_end, multi_programs_map_product, ProgTriplet},
+    multi_programs_map_product::{multi_programs_map_end, multi_programs_map_product},
+    prog_triplet::ProgTriplet
 };
 
 pub struct BankIterator<'a>(State<BankIteratorInner<'a>>);

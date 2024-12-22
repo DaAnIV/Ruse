@@ -8,5 +8,6 @@ pub mod embedding;
 mod multi_programs_map_product;
 mod bank_iterator;
 mod value_array;
+mod prog_triplet;
 
 pub mod test;

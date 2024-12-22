@@ -2,7 +2,7 @@ use crate::{
     bank::*,
     bank_iterator::bank_iterator,
     context::{ContextArray, SynthesizerContext},
-    multi_programs_map_product::ProgTriplet,
+    prog_triplet::ProgTriplet,
     opcode::ExprOpcode,
     prog::SubProgram,
 };
