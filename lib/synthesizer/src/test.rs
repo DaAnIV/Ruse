@@ -245,14 +245,14 @@ pub mod helpers {
 
         let fields = generate_fields(4, rng, cache);
         let obj_type = scached!(cache; generate_random_str(4, rng));
-        graph.add_node(root_id, obj_type, fields);
+        graph.construct_node(root_id, obj_type, fields);
         graph.set_as_root(root_name, root_id);
 
         for _ in 0..4 {
             let neig_id = graph_id_gen.get_id_for_node();
             let fields = generate_fields(4, rng, cache);
             let obj_type = scached!(cache; generate_random_str(4, rng));
-            graph.add_node(neig_id, obj_type, fields);
+            graph.construct_node(neig_id, obj_type, fields);
 
             let edge_name = scached!(cache; generate_random_str(4, rng));
             graph.set_edge(&root_id, neig_id, edge_name);
