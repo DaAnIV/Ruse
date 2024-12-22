@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use ruse_object_graph::{scached, Cache, Number, PrimitiveValue};
 use ruse_object_graph::value::*;
 use ruse_synthesizer::context::Context;
@@ -65,7 +63,7 @@ pub fn js_value_to_value(
 ) -> Value {
     match value {
         boa_engine::JsValue::Null => Value::Primitive(PrimitiveValue::Null),
-        boa_engine::JsValue::Undefined => todo!(),
+        boa_engine::JsValue::Undefined => Value::Primitive(PrimitiveValue::Null),
         boa_engine::JsValue::Boolean(b) => Value::Primitive(PrimitiveValue::Bool(*b)),
         boa_engine::JsValue::String(s) => Value::Primitive(PrimitiveValue::String(
             scached!(cache; s.to_std_string().unwrap()),

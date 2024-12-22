@@ -100,7 +100,12 @@ pub fn run_task(path: &Path, cache: Arc<Cache>, bench_config: &BenchmarkConfig) 
 
     task.populate_results(&mut result);
 
-    let mut synthesizer = match task.get_synthesizer(&cache) {
+    let mut synthesizer = match task.get_synthesizer(
+        bench_config.max_context_depth,
+        bench_config.iteration_workers_count,
+        bench_config.iteration_chunk_size,
+        &cache,
+    ) {
         Ok(v) => v,
         Err(e) => {
             error!(target: "ruse::runner", "Failed to get synthesizer for task {}. {}", task_name.display(), e);

@@ -912,12 +912,17 @@ impl SnythesisTask {
     const DEFAULT_STRING_LITERALS: [&str; 2] = ["", " "];
     const DEFAULT_NUM_LITERALS: [i64; 2] = [0, 1];
 
-    pub fn get_synthesizer(&self, cache: &Arc<Cache>) -> Result<TsSynthesizer, SnythesisTaskError> {
+    pub fn get_synthesizer(
+        &self,
+        mut max_context_depth: usize,
+        iteration_workers_count: usize,
+        iteration_chunk_size: usize,
+        cache: &Arc<Cache>,
+    ) -> Result<TsSynthesizer, SnythesisTaskError> {
         let opcodes = self.get_opcodes(cache);
         let context_array = self.get_context_array(cache)?;
         let predicate = self.get_predicate(cache)?;
         let valid = self.get_valid_predicate(cache)?;
-        let mut max_context_depth = 4;
         if let Some(immutable) = &self.inner.immutable {
             if immutable.len() == self.inner.variables.len() {
                 max_context_depth = 1;
@@ -930,6 +935,8 @@ impl SnythesisTask {
             predicate,
             valid,
             max_context_depth,
+            iteration_workers_count,
+            iteration_chunk_size,
             cache.clone(),
         );
         if let Some(immutable) = &self.inner.immutable {

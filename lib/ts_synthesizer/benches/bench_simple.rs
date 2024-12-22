@@ -59,6 +59,8 @@ fn simple_synthesize_1(c: &mut Criterion) {
                         Box::new(|_| false),
                         Box::new(|_| true),
                         2,
+                        1,
+                        1,
                         cache,
                     )
                 },

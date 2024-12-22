@@ -4,7 +4,9 @@ mod tests {
 
     use object_graph::{str_cached, Number};
     use ruse_object_graph::{
-        self as object_graph, value::{Value, ValueType}, vnum, vstr, GraphsMap, ObjectGraph
+        self as object_graph,
+        value::{Value, ValueType},
+        vnum, vstr, GraphsMap, ObjectGraph,
     };
     use ruse_synthesizer::{
         context::{Context, ContextArray, GraphIdGenerator},
@@ -42,7 +44,7 @@ mod tests {
                 (str_cached!(cache; "name"), vstr!(cache; "John")),
             ]),
             &mut user1_graph,
-            &id_gen1
+            &id_gen1,
         );
         graphs_map1.insert_graph(user1_graph.into());
 
@@ -54,7 +56,7 @@ mod tests {
                 (str_cached!(cache; "name"), vstr!(cache; "Paul")),
             ]),
             &mut user2_graph,
-            &id_gen2
+            &id_gen2,
         );
         graphs_map2.insert_graph(user2_graph.into());
 
@@ -105,6 +107,8 @@ mod tests {
             }),
             Box::new(|_p| true),
             3,
+            1,
+            1,
             cache,
         );
 
@@ -201,6 +205,8 @@ mod tests {
             }),
             Box::new(|_p| true),
             3,
+            1,
+            1,
             cache,
         );
 

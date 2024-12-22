@@ -18,8 +18,9 @@ use std::{
     ops::Index,
     sync::{atomic::*, Arc},
 };
+use tokio::{sync::mpsc, task::JoinSet};
 use tokio_util::sync::CancellationToken;
-use tracing::{debug, trace};
+use tracing::{debug, error, trace};
 
 pub type OpcodesList = Vec<Arc<dyn ExprOpcode>>;
 const ALLOW_NON_FINITE_NUMBER: bool = false;
@@ -146,7 +147,7 @@ impl serde::Serialize for CurrentStatistics {
 }
 
 pub type SynthesizerPredicate = Box<dyn Fn(&Arc<SubProgram>) -> bool + Send + Sync>;
-type OpcodesMap = BTreeMap<Vec<ValueType>, Vec<Arc<dyn ExprOpcode>>>;
+type OpcodesMap = BTreeMap<Vec<ValueType>, Arc<OpcodesList>>;
 
 pub struct Synthesizer {
     bank: ProgBank,
@@ -159,6 +160,9 @@ pub struct Synthesizer {
     predicate: SynthesizerPredicate,
     valid: SynthesizerPredicate,
 
+    chunk_size: usize,
+    worker_count: usize,
+
     statistics: Statistics,
 }
 
@@ -169,6 +173,8 @@ impl Synthesizer {
         predicate: SynthesizerPredicate,
         valid: SynthesizerPredicate,
         max_context_depth: usize,
+        iteration_workers_count: usize,
+        iteration_chunk_size: usize,
         cache: Arc<Cache>,
     ) -> Self {
         Self {
@@ -180,6 +186,8 @@ impl Synthesizer {
             cancel_token: CancellationToken::new(),
             predicate,
             valid,
+            worker_count: iteration_workers_count,
+            chunk_size: iteration_chunk_size,
             statistics: Default::default(),
         }
     }
@@ -187,14 +195,16 @@ impl Synthesizer {
     fn sort_opcodes(opcodes: OpcodesList) -> OpcodesMap {
         let mut sorted_opcodes: OpcodesMap = OpcodesMap::default();
         for op in opcodes {
-            if let Some(list) = sorted_opcodes.get_mut(op.arg_types()) {
+            if let Some(arc_list) = sorted_opcodes.get_mut(op.arg_types()) {
+                let list = Arc::get_mut(arc_list).unwrap();
                 list.push(op);
             } else {
-                sorted_opcodes.insert(op.arg_types().to_vec(), vec![op]);
+                sorted_opcodes.insert(op.arg_types().to_vec(), Arc::new(vec![op]));
             }
         }
 
-        for (_, list) in sorted_opcodes.iter_mut() {
+        for (_, arc_list) in sorted_opcodes.iter_mut() {
+            let list = Arc::get_mut(arc_list).unwrap();
             list.sort_by(|x, y| x.op_name().cmp(y.op_name()));
         }
 
@@ -207,7 +217,7 @@ impl Synthesizer {
 
     fn composite_opcodes(
         &self,
-    ) -> impl Iterator<Item = (&Vec<ValueType>, &Vec<Arc<dyn ExprOpcode>>)> {
+    ) -> impl Iterator<Item = (&Vec<ValueType>, &Arc<OpcodesList>)> {
         self.opcodes
             .iter()
             .filter(|(arg_types, _)| !arg_types.is_empty())
@@ -222,8 +232,10 @@ impl Synthesizer {
         iteration_map: &TypeMap,
         ctx: &ContextArray,
     ) -> Option<Arc<SubProgram>> {
-        debug!(target: "ruse::synthesizer", "Initializing context");
+        trace!(target: "ruse::synthesizer", "Initializing context");
         trace!(target: "ruse::synthesizer", "{}", ctx);
+
+        let mut res = None;
 
         self.found_contexts.insert(ctx.clone());
         for op in self.init_opcodes() {
@@ -231,54 +243,23 @@ impl Synthesizer {
                 Some(p) => p,
                 None => continue,
             };
-            if self.found_contexts.insert(p.pre_ctx().clone()) {
-                self.statistics.inc_value(StatisticsTypes::ContextSize);
-            }
-            if !self.check_and_insert_program(p.clone(), iteration_map) {
+
+            if !self.check_program(&p) {
                 continue;
             }
+
+            if !self.insert_program(p.clone(), iteration_map) {
+                continue;
+            }
+
             if IS_START_CTX && (self.predicate)(&p) {
-                return Some(p);
+                res = Some(p);
+                break;
             }
         }
 
-        None
-    }
-
-    fn handler(
-        this: Arc<Self>,
-        current_iteration_map: Arc<TypeMap>,
-    ) -> Arc<impl Fn(Arc<dyn ExprOpcode>, ProgTriplet) -> Option<Arc<SubProgram>>> {
-        Arc::new(move |op: Arc<dyn ExprOpcode>, triplet: ProgTriplet| {
-            trace!(target: "ruse::synthesizer", "Evaluating {}", op.op_name());
-            trace!(target: "ruse::synthesizer", "pre: {}", triplet.pre_ctx);
-            triplet
-                .children
-                .iter()
-                .enumerate()
-                .for_each(|(i, c)| trace!(target: "ruse::synthesizer", "arg[{i}]: {}", c));
-
-            let p = this.get_program_from_composite_opcode(
-                triplet.pre_ctx,
-                op,
-                triplet.post_ctx,
-                triplet.children,
-            )?;
-            trace!(target: "ruse::synthesizer", "output: {}", p.out_value().wrap(p.post_ctx()));
-            trace!(target: "ruse::synthesizer", "post: {}", p.post_ctx());
-            if !this.check_and_insert_program(p.clone(), current_iteration_map.as_ref()) {
-                return None;
-            }
-
-            if this.found_contexts.insert(p.post_ctx().clone()) {
-                this.init_context::<false>(current_iteration_map.as_ref(), p.post_ctx());
-            }
-            if p.pre_ctx().subset(&this.context.start_context) && (this.predicate)(&p) {
-                return Some(p);
-            }
-
-            None
-        })
+        trace!(target: "ruse::synthesizer", "Finished initializing context");
+        res
     }
 
     pub async fn run_iteration(this: &mut Arc<Self>) -> Option<Arc<SubProgram>> {
@@ -298,15 +279,22 @@ impl Synthesizer {
     ) -> Option<Arc<SubProgram>> {
         debug!(target: "ruse::synthesizer", "Starting iteration {}", this.bank.iteration_count());
 
-        tokio::spawn(async move {
+        let res = tokio::spawn(async move {
             if this.bank.iteration_count() == 0 {
                 this.run_init_iteration(current_iteration_map)
             } else {
                 Self::run_composite_iteration(this, current_iteration_map).await
             }
         })
-        .await
-        .unwrap()
+        .await;
+
+        match res {
+            Ok(iter_output) => iter_output,
+            Err(err) => {
+                error!(target: "ruse::synthesizer", "Got error {}", err);
+                panic!("{}", err);
+            }
+        }
     }
 
     fn run_init_iteration(&self, current_iteration_map: Arc<TypeMap>) -> Option<Arc<SubProgram>> {
@@ -318,24 +306,102 @@ impl Synthesizer {
         self.cancel_token.is_cancelled()
     }
 
+    fn composite_iter_batch(
+        &self,
+        triplet: &ProgTriplet,
+        ops: &OpcodesList,
+        current_batch_map: &TypeMap,
+    ) -> Option<Arc<SubProgram>> {
+        for op in ops {
+            let Some(p) = self.get_program_from_composite_opcode(op.clone(), triplet) else {
+                continue;
+            };
+
+            if !self.check_program(&p) {
+                continue;
+            }
+
+            if !self.insert_program(p.clone(), current_batch_map) {
+                continue;
+            }
+
+            if p.pre_ctx().subset(&self.context.start_context) && (self.predicate)(&p) {
+                debug!(target: "ruse::synthesizer", "Found program \"{}\"", p.get_code());
+                trace!(target: "ruse::synthesizer", "{}", p);
+                return Some(p);
+            }
+        }
+
+        None
+    }
+
+    async fn composite_iteration_worker(
+        this: Arc<Self>,
+        mut rx: mpsc::Receiver<(ProgTriplet, Arc<OpcodesList>)>,
+    ) -> (TypeMap, Option<Arc<SubProgram>>) {
+        let type_map = TypeMap::default();
+        let mut found = None;
+        while let Some((triple, ops)) = rx.recv().await {
+            found = this.composite_iter_batch(&triple, &ops, &type_map);
+            if found.is_some() {
+                break;
+            }
+        }
+
+        (type_map, found)
+    }
+
+    async fn send_work(
+        &self,
+        senders: &Vec<mpsc::Sender<(ProgTriplet, Arc<Vec<Arc<dyn ExprOpcode>>>)>>,
+    ) {
+        let mut i = 0;
+        for (arg_types, ops) in self.composite_opcodes() {
+            for triplet in bank_iterator(&self.bank, &arg_types) {
+                let cur_worker = (i / self.chunk_size) % self.worker_count;
+                if let Err(_err) = senders[cur_worker].send((triplet, ops.clone())).await {
+                    return;
+                }
+                i += 1;
+            }
+        }
+    }
+
     async fn run_composite_iteration(
         this: Arc<Self>,
         current_iteration_map: Arc<TypeMap>,
     ) -> Option<Arc<SubProgram>> {
-        let handler = Self::handler(this.clone(), current_iteration_map);
+        let mut workers = JoinSet::new();
+        let mut senders = Vec::with_capacity(this.worker_count);
+        for _ in 0..this.worker_count {
+            let (tx, rx) = mpsc::channel(this.chunk_size * 2);
+            senders.push(tx);
+            workers.spawn(Self::composite_iteration_worker(this.clone(), rx));
+        }
 
-        for (arg_types, ops) in this.composite_opcodes() {
-            for triplet in bank_iterator(&this.bank, arg_types) {
-                if this.is_cancelled().await {
-                    return None;
-                }
-                for op in ops {
-                    if let Some(found) = handler(op.clone(), triplet.clone()) {
-                        return Some(found);
-                    }
+        this.send_work(&senders).await;
+
+        senders.into_iter().for_each(|tx| drop(tx));
+
+        while let Some(Ok((worker_type_map, found))) = workers.join_next().await {
+            current_iteration_map.extend(worker_type_map);
+            if found.is_some() {
+                workers.abort_all();
+                while workers.join_next().await.is_some() {}
+                return found;
+            }
+        }
+
+        let new_ctx = TypeMap::default();
+        for programs_map in current_iteration_map.iter() {
+            for p in programs_map.0.iter() {
+                if this.found_contexts.insert(p.post_ctx().clone()) {
+                    trace!(target: "ruse::synthesizer", "New post context found by program \"{}\"", p.get_code());
+                    this.init_context::<false>(&new_ctx, p.post_ctx());
                 }
             }
         }
+        current_iteration_map.extend(new_ctx);
 
         None
     }
@@ -354,14 +420,18 @@ impl Synthesizer {
 
     fn get_program_from_composite_opcode(
         &self,
-        pre_ctx: ContextArray,
         op: Arc<dyn ExprOpcode>,
-        post_ctx: ContextArray,
-        args: Vec<Arc<SubProgram>>,
+        triplet: &ProgTriplet,
     ) -> Option<Arc<SubProgram>> {
         debug_assert!(!op.arg_types().is_empty());
 
-        let mut p = SubProgram::with_opcode_and_children(op, args, pre_ctx, post_ctx);
+        let triplet_clone = triplet.clone();
+        let mut p = SubProgram::with_opcode_and_children(
+            op,
+            triplet_clone.children,
+            triplet_clone.pre_ctx,
+            triplet_clone.post_ctx,
+        );
         self.evaluate_program(&mut p).then(|| p)
     }
 
@@ -409,13 +479,9 @@ impl Synthesizer {
         true
     }
 
-    fn check_and_insert_program(&self, p: Arc<SubProgram>, iteration_map: &TypeMap) -> bool {
-        if !self.check_program(&p) {
-            return false;
-        }
-
+    fn insert_program(&self, p: Arc<SubProgram>, iteration_map: &TypeMap) -> bool {
         if iteration_map.insert_program(p.clone()) {
-            trace!(target: "ruse::synthesizer", "Inserted program");
+            trace!(target: "ruse::synthesizer", "Inserted program \"{}\"", p.get_code());
             trace!(target: "ruse::synthesizer", "{}", p);
 
             self.statistics.inc_value(StatisticsTypes::BankSize);

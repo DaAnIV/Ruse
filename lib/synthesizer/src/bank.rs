@@ -131,6 +131,20 @@ impl TypeMap {
     ) -> Option<dashmap::mapref::one::Ref<ValueType, ProgramsMap>> {
         self.0.get(value_type)
     }
+    
+    pub(crate) fn extend(&self, x: TypeMap) {
+        for (value_type, programs_map) in x.0.into_iter() {
+            if let Some(mut cur_map) = self.0.get_mut(&value_type) {
+                cur_map.0.extend(programs_map.0.into_iter());
+            } else {
+                self.0.insert(value_type, programs_map);
+            }
+        }
+    }
+
+    pub(crate) fn iter(&self) -> dashmap::iter::Iter<ValueType, ProgramsMap, BankHasherBuilder> {
+        self.0.iter()
+    }
 }
 
 #[derive(Default)]

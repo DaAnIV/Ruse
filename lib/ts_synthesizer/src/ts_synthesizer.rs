@@ -19,6 +19,8 @@ impl TsSynthesizer {
         predicate: SynthesizerPredicate,
         valid: SynthesizerPredicate,
         max_context_depth: usize,
+        iteration_workers_count: usize,
+        iteration_chunk_size: usize,
         cache: Arc<Cache>,
     ) -> Self {
         Self {
@@ -28,6 +30,8 @@ impl TsSynthesizer {
                 predicate,
                 valid,
                 max_context_depth,
+                iteration_workers_count,
+                iteration_chunk_size,
                 cache,
             )),
         }
