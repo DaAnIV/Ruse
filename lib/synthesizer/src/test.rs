@@ -15,7 +15,8 @@ pub mod helpers {
     };
 
     use crate::{
-        context::{Context, GraphIdGenerator, SynthesizerContext, ValuesMap},
+        context::{Context, ContextArray, GraphIdGenerator, SynthesizerContext, ValuesMap},
+        embedding::merge_context_arrays,
         location::{LocValue, Location, VarLoc},
         opcode::{EvalResult, ExprAst, ExprOpcode},
         prog::SubProgram,
@@ -296,6 +297,25 @@ pub mod helpers {
         Context::with_values(values, graphs_map.into(), graph_id_gen)
     }
 
+    pub fn add_array_to_values<I>(
+        values: &mut ValuesMap,
+        graphs_map: &mut GraphsMap,
+        graph_id_gen: &Arc<GraphIdGenerator>,
+        key: CachedString,
+        elem_type: &ValueType,
+        elements: I,
+        cache: &Cache,
+    ) where
+        I: IntoIterator<Item = Value>,
+    {
+        let graph_id = graph_id_gen.get_id_for_graph();
+        let mut graph = ObjectGraph::new(graph_id);
+        let node =
+            graph.add_array_object(graph_id_gen.get_id_for_node(), elem_type, elements, cache);
+        graphs_map.insert_graph(graph.into());
+        values.insert(key, Value::Object(ObjectValue { graph_id, node }));
+    }
+
     pub fn generate_context_from_array<I>(
         key: CachedString,
         elem_type: &ValueType,
@@ -305,18 +325,53 @@ pub mod helpers {
     where
         I: IntoIterator<Item = Value>,
     {
-        let graph_id_gen = Arc::new(GraphIdGenerator::default());
+        let graph_id_gen: Arc<GraphIdGenerator> = Arc::new(GraphIdGenerator::default());
         let mut graphs_map = GraphsMap::default();
-
         let mut values = ValuesMap::default();
-        let graph_id = graph_id_gen.get_id_for_graph();
-        let mut graph = ObjectGraph::new(graph_id);
-        let node =
-            graph.add_array_object(graph_id_gen.get_id_for_node(), elem_type, elements, cache);
-        graphs_map.insert_graph(graph.into());
-        values.insert(key, Value::Object(ObjectValue { graph_id, node }));
+
+        add_array_to_values(
+            &mut values,
+            &mut graphs_map,
+            &graph_id_gen,
+            key,
+            elem_type,
+            elements,
+            cache,
+        );
 
         Context::with_values(values, graphs_map.into(), graph_id_gen)
+    }
+
+    pub fn get_init_prog(
+        op: Arc<dyn ExprOpcode>,
+        ctx_arr: &ContextArray,
+        syn_ctx: &SynthesizerContext,
+    ) -> Arc<SubProgram> {
+        let op_ctx = ctx_arr
+            .get_partial_context(op.required_variables())
+            .unwrap();
+        let mut prog = SubProgram::with_opcode(op, op_ctx.clone(), op_ctx.clone());
+        assert!(evaluate_prog(&mut prog, &syn_ctx));
+        prog
+    }
+
+    pub fn get_composite_prog(
+        op: Arc<dyn ExprOpcode>,
+        children: Vec<Arc<SubProgram>>,
+        syn_ctx: &SynthesizerContext,
+    ) -> Arc<SubProgram> {
+        let mut pre = children[0].pre_ctx().clone();
+        let mut post = children[0].post_ctx().clone();
+
+        for child in children.iter().skip(1) {
+            (pre, post) =
+                merge_context_arrays(&pre, &post, child.pre_ctx(), child.post_ctx()).unwrap();
+        }
+
+        let mut prog =
+            SubProgram::with_opcode_and_children(op, children, pre, post);
+        assert!(evaluate_prog(&mut prog, &syn_ctx));
+        prog
     }
 }
 
@@ -794,10 +849,22 @@ mod prog_tests {
 
         println!("merged pre: {}", pre_ctx);
         println!("merged post: {}", post_ctx);
-        
+
         println!("p_x out: {:?}", p_x.out_value()[0].val());
         println!("p_y out: {:?}", p_y.out_value()[0].val());
-        println!("x: {:?}", post_ctx.get_var_loc_value(&syn_ctx.cached_string("x")).unwrap().val());
-        println!("y: {:?}", post_ctx.get_var_loc_value(&syn_ctx.cached_string("y")).unwrap().val());
+        println!(
+            "x: {:?}",
+            post_ctx
+                .get_var_loc_value(&syn_ctx.cached_string("x"))
+                .unwrap()
+                .val()
+        );
+        println!(
+            "y: {:?}",
+            post_ctx
+                .get_var_loc_value(&syn_ctx.cached_string("y"))
+                .unwrap()
+                .val()
+        );
     }
 }
