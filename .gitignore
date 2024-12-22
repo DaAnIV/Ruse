@@ -12,3 +12,4 @@ archive/
 benchmarks_output/
 __pycache__
 results/
+failed/
