@@ -16,9 +16,11 @@ ruse_ts_synthesizer = { path = "../lib/ts_synthesizer" }
 
 clap = { version = "*", features = ["derive"] }
 clap-verbosity-flag = "*"
-tracing = { version = "*" }
+
+tracing.workspace = true
 tracing-subscriber = { version = "*", features = ["json"] }
 tracing-log = { version = "*" }
+
 wildmatch = "*"
 
 chrono = "*"

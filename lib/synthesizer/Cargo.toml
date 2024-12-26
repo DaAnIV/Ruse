@@ -14,7 +14,7 @@ tokio-util = "*"
 itertools = "*"
 rand = { version = "*", optional = true }
 
-tracing = { version = "*" }
+tracing.workspace = true
 
 [features]
 default = ["test_helpers"]
