@@ -89,8 +89,26 @@ impl SynthesizerContext {
     }
 }
 
+type ValuesHashMap = BTreeMap<VariableName, u64>;
+
 #[derive(Debug, Clone, Default)]
 pub struct ValuesMap(BTreeMap<VariableName, Value>);
+
+impl ValuesMap {
+    fn get_hashes(&self, graphs_map: &GraphsMap) -> ValuesHashMap {
+        let mut map = ValuesHashMap::default();
+        for (k, v) in &self.0 {
+            let mut state = DefaultHasher::default();
+            match v {
+                Value::Primitive(primitive_value) => primitive_value.hash(&mut state),
+                Value::Object(object_value) => object_value.calculate_hash(&mut state, graphs_map),
+            };
+            map.insert(k.clone(), state.finish());
+        }
+
+        map
+    }
+}
 
 impl Deref for ValuesMap {
     type Target = BTreeMap<VariableName, Value>;
@@ -142,7 +160,7 @@ impl GraphMapHash for ValuesMap {
 
 #[derive(Clone, Debug)]
 pub struct Context {
-    hash: u64,
+    hashes: Arc<ValuesHashMap>,
     pub(crate) values: Arc<ValuesMap>,
     pub graphs_map: Arc<GraphsMap>,
     pub graph_id_gen: Arc<GraphIdGenerator>,
@@ -155,7 +173,7 @@ impl Context {
         graph_id_gen: Arc<GraphIdGenerator>,
     ) -> Self {
         let mut instance = Self {
-            hash: 0,
+            hashes: Default::default(),
             values: values.into(),
             graphs_map,
             graph_id_gen,
@@ -167,9 +185,7 @@ impl Context {
     }
 
     fn update_hash(&mut self) {
-        let mut state = DefaultHasher::default();
-        self.values.wrap(&self.graphs_map).hash(&mut state);
-        self.hash = state.finish();
+        self.hashes = self.values.get_hashes(&self.graphs_map).into();
     }
 
     fn set_values(&mut self, values: ValuesMap) {
@@ -309,6 +325,27 @@ impl Context {
         new_map.extend(&other.graphs_map);
         self.graphs_map = new_map.into();
     }
+
+    fn get_partial_context<'a, I>(&self, required_variables: I) -> Option<Self>
+    where
+        I: IntoIterator<Item = &'a CachedString> + Copy,
+    {
+        let mut values = ValuesMap::default();
+        let mut hashes = ValuesHashMap::default();
+        for var in required_variables {
+            let var_value = self.values.get(var)?.clone();
+            let var_hash = unsafe { *self.hashes.get(var).unwrap_unchecked() };
+            values.insert((*var).clone(), var_value);
+            hashes.insert((*var).clone(), var_hash);
+        }
+
+        Some(Self {
+            hashes: hashes.into(),
+            values: values.into(),
+            graphs_map: self.graphs_map.clone(),
+            graph_id_gen: self.graph_id_gen.clone(),
+        })
+    }
 }
 
 impl Context {
@@ -358,12 +395,10 @@ impl Context {
         I::Item: Into<PrimitiveValue>,
     {
         let obj_type = ValueType::set_obj_cached_string(elem_type, &syn_ctx.cache);
-        let map = values
-            .into_iter()
-            .map(|v| {
-                let pv: PrimitiveValue = v.into();
-                (syn_ctx.cached_string(&pv.to_string()), pv)
-            });
+        let map = values.into_iter().map(|v| {
+            let pv: PrimitiveValue = v.into();
+            (syn_ctx.cached_string(&pv.to_string()), pv)
+        });
         self.create_output_simple_object_from_map(obj_type, map, syn_ctx)
     }
 
@@ -547,7 +582,10 @@ impl Default for Context {
 
 impl Hash for Context {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        state.write_u64(self.hash);
+        for (k, hash) in self.hashes.iter() {
+            k.hash(state);
+            hash.hash(state);
+        }
     }
 }
 
@@ -555,7 +593,7 @@ impl Eq for Context {}
 
 impl PartialEq for Context {
     fn eq(&self, other: &Self) -> bool {
-        if self.hash != other.hash || self.values.len() != other.values.len() {
+        if self.hashes != other.hashes || self.values.len() != other.values.len() {
             return false;
         }
 
@@ -599,7 +637,16 @@ impl Display for Context {
                 write!(f, ", ")?;
             }
         }
-        write!(f, "; Hash: {}", self.hash)?;
+        write!(f, "; Hashes: ")?;
+        let mut hashes_iter = self.hashes.iter();
+        let mut hash_value = hashes_iter.next();
+        while let Some((k, v)) = hash_value {
+            write!(f, "{} -> {}", k, *v)?;
+            hash_value = hashes_iter.next();
+            if hash_value.is_some() {
+                write!(f, ", ")?;
+            }
+        }
         write!(f, "; Graphs: {:?}", self.graphs_map.keys().collect_vec())?;
 
         Ok(())
@@ -649,16 +696,7 @@ impl ContextArray {
         let mut ctxs = Vec::<Context>::with_capacity(self.len());
 
         for ctx in self.iter() {
-            let mut values = ValuesMap::default();
-            for var in required_variables {
-                let var_value = ctx.values.get(var)?.clone();
-                values.insert((*var).clone(), var_value);
-            }
-            ctxs.push(Context::with_values(
-                values,
-                ctx.graphs_map.clone(),
-                ctx.graph_id_gen.clone(),
-            ));
+            ctxs.push(ctx.get_partial_context(required_variables)?);
         }
 
         Some(Self {
