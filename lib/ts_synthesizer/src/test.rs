@@ -91,7 +91,7 @@ mod tests {
                     str_cached!(cache_clone; "John Doe"),
                     str_cached!(cache_clone; "Paul Simon"),
                 ];
-                if p.out_type() != ValueType::String {
+                if p.out_type() != &ValueType::String {
                     return false;
                 }
                 for (v, e) in p.out_value().iter().zip(expected_outputs) {
@@ -107,7 +107,6 @@ mod tests {
             }),
             Box::new(|_p| true),
             3,
-            1,
             1,
             cache,
         );
@@ -189,7 +188,7 @@ mod tests {
             opcodes,
             Box::new(move |p| {
                 let expected_outputs = [Number::from(10), Number::from(12)];
-                if p.out_type() != ValueType::Number {
+                if p.out_type() != &ValueType::Number {
                     return false;
                 }
                 for (v, e) in p.out_value().iter().zip(expected_outputs) {
@@ -205,7 +204,6 @@ mod tests {
             }),
             Box::new(|_p| true),
             3,
-            1,
             1,
             cache,
         );

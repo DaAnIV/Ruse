@@ -145,8 +145,8 @@ impl SubProgram {
     }
 
     #[inline]
-    pub fn out_type(&self) -> ValueType {
-        self.out_type.as_ref().unwrap().clone()
+    pub fn out_type(&self) -> &ValueType {
+        self.out_type.as_ref().unwrap()
     }
 
     #[inline]

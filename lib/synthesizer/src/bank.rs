@@ -18,7 +18,7 @@ pub type BankHasherBuilder = BuildHasherDefault<DefaultHasher>;
 pub(crate) struct ProgOutput(Arc<SubProgram>);
 
 impl ProgOutput {
-    fn out_type(&self) -> ValueType {
+    fn out_type(&self) -> &ValueType {
         self.0.out_type()
     }
     fn out_value(&self) -> &ValueArray {
