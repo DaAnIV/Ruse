@@ -11,6 +11,8 @@ use ruse_synthesizer::{prog::SubProgram, synthesizer::CurrentStatistics};
 use serde::{Serialize, Serializer};
 use serde_json::ser::{CompactFormatter, Formatter, PrettyFormatter};
 
+use crate::config::BenchmarkConfig;
+
 #[derive(Serialize, Debug, Clone)]
 pub struct BenchmarksIteration {
     time: Duration,
@@ -154,7 +156,7 @@ impl<F> ResultsWriter<F>
 where
     F: Formatter + Clone,
 {
-    fn from_path_with_formatter(path: &Path, formatter: F) -> Self {
+    fn from_path_with_formatter(path: &Path, config: &BenchmarkConfig, formatter: F) -> Self {
         let writer = File::create(path).expect("Failed to open output file");
         let mut this = Self {
             state: vec![],
@@ -165,6 +167,7 @@ where
         this.begin();
         this.serialize_entry("timestamp", &chrono::Utc::now().timestamp());
         this.serialize_entry("sysinfo", &Sysinfo::new());
+        this.serialize_entry("config", config);
         this.begin_array("tasks");
 
         this
@@ -270,14 +273,14 @@ where
 }
 
 impl ResultsWriter<CompactFormatter> {
-    pub fn from_path(path: &Path) -> Self {
-        Self::from_path_with_formatter(path, CompactFormatter)
+    pub fn from_path(path: &Path, config: &BenchmarkConfig, ) -> Self {
+        Self::from_path_with_formatter(path, config, CompactFormatter)
     }
 }
 
 impl<'a> ResultsWriter<PrettyFormatter<'a>> {
-    pub fn from_path_pretty(path: &Path) -> Self {
-        Self::from_path_with_formatter(path, PrettyFormatter::new())
+    pub fn from_path_pretty(path: &Path, config: &BenchmarkConfig, ) -> Self {
+        Self::from_path_with_formatter(path, config, PrettyFormatter::new())
     }
 }
 

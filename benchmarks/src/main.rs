@@ -175,6 +175,7 @@ fn run_benchmarks(cli: &RunArgs) -> ExitCode {
         multi_thread: !cli.single_thread,
         max_context_depth: cli.max_context_depth,
         iteration_workers_count: cli.workers_count,
+        benchmarks: cli.benchmarks.clone(),
     };
 
     info!(target: "ruse::runner", "Timeout {:.3} seconds", bench_config.timeout.as_secs_f32());
@@ -191,13 +192,13 @@ fn run_benchmarks(cli: &RunArgs) -> ExitCode {
         run_all_benchmarks(
             &cli,
             &bench_config,
-            ResultsWriter::from_path_pretty(results_path.as_path()),
+            ResultsWriter::from_path_pretty(results_path.as_path(), &bench_config),
         );
     } else {
         run_all_benchmarks(
             &cli,
             &bench_config,
-            ResultsWriter::from_path(results_path.as_path()),
+            ResultsWriter::from_path(results_path.as_path(), &bench_config),
         );
     }
 

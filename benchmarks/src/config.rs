@@ -1,9 +1,9 @@
-use std::time::Duration;
+use std::{path::PathBuf, time::Duration};
 
 use serde_with::{serde_as, DurationSeconds};
 
 #[serde_as]
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, serde::Serialize)]
 pub struct BenchmarkConfig {
     #[serde_as(as = "DurationSeconds<u64>")]
     pub timeout: Duration,
@@ -11,4 +11,5 @@ pub struct BenchmarkConfig {
     pub multi_thread: bool,
     pub max_context_depth: usize,
     pub iteration_workers_count: usize,
+    pub benchmarks: Vec<PathBuf>,
 }
