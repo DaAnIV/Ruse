@@ -2,16 +2,20 @@ use itertools::{Itertools, MultiProduct};
 use ruse_object_graph::value::ValueType;
 use std::marker::PhantomData;
 use std::ops::RangeInclusive;
+use std::sync::Arc;
 use Option::{self as State, None as ProductEnded, Some as ProductInProgress};
 
-use crate::multi_programs_map_product::MultiProgramsMaps;
+use crate::multi_programs_map_product::{MultiProgramsMaps, ProgramChildrenIterator};
+use crate::prog::SubProgram;
 use crate::{
     bank::ProgBank,
     multi_programs_map_product::{multi_programs_map_end, multi_programs_map_product},
-    prog_triplet::ProgTriplet
 };
 
-pub struct BankIterator<'a>(State<BankIteratorInner<'a>>);
+pub struct BankIterator<'a> {
+    inner: State<BankIteratorInner<'a>>,
+    remaining: usize,
+}
 
 /// Internals for `MultiProduct`.
 struct BankIteratorInner<'a> {
@@ -23,9 +27,62 @@ struct BankIteratorInner<'a> {
 
     /// Holds the iterators.
     iter: MultiProgramsMaps<'a>,
+
+    total_size: usize,
 }
 
 impl<'a> BankIteratorInner<'a> {
+    fn get_iterations_iter(
+        bank: &'a ProgBank,
+        arg_types: &'a [ValueType],
+        cutoff: usize,
+    ) -> MultiProduct<RangeInclusive<usize>> {
+        let last_iteration = bank.iteration_count() - 1;
+        (0..arg_types.len())
+            .map(|i| match i {
+                n if n == cutoff => last_iteration..=last_iteration,
+                n if n < cutoff => 0..=(last_iteration - 1),
+                _ => 0..=last_iteration,
+            })
+            .multi_cartesian_product()
+    }
+
+    fn calculate_size(bank: &'a ProgBank, arg_types: &'a [ValueType]) -> usize {
+        let mut size = 0;
+
+        let n = if bank.iteration_count() == 1 {
+            1
+        } else {
+            arg_types.len()
+        };
+
+        for i in 0..n {
+            for iterations in Self::get_iterations_iter(bank, arg_types, i) {
+                size += iterations.into_iter().enumerate().fold(1, |acc, (i, x)| {
+                    acc * bank.number_of_programs(x, &arg_types[i])
+                });
+            }
+        }
+
+        size
+    }
+}
+
+impl<'a> BankIteratorInner<'a> {
+    fn new(bank: &'a ProgBank, arg_types: &'a [ValueType]) -> Self {
+        Self {
+            bank,
+            arg_types,
+
+            cutoff: 0,
+            iterations_iter: BankIteratorInner::get_iterations_iter(bank, arg_types, 0),
+
+            iter: multi_programs_map_end(PhantomData),
+
+            total_size: BankIteratorInner::calculate_size(bank, arg_types),
+        }
+    }
+
     fn set_programs_iter(&mut self, iterations: &[usize]) -> bool {
         if (0..self.arg_types.len())
             .any(|i| self.bank[iterations[i]].get(&self.arg_types[i]).is_none())
@@ -33,8 +90,7 @@ impl<'a> BankIteratorInner<'a> {
             return false;
         }
         let program_maps = (0..self.arg_types.len()).map(|i| {
-            let map_ref = self.bank[iterations[i]]
-                .get(&self.arg_types[i]).unwrap();
+            let map_ref = self.bank[iterations[i]].get(&self.arg_types[i]).unwrap();
             std::ptr::from_ref(map_ref.value())
         });
 
@@ -48,14 +104,7 @@ impl<'a> BankIteratorInner<'a> {
             return false;
         }
 
-        let last_iteration = self.bank.iteration_count() - 1;
-        self.iterations_iter = (0..self.arg_types.len())
-            .map(|i| match i {
-                n if n == self.cutoff => last_iteration..=last_iteration,
-                n if n < self.cutoff => 0..=(last_iteration - 1),
-                _ => 0..=last_iteration,
-            })
-            .multi_cartesian_product();
+        self.iterations_iter = Self::get_iterations_iter(self.bank, self.arg_types, self.cutoff);
 
         true
     }
@@ -75,37 +124,39 @@ impl<'a> BankIteratorInner<'a> {
 
         false
     }
+
+    fn skip(&mut self, n: usize) {
+        let mut remaining_to_skip = n;
+        while remaining_to_skip > 0 {
+            if remaining_to_skip > self.iter.remaining() {
+                remaining_to_skip -= self.iter.remaining();
+                self.get_next_programs_iter();
+            } else {
+                self.iter.skip(remaining_to_skip);
+                break;
+            }
+        }
+    }
 }
 
 pub fn bank_iterator<'a>(bank: &'a ProgBank, arg_types: &'a [ValueType]) -> BankIterator<'a> {
-    let last_iteration = bank.iteration_count() - 1;
-    let iterations_iter = (0..arg_types.len())
-        .map(|i| match i {
-            n if n == 0 => last_iteration..=last_iteration,
-            _ => 0..=last_iteration,
-        })
-        .multi_cartesian_product();
-
-    let inner: BankIteratorInner<'a> = BankIteratorInner {
-        bank,
-        arg_types,
-
-        cutoff: 0,
-        iterations_iter,
-
-        iter: multi_programs_map_end(PhantomData),
-    };
-    BankIterator(ProductInProgress(inner))
+    let inner = BankIteratorInner::new(bank, arg_types);
+    BankIterator {
+        remaining: inner.total_size,
+        inner: ProductInProgress(inner),
+    }
 }
 
-impl<'a> Iterator for BankIterator<'a> {
-    type Item = ProgTriplet;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let inner = self.0.as_mut()?;
+impl<'a> ProgramChildrenIterator for BankIterator<'a> {
+    fn next(&mut self) -> Option<(usize, *const Vec<Arc<SubProgram>>)> {
+        if self.remaining == 0 {
+            self.inner = ProductEnded;
+        }
+        let inner = self.inner.as_mut()?;
         loop {
-            if let Some(triplet) = inner.iter.next() {
-                return Some(triplet);
+            if let Some(children) = inner.iter.next() {
+                self.remaining -= 1;
+                return Some(children);
             }
 
             if !inner.get_next_programs_iter() {
@@ -113,9 +164,38 @@ impl<'a> Iterator for BankIterator<'a> {
             }
         }
 
-        self.0 = ProductEnded;
+        self.inner = ProductEnded;
         None
     }
-}
 
-impl<'a> std::iter::FusedIterator for BankIterator<'a> {}
+    fn bad_children(&mut self, fail: usize) {
+        let inner = match self.inner.as_mut() {
+            ProductInProgress(inner) => inner,
+            ProductEnded => return,
+        };
+
+        inner.iter.bad_children(fail);
+    }
+
+    fn take(&mut self, n: usize) {
+        self.remaining = self.remaining.min(n);
+    }
+
+    fn remaining(&self) -> usize {
+        self.remaining
+    }
+
+    fn skip(&mut self, n: usize) {
+        if n >= self.remaining {
+            self.inner = ProductEnded;
+            return;
+        }
+
+        let inner = match self.inner.as_mut() {
+            ProductInProgress(inner) => inner,
+            ProductEnded => return,
+        };
+        inner.skip(n);
+        self.remaining -= n;
+    }
+}

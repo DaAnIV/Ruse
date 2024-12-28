@@ -11,5 +11,4 @@ pub struct BenchmarkConfig {
     pub multi_thread: bool,
     pub max_context_depth: usize,
     pub iteration_workers_count: usize,
-    pub iteration_chunk_size: usize,
 }

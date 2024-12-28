@@ -916,7 +916,6 @@ impl SnythesisTask {
         &self,
         mut max_context_depth: usize,
         iteration_workers_count: usize,
-        iteration_chunk_size: usize,
         cache: &Arc<Cache>,
     ) -> Result<TsSynthesizer, SnythesisTaskError> {
         let opcodes = self.get_opcodes(cache);
@@ -936,7 +935,6 @@ impl SnythesisTask {
             valid,
             max_context_depth,
             iteration_workers_count,
-            iteration_chunk_size,
             cache.clone(),
         );
         if let Some(immutable) = &self.inner.immutable {

@@ -1,10 +1,12 @@
 use crate::{
     bank::*,
-    bank_iterator::bank_iterator,
+    bank_iterator::{bank_iterator, BankIterator},
     context::{ContextArray, SynthesizerContext},
-    prog_triplet::ProgTriplet,
+    multi_programs_map_product::ProgramChildrenIterator,
     opcode::ExprOpcode,
     prog::SubProgram,
+    prog_triplet::ProgTriplet,
+    prog_triplet_iterator::{prog_triplet_iterator, ProgTripletIterator},
 };
 use dashmap::DashSet;
 use ruse_object_graph::{
@@ -18,7 +20,7 @@ use std::{
     ops::Index,
     sync::{atomic::*, Arc},
 };
-use tokio::{sync::mpsc, task::JoinSet};
+use tokio::task::JoinSet;
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, error, trace};
 
@@ -160,8 +162,8 @@ pub struct Synthesizer {
     predicate: SynthesizerPredicate,
     valid: SynthesizerPredicate,
 
-    chunk_size: usize,
     worker_count: usize,
+    found_token: CancellationToken,
 
     statistics: Statistics,
 }
@@ -174,7 +176,6 @@ impl Synthesizer {
         valid: SynthesizerPredicate,
         max_context_depth: usize,
         iteration_workers_count: usize,
-        iteration_chunk_size: usize,
         cache: Arc<Cache>,
     ) -> Self {
         Self {
@@ -187,7 +188,7 @@ impl Synthesizer {
             predicate,
             valid,
             worker_count: iteration_workers_count,
-            chunk_size: iteration_chunk_size,
+            found_token: CancellationToken::new(),
             statistics: Default::default(),
         }
     }
@@ -215,9 +216,7 @@ impl Synthesizer {
         self.opcodes[&vec![]].iter()
     }
 
-    fn composite_opcodes(
-        &self,
-    ) -> impl Iterator<Item = (&Vec<ValueType>, &Arc<OpcodesList>)> {
+    fn composite_opcodes(&self) -> impl Iterator<Item = (&Vec<ValueType>, &Arc<OpcodesList>)> {
         self.opcodes
             .iter()
             .filter(|(arg_types, _)| !arg_types.is_empty())
@@ -301,11 +300,6 @@ impl Synthesizer {
         self.init_context::<true>(&current_iteration_map, &self.context.start_context)
     }
 
-    async fn is_cancelled(&self) -> bool {
-        tokio::task::yield_now().await;
-        self.cancel_token.is_cancelled()
-    }
-
     fn composite_iter_batch(
         &self,
         triplet: &ProgTriplet,
@@ -335,36 +329,49 @@ impl Synthesizer {
         None
     }
 
-    async fn composite_iteration_worker(
-        this: Arc<Self>,
-        mut rx: mpsc::Receiver<(ProgTriplet, Arc<OpcodesList>)>,
-    ) -> (TypeMap, Option<Arc<SubProgram>>) {
-        let type_map = TypeMap::default();
-        let mut found = None;
-        while let Some((triple, ops)) = rx.recv().await {
-            found = this.composite_iter_batch(&triple, &ops, &type_map);
-            if found.is_some() {
-                break;
-            }
-        }
-
-        (type_map, found)
+    async fn should_end_worker(&self) -> bool {
+        self.cancel_token.is_cancelled() || self.found_token.is_cancelled()
     }
 
-    async fn send_work(
-        &self,
-        senders: &Vec<mpsc::Sender<(ProgTriplet, Arc<Vec<Arc<dyn ExprOpcode>>>)>>,
-    ) {
-        let mut i = 0;
-        for (arg_types, ops) in self.composite_opcodes() {
-            for triplet in bank_iterator(&self.bank, &arg_types) {
-                let cur_worker = (i / self.chunk_size) % self.worker_count;
-                if let Err(_err) = senders[cur_worker].send((triplet, ops.clone())).await {
-                    return;
+    fn worker_triple_iterator<'a>(
+        &'a self,
+        i: usize,
+        arg_types: &'a Vec<ValueType>,
+    ) -> ProgTripletIterator<BankIterator<'a>> {
+        let mut children_iterator = bank_iterator(&self.bank, arg_types);
+        let total_size = children_iterator.remaining();
+        let skip = (total_size / self.worker_count) * i;
+        let take = if i == self.worker_count - 1 {
+            usize::MAX
+        } else {
+            total_size / self.worker_count
+        };
+        children_iterator.skip(skip);
+        children_iterator.take(take);
+
+        prog_triplet_iterator(children_iterator)
+    }
+
+    async fn composite_iteration_worker(
+        this: Arc<Self>,
+        i: usize,
+    ) -> (TypeMap, Option<Arc<SubProgram>>) {
+        let type_map = TypeMap::default();
+
+        for (arg_types, ops) in this.composite_opcodes() {
+            for triple in this.worker_triple_iterator(i, arg_types) {
+                if this.should_end_worker().await {
+                    return (type_map, None);
                 }
-                i += 1;
+                let found = this.composite_iter_batch(&triple, &ops, &type_map);
+                if found.is_some() {
+                    this.found_token.cancel();
+                    return (type_map, found);
+                }
             }
         }
+
+        (type_map, None)
     }
 
     async fn run_composite_iteration(
@@ -372,25 +379,20 @@ impl Synthesizer {
         current_iteration_map: Arc<TypeMap>,
     ) -> Option<Arc<SubProgram>> {
         let mut workers = JoinSet::new();
-        let mut senders = Vec::with_capacity(this.worker_count);
-        for _ in 0..this.worker_count {
-            let (tx, rx) = mpsc::channel(this.chunk_size * 2);
-            senders.push(tx);
-            workers.spawn(Self::composite_iteration_worker(this.clone(), rx));
+        for i in 0..this.worker_count {
+            workers.spawn(Self::composite_iteration_worker(this.clone(), i));
         }
 
-        this.send_work(&senders).await;
-
-        senders.into_iter().for_each(|tx| drop(tx));
-
         while let Some(Ok((worker_type_map, found))) = workers.join_next().await {
-            current_iteration_map.extend(worker_type_map);
             if found.is_some() {
                 workers.abort_all();
                 while workers.join_next().await.is_some() {}
                 return found;
             }
+            current_iteration_map.extend(worker_type_map);
         }
+
+        debug!(target: "ruse::synthesizer", "Initializing new contexts!");
 
         let new_ctx = TypeMap::default();
         for programs_map in current_iteration_map.iter() {

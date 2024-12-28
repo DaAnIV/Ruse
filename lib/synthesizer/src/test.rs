@@ -368,8 +368,7 @@ pub mod helpers {
                 merge_context_arrays(&pre, &post, child.pre_ctx(), child.post_ctx()).unwrap();
         }
 
-        let mut prog =
-            SubProgram::with_opcode_and_children(op, children, pre, post);
+        let mut prog = SubProgram::with_opcode_and_children(op, children, pre, post);
         assert!(evaluate_prog(&mut prog, &syn_ctx));
         prog
     }
@@ -378,8 +377,12 @@ pub mod helpers {
 #[cfg(test)]
 mod bank_iterator_tests {
     use crate::{
-        bank::ProgramsMap, bank_iterator::bank_iterator, context::GraphIdGenerator,
-        multi_programs_map_product::multi_programs_map_product, test::helpers::*,
+        bank::{BankHasherBuilder, ProgramsMap},
+        bank_iterator::bank_iterator,
+        context::GraphIdGenerator,
+        multi_programs_map_product::{multi_programs_map_product, ProgramChildrenIterator},
+        prog_triplet_iterator::prog_triplet_iterator,
+        test::helpers::*,
     };
     use std::sync::Arc;
 
@@ -398,9 +401,22 @@ mod bank_iterator_tests {
         prog::SubProgram,
     };
 
-    async fn run_gatherer(bank: &ProgBank, op: &Arc<dyn ExprOpcode>) -> Vec<Vec<Arc<SubProgram>>> {
-        let all_children = Arc::new(DashMap::<usize, Vec<Arc<SubProgram>>>::default());
-        for triplet in bank_iterator(bank, op.arg_types()) {
+    async fn run_gatherer(
+        bank: &ProgBank,
+        op: &Arc<dyn ExprOpcode>,
+        skip: Option<usize>,
+        take: Option<usize>,
+    ) -> Vec<Vec<Arc<SubProgram>>> {
+        let all_children = Arc::new(DashMap::<usize, Vec<Arc<SubProgram>>, BankHasherBuilder>::default());
+        let mut children_iterator = bank_iterator(bank, op.arg_types());
+        if let Some(skip_count) = skip {
+            children_iterator.skip(skip_count);
+        }
+        if let Some(take_count) = take {
+            children_iterator.take(take_count);
+        }
+
+        for triplet in prog_triplet_iterator(children_iterator) {
             all_children.insert(all_children.len(), triplet.children);
         }
 
@@ -450,10 +466,11 @@ mod bank_iterator_tests {
         bank.insert(type_map);
     }
 
-    fn create_programs_map(n: usize, syn_ctx: &SynthesizerContext) -> ProgramsMap {
+    fn create_programs_map(prefix: u32, n: u32, syn_ctx: &SynthesizerContext) -> ProgramsMap {
         let map = ProgramsMap::default();
         for i in 0..n {
-            let value = Number::from(i);
+            let full_value = (prefix as u64) << 32 | i as u64;
+            let value = Number::from(full_value);
             let p = get_prog_for_bank(vnum!(value), syn_ctx);
             map.0.insert(p.clone().into(), p);
         }
@@ -465,7 +482,7 @@ mod bank_iterator_tests {
         let cache = Arc::new(Cache::new());
         let _id_gen = GraphIdGenerator::default();
         let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default(), cache);
-        let map = create_programs_map(5, &syn_ctx);
+        let map = create_programs_map(0, 5, &syn_ctx);
         for p in map.iter() {
             println!("{}", p.out_value()[0].val.number_value().unwrap());
         }
@@ -476,7 +493,7 @@ mod bank_iterator_tests {
         let cache = Arc::new(Cache::new());
         let _id_gen = GraphIdGenerator::default();
         let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default(), cache);
-        let map = create_programs_map(5, &syn_ctx);
+        let map = create_programs_map(0, 5, &syn_ctx);
         for (p1, p2) in map.iter().zip(map.iter()) {
             let n1 = p1.out_value()[0].val.number_value().unwrap();
             let n2 = p2.out_value()[0].val.number_value().unwrap();
@@ -489,9 +506,11 @@ mod bank_iterator_tests {
         let cache = Arc::new(Cache::new());
         let _id_gen = GraphIdGenerator::default();
         let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default(), cache);
-        let map = create_programs_map(2, &syn_ctx);
+        let map = create_programs_map(0, 2, &syn_ctx);
         let map_ptr = std::ptr::from_ref(&map);
-        for triplet in multi_programs_map_product([map_ptr, map_ptr].into_iter()) {
+        for triplet in
+            prog_triplet_iterator(multi_programs_map_product([map_ptr, map_ptr].into_iter()))
+        {
             println!(
                 "{:#?}",
                 triplet
@@ -501,6 +520,114 @@ mod bank_iterator_tests {
                     .collect_vec()
             );
         }
+    }
+
+    #[test]
+    fn programs_map_multi_iter_skip() {
+        let cache = Arc::new(Cache::new());
+        let _id_gen = GraphIdGenerator::default();
+        let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default(), cache);
+        let map_1 = create_programs_map(1, 3, &syn_ctx);
+        let map_2 = create_programs_map(2, 4, &syn_ctx);
+        let map_1_ptr = std::ptr::from_ref(&map_1);
+        let map_2_ptr = std::ptr::from_ref(&map_2);
+
+        for i in 0..(3 * 4) {
+            let mut children_iter = multi_programs_map_product([map_1_ptr, map_2_ptr].into_iter());
+            if i > 0 {
+                children_iter.skip(i)
+            }
+
+            let mut count = 0;
+            for triplet in prog_triplet_iterator(children_iter) {
+                count += 1;
+                println!(
+                    "{}",
+                    triplet
+                        .children
+                        .iter()
+                        .map(|p| {
+                            let num = p.out_value()[0].val.number_value().unwrap().0 as usize;
+                            format!("{}:{}", num >> 32, num & 0xFFFFFFFF)
+                        })
+                        .join(", ")
+                );
+            }
+            assert_eq!(count, 3*4 - i);
+            println!("total: {}", count);
+            println!("");
+        }
+    }
+
+    #[test]
+    fn programs_map_multi_iter_take() {
+        let cache = Arc::new(Cache::new());
+        let _id_gen = GraphIdGenerator::default();
+        let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default(), cache);
+        let map_1 = create_programs_map(1, 3, &syn_ctx);
+        let map_2 = create_programs_map(2, 4, &syn_ctx);
+        let map_1_ptr = std::ptr::from_ref(&map_1);
+        let map_2_ptr = std::ptr::from_ref(&map_2);
+
+        for i in 0..(3 * 4) {
+            let mut children_iter = multi_programs_map_product([map_1_ptr, map_2_ptr].into_iter());
+            if i > 0 {
+                children_iter.take(3*4 - i)
+            }
+
+            let mut count = 0;
+            for triplet in prog_triplet_iterator(children_iter) {
+                count += 1;
+                println!(
+                    "{}",
+                    triplet
+                        .children
+                        .iter()
+                        .map(|p| {
+                            let num = p.out_value()[0].val.number_value().unwrap().0 as usize;
+                            format!("{}:{}", num >> 32, num & 0xFFFFFFFF)
+                        })
+                        .join(", ")
+                );
+            }
+            assert_eq!(count, 3*4 - i);
+            println!("total: {}", count);
+            println!("");
+        }
+    }
+
+    #[test]
+    fn programs_map_multi_iter_skip_take() {
+        let cache = Arc::new(Cache::new());
+        let _id_gen = GraphIdGenerator::default();
+        let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default(), cache);
+        let map_1 = create_programs_map(1, 3, &syn_ctx);
+        let map_2 = create_programs_map(2, 4, &syn_ctx);
+        let map_1_ptr = std::ptr::from_ref(&map_1);
+        let map_2_ptr = std::ptr::from_ref(&map_2);
+
+        let mut children_iter = multi_programs_map_product([map_1_ptr, map_2_ptr].into_iter());
+        children_iter.skip(5);
+        children_iter.take(3);
+
+        let mut count = 0;
+        for triplet in prog_triplet_iterator(children_iter) {
+            count += 1;
+            println!(
+                "{}",
+                triplet
+                    .children
+                    .iter()
+                    .map(|p| {
+                        let num = p.out_value()[0].val.number_value().unwrap().0 as usize;
+                        format!("{}:{}", num >> 32, num & 0xFFFFFFFF)
+                    })
+                    .join(", ")
+            );
+        }
+        assert_eq!(count, 3);
+        println!("total: {}", count);
+        println!("");
     }
 
     #[tokio::test(flavor = "current_thread")]
@@ -519,7 +646,7 @@ mod bank_iterator_tests {
 
         add_iteration(&mut bank, 1, &syn_ctx);
 
-        let all_children = run_gatherer(&bank, &bin_op).await;
+        let all_children = run_gatherer(&bank, &bin_op, None, None).await;
         assert_eq!(all_children.len(), 1);
         // print_all_children(&all_children);
     }
@@ -541,7 +668,7 @@ mod bank_iterator_tests {
         add_iteration(&mut bank, 2, &syn_ctx);
         add_iteration(&mut bank, 3, &syn_ctx);
 
-        let all_children = run_gatherer(&bank, &bin_op).await;
+        let all_children = run_gatherer(&bank, &bin_op, None, None).await;
         assert_eq!(all_children.len(), 5usize.pow(2) - 2usize.pow(2));
         assert!(all_children.iter().all_unique());
         for c in &all_children {
@@ -571,7 +698,7 @@ mod bank_iterator_tests {
         add_iteration(&mut bank, 3, &syn_ctx);
         add_iteration(&mut bank, 4, &syn_ctx);
 
-        let all_children = run_gatherer(&bank, &bin_op).await;
+        let all_children = run_gatherer(&bank, &bin_op, None, None).await;
         assert_eq!(all_children.len(), 9usize.pow(2) - 5usize.pow(2));
         assert!(all_children.iter().all_unique());
         for c in &all_children {
@@ -601,7 +728,7 @@ mod bank_iterator_tests {
         add_iteration(&mut bank, 3, &syn_ctx);
         add_iteration(&mut bank, 4, &syn_ctx);
 
-        let all_children = run_gatherer(&bank, &tri_op).await;
+        let all_children = run_gatherer(&bank, &tri_op, None, None).await;
         assert_eq!(all_children.len(), 9usize.pow(3) - 5usize.pow(3));
         assert!(all_children.iter().all_unique());
         for c in &all_children {
@@ -611,6 +738,149 @@ mod bank_iterator_tests {
             }));
         }
         // print_all_children(&all_children);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn three_iterations_binary_skip() {
+        let cache = Arc::new(Cache::new());
+        let _id_gen = GraphIdGenerator::default();
+        let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default(), cache);
+        let mut bank = ProgBank::default();
+        let bin_op: Arc<dyn ExprOpcode> = Arc::new(TestOpcode {
+            arg_types: vec![ValueType::Number, ValueType::Number],
+            returns: EvalResult::NoModification(LocValue {
+                loc: Location::Temp,
+                val: vnum!(Number::from(5)),
+            }),
+        });
+
+        add_iteration(&mut bank, 2, &syn_ctx);
+        add_iteration(&mut bank, 3, &syn_ctx);
+        add_iteration(&mut bank, 4, &syn_ctx);
+
+        for skip in 0..(9usize.pow(2) - 5usize.pow(2)) {
+            let skip_opt = if skip > 0 {
+                Some(skip)
+            } else {
+                None
+            };
+            let all_children = run_gatherer(&bank, &bin_op, skip_opt, None).await;
+            println!("{}", all_children.len());
+            assert_eq!(all_children.len(), 9usize.pow(2) - 5usize.pow(2) - skip);
+            for c in &all_children {
+                c.iter().take(5).for_each(|x| {
+                    let num = x.out_value()[0].val().number_value().unwrap().0 as usize;
+                    print!("{}:{}, ", num >> 32, num & 0xFFFFFFFF);
+                });
+                println!("");
+            }
+            println!("");
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn three_iterations_binary_take() {
+        let cache = Arc::new(Cache::new());
+        let _id_gen = GraphIdGenerator::default();
+        let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default(), cache);
+        let mut bank = ProgBank::default();
+        let bin_op: Arc<dyn ExprOpcode> = Arc::new(TestOpcode {
+            arg_types: vec![ValueType::Number, ValueType::Number],
+            returns: EvalResult::NoModification(LocValue {
+                loc: Location::Temp,
+                val: vnum!(Number::from(5)),
+            }),
+        });
+
+        add_iteration(&mut bank, 2, &syn_ctx);
+        add_iteration(&mut bank, 3, &syn_ctx);
+        add_iteration(&mut bank, 4, &syn_ctx);
+
+        for take in 0..=(9usize.pow(2) - 5usize.pow(2)) {
+            let all_children = run_gatherer(&bank, &bin_op, None, Some(take)).await;
+            println!("{}", all_children.len());
+            assert_eq!(all_children.len(), take);
+            for c in &all_children {
+                c.iter().take(5).for_each(|x| {
+                    let num = x.out_value()[0].val().number_value().unwrap().0 as usize;
+                    print!("{}:{}, ", num >> 32, num & 0xFFFFFFFF);
+                });
+                println!("");
+            }
+            println!("");
+        }
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn three_iterations_binary_skip_take() {
+        let cache = Arc::new(Cache::new());
+        let _id_gen = GraphIdGenerator::default();
+        let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default(), cache);
+        let mut bank = ProgBank::default();
+        let bin_op: Arc<dyn ExprOpcode> = Arc::new(TestOpcode {
+            arg_types: vec![ValueType::Number, ValueType::Number],
+            returns: EvalResult::NoModification(LocValue {
+                loc: Location::Temp,
+                val: vnum!(Number::from(5)),
+            }),
+        });
+
+        add_iteration(&mut bank, 2, &syn_ctx);
+        add_iteration(&mut bank, 3, &syn_ctx);
+        add_iteration(&mut bank, 4, &syn_ctx);
+
+        
+        let all_children = run_gatherer(&bank, &bin_op, Some(5), Some(3)).await;
+        println!("{}", all_children.len());
+        assert_eq!(all_children.len(), 3);
+        for c in &all_children {
+            c.iter().take(5).for_each(|x| {
+                let num = x.out_value()[0].val().number_value().unwrap().0 as usize;
+                print!("{}:{}, ", num >> 32, num & 0xFFFFFFFF);
+            });
+            println!("");
+        }
+        println!("");
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn three_iterations_binary_split() {
+        let cache = Arc::new(Cache::new());
+        let _id_gen = GraphIdGenerator::default();
+        let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default(), cache);
+        let mut bank = ProgBank::default();
+        let bin_op: Arc<dyn ExprOpcode> = Arc::new(TestOpcode {
+            arg_types: vec![ValueType::Number, ValueType::Number],
+            returns: EvalResult::NoModification(LocValue {
+                loc: Location::Temp,
+                val: vnum!(Number::from(5)),
+            }),
+        });
+
+        add_iteration(&mut bank, 2, &syn_ctx);
+        add_iteration(&mut bank, 3, &syn_ctx);
+        add_iteration(&mut bank, 4, &syn_ctx);
+
+        let total_size = 9usize.pow(2) - 5usize.pow(2);
+        let split_count = 10;
+
+        let all_children = run_gatherer(&bank, &bin_op, None, None).await;
+        let mut all_children_split = Vec::with_capacity(split_count);
+        for i in 0..split_count {
+            let skip = (total_size / split_count) * i;
+            let take = if i == split_count - 1 {
+                usize::MAX
+            } else {
+                total_size / split_count
+            };
+            let part = run_gatherer(&bank, &bin_op, Some(skip), Some(take)).await;
+            all_children_split.push(part);
+        }
+        
+        assert_eq!(all_children_split.iter().fold(0, |acc, x| acc + x.len()), total_size);
+        assert!(all_children.iter().all(|x| {
+            all_children_split.iter().any(|part| part.contains(x))
+        }));
     }
 }
 

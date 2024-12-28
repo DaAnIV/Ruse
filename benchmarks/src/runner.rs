@@ -103,7 +103,6 @@ pub fn run_task(path: &Path, cache: Arc<Cache>, bench_config: &BenchmarkConfig) 
     let mut synthesizer = match task.get_synthesizer(
         bench_config.max_context_depth,
         bench_config.iteration_workers_count,
-        bench_config.iteration_chunk_size,
         &cache,
     ) {
         Ok(v) => v,

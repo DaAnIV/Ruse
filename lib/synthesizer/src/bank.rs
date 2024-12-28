@@ -89,6 +89,10 @@ impl ProgramsMap {
     pub fn iter(&self) -> dashmap::iter::Iter<ProgOutput, Arc<SubProgram>, BankHasherBuilder> {
         self.0.iter()
     }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
 }
 
 impl<'a> IntoIterator for &'a ProgramsMap {
@@ -175,6 +179,14 @@ impl ProgBank {
                 }
             }
         }
+    }
+
+    pub fn number_of_programs(&self, iteration: usize, output_type: &ValueType) -> usize {
+        match self[iteration].get(output_type) {
+            Some(map) => map.len(),
+            None => 0,
+        }
+
     }
 }
 

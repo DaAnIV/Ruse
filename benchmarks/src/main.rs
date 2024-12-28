@@ -76,9 +76,6 @@ struct RunArgs {
     
     #[arg(long, default_value_t = 16)]
     workers_count: usize,
-    
-    #[arg(long, default_value_t = 4096)]
-    chunk_size: usize,
 
     #[arg(long, default_value_t = false)]
     print_all_programs: bool,
@@ -178,13 +175,11 @@ fn run_benchmarks(cli: &RunArgs) -> ExitCode {
         multi_thread: !cli.single_thread,
         max_context_depth: cli.max_context_depth,
         iteration_workers_count: cli.workers_count,
-        iteration_chunk_size: cli.chunk_size,
     };
 
     info!(target: "ruse::runner", "Timeout {:.3} seconds", bench_config.timeout.as_secs_f32());
     info!(target: "ruse::runner", "Max iterations: {}", bench_config.max_iterations);
     info!(target: "ruse::runner", "Workers count: {}", bench_config.iteration_workers_count);
-    info!(target: "ruse::runner", "Chunk size: {}", bench_config.iteration_chunk_size);
 
     if cli.tokio_console {
         console_subscriber::init();

@@ -1,3 +1,4 @@
+use std::cell::Cell;
 use std::marker::PhantomData;
 use std::sync::Arc;
 
@@ -6,42 +7,49 @@ use Option::{self as State, None as ProductEnded, Some as ProductInProgress};
 use Option::{self as CurrentItems, None as NotYetPopulated, Some as Populated};
 
 use crate::bank::ProgramsMap;
-use crate::context::ContextArray;
-use crate::embedding::merge_context_arrays;
 use crate::prog::SubProgram;
-use crate::prog_triplet::ProgTriplet;
-
-use tracing::trace;
 
 type ProgramsMapRef<'a> = &'a ProgramsMap;
 type ProgramsMapIter<'a> = <ProgramsMapRef<'a> as IntoIterator>::IntoIter;
 
-pub struct MultiProgramsMaps<'a>(State<MultiProgramsMapsInner<'a>>);
+pub struct MultiProgramsMaps<'a> {
+    inner: State<MultiProgramsMapsInner<'a>>,
+    remaining: usize,
+}
+
+pub trait ProgramChildrenIterator {
+    fn next(&mut self) -> Option<(usize, *const Vec<Arc<SubProgram>>)>;
+    fn bad_children(&mut self, fail: usize);
+    fn take(&mut self, n: usize);
+    fn skip(&mut self, n: usize);
+    fn remaining(&self) -> usize;
+}
 
 /// Internals for `MultiProduct`.
 struct MultiProgramsMapsInner<'a> {
     /// Holds the iterators.
     iters: Vec<MultiProgramsMapsIter<'a>>,
     /// Not populated at the beginning then it holds the current item of each iterator.
-    cur: CurrentItems<(Vec<Arc<SubProgram>>, Vec<(ContextArray, ContextArray)>)>,
+    cur: CurrentItems<Cell<Vec<Arc<SubProgram>>>>,
 
-    /// If set_ctx fails need to restart at last failure (or earlier)
-    last_fail: Option<usize>
+    total_size: usize,
 }
 
 /// Holds the state of a single iterator within a `MultiProduct`.
 struct MultiProgramsMapsIter<'a> {
     iter: ProgramsMapIter<'a>,
-    orig_iter: ProgramsMapIter<'a>,
-    restart: bool
+    map_ref: ProgramsMapRef<'a>,
+    i: usize,
+    restart: bool,
 }
 
 impl<'a> MultiProgramsMapsIter<'a> {
-    fn new(iter: ProgramsMapIter<'a>) -> Self {
+    fn new(map_ref: ProgramsMapRef<'a>) -> Self {
         Self {
-            iter: iter.clone(),
-            orig_iter: iter,
-            restart: false
+            iter: map_ref.iter(),
+            map_ref,
+            i: 0,
+            restart: false,
         }
     }
 }
@@ -54,55 +62,66 @@ pub fn multi_programs_map_product<'a, I>(maps: I) -> MultiProgramsMaps<'a>
 where
     I: Iterator<Item = *const ProgramsMap>,
 {
+    let mut total_size = 1;
+    let iters = maps
+        .map(|i| {
+            let map_ref = unsafe { &*i };
+            total_size *= map_ref.len();
+            MultiProgramsMapsIter::new(map_ref)
+        })
+        .collect();
+
     let inner = MultiProgramsMapsInner {
-        iters: maps.map(|i| {
-            let map_ref = unsafe {&*i};
-            MultiProgramsMapsIter::new(map_ref.iter())
-    }).collect(),
+        iters,
         cur: NotYetPopulated,
-        last_fail: None
+        total_size,
     };
-    MultiProgramsMaps(ProductInProgress(inner))
+    MultiProgramsMaps {
+        remaining: inner.total_size,
+        inner: ProductInProgress(inner),
+    }
 }
 
 pub fn multi_programs_map_end<'a>(_marker: PhantomData<&'a bool>) -> MultiProgramsMaps<'a> {
-    MultiProgramsMaps(ProductEnded)
+    MultiProgramsMaps {
+        remaining: 0,
+        inner: ProductEnded,
+    }
 }
 
 impl<'a> MultiProgramsMapsInner<'a> {
     fn advance_progs(&mut self) -> Option<usize> {
         match &mut self.cur {
-            Populated((cur_progs, _)) => {
+            Populated(cur_progs) => {
                 debug_assert!(!self.iters.is_empty());
-
-                // If we failed in a merge we need to advance the program in the failed iterator
-                // Otherwise we'll just iterate a lot of unusable children
-                if let Some(last_fail) = self.last_fail {
-                    // restart all iterators after the failure
-                    for iter in self.iters.iter_mut().skip(last_fail + 1) {
-                        iter.restart = true;
-                    }
-                }
-
                 // Find (from the right) a non-finished iterator and
                 // reset the finished ones encountered.
                 for (i, iter) in self.iters.iter_mut().enumerate().rev() {
                     if !iter.restart {
                         if let Some(new) = iter.iter.next() {
-                            cur_progs[i] = new.value().clone();
+                            iter.i += 1;
+                            cur_progs.get_mut()[i] = new.value().clone();
                             return Some(i);
                         }
                     }
 
-                    iter.iter = iter.orig_iter.clone();
+                    iter.iter = iter.map_ref.iter();
+                    iter.i = 0;
                     iter.restart = false;
-                    cur_progs[i] = iter.iter.next().unwrap().value().clone();
+                    cur_progs.get_mut()[i] = iter.iter.next().unwrap().value().clone();
                 }
                 None
             }
             // Only the first time.
             NotYetPopulated => {
-                let next: Option<Vec<_>> = self.iters.iter_mut().map(|i| i.iter.next()).collect();
+                let next: Option<Vec<_>> = self
+                    .iters
+                    .iter_mut()
+                    .map(|iter| {
+                        iter.i += 1;
+                        iter.iter.next()
+                    })
+                    .collect();
                 if next.is_none() || self.iters.is_empty() {
                     // This cartesian product had at most one item to generate and now ends.
                     return None;
@@ -112,69 +131,99 @@ impl<'a> MultiProgramsMapsInner<'a> {
                         .iter()
                         .map(|p| p.value().clone())
                         .collect_vec();
-                    let ctxs =
-                        vec![(ContextArray::default(), ContextArray::default()); progs.len()];
-                    self.cur = Populated((progs, ctxs));
+                    self.cur = Populated(progs.into());
                 }
                 Some(0)
             }
         }
     }
 
-    fn set_ctxs(&mut self, mut from: usize) -> Option<ProgTriplet> {
-        let (cur_progs, cur_ctxs) = self.cur.as_mut().unwrap();
-
-        if let Some(last_fail) = self.last_fail {
-            from = from.min(last_fail);
+    fn skip(&mut self, n: usize) {
+        if n == 0 {
+            return;
         }
+        let mut remaining = n;
 
-        if from == 0 {
-            cur_ctxs[0] = (
-                cur_progs[0].pre_ctx().clone(),
-                cur_progs[0].post_ctx().clone(),
-            );
-            from = 1;
+        if self.cur.is_none() {
+            self.advance_progs();
+            remaining -= 1;
         }
+        let cur_progs = unsafe { self.cur.as_mut().unwrap_unchecked() };
 
-        for i in from..cur_ctxs.len() {
-            let last_ctx = &cur_ctxs[i - 1];
-            let p = &cur_progs[i];
-            if let Ok(merged_ctx) =
-                merge_context_arrays(&last_ctx.0, &last_ctx.1, p.pre_ctx(), p.post_ctx())
-            {
-                cur_ctxs[i] = merged_ctx;
+        let mut rev_iterators = self.iters.iter_mut().enumerate().rev();
+
+        while remaining > 0 {
+            // Can unsafe unwrap because of the assert!(n < (self.total_size - self.i))
+            let (i, iter) = rev_iterators.next().unwrap();
+
+            let remainder = remaining % iter.map_ref.len();
+            remaining /= iter.map_ref.len();
+
+            if remainder == 0 {
+                continue;
+            }
+            if iter.i + remainder > iter.map_ref.len() {
+                let cur_iter_n = iter.i + remainder - iter.map_ref.len();
+                remaining += 1;
+                iter.iter = iter.map_ref.iter();
+                iter.i = cur_iter_n;
+                iter.restart = false;
+                cur_progs.get_mut()[i] = iter.iter.nth(cur_iter_n).unwrap().value().clone();
             } else {
-                self.last_fail = Some(i);
-                return None;
+                iter.i = remainder;
+                cur_progs.get_mut()[i] = iter.iter.nth(remainder - 1).unwrap().value().clone();
             }
         }
-        self.last_fail = None;
-
-        trace!("{} merged ctx:", cur_ctxs.len());
-        cur_ctxs.iter().enumerate().for_each(|(i, c)| {
-            trace!("merged: [{}]", cur_progs.iter().take(i + 1).map(|p| p.get_code()).join(", "));
-            trace!("pre_hat: {}", c.0[0]); 
-            trace!("post_hat: {}", c.1[0]); 
-        });
-        let (pre_ctx, post_ctx) = cur_ctxs.last().unwrap().clone();
-        Some(ProgTriplet::new(pre_ctx, cur_progs.clone(), post_ctx))
     }
 }
 
-impl<'a> Iterator for MultiProgramsMaps<'a> {
-    type Item = ProgTriplet;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        // This fuses the iterator.
-        let inner = self.0.as_mut()?;
-        while let Some(i) = inner.advance_progs() {
-            if let Some(triplet) = inner.set_ctxs(i) {
-                return Some(triplet);
-            }
+impl<'a> ProgramChildrenIterator for MultiProgramsMaps<'a> {
+    fn next(&mut self) -> Option<(usize, *const Vec<Arc<SubProgram>>)> {
+        if self.remaining == 0 {
+            self.inner = ProductEnded;
         }
-        self.0 = ProductEnded;
+
+        // This fuses the iterator.
+        let inner = self.inner.as_mut()?;
+        if let Some(i) = inner.advance_progs() {
+            self.remaining -= 1;
+            let cur = inner.cur.as_ref().unwrap().as_ptr();
+            return Some((i, cur));
+        }
+        self.inner = ProductEnded;
         None
     }
-}
 
-impl<'a> std::iter::FusedIterator for MultiProgramsMaps<'a> {}
+    fn remaining(&self) -> usize {
+        self.remaining
+    }
+
+    fn bad_children(&mut self, fail: usize) {
+        let inner = match self.inner.as_mut() {
+            ProductInProgress(inner) => inner,
+            ProductEnded => return,
+        };
+
+        // restart all iterators after the failure
+        for iter in inner.iters.iter_mut().skip(fail + 1) {
+            iter.restart = true;
+        }
+    }
+
+    fn skip(&mut self, n: usize) {
+        if n >= self.remaining() {
+            self.inner = ProductEnded;
+            return;
+        }
+
+        let inner = match self.inner.as_mut() {
+            ProductInProgress(inner) => inner,
+            ProductEnded => return,
+        };
+        inner.skip(n);
+    }
+
+    fn take(&mut self, n: usize) {
+        self.remaining = self.remaining.min(n);
+    }
+}
