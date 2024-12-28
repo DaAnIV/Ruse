@@ -1,3 +1,4 @@
+use byte_unit::Byte;
 use clap_verbosity_flag::{InfoLevel, Verbosity};
 use ruse_ts_interpreter::ts_class::TsClasses;
 use serde_json::ser::Formatter;
@@ -73,6 +74,9 @@ struct RunArgs {
 
     #[arg(long, default_value_t = 5)]
     max_context_depth: usize,
+
+    #[arg(long, default_value_t = String::from("100GiB"))]
+    max_task_mem: String,
     
     #[arg(long, default_value_t = 16)]
     workers_count: usize,
@@ -176,9 +180,12 @@ fn run_benchmarks(cli: &RunArgs) -> ExitCode {
         max_context_depth: cli.max_context_depth,
         iteration_workers_count: cli.workers_count,
         benchmarks: cli.benchmarks.clone(),
+        max_task_mem: Byte::parse_str(&cli.max_task_mem, true).unwrap()
     };
 
+    let max_task_mem = bench_config.max_task_mem;
     info!(target: "ruse::runner", "Timeout {:.3} seconds", bench_config.timeout.as_secs_f32());
+    info!(target: "ruse::runner", "Max task mem {}", format!("{max_task_mem:#}"));
     info!(target: "ruse::runner", "Max iterations: {}", bench_config.max_iterations);
     info!(target: "ruse::runner", "Workers count: {}", bench_config.iteration_workers_count);
 

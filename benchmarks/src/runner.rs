@@ -1,9 +1,8 @@
 use std::{
-    path::{Path, PathBuf},
-    sync::Arc,
-    time::{Duration, Instant},
+    future::Future, path::{Path, PathBuf}, sync::Arc, time::{Duration, Instant}
 };
 
+use byte_unit::{Byte, Unit};
 use ruse_object_graph::Cache;
 use ruse_ts_synthesizer::TsSynthesizer;
 use tokio_util::sync::CancellationToken;
@@ -11,17 +10,20 @@ use tracing::{error, info};
 
 use crate::{config::BenchmarkConfig, results::BenchmarkResult, task};
 
-struct TimeoutError {}
-impl std::error::Error for TimeoutError {}
-
-impl std::fmt::Display for TimeoutError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Timeout")
-    }
+#[derive(Debug)]
+enum RunnerError {
+    Timeout,
+    OOM
 }
-impl std::fmt::Debug for TimeoutError {
+
+impl std::error::Error for RunnerError {}
+
+impl std::fmt::Display for RunnerError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("TimeoutError").finish()
+        match self {
+            RunnerError::Timeout => write!(f, "Timeout"),
+            RunnerError::OOM => write!(f, "OOM"),
+        }
     }
 }
 
@@ -39,6 +41,37 @@ impl std::fmt::Debug for ReachedMaxIterationError {
     }
 }
 
+async fn watch_vm_usage(max_task_mem: Byte) {
+    let proc = procfs::process::Process::myself().unwrap();
+
+    let mut interval = tokio::time::interval(Duration::from_secs(1));
+    loop {
+        interval.tick().await;
+        let status = proc.status().unwrap();
+        let vmrss = Byte::from_u64_with_unit(status.vmrss.unwrap(), Unit::KiB).unwrap();
+        if vmrss > max_task_mem {
+            break;
+        }
+    }
+}
+
+async fn watch_for_error<I>(timeout: tokio::time::Timeout<I>, config: &BenchmarkConfig) -> Result<(), RunnerError> where I: Future {
+    tokio::select! {
+        res = timeout => {
+            if let Err(_) = res {
+                error!(target: "ruse::runner", "Reached timeout");
+                Err(RunnerError::Timeout)
+            } else {
+                Ok(())
+            }
+        },
+        _ = watch_vm_usage(config.max_task_mem) => {
+            error!(target: "ruse::runner", "Reached max mem usage");
+            Err(RunnerError::OOM)
+        }
+    }
+}
+
 async fn run_synthesizer(
     synthesizer: &mut TsSynthesizer,
     result: &mut BenchmarkResult,
@@ -50,12 +83,11 @@ async fn run_synthesizer(
     for _ in 0..max_iterations {
         let iteration_start = Instant::now();
         let res = tokio::select! {
-            _ = cancel_token.cancelled() => Err(TimeoutError {}),
+            _ = cancel_token.cancelled() => Err(()),
             v = synthesizer.run_iteration() => Ok(v)
         };
         let iteration_took = iteration_start.elapsed();
-        if let Err(e) = res {
-            result.error(&e);
+        if res.is_err() {
             return;
         }
         result.add_iteration(iteration_took, synthesizer.statistics());
@@ -127,8 +159,7 @@ pub fn run_task(path: &Path, cache: Arc<Cache>, bench_config: &BenchmarkConfig) 
                 cancel_token.child_token(),
             ),
         );
-        if let Err(e) = timeout.await {
-            error!(target: "ruse::runner", "Reached timeout");
+        if let Err(e) = watch_for_error(timeout, bench_config).await {
             cancel_token.cancel();
             result.error(&e);
             result.add_iteration(Duration::from_secs(0), synthesizer.statistics());

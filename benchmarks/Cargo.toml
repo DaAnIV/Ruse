@@ -35,6 +35,9 @@ serde = { version = "*", features = ["derive"] }
 serde_json = "*"
 serde_with = "*"
 
+procfs = "*"
+byte-unit = { version = "*", features = ["serde"] }
+
 tokio = { version = "*", features = [
     "rt-multi-thread",
     "sync",

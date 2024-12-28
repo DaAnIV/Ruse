@@ -1,5 +1,6 @@
 use std::{path::PathBuf, time::Duration};
 
+use byte_unit::Byte;
 use serde_with::{serde_as, DurationSeconds};
 
 #[serde_as]
@@ -12,4 +13,5 @@ pub struct BenchmarkConfig {
     pub max_context_depth: usize,
     pub iteration_workers_count: usize,
     pub benchmarks: Vec<PathBuf>,
+    pub max_task_mem: Byte
 }
