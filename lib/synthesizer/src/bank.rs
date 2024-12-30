@@ -81,11 +81,6 @@ impl ProgramsMap {
         self.0.contains_key(&output)
     }
 
-    fn get_inserted_prog(&self, p: &Arc<SubProgram>) -> Option<Arc<SubProgram>> {
-        let output: ProgOutput = p.clone().into();
-        self.0.get(&output).map(|p| p.clone())
-    }
-
     pub fn iter(&self) -> dashmap::iter::Iter<ProgOutput, Arc<SubProgram>, BankHasherBuilder> {
         self.0.iter()
     }
@@ -119,13 +114,6 @@ impl TypeMap {
         match self.0.get(&p.out_type()) {
             None => false,
             Some(values) => values.contains(p),
-        }
-    }
-
-    pub(crate) fn get_inserted_prog(&self, p: &Arc<SubProgram>) -> Option<Arc<SubProgram>> {
-        match self.0.get(&p.out_type()) {
-            None => None,
-            Some(values) => values.get_inserted_prog(p),
         }
     }
 

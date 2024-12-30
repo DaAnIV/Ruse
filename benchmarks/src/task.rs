@@ -37,6 +37,7 @@ pub struct TodoError {
 }
 
 impl TodoError {
+    #[allow(dead_code)]
     pub fn new(to_implement: &'static str) -> Self {
         Self { to_implement }
     }
