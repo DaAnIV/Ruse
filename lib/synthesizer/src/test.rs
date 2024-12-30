@@ -424,7 +424,8 @@ mod bank_iterator_tests {
         skip: Option<usize>,
         take: Option<usize>,
     ) -> Vec<Vec<Arc<SubProgram>>> {
-        let all_children = Arc::new(DashMap::<usize, Vec<Arc<SubProgram>>, BankHasherBuilder>::default());
+        let all_children =
+            Arc::new(DashMap::<usize, Vec<Arc<SubProgram>>, BankHasherBuilder>::default());
         let mut children_iterator = bank_iterator(bank, op.arg_types());
         if let Some(skip_count) = skip {
             children_iterator.skip(skip_count);
@@ -570,7 +571,7 @@ mod bank_iterator_tests {
                         .join(", ")
                 );
             }
-            assert_eq!(count, 3*4 - i);
+            assert_eq!(count, 3 * 4 - i);
             println!("total: {}", count);
             println!("");
         }
@@ -589,7 +590,7 @@ mod bank_iterator_tests {
         for i in 0..(3 * 4) {
             let mut children_iter = multi_programs_map_product([map_1_ptr, map_2_ptr].into_iter());
             if i > 0 {
-                children_iter.take(3*4 - i)
+                children_iter.take(3 * 4 - i)
             }
 
             let mut count = 0;
@@ -607,7 +608,7 @@ mod bank_iterator_tests {
                         .join(", ")
                 );
             }
-            assert_eq!(count, 3*4 - i);
+            assert_eq!(count, 3 * 4 - i);
             println!("total: {}", count);
             println!("");
         }
@@ -776,11 +777,7 @@ mod bank_iterator_tests {
         add_iteration(&mut bank, 4, &syn_ctx);
 
         for skip in 0..(9usize.pow(2) - 5usize.pow(2)) {
-            let skip_opt = if skip > 0 {
-                Some(skip)
-            } else {
-                None
-            };
+            let skip_opt = if skip > 0 { Some(skip) } else { None };
             let all_children = run_gatherer(&bank, &bin_op, skip_opt, None).await;
             println!("{}", all_children.len());
             assert_eq!(all_children.len(), 9usize.pow(2) - 5usize.pow(2) - skip);
@@ -846,7 +843,6 @@ mod bank_iterator_tests {
         add_iteration(&mut bank, 3, &syn_ctx);
         add_iteration(&mut bank, 4, &syn_ctx);
 
-        
         let all_children = run_gatherer(&bank, &bin_op, Some(5), Some(3)).await;
         println!("{}", all_children.len());
         assert_eq!(all_children.len(), 3);
@@ -893,11 +889,14 @@ mod bank_iterator_tests {
             let part = run_gatherer(&bank, &bin_op, Some(skip), Some(take)).await;
             all_children_split.push(part);
         }
-        
-        assert_eq!(all_children_split.iter().fold(0, |acc, x| acc + x.len()), total_size);
-        assert!(all_children.iter().all(|x| {
-            all_children_split.iter().any(|part| part.contains(x))
-        }));
+
+        assert_eq!(
+            all_children_split.iter().fold(0, |acc, x| acc + x.len()),
+            total_size
+        );
+        assert!(all_children
+            .iter()
+            .all(|x| { all_children_split.iter().any(|part| part.contains(x)) }));
     }
 }
 
@@ -1023,49 +1022,21 @@ mod context_tests {
 }
 
 #[cfg(test)]
-mod prog_tests {
+mod embedding_tests {
     use std::sync::Arc;
+
+    use itertools::Itertools;
+    use ruse_object_graph::{
+        graph_map_value::GraphMapWrap, str_cached, vobj, vstr, Cache, GraphsMap, ObjectGraph,
+    };
 
     use crate::{
         context::{Context, ContextArray, GraphIdGenerator, SynthesizerContext},
         embedding::merge_context,
-        prog::SubProgram,
-        test::helpers::*,
     };
-    use ruse_object_graph::{str_cached, vnum, vobj, vstr, Cache, GraphsMap, Number, ObjectGraph};
 
     #[test]
-    fn modify_post_ctx_test() {
-        let cache = Arc::new(Cache::new());
-        let graphs_map = GraphsMap::default();
-        let id_gen = Arc::new(GraphIdGenerator::default());
-
-        let pre_ctx = ContextArray::from(vec![Context::with_values(
-            [(str_cached!(cache; "x"), vnum!(Number::from(7u64)))].into(),
-            graphs_map.into(),
-            id_gen,
-        )]);
-        let post_ctx = pre_ctx.clone();
-        let syn_ctx = SynthesizerContext::from_context_array(pre_ctx.clone(), cache);
-
-        let opcode = Arc::new(UpdateVarOpcode {
-            arg_types: vec![],
-            id: syn_ctx.cached_string("x"),
-            new_value: vnum!(Number::from(5)),
-            returns: crate::opcode::EvalResult::DirtyContext(
-                post_ctx[0].temp_value(vnum!(Number::from(0))),
-            ),
-        });
-
-        let mut p = SubProgram::with_opcode(opcode, pre_ctx, post_ctx);
-        evaluate_prog(&mut p, &syn_ctx);
-        println!("{}", p.pre_ctx());
-        println!("{}", p.out_value().wrap(p.post_ctx()));
-        println!("{}", p.post_ctx());
-    }
-
-    #[test]
-    fn embedding_test1() {
+    fn simple_embedding_test1() {
         let cache = Arc::new(Cache::new());
         let mut graphs_map = GraphsMap::default();
         let id_gen = Arc::new(GraphIdGenerator::default());
@@ -1105,53 +1076,220 @@ mod prog_tests {
         )]);
         let syn_ctx = SynthesizerContext::from_context_array(start_ctx.clone(), cache);
 
-        let get_x = Arc::new(GetVar::new(syn_ctx.cached_string("x")));
-        let get_y = Arc::new(GetVar::new(syn_ctx.cached_string("y")));
-
-        let x_ctx = start_ctx
+        let x_ctx = &start_ctx
             .get_partial_context(&[syn_ctx.cached_string("x")])
-            .unwrap();
-        let y_ctx = start_ctx
+            .unwrap()[0];
+        let y_ctx = &start_ctx
             .get_partial_context(&[syn_ctx.cached_string("y")])
+            .unwrap()[0];
+
+        let (pre_merged_ctx, post_merged_ctx) = merge_context(x_ctx, x_ctx, y_ctx, y_ctx).unwrap();
+
+        println!("merged pre: {}", pre_merged_ctx);
+        println!("merged post: {}", post_merged_ctx);
+
+        assert!(pre_merged_ctx
+            .variables()
+            .contains(&syn_ctx.cached_string("x")));
+        assert!(pre_merged_ctx
+            .variables()
+            .contains(&syn_ctx.cached_string("y")));
+        assert!(post_merged_ctx
+            .variables()
+            .contains(&syn_ctx.cached_string("x")));
+        assert!(post_merged_ctx
+            .variables()
+            .contains(&syn_ctx.cached_string("y")));
+
+        let x = x_ctx
+            .get_var_loc_value(&syn_ctx.cached_string("x"))
+            .unwrap();
+        let y = y_ctx
+            .get_var_loc_value(&syn_ctx.cached_string("y"))
+            .unwrap();
+        let merged_pre_x = pre_merged_ctx
+            .get_var_loc_value(&syn_ctx.cached_string("x"))
+            .unwrap();
+        let merged_pre_y = pre_merged_ctx
+            .get_var_loc_value(&syn_ctx.cached_string("y"))
+            .unwrap();
+        let merged_post_x = post_merged_ctx
+            .get_var_loc_value(&syn_ctx.cached_string("x"))
+            .unwrap();
+        let merged_post_y = post_merged_ctx
+            .get_var_loc_value(&syn_ctx.cached_string("y"))
             .unwrap();
 
-        let mut p_x = SubProgram::with_opcode(get_x, x_ctx.clone(), x_ctx.clone());
-        let mut p_y = SubProgram::with_opcode(get_y, y_ctx.clone(), y_ctx.clone());
-        evaluate_prog(&mut p_x, &syn_ctx);
-        evaluate_prog(&mut p_y, &syn_ctx);
-
-        println!("p_x: {}", p_x);
-        println!("p_y: {}", p_y);
-
-        println!("p_x out: {:?}", p_x.out_value()[0].val());
-        println!("p_y out: {:?}", p_y.out_value()[0].val());
-
-        let (pre_ctx, post_ctx) = merge_context(
-            &p_x.pre_ctx()[0],
-            &p_x.post_ctx()[0],
-            &p_y.pre_ctx()[0],
-            &p_y.post_ctx()[0],
-        )
-        .unwrap();
-
-        println!("merged pre: {}", pre_ctx);
-        println!("merged post: {}", post_ctx);
-
-        println!("p_x out: {:?}", p_x.out_value()[0].val());
-        println!("p_y out: {:?}", p_y.out_value()[0].val());
-        println!(
-            "x: {:?}",
-            post_ctx
-                .get_var_loc_value(&syn_ctx.cached_string("x"))
-                .unwrap()
-                .val()
+        assert_eq!(
+            x.wrap(&x_ctx.graphs_map),
+            merged_pre_x.wrap(&pre_merged_ctx.graphs_map)
         );
-        println!(
-            "y: {:?}",
-            post_ctx
-                .get_var_loc_value(&syn_ctx.cached_string("y"))
-                .unwrap()
-                .val()
+        assert_eq!(
+            x.wrap(&x_ctx.graphs_map),
+            merged_post_x.wrap(&post_merged_ctx.graphs_map)
         );
+        assert_eq!(
+            y.wrap(&y_ctx.graphs_map),
+            merged_pre_y.wrap(&pre_merged_ctx.graphs_map)
+        );
+        assert_eq!(
+            y.wrap(&y_ctx.graphs_map),
+            merged_post_y.wrap(&post_merged_ctx.graphs_map)
+        );
+
+        println!("x: {:?}", merged_post_x.val());
+        println!("y: {:?}", merged_post_y.val());
+    }
+
+    #[test]
+    fn complex_embedding_test1() {
+        let cache = Arc::new(Cache::new());
+        let mut graphs_map = GraphsMap::default();
+        let id_gen = Arc::new(GraphIdGenerator::default());
+        let obj_type = str_cached!(cache; "Foo");
+        let field_name = str_cached!(cache; "f");
+        let obj_type2 = str_cached!(cache; "Boo");
+        let field_name2 = str_cached!(cache; "b");
+
+        let graph_id = id_gen.get_id_for_graph();
+        let x_node_id = id_gen.get_id_for_node();
+        let y_node_id = id_gen.get_id_for_node();
+
+        let mut graph = ObjectGraph::new(graph_id);
+
+        graph.add_object_from_map(
+            x_node_id,
+            obj_type.clone(),
+            [(field_name.clone(), vstr!(cache; "x"))],
+        );
+        graph.add_object_from_map(
+            y_node_id,
+            obj_type2.clone(),
+            [(field_name2.clone(), vobj!(graph_id, x_node_id))],
+        );
+        graph.set_as_root(str_cached!(cache; "x"), x_node_id);
+        graph.set_as_root(str_cached!(cache; "y"), y_node_id);
+
+        graphs_map.insert_graph(graph.into());
+
+        let start_ctx = ContextArray::from(vec![Context::with_values(
+            [
+                (str_cached!(cache; "x"), vobj!(graph_id, x_node_id)),
+                (str_cached!(cache; "y"), vobj!(graph_id, y_node_id)),
+            ]
+            .into(),
+            graphs_map.into(),
+            id_gen,
+        )]);
+        let syn_ctx = SynthesizerContext::from_context_array(start_ctx.clone(), cache);
+
+        let x_ctx = &start_ctx
+            .get_partial_context(&[syn_ctx.cached_string("x")])
+            .unwrap()[0];
+        let y_ctx = &start_ctx
+            .get_partial_context(&[syn_ctx.cached_string("y")])
+            .unwrap()[0];
+
+        println!("x_ctx: {}", x_ctx);
+        println!("y_ctx: {}", y_ctx);
+
+        let (pre_merged_ctx, post_merged_ctx) = merge_context(x_ctx, x_ctx, y_ctx, y_ctx).unwrap();
+
+        println!("merged pre: {}", pre_merged_ctx);
+        println!("merged post: {}", post_merged_ctx);
+
+        assert!(pre_merged_ctx
+            .variables()
+            .contains(&syn_ctx.cached_string("x")));
+        assert!(pre_merged_ctx
+            .variables()
+            .contains(&syn_ctx.cached_string("y")));
+        assert!(post_merged_ctx
+            .variables()
+            .contains(&syn_ctx.cached_string("x")));
+        assert!(post_merged_ctx
+            .variables()
+            .contains(&syn_ctx.cached_string("y")));
+
+        let x = x_ctx
+            .get_var_loc_value(&syn_ctx.cached_string("x"))
+            .unwrap();
+        let y = y_ctx
+            .get_var_loc_value(&syn_ctx.cached_string("y"))
+            .unwrap();
+        let merged_pre_x = pre_merged_ctx
+            .get_var_loc_value(&syn_ctx.cached_string("x"))
+            .unwrap();
+        let merged_pre_y = pre_merged_ctx
+            .get_var_loc_value(&syn_ctx.cached_string("y"))
+            .unwrap();
+        let merged_post_x = post_merged_ctx
+            .get_var_loc_value(&syn_ctx.cached_string("x"))
+            .unwrap();
+        let merged_post_y = post_merged_ctx
+            .get_var_loc_value(&syn_ctx.cached_string("y"))
+            .unwrap();
+
+        assert_eq!(
+            x.wrap(&x_ctx.graphs_map),
+            merged_pre_x.wrap(&pre_merged_ctx.graphs_map)
+        );
+        assert_eq!(
+            x.wrap(&x_ctx.graphs_map),
+            merged_post_x.wrap(&post_merged_ctx.graphs_map)
+        );
+        assert_eq!(
+            y.wrap(&y_ctx.graphs_map),
+            merged_pre_y.wrap(&pre_merged_ctx.graphs_map)
+        );
+        assert_eq!(
+            y.wrap(&y_ctx.graphs_map),
+            merged_post_y.wrap(&post_merged_ctx.graphs_map)
+        );
+
+        println!("x: {:?}", merged_post_x.val());
+        println!("y: {:?}", merged_post_y.val());
+    }
+}
+
+#[cfg(test)]
+mod prog_tests {
+    use std::sync::Arc;
+
+    use crate::{
+        context::{Context, ContextArray, GraphIdGenerator, SynthesizerContext},
+        prog::SubProgram,
+        test::helpers::*,
+    };
+    use ruse_object_graph::{str_cached, vnum, Cache, GraphsMap, Number};
+
+    #[test]
+    fn modify_post_ctx_test() {
+        let cache = Arc::new(Cache::new());
+        let graphs_map = GraphsMap::default();
+        let id_gen = Arc::new(GraphIdGenerator::default());
+
+        let pre_ctx = ContextArray::from(vec![Context::with_values(
+            [(str_cached!(cache; "x"), vnum!(Number::from(7u64)))].into(),
+            graphs_map.into(),
+            id_gen,
+        )]);
+        let post_ctx = pre_ctx.clone();
+        let syn_ctx = SynthesizerContext::from_context_array(pre_ctx.clone(), cache);
+
+        let opcode = Arc::new(UpdateVarOpcode {
+            arg_types: vec![],
+            id: syn_ctx.cached_string("x"),
+            new_value: vnum!(Number::from(5)),
+            returns: crate::opcode::EvalResult::DirtyContext(
+                post_ctx[0].temp_value(vnum!(Number::from(0))),
+            ),
+        });
+
+        let mut p = SubProgram::with_opcode(opcode, pre_ctx, post_ctx);
+        evaluate_prog(&mut p, &syn_ctx);
+        println!("{}", p.pre_ctx());
+        println!("{}", p.out_value().wrap(p.post_ctx()));
+        println!("{}", p.post_ctx());
     }
 }
