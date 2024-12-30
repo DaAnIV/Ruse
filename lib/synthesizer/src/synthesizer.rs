@@ -32,7 +32,7 @@ const ALLOW_NON_FINITE_NUMBER: bool = false;
 pub enum StatisticsTypes {
     Evaluated,
     BankSize,
-    ContextSize,
+    FoundContextCount,
     MaxDepth,
     MaxSize,
     __MaxType,
@@ -43,7 +43,7 @@ impl StatisticsTypes {
         [
             StatisticsTypes::Evaluated,
             StatisticsTypes::BankSize,
-            StatisticsTypes::ContextSize,
+            StatisticsTypes::FoundContextCount,
             StatisticsTypes::MaxDepth,
             StatisticsTypes::MaxSize,
         ]
@@ -58,7 +58,7 @@ impl StatisticsTypes {
         match self {
             StatisticsTypes::Evaluated => "Evaluated",
             StatisticsTypes::BankSize => "BankSize",
-            StatisticsTypes::ContextSize => "ContextSize",
+            StatisticsTypes::FoundContextCount => "FoundContextCount",
             StatisticsTypes::MaxDepth => "MaxDepth",
             StatisticsTypes::MaxSize => "MaxSize",
             StatisticsTypes::__MaxType => unreachable!(),
@@ -107,7 +107,7 @@ impl CurrentStatistics {
         let mut values = self.values.clone();
         values[StatisticsTypes::Evaluated as usize] -= rhs[StatisticsTypes::Evaluated];
         values[StatisticsTypes::BankSize as usize] -= rhs[StatisticsTypes::BankSize];
-        values[StatisticsTypes::ContextSize as usize] -= rhs[StatisticsTypes::ContextSize];
+        values[StatisticsTypes::FoundContextCount as usize] -= rhs[StatisticsTypes::FoundContextCount];
         Self { values }
     }
 }
@@ -237,11 +237,15 @@ impl Synthesizer {
         let mut res = None;
 
         self.found_contexts.insert(ctx.clone());
+        self.statistics.inc_value(StatisticsTypes::FoundContextCount);
         for op in self.init_opcodes() {
             let p = match self.get_program_from_init_opcode(op.clone(), ctx) {
                 Some(p) => p,
                 None => continue,
             };
+            if self.found_contexts.insert(p.pre_ctx().clone()) {
+                self.statistics.inc_value(StatisticsTypes::FoundContextCount);                
+            }
 
             if !self.check_program(&p) {
                 continue;
