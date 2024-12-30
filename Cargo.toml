@@ -8,6 +8,12 @@ resolver = "2"
 [workspace.dependencies]
 tracing = { version = "*", features = ["release_max_level_debug"] }
 
+ruse_object_graph = { path = "./lib/object_graph" }
+ruse_ts_interpreter = { path = "./lib/ts_interpreter" }
+ruse_synthesizer = { path = "./lib/synthesizer" }
+ruse_ts_synthesizer = { path = "./lib/ts_synthesizer" }
+
+
 [profile.release]
 lto = "thin"
 

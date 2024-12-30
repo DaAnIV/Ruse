@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-ruse_object_graph = { path = "../object_graph" }
+ruse_object_graph.workspace = true
 
 serde = "*"
 dashmap = { version = "*", features = ["raw-api"] }

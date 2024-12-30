@@ -9,10 +9,10 @@ edition = "2021"
 [target.'cfg(not(target_env = "msvc"))'.dependencies]
 jemallocator = { version = "*", features = ["profiling"] }
 
-ruse_object_graph = { path = "../lib/object_graph" }
-ruse_ts_interpreter = { path = "../lib/ts_interpreter" }
-ruse_synthesizer = { path = "../lib/synthesizer" }
-ruse_ts_synthesizer = { path = "../lib/ts_synthesizer" }
+ruse_object_graph.workspace = true
+ruse_ts_interpreter.workspace = true
+ruse_synthesizer.workspace = true
+ruse_ts_synthesizer.workspace = true
 
 clap = { version = "*", features = ["derive"] }
 clap-verbosity-flag = "*"
