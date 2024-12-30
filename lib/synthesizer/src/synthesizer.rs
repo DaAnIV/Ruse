@@ -388,6 +388,9 @@ impl Synthesizer {
         }
 
         while let Some(Ok((worker_type_map, found))) = workers.join_next().await {
+            if this.cancel_token.is_cancelled() {
+                return None
+            }
             if found.is_some() {
                 workers.abort_all();
                 while workers.join_next().await.is_some() {}
@@ -401,6 +404,9 @@ impl Synthesizer {
         let new_ctx = TypeMap::default();
         for programs_map in current_iteration_map.iter() {
             for p in programs_map.0.iter() {
+                if this.cancel_token.is_cancelled() {
+                    return None
+                }
                 if this.found_contexts.insert(p.post_ctx().clone()) {
                     trace!(target: "ruse::synthesizer", "New post context found by program \"{}\"", p.get_code());
                     this.init_context::<false>(&new_ctx, p.post_ctx());
