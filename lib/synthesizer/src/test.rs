@@ -1,4 +1,5 @@
 #[cfg(feature = "test_helpers")]
+#[allow(dead_code)]
 pub mod helpers {
     use std::{
         hash::{DefaultHasher, Hash, Hasher},
@@ -21,6 +22,8 @@ pub mod helpers {
         opcode::{EvalResult, ExprAst, ExprOpcode},
         prog::SubProgram,
     };
+    use tracing::level_filters::LevelFilter;
+    use tracing_subscriber::{filter::Targets, prelude::*};
 
     pub struct TestAst {
         pub code: String,
@@ -371,6 +374,20 @@ pub mod helpers {
         let mut prog = SubProgram::with_opcode_and_children(op, children, pre, post);
         assert!(evaluate_prog(&mut prog, &syn_ctx));
         prog
+    }
+
+    pub fn init_log() {
+        let verbose_filter = Targets::default()
+            .with_target("ruse", LevelFilter::TRACE)
+            .with_default(LevelFilter::OFF);
+        let console_layer = tracing_subscriber::fmt::layer()
+            .compact()
+            .with_file(true)
+            .with_line_number(true)
+            .with_thread_ids(true)
+            .with_filter(verbose_filter);
+
+        tracing_subscriber::registry().with(console_layer).init();
     }
 }
 
