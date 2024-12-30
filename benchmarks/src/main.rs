@@ -77,7 +77,7 @@ struct RunArgs {
 
     #[arg(long, default_value_t = String::from("100GiB"))]
     max_task_mem: String,
-    
+
     #[arg(long, default_value_t = 16)]
     workers_count: usize,
 
@@ -118,6 +118,9 @@ fn set_logger(cli: &RunArgs) {
     if let Some(log_path) = &cli.log {
         let file = File::create(log_path).unwrap();
         let file_layer = tracing_subscriber::fmt::layer()
+            .with_file(true)
+            .with_line_number(true)
+            .with_thread_ids(true)
             .with_writer(file)
             .json()
             .with_filter(verbose_filter);
@@ -126,14 +129,24 @@ fn set_logger(cli: &RunArgs) {
             .with_target("ruse", LevelFilter::INFO)
             .with_default(LevelFilter::OFF);
 
-        let console_layer = tracing_subscriber::fmt::layer().with_filter(info_filter);
+        let console_layer = tracing_subscriber::fmt::layer()
+            .compact()
+            .with_file(true)
+            .with_line_number(true)
+            .with_thread_ids(true)
+            .with_filter(info_filter);
 
         tracing_subscriber::registry()
             .with(file_layer)
             .with(console_layer)
             .init();
     } else {
-        let console_layer = tracing_subscriber::fmt::layer().with_filter(verbose_filter);
+        let console_layer = tracing_subscriber::fmt::layer()
+            .compact()
+            .with_file(true)
+            .with_line_number(true)
+            .with_thread_ids(true)
+            .with_filter(verbose_filter);
 
         tracing_subscriber::registry().with(console_layer).init();
     }
@@ -180,7 +193,7 @@ fn run_benchmarks(cli: &RunArgs) -> ExitCode {
         max_context_depth: cli.max_context_depth,
         iteration_workers_count: cli.workers_count,
         benchmarks: cli.benchmarks.clone(),
-        max_task_mem: Byte::parse_str(&cli.max_task_mem, true).unwrap()
+        max_task_mem: Byte::parse_str(&cli.max_task_mem, true).unwrap(),
     };
 
     let max_task_mem = bench_config.max_task_mem;
@@ -219,11 +232,10 @@ fn print_opcodes(cli: &PrintOpcodesArgs) -> ExitCode {
     let classes = TsClasses::new();
     let mut class_names = vec![];
 
-    class_names.extend(SnythesisTask::add_classes_from_ts_files(
-        &classes,
-        cli.ts_files.iter().cloned(),
-        &cache,
-    ).unwrap());
+    class_names.extend(
+        SnythesisTask::add_classes_from_ts_files(&classes, cli.ts_files.iter().cloned(), &cache)
+            .unwrap(),
+    );
 
     let composite_opcodes = SnythesisTask::get_composite_opcodes(&classes, &class_names, &cache);
 
