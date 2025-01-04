@@ -167,5 +167,7 @@ pub fn run_task(path: &Path, cache: Arc<Cache>, bench_config: &BenchmarkConfig) 
         }
     });
 
+    drop(runtime);
+
     result
 }
