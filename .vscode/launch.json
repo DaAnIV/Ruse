@@ -15,12 +15,11 @@
                 ]
             },
             "args": [
-                "-b", "${workspaceFolder}/failed/",
-                "-o", "failed/failed.json",
-                "--log", "failed/log.json",
+                "run",
+                "-b", "benchmarks/tasks/simple/complex_user.sy",
+                "-o", "failed/failed2.json",
                 "-t", "5000",
                 "-vvv",
-                "--single-thread"
             ],
             "cwd": "${workspaceFolder}"
         }
