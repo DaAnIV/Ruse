@@ -243,28 +243,28 @@ impl Synthesizer {
         res
     }
 
-    pub async fn run_iteration(this: &mut Arc<Self>) -> Option<Arc<SubProgram>> {
+    pub async fn run_iteration(self: &mut Arc<Self>) -> Option<Arc<SubProgram>> {
         let current_iteration_map: Arc<TypeMap> = Default::default();
 
         let found_prog =
-            Self::run_iteration_inner(this.clone(), current_iteration_map.clone()).await;
+            Self::run_iteration_inner(self.clone(), current_iteration_map.clone()).await;
 
-        Self::insert_iteration(this, current_iteration_map);
+        Self::insert_iteration(self, current_iteration_map);
 
         found_prog
     }
 
-    pub async fn run_iteration_inner(
-        this: Arc<Self>,
+    async fn run_iteration_inner(
+        self: Arc<Self>,
         current_iteration_map: Arc<TypeMap>,
     ) -> Option<Arc<SubProgram>> {
-        debug!(target: "ruse::synthesizer", "Starting iteration {}", this.bank.iteration_count());
+        debug!(target: "ruse::synthesizer", "Starting iteration {}", self.bank.iteration_count());
 
         let res = tokio::spawn(async move {
-            if this.bank.iteration_count() == 0 {
-                this.run_init_iteration(current_iteration_map)
+            if self.bank.iteration_count() == 0 {
+                self.run_init_iteration(current_iteration_map)
             } else {
-                Self::run_composite_iteration(this, current_iteration_map).await
+                Self::run_composite_iteration(self, current_iteration_map).await
             }
         })
         .await;
@@ -335,19 +335,19 @@ impl Synthesizer {
     }
 
     async fn composite_iteration_worker(
-        this: Arc<Self>,
+        self: Arc<Self>,
         i: usize,
     ) -> (TypeMap, Option<Arc<SubProgram>>) {
         let type_map = TypeMap::default();
 
-        for (arg_types, ops) in this.composite_opcodes() {
-            for triple in this.worker_triple_iterator(i, arg_types) {
-                if this.should_end_worker().await {
+        for (arg_types, ops) in self.composite_opcodes() {
+            for triple in self.worker_triple_iterator(i, arg_types) {
+                if self.should_end_worker().await {
                     return (type_map, None);
                 }
-                let found = this.composite_iter_batch(&triple, &ops, &type_map);
+                let found = self.composite_iter_batch(&triple, &ops, &type_map);
                 if found.is_some() {
-                    this.found_token.cancel();
+                    self.found_token.cancel();
                     return (type_map, found);
                 }
             }
@@ -357,17 +357,17 @@ impl Synthesizer {
     }
 
     async fn run_composite_iteration(
-        this: Arc<Self>,
+        self: Arc<Self>,
         current_iteration_map: Arc<TypeMap>,
     ) -> Option<Arc<SubProgram>> {
         let mut workers = JoinSet::new();
-        for i in 0..this.worker_count {
-            workers.spawn(Self::composite_iteration_worker(this.clone(), i));
+        for i in 0..self.worker_count {
+            workers.spawn(Self::composite_iteration_worker(self.clone(), i));
         }
 
         while let Some(Ok((worker_type_map, found))) = workers.join_next().await {
-            if this.cancel_token.is_cancelled() {
-                return None
+            if self.cancel_token.is_cancelled() {
+                return None;
             }
             if found.is_some() {
                 workers.abort_all();
@@ -382,12 +382,12 @@ impl Synthesizer {
         let new_ctx = TypeMap::default();
         for programs_map in current_iteration_map.iter() {
             for p in programs_map.0.iter() {
-                if this.cancel_token.is_cancelled() {
-                    return None
+                if self.cancel_token.is_cancelled() {
+                    return None;
                 }
-                if this.found_contexts.insert(p.post_ctx().clone()) {
+                if self.found_contexts.insert(p.post_ctx().clone()) {
                     trace!(target: "ruse::synthesizer", "New post context found by program \"{}\"", p.get_code());
-                    this.init_context::<false>(&new_ctx, p.post_ctx());
+                    self.init_context::<false>(&new_ctx, p.post_ctx());
                 }
             }
         }
@@ -396,8 +396,8 @@ impl Synthesizer {
         None
     }
 
-    fn insert_iteration(this: &mut Arc<Self>, current_iteration_map: Arc<TypeMap>) {
-        Arc::get_mut(this)
+    fn insert_iteration(self: &mut Arc<Self>, current_iteration_map: Arc<TypeMap>) {
+        Arc::get_mut(self)
             .unwrap()
             .bank
             .insert(current_iteration_map);
