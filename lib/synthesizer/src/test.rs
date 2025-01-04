@@ -490,7 +490,7 @@ mod bank_iterator_tests {
             let full_value = (prefix as u64) << 32 | i as u64;
             let value = Number::from(full_value);
             let p = get_prog_for_bank(vnum!(value), syn_ctx);
-            map.0.insert(p.clone().into(), p);
+            map.insert(p);
         }
         map
     }

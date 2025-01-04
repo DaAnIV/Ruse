@@ -3,10 +3,7 @@ use std::{
     sync::Arc,
 };
 
-use dashmap::{
-    mapref::{entry::Entry, multiple::RefMulti},
-    DashMap,
-};
+use dashmap::{iter_set, DashMap, DashSet, Entry};
 use ruse_object_graph::value::ValueType;
 use tracing::info;
 
@@ -24,11 +21,12 @@ impl ProgOutput {
     fn out_value(&self) -> &ValueArray {
         self.0.out_value()
     }
-    fn pre_ctx(&self) -> &ContextArray {
-        self.0.pre_ctx()
-    }
-    fn post_ctx(&self) -> &ContextArray {
-        self.0.post_ctx()
+    fn effect(&self) -> Option<&ContextArray> {
+        if self.0.dirty() {
+            Some(self.0.post_ctx())
+        } else {
+            None
+        }
     }
 }
 
@@ -45,32 +43,52 @@ impl PartialEq for ProgOutput {
         self.out_type() == other.out_type()
             && self
                 .out_value()
-                .eq(self.post_ctx(), other.out_value(), other.post_ctx())
-            && self.pre_ctx().subset(other.pre_ctx())
-            && self.post_ctx().subset(other.post_ctx())
+                .eq(self.0.post_ctx(), other.out_value(), other.0.post_ctx())
+            && self.effect() == other.effect()
     }
 }
 
 impl Hash for ProgOutput {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.0.out_type().hash(state);
-        self.0.out_value().wrap(self.post_ctx()).hash(state);
+        self.out_type().hash(state);
+        self.out_value().wrap(self.0.post_ctx()).hash(state);
+        self.effect().hash(state);
     }
 }
+
+pub(crate) type ProgramsMapIter<'a> = iter_set::Iter<
+    'a,
+    Arc<SubProgram>,
+    BankHasherBuilder,
+    DashMap<Arc<SubProgram>, (), BankHasherBuilder>,
+>;
 
 // The bank is hierarchical
 // iteration -> out_type -> sub_prog
 
 #[derive(Debug, Default)]
-pub(crate) struct ProgramsMap(pub DashMap<ProgOutput, Arc<SubProgram>, BankHasherBuilder>);
+pub(crate) struct ProgramsMap {
+    map: DashMap<ProgOutput, Vec<Arc<SubProgram>>, BankHasherBuilder>,
+    set: DashSet<Arc<SubProgram>, BankHasherBuilder>,
+}
 
 impl ProgramsMap {
     fn insert(&self, p: Arc<SubProgram>) -> bool {
         let output: ProgOutput = p.clone().into();
-        match self.0.entry(output) {
-            Entry::Occupied(_) => false,
+        match self.map.entry(output) {
+            Entry::Occupied(mut existing_progs) => {
+                for ep in existing_progs.get().iter() {
+                    if ep.pre_ctx().subset(p.pre_ctx()) {
+                        return false;
+                    }
+                }
+                existing_progs.get_mut().push(p.clone());
+                self.set.insert(p);
+                true
+            }
             Entry::Vacant(vacant_entry) => {
-                vacant_entry.insert(p);
+                vacant_entry.insert(vec![p.clone()]);
+                self.set.insert(p);
                 true
             }
         }
@@ -78,22 +96,33 @@ impl ProgramsMap {
 
     fn contains(&self, p: &Arc<SubProgram>) -> bool {
         let output: ProgOutput = p.clone().into();
-        self.0.contains_key(&output)
+        if let Some(progs) = self.map.get(&output) {
+            progs
+                .iter()
+                .any(|other| other.pre_ctx().subset(p.pre_ctx()))
+        } else {
+            false
+        }
     }
 
-    pub fn iter(&self) -> dashmap::iter::Iter<ProgOutput, Arc<SubProgram>, BankHasherBuilder> {
-        self.0.iter()
+    fn len(&self) -> usize {
+        self.set.len()
     }
 
-    pub fn len(&self) -> usize {
-        self.0.len()
+    fn iter(&self) -> ProgramsMapIter<'_> {
+        self.set.iter()
+    }
+
+    fn extend(&mut self, other: Self) {
+        self.map.extend(other.map.into_iter());
+        self.set.extend(other.set.into_iter());
     }
 }
 
 impl<'a> IntoIterator for &'a ProgramsMap {
-    type Item = RefMulti<'a, ProgOutput, Arc<SubProgram>>;
+    type Item = <ProgramsMapIter<'a> as Iterator>::Item;
 
-    type IntoIter = dashmap::iter::Iter<'a, ProgOutput, Arc<SubProgram>, BankHasherBuilder>;
+    type IntoIter = ProgramsMapIter<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
@@ -123,11 +152,11 @@ impl TypeMap {
     ) -> Option<dashmap::mapref::one::Ref<ValueType, ProgramsMap>> {
         self.0.get(value_type)
     }
-    
-    pub(crate) fn extend(&self, x: TypeMap) {
+
+    pub(crate) fn extend(&self, x: Self) {
         for (value_type, programs_map) in x.0.into_iter() {
             if let Some(mut cur_map) = self.0.get_mut(&value_type) {
-                cur_map.0.extend(programs_map.0.into_iter());
+                cur_map.extend(programs_map);
             } else {
                 self.0.insert(value_type, programs_map);
             }

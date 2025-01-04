@@ -381,7 +381,7 @@ impl Synthesizer {
 
         let new_ctx = TypeMap::default();
         for programs_map in current_iteration_map.iter() {
-            for p in programs_map.0.iter() {
+            for p in programs_map.iter() {
                 if self.cancel_token.is_cancelled() {
                     return None;
                 }

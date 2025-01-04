@@ -5,11 +5,11 @@ use std::sync::Arc;
 
 use ruse_object_graph::{graph_map_value::*, value::ValueType};
 
-use crate::value_array::ValueArray;
 use crate::context::ContextArray;
 use crate::context::SynthesizerContext;
 use crate::location::*;
 use crate::opcode::*;
+use crate::value_array::ValueArray;
 
 pub struct SubProgram {
     pub opcode: Arc<dyn ExprOpcode>,
@@ -22,6 +22,7 @@ pub struct SubProgram {
     pre_ctx: ContextArray,
     post_ctx: ContextArray,
     out_value: Option<ValueArray>,
+    pub dirty: Option<bool>,
 }
 
 fn verify_children(opcode: &Arc<dyn ExprOpcode>, children: &[Arc<SubProgram>]) -> bool {
@@ -66,6 +67,7 @@ impl SubProgram {
             pre_ctx,
             post_ctx,
             out_value: None,
+            dirty: None,
         })
     }
 
@@ -85,6 +87,7 @@ impl SubProgram {
             pre_ctx,
             post_ctx,
             out_value: None,
+            dirty: None,
         })
     }
 
@@ -119,6 +122,7 @@ impl SubProgram {
         if dirty {
             self.post_ctx.depth += 1;
         }
+        self.dirty = Some(dirty);
         self.out_type = out_type;
         self.out_value = Some(out_value.into());
 
@@ -162,6 +166,11 @@ impl SubProgram {
     #[inline]
     pub fn out_value(&self) -> &ValueArray {
         self.out_value.as_ref().unwrap()
+    }
+
+    #[inline]
+    pub fn dirty(&self) -> bool {
+        self.dirty.unwrap()
     }
 }
 

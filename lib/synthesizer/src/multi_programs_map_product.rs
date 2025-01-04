@@ -6,11 +6,10 @@ use itertools::Itertools;
 use Option::{self as State, None as ProductEnded, Some as ProductInProgress};
 use Option::{self as CurrentItems, None as NotYetPopulated, Some as Populated};
 
-use crate::bank::ProgramsMap;
+use crate::bank::{ProgramsMap, ProgramsMapIter};
 use crate::prog::SubProgram;
 
 type ProgramsMapRef<'a> = &'a ProgramsMap;
-type ProgramsMapIter<'a> = <ProgramsMapRef<'a> as IntoIterator>::IntoIter;
 
 pub struct MultiProgramsMaps<'a> {
     inner: State<MultiProgramsMapsInner<'a>>,
@@ -100,7 +99,7 @@ impl<'a> MultiProgramsMapsInner<'a> {
                     if !iter.restart {
                         if let Some(new) = iter.iter.next() {
                             iter.i += 1;
-                            cur_progs.get_mut()[i] = new.value().clone();
+                            cur_progs.get_mut()[i] = (*new).clone();
                             return Some(i);
                         }
                     }
@@ -108,7 +107,7 @@ impl<'a> MultiProgramsMapsInner<'a> {
                     iter.iter = iter.map_ref.iter();
                     iter.i = 0;
                     iter.restart = false;
-                    cur_progs.get_mut()[i] = iter.iter.next().unwrap().value().clone();
+                    cur_progs.get_mut()[i] = (*iter.iter.next().unwrap()).clone();
                 }
                 None
             }
@@ -129,7 +128,7 @@ impl<'a> MultiProgramsMapsInner<'a> {
                     let progs = next
                         .unwrap()
                         .iter()
-                        .map(|p| p.value().clone())
+                        .map(|p| (*p).clone())
                         .collect_vec();
                     self.cur = Populated(progs.into());
                 }
@@ -168,10 +167,10 @@ impl<'a> MultiProgramsMapsInner<'a> {
                 iter.iter = iter.map_ref.iter();
                 iter.i = cur_iter_n;
                 iter.restart = false;
-                cur_progs.get_mut()[i] = iter.iter.nth(cur_iter_n).unwrap().value().clone();
+                cur_progs.get_mut()[i] = (*iter.iter.nth(cur_iter_n).unwrap()).clone();
             } else {
                 iter.i = remainder;
-                cur_progs.get_mut()[i] = iter.iter.nth(remainder - 1).unwrap().value().clone();
+                cur_progs.get_mut()[i] = (*iter.iter.nth(remainder - 1).unwrap()).clone();
             }
         }
     }
