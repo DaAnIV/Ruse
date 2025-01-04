@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use ruse_object_graph::{value::ValueType, Cache, CachedString, Number};
 use ruse_synthesizer::{context::VariableName, opcode::OpcodesList};
 use ruse_ts_interpreter::opcode;
@@ -174,4 +175,10 @@ pub fn add_set_opcodes(opcodes: &mut OpcodesList, set_inner_types: &[ValueType],
 pub fn add_dom_opcodes(opcodes: &mut OpcodesList, cache: &Cache) {
     let op = Arc::new(opcode::GetElementByIdOp::new(cache));
     opcodes.push(op);
+}
+
+pub fn add_seq_opcodes(opcodes: &mut OpcodesList, size: usize, available_value_types: &Vec<ValueType>) {
+    for arg_types in (0..size).map(|_| available_value_types.clone().into_iter()).multi_cartesian_product() {
+        opcodes.push(Arc::new(opcode::SequenceOp::new(arg_types)));
+    }
 }

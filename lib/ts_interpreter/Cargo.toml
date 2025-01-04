@@ -15,6 +15,7 @@ swc_ecma_codegen = "*"
 swc_ecma_parser = "*"
 swc_ecma_ast = "*"
 anyhow = "*"
+itertools = "*"
 
 html_parser = "*"
 

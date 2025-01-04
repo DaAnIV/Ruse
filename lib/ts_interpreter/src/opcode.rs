@@ -36,7 +36,11 @@ impl TsExprAst {
             ast::Expr::SuperProp(_) => todo!(),
             ast::Expr::Cond(_) => todo!(),
             ast::Expr::New(_) => todo!(),
-            ast::Expr::Seq(_) => todo!(),
+            ast::Expr::Seq(_) => ast::ParenExpr {
+                expr: owned_node,
+                span: DUMMY_SP,
+            }
+            .into(),
             ast::Expr::PrivateName(_) => todo!(),
             ast::Expr::OptChain(_) => todo!(),
             _ => owned_node,
@@ -147,6 +151,7 @@ mod lit;
 mod member;
 mod string_ops;
 mod unary;
+mod sequence;
 
 pub use set_ops::*;
 pub use array_ops::*;
@@ -158,3 +163,4 @@ pub use lit::*;
 pub use member::*;
 pub use string_ops::*;
 pub use unary::*;
+pub use sequence::*;

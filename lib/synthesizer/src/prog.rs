@@ -172,6 +172,11 @@ impl SubProgram {
     pub fn dirty(&self) -> bool {
         self.dirty.unwrap()
     }
+
+    #[inline]
+    pub fn is_terminal(&self) -> bool {
+        self.opcode.is_terminal()
+    }
 }
 
 impl Hash for SubProgram {

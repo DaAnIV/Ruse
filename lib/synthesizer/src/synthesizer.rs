@@ -470,6 +470,10 @@ impl Synthesizer {
     }
 
     fn insert_program(&self, p: Arc<SubProgram>, iteration_map: &TypeMap) -> bool {
+        if p.is_terminal() {
+            return true;
+        }
+
         if iteration_map.insert_program(p.clone()) {
             trace!(target: "ruse::synthesizer", "Inserted program \"{}\"", p.get_code());
             trace!(target: "ruse::synthesizer", "{}", p);

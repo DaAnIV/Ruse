@@ -1,0 +1,32 @@
+{
+  "version": 2,
+    "variables": {
+      "x": "[Int]",
+      "y": "Int"
+    },
+    "returnType": "[Int]",
+    "intLiterals": [],
+    "examples": [
+      {
+        "input": {
+          "x": [5],
+          "y": 9
+        },
+        "output": [5,9],
+        "state": {
+          "x": [5,9]
+        }
+      },
+      {
+        "input": {
+          "x": [7],
+          "y": 8
+        },
+        "output": [7,8],
+        "state": {
+          "x": [7,8]
+        }
+      }
+    ],
+    "solution": [ "x.push(y); x" ]
+  }

@@ -237,7 +237,8 @@ fn print_opcodes(cli: &PrintOpcodesArgs) -> ExitCode {
             .unwrap(),
     );
 
-    let composite_opcodes = SnythesisTask::get_composite_opcodes(&classes, &class_names, &cache);
+    let composite_opcodes =
+        SnythesisTask::get_composite_opcodes(&classes, &class_names, true, &cache);
 
     composite_opcodes.iter().for_each(|op| {
         println!("{}", op.op_name());

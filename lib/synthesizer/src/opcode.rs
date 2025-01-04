@@ -62,6 +62,10 @@ pub trait ExprOpcode: Debug + Sync + Send {
     fn required_variables(&self) -> &[CachedString] {
         &NO_REQUIRED_VARIABLES
     }
+
+    fn is_terminal(&self) -> bool {
+        false
+    }
 }
 
 pub type OpcodesList = Vec<Arc<dyn ExprOpcode>>;

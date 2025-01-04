@@ -20,11 +20,8 @@ use ruse_synthesizer::{
     synthesizer::SynthesizerPredicate,
 };
 use ruse_ts_interpreter::{dom, ts_class::TsClasses};
-use ruse_ts_synthesizer::{
-    add_array_opcodes, add_dom_opcodes, add_num_opcodes, add_set_opcodes, add_str_opcodes,
-    construct_opcode_list, TsSynthesizer, ALL_BIN_NUM_OPCODES, ALL_BIN_STR_OPCODES,
-    ALL_UNARY_NUM_OPCODES, ALL_UPDATE_NUM_OPCODES,
-};
+use ruse_ts_synthesizer::*;
+
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::json;
 use wildmatch::WildMatch;
@@ -1134,7 +1131,7 @@ impl SnythesisTask {
             construct_opcode_list(&var_names, &self.num_literals, &string_literals, false);
 
         let composite_opcodes =
-            Self::get_composite_opcodes(&self.classes, &self.class_names, &cache);
+            Self::get_composite_opcodes(&self.classes, &self.class_names, true, &cache);
 
         opcodes.extend(composite_opcodes.into_iter().filter(self.get_filter()));
 
@@ -1156,6 +1153,7 @@ impl SnythesisTask {
     pub fn get_composite_opcodes(
         classes: &TsClasses,
         class_names: &Vec<ObjectType>,
+        add_seq: bool,
         cache: &Cache,
     ) -> OpcodesList {
         let mut composite_opcodes = OpcodesList::new();
@@ -1178,6 +1176,15 @@ impl SnythesisTask {
             &[ValueType::Number, ValueType::String],
             cache,
         );
+        if add_seq {
+            let mut value_types = vec![ValueType::Number, ValueType::String];
+            value_types.extend(class_names.iter().map(|x| ValueType::Object(x.clone())));
+            value_types.push(ValueType::array_value_type(&ValueType::Number, cache));
+            value_types.push(ValueType::array_value_type(&ValueType::String, cache));
+            value_types.push(ValueType::set_value_type(&ValueType::Number, cache));
+            value_types.push(ValueType::set_value_type(&ValueType::String, cache));
+            add_seq_opcodes(&mut composite_opcodes, 2, &value_types);
+        }
 
         for class_name in class_names {
             let class = classes.get_class(class_name).unwrap();
