@@ -3,7 +3,7 @@ use crate::{
     bank_iterator::{bank_iterator, BankIterator},
     context::{ContextArray, SynthesizerContext},
     multi_programs_map_product::ProgramChildrenIterator,
-    opcode::ExprOpcode,
+    opcode::*,
     prog::SubProgram,
     prog_triplet::ProgTriplet,
     prog_triplet_iterator::{prog_triplet_iterator, ProgTripletIterator},
@@ -15,7 +15,6 @@ use ruse_object_graph::{
 };
 use serde::ser::SerializeStruct;
 use std::{
-    collections::BTreeMap,
     fmt::Display,
     ops::Index,
     sync::{atomic::*, Arc},
@@ -24,7 +23,6 @@ use tokio::task::JoinSet;
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, error, trace};
 
-pub type OpcodesList = Vec<Arc<dyn ExprOpcode>>;
 const ALLOW_NON_FINITE_NUMBER: bool = false;
 
 #[repr(usize)]
@@ -149,7 +147,6 @@ impl serde::Serialize for CurrentStatistics {
 }
 
 pub type SynthesizerPredicate = Box<dyn Fn(&Arc<SubProgram>) -> bool + Send + Sync>;
-type OpcodesMap = BTreeMap<Vec<ValueType>, Arc<OpcodesList>>;
 
 pub struct Synthesizer {
     bank: ProgBank,
@@ -180,7 +177,7 @@ impl Synthesizer {
     ) -> Self {
         Self {
             bank: Default::default(),
-            opcodes: Self::sort_opcodes(opcodes),
+            opcodes: sort_opcodes(opcodes),
             context: SynthesizerContext::from_context_array(start_context.clone(), cache),
             found_contexts: DashSet::new(),
             max_context_depth,
@@ -191,25 +188,6 @@ impl Synthesizer {
             found_token: CancellationToken::new(),
             statistics: Default::default(),
         }
-    }
-
-    fn sort_opcodes(opcodes: OpcodesList) -> OpcodesMap {
-        let mut sorted_opcodes: OpcodesMap = OpcodesMap::default();
-        for op in opcodes {
-            if let Some(arc_list) = sorted_opcodes.get_mut(op.arg_types()) {
-                let list = Arc::get_mut(arc_list).unwrap();
-                list.push(op);
-            } else {
-                sorted_opcodes.insert(op.arg_types().to_vec(), Arc::new(vec![op]));
-            }
-        }
-
-        for (_, arc_list) in sorted_opcodes.iter_mut() {
-            let list = Arc::get_mut(arc_list).unwrap();
-            list.sort_by(|x, y| x.op_name().cmp(y.op_name()));
-        }
-
-        sorted_opcodes
     }
 
     fn init_opcodes(&self) -> impl Iterator<Item = &Arc<dyn ExprOpcode>> {

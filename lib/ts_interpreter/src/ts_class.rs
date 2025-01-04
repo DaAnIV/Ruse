@@ -11,7 +11,7 @@ use ruse_object_graph::{
 };
 use ruse_synthesizer::{
     context::{Context, GraphIdGenerator},
-    synthesizer::OpcodesList,
+    opcode::OpcodesList,
 };
 use swc_common::{
     errors::{ColorConfig, Handler},

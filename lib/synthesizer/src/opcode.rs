@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+use std::sync::Arc;
 use std::{any::Any, fmt::Debug};
 
 use crate::context::{Context, SynthesizerContext};
@@ -60,4 +62,26 @@ pub trait ExprOpcode: Debug + Sync + Send {
     fn required_variables(&self) -> &[CachedString] {
         &NO_REQUIRED_VARIABLES
     }
+}
+
+pub type OpcodesList = Vec<Arc<dyn ExprOpcode>>;
+pub type OpcodesMap = BTreeMap<Vec<ValueType>, Arc<OpcodesList>>;
+
+pub fn sort_opcodes(opcodes: OpcodesList) -> OpcodesMap {
+    let mut sorted_opcodes: OpcodesMap = OpcodesMap::default();
+    for op in opcodes {
+        if let Some(arc_list) = sorted_opcodes.get_mut(op.arg_types()) {
+            let list = Arc::get_mut(arc_list).unwrap();
+            list.push(op);
+        } else {
+            sorted_opcodes.insert(op.arg_types().to_vec(), Arc::new(vec![op]));
+        }
+    }
+
+    for (_, arc_list) in sorted_opcodes.iter_mut() {
+        let list = Arc::get_mut(arc_list).unwrap();
+        list.sort_by(|x, y| x.op_name().cmp(y.op_name()));
+    }
+
+    sorted_opcodes
 }

@@ -1,8 +1,9 @@
 use ruse_object_graph::{Cache, CachedString};
 use ruse_synthesizer::{
     context::ContextArray,
+    opcode::OpcodesList,
     prog::SubProgram,
-    synthesizer::{CurrentStatistics, OpcodesList, Synthesizer, SynthesizerPredicate},
+    synthesizer::{CurrentStatistics, Synthesizer, SynthesizerPredicate},
 };
 use tokio_util::sync::CancellationToken;
 

@@ -15,9 +15,9 @@ use ruse_object_graph::{
 };
 use ruse_synthesizer::{
     context::{Context, ContextArray, GraphIdGenerator, ValuesMap},
-    opcode::ExprOpcode,
+    opcode::{ExprOpcode, OpcodesList},
     prog::SubProgram,
-    synthesizer::{OpcodesList, SynthesizerPredicate},
+    synthesizer::SynthesizerPredicate,
 };
 use ruse_ts_interpreter::{dom, ts_class::TsClasses};
 use ruse_ts_synthesizer::{

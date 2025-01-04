@@ -1,5 +1,5 @@
 use ruse_object_graph::{value::ValueType, Cache, CachedString, Number};
-use ruse_synthesizer::{context::VariableName, synthesizer::OpcodesList};
+use ruse_synthesizer::{context::VariableName, opcode::OpcodesList};
 use ruse_ts_interpreter::opcode;
 use std::sync::Arc;
 
