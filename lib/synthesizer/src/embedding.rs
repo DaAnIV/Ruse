@@ -1,66 +1,11 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 
 use crate::context::{Context, ContextArray, ValuesMap, VariableName};
-use itertools::{self, izip};
+use itertools::{self, izip, Itertools};
 use ruse_object_graph::{
-    graph_equality,
-    value::{ObjectValue, Value},
-    vobj, GraphIndex, GraphsMap, NodeIndex, ObjectGraph,
+    graph_equality, value::{ObjectValue, Value}, vobj, GraphIndex, GraphsMap, NodeIndex, ObjectGraph
 };
-
-#[derive(Default)]
-struct NodeMatches {
-    direction_1: HashMap<NodeIndex, (GraphIndex, NodeIndex)>,
-    direction_2: HashMap<NodeIndex, (GraphIndex, NodeIndex)>,
-}
-
-enum MatchDirection {
-    Graph1To2,
-    Graph2To1,
-}
-
-struct NodeMatchesSingle<'a> {
-    matches: &'a mut NodeMatches,
-    direction: MatchDirection,
-}
-
-impl NodeMatches {
-    fn add_match(&mut self, n_1: (GraphIndex, NodeIndex), n_2: (GraphIndex, NodeIndex)) {
-        self.direction_1.insert(n_1.1, n_2);
-        self.direction_2.insert(n_2.1, n_1);
-    }
-
-    fn get_match_1_to_2(&self, n_1: &NodeIndex) -> Option<&(GraphIndex, NodeIndex)> {
-        self.direction_1.get(&n_1)
-    }
-
-    fn get_match_2_to_1(&self, n_2: &NodeIndex) -> Option<&(GraphIndex, NodeIndex)> {
-        self.direction_2.get(n_2)
-    }
-
-    fn get_single_direction(&mut self, direction: MatchDirection) -> NodeMatchesSingle {
-        NodeMatchesSingle {
-            matches: self,
-            direction: direction,
-        }
-    }
-}
-
-impl<'a> NodeMatchesSingle<'a> {
-    fn add_match(&mut self, n_1: (GraphIndex, NodeIndex), n_2: (GraphIndex, NodeIndex)) {
-        match self.direction {
-            MatchDirection::Graph1To2 => self.matches.add_match(n_1, n_2),
-            MatchDirection::Graph2To1 => self.matches.add_match(n_2, n_1),
-        }
-    }
-
-    fn get_match(&self, n: &NodeIndex) -> Option<&(GraphIndex, NodeIndex)> {
-        match self.direction {
-            MatchDirection::Graph1To2 => self.matches.get_match_1_to_2(n),
-            MatchDirection::Graph2To1 => self.matches.get_match_2_to_1(n),
-        }
-    }
-}
+use tracing::trace;
 
 pub fn merge_context_arrays(
     p_1_array: &ContextArray,
@@ -94,50 +39,27 @@ pub fn merge_context_arrays(
     ))
 }
 
-fn embed_object_value(
-    var: &VariableName,
-    obj_val: &ObjectValue,
-    values_hat: &mut ValuesMap,
-    map_hat: &mut GraphsMap,
-    old_ctx: &Context,
-    new_nodes: &HashSet<NodeIndex>,
-    matches: &mut NodeMatchesSingle,
-) -> bool {
-    let mut graph = match map_hat.get(&obj_val.graph_id) {
-        Some(old_graph) => old_graph.as_ref().clone(),
-        None => ObjectGraph::new(obj_val.graph_id),
-    };
-    if !embed(
-        &mut graph,
-        &old_ctx.graphs_map,
-        obj_val.graph_id,
-        obj_val.node,
-        new_nodes,
-        matches,
-    ) {
-        return false;
-    }
-    let new_var_value = matches.get_match(&obj_val.node).unwrap();
-    debug_assert!(new_var_value.0 == graph.id);
-    graph.set_as_root(var.clone(), new_var_value.1);
-    map_hat.insert_graph(graph.into());
-    values_hat.insert(var.clone(), vobj!(new_var_value.0, new_var_value.1));
-
-    true
-}
-
 pub(crate) fn merge_context(
     p_1: &Context,
     q_1: &Context,
     p_2: &Context,
     q_2: &Context,
 ) -> Result<(Context, Context), ()> {
+    trace!(target: "ruse::embedding", "Merging contexts");
+    trace!(target: "ruse::embedding", "p_1: {}", p_1);
+    trace!(target: "ruse::embedding", "q_1: {}", q_1);
+    trace!(target: "ruse::embedding", "p_2: {}", p_2);
+    trace!(target: "ruse::embedding", "q_2: {}", q_2);
+
     let mut p_1_hat = p_1.values.as_ref().clone();
     let mut q_2_hat = q_2.values.as_ref().clone();
     let mut p_1_map_hat = GraphsMap::default();
     let mut q_2_map_hat = GraphsMap::default();
     // let mut p_1_hat_graph = Arc::new(p_1.graph.as_ref().clone());
     // let mut q_2_hat_graph = Arc::new(q_2.graph.as_ref().clone());
+
+    let mut p1_hat_nodes_matches = HashMap::new();
+    let mut q2_hat_nodes_matches = HashMap::new();
 
     let mut pre_values = HashMap::<VariableName, Value>::new();
     let mut post_values = HashMap::<VariableName, Value>::new();
@@ -182,25 +104,31 @@ pub(crate) fn merge_context(
         }
     }
 
-    let mut matches = NodeMatches::default();
+    trace!(
+        target: "ruse::embedding", "intersection: [{}]",
+        intersection.iter().map(|x| x.0).join(",")
+    );
+    trace!(target: "ruse::embedding", "only_p_2: [{}]", only_p_2.iter().map(|x| x.0).join(","));
+    trace!(target: "ruse::embedding", "only_q_1: [{}]", only_q_1.iter().map(|x| x.0).join(","));
+
     let new_nodes_1 = triplet_new_nodes(p_1, q_1);
     let new_nodes_2 = HashSet::default();
 
-    for (var, o_1, o_2) in &intersection {
-        if !sim_walk_equal(
-            &q_1.graphs_map,
-            o_1.graph_id,
-            o_1.node,
-            &p_2.graphs_map,
-            o_2.graph_id,
-            o_2.node,
-            &mut matches,
-        ) {
-            return Err(());
-        }
+    if !graph_equality::equal_graphs_by_nodes(
+        &q_1.graphs_map,
+        &p_2.graphs_map,
+        intersection
+            .iter()
+            .map(|(_, o_1, _)| (o_1.graph_id, o_1.node)),
+        intersection
+            .iter()
+            .map(|(_, _, o_2)| (o_2.graph_id, o_2.node)),
+    ) {
+        return Err(());
+    }
 
+    for (var, _, _) in &intersection {
         if let Some(q_2_o) = q_2.get_var_loc_value(var) {
-            let mut temp = NodeMatches::default();
             embed_object_value(
                 var,
                 q_2_o.val().obj().unwrap(),
@@ -208,20 +136,19 @@ pub(crate) fn merge_context(
                 &mut q_2_map_hat,
                 q_2,
                 &new_nodes_2,
-                &mut temp.get_single_direction(MatchDirection::Graph2To1),
+                &mut q2_hat_nodes_matches,
             );
         }
 
         if let Some(p_1_o) = p_1.get_var_loc_value(var) {
-            let mut temp = NodeMatches::default();
             embed_object_value(
                 var,
                 p_1_o.val().obj().unwrap(),
                 &mut p_1_hat,
                 &mut p_1_map_hat,
                 p_1,
-                &new_nodes_2,
-                &mut temp.get_single_direction(MatchDirection::Graph1To2),
+                &new_nodes_1,
+                &mut p1_hat_nodes_matches,
             );
         }
     }
@@ -234,8 +161,19 @@ pub(crate) fn merge_context(
             &mut p_1_map_hat,
             p_2,
             &new_nodes_1,
-            &mut matches.get_single_direction(MatchDirection::Graph2To1),
+            &mut p1_hat_nodes_matches,
         );
+        if let Some(q_o_2) = q_2.get_var_loc_value(var) {
+            embed_object_value(
+                var,
+                q_o_2.val().obj().unwrap(),
+                &mut q_2_hat,
+                &mut q_2_map_hat,
+                q_2,
+                &new_nodes_2,
+                &mut q2_hat_nodes_matches,
+            );
+        }
     }
     for (var, o_1) in &only_q_1 {
         embed_object_value(
@@ -245,7 +183,7 @@ pub(crate) fn merge_context(
             &mut q_2_map_hat,
             q_1,
             &new_nodes_2,
-            &mut matches.get_single_direction(MatchDirection::Graph1To2),
+            &mut q2_hat_nodes_matches,
         );
     }
 
@@ -264,8 +202,49 @@ fn triplet_new_nodes(p_ctx: &Context, q_ctx: &Context) -> HashSet<NodeIndex> {
     q_ctx
         .reachable_nodes()
         .difference(&p_ctx.reachable_nodes())
-        .map(|x| *x)
+        .map(|x| x.1)
         .collect()
+}
+
+fn embed_object_value(
+    var: &VariableName,
+    obj_val: &ObjectValue,
+    values_hat: &mut ValuesMap,
+    map_hat: &mut GraphsMap,
+    old_ctx: &Context,
+    new_nodes: &HashSet<NodeIndex>,
+    matches: &mut HashMap<NodeIndex, (GraphIndex, NodeIndex)>,
+) -> bool {
+    trace!(target: "ruse::embedding", "Embedding {}", var);
+
+    let (mut graph, new_var_value) = match matches.get(&obj_val.node) {
+        Some((graph_id, node_id)) => {
+            let graph = map_hat.get(graph_id).unwrap().as_ref().clone();
+            (graph, &(*graph_id, *node_id))
+        }
+        None => {
+            let mut graph = match map_hat.get(&obj_val.graph_id) {
+                Some(old_graph) => old_graph.as_ref().clone(),
+                None => ObjectGraph::new(obj_val.graph_id),
+            };
+            if !embed(
+                &mut graph,
+                &old_ctx.graphs_map,
+                obj_val.graph_id,
+                obj_val.node,
+                new_nodes,
+                matches,
+            ) {
+                return false;
+            }
+            (graph, matches.get(&obj_val.node).unwrap())
+        }
+    };
+    graph.set_as_root(var.clone(), new_var_value.1);
+    map_hat.insert_graph(graph.into());
+    values_hat.insert(var.clone(), vobj!(new_var_value.0, new_var_value.1));
+
+    true
 }
 
 fn embed(
@@ -274,9 +253,9 @@ fn embed(
     graph_id: GraphIndex,
     node_id: NodeIndex,
     new_nodes: &HashSet<NodeIndex>,
-    matches: &mut NodeMatchesSingle,
+    matches: &mut HashMap<NodeIndex, (GraphIndex, NodeIndex)>,
 ) -> bool {
-    if matches.get_match(&node_id).is_some() {
+    if matches.get(&node_id).is_some() {
         return true;
     }
 
@@ -288,9 +267,9 @@ fn embed(
         let graph = &graphs_map[cur_graph_id];
         let node = graph.get_node(&cur_node_id).unwrap();
         let new_node = new_graph.add_node(cur_node_id, node.clone_without_pointers());
-        matches.add_match((cur_graph_id, cur_node_id), (new_graph_id, cur_node_id));
+        matches.insert(cur_node_id, (new_graph_id, cur_node_id));
         for (field_name, old_neig) in node.pointers_iter() {
-            if let Some((new_neig_graph, new_neig_id)) = matches.get_match(old_neig.index()) {
+            if let Some((new_neig_graph, new_neig_id)) = matches.get(old_neig.index()) {
                 if new_nodes.contains(new_neig_id) {
                     return false;
                 }
@@ -313,32 +292,5 @@ fn embed(
         }
     }
 
-    true
-}
-
-fn sim_walk_equal(
-    graphs_map_1: &GraphsMap,
-    graph_1_id: GraphIndex,
-    n_1: NodeIndex,
-    graphs_map_2: &GraphsMap,
-    graph_2_id: GraphIndex,
-    n_2: NodeIndex,
-    matches: &mut NodeMatches,
-) -> bool {
-    let mut nodes_1_to_2 = HashMap::default();
-    if !graph_equality::sim_walk_equal(
-        graphs_map_1,
-        graph_1_id,
-        n_1,
-        graphs_map_2,
-        graph_2_id,
-        n_2,
-        &mut nodes_1_to_2,
-    ) {
-        return false;
-    }
-    for (a, b) in nodes_1_to_2 {
-        matches.add_match(a, b);
-    }
     true
 }
