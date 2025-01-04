@@ -181,12 +181,14 @@ impl Display for VarRef {
 
 #[derive(Debug, PartialEq, Eq)]
 enum TaskType {
-    Number,
-    NumberArray,
+    Int,
+    IntArray,
+    IntSet,
+    Double,
+    DoubleArray,
     Bool,
     String,
     StringArray,
-    NumberSet,
     StringSet,
     Dom,
     DOMElement,
@@ -223,22 +225,50 @@ impl TaskType {
         cache: &Cache,
     ) -> Result<Value, SnythesisTaskError> {
         match self {
-            TaskType::Number => match value.as_i64() {
+            TaskType::Int => match value.as_i64() {
                 Some(num) => Ok(vnum!(ruse_object_graph::Number::from(num))),
-                None => Err(parse_err!(value, "Value is not a number")),
+                None => Err(parse_err!(value, "Value is not a int")),
             },
-            TaskType::NumberArray => {
+            TaskType::IntArray => {
                 let numbers = match value.as_array() {
                     Some(value_array) => {
                         if value_array.iter().any(|x| !x.is_i64()) {
                             return Err(parse_err!(
                                 value,
-                                "Value is an array with an invalid number value"
+                                "Value is an array with an invalid int value"
                             ));
                         }
                         value_array
                             .iter()
                             .map(|x| Number::from(x.as_i64().unwrap()))
+                    }
+                    None => return Err(parse_err!(value, "Value is not an array")),
+                };
+                let node = graph.add_primitive_array_object(
+                    id_gen.get_id_for_node(),
+                    &ValueType::Number,
+                    numbers,
+                    cache,
+                );
+
+                Ok(vobj!(graph.id, node))
+            }
+            TaskType::Double => match value.as_f64() {
+                Some(num) => Ok(vnum!(ruse_object_graph::Number::from(num))),
+                None => Err(parse_err!(value, "Value is not a double")),
+            },
+            TaskType::DoubleArray => {
+                let numbers = match value.as_array() {
+                    Some(value_array) => {
+                        if value_array.iter().any(|x| !x.is_f64()) {
+                            return Err(parse_err!(
+                                value,
+                                "Value is an array with an invalid double value"
+                            ));
+                        }
+                        value_array
+                            .iter()
+                            .map(|x| Number::from(x.as_f64().unwrap()))
                     }
                     None => return Err(parse_err!(value, "Value is not an array")),
                 };
@@ -283,7 +313,7 @@ impl TaskType {
 
                 Ok(vobj!(graph.id, node))
             }
-            TaskType::NumberSet => {
+            TaskType::IntSet => {
                 let numbers = match value.as_array() {
                     Some(value_array) => {
                         if value_array.iter().any(|x| !x.is_i64()) {
@@ -475,7 +505,7 @@ impl TaskType {
         }
     }
 
-    fn parse_number_set(value_string: &str) -> Result<serde_json::Value, SnythesisTaskError> {
+    fn parse_int_set(value_string: &str) -> Result<serde_json::Value, SnythesisTaskError> {
         if !value_string.starts_with('{') {
             return Err(parse_err!(value_string, "Missing opening bracket"));
         }
@@ -494,11 +524,19 @@ impl TaskType {
         value_string: &str,
     ) -> Result<serde_json::Value, SnythesisTaskError> {
         match self {
-            TaskType::Number => match value_string.parse::<i64>() {
+            TaskType::Int => match value_string.parse::<i64>() {
                 Ok(num) => Ok(json!(num)),
                 Err(e) => Err(parse_err!(value_string, e)),
             },
-            TaskType::NumberArray => match serde_json::from_str::<Vec<i64>>(value_string) {
+            TaskType::IntArray => match serde_json::from_str::<Vec<i64>>(value_string) {
+                Ok(numbers) => Ok(json!(numbers)),
+                Err(e) => Err(parse_err!(value_string, e)),
+            },
+            TaskType::Double => match value_string.parse::<f64>() {
+                Ok(num) => Ok(json!(num)),
+                Err(e) => Err(parse_err!(value_string, e)),
+            },
+            TaskType::DoubleArray => match serde_json::from_str::<Vec<f64>>(value_string) {
                 Ok(numbers) => Ok(json!(numbers)),
                 Err(e) => Err(parse_err!(value_string, e)),
             },
@@ -508,7 +546,7 @@ impl TaskType {
             },
             TaskType::String => Self::parse_string(value_string),
             TaskType::StringArray => Self::parse_string_array(value_string),
-            TaskType::NumberSet => Self::parse_number_set(value_string),
+            TaskType::IntSet => Self::parse_int_set(value_string),
             TaskType::StringSet => Self::parse_string_set(value_string),
             TaskType::Dom => Ok(json!(value_string)),
             TaskType::DOMElement => Ok(json!(value_string)),
@@ -527,13 +565,13 @@ impl TaskType {
 impl From<&ValueType> for TaskType {
     fn from(value: &ValueType) -> Self {
         match value {
-            ValueType::Number => TaskType::Number,
+            ValueType::Number => TaskType::Double,
             ValueType::Bool => TaskType::Bool,
             ValueType::String => TaskType::String,
             ValueType::Object(o) => match o.as_str() {
-                "Array<Number>" => TaskType::NumberArray,
+                "Array<Number>" => TaskType::DoubleArray,
                 "Array<String>" => TaskType::StringArray,
-                "Set<Number>" => TaskType::NumberSet,
+                "Set<Number>" => TaskType::IntSet,
                 "Set<String>" => TaskType::StringSet,
                 dom::DomLoader::DOM_CLASS_STR => TaskType::Dom,
                 dom::DomLoader::ELEMENT_CLASS_STR => TaskType::DOMElement,
@@ -550,9 +588,11 @@ impl<'de> Deserialize<'de> for TaskType {
     {
         let val = String::deserialize(deserializer)?;
         match val.as_str() {
-            "Int" => Ok(TaskType::Number),
-            "[Int]" => Ok(TaskType::NumberArray),
-            "{Int}" => Ok(TaskType::NumberSet),
+            "Int" => Ok(TaskType::Int),
+            "[Int]" => Ok(TaskType::IntArray),
+            "{Int}" => Ok(TaskType::IntSet),
+            "Double" => Ok(TaskType::Double),
+            "[Double]" => Ok(TaskType::DoubleArray),
             "Bool" => Ok(TaskType::Bool),
             "String" => Ok(TaskType::String),
             "[String]" => Ok(TaskType::StringArray),
@@ -579,12 +619,14 @@ impl Serialize for TaskType {
         S: Serializer,
     {
         match self {
-            TaskType::Number => serializer.serialize_str("Int"),
-            TaskType::NumberArray => serializer.serialize_str("[Int]"),
+            TaskType::Int => serializer.serialize_str("Int"),
+            TaskType::IntArray => serializer.serialize_str("[Int]"),
+            TaskType::Double => serializer.serialize_str("Double"),
+            TaskType::DoubleArray => serializer.serialize_str("[Double]"),
             TaskType::Bool => serializer.serialize_str("Bool"),
             TaskType::String => serializer.serialize_str("String"),
             TaskType::StringArray => serializer.serialize_str("[String]"),
-            TaskType::NumberSet => serializer.serialize_str("{Int}"),
+            TaskType::IntSet => serializer.serialize_str("{Int}"),
             TaskType::StringSet => serializer.serialize_str("{String}"),
             TaskType::Object(o) => serializer.serialize_str(o),
             TaskType::VarRef(v) => serializer.serialize_str(&format!("{}", v)),
@@ -1130,9 +1172,13 @@ impl SnythesisTask {
             cache,
         );
         add_dom_opcodes(&mut composite_opcodes, cache);
-        
-        add_set_opcodes(&mut composite_opcodes, &[ValueType::Number, ValueType::String], cache);
-        
+
+        add_set_opcodes(
+            &mut composite_opcodes,
+            &[ValueType::Number, ValueType::String],
+            cache,
+        );
+
         for class_name in class_names {
             let class = classes.get_class(class_name).unwrap();
             composite_opcodes.extend_from_slice(&class.member_opcodes);
