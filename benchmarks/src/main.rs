@@ -1,5 +1,7 @@
 use byte_unit::Byte;
 use clap_verbosity_flag::{InfoLevel, Verbosity};
+use itertools::Itertools;
+use ruse_synthesizer::opcode::sort_opcodes;
 use ruse_ts_interpreter::ts_class::TsClasses;
 use serde_json::ser::Formatter;
 use std::{clone::Clone, fs::File, path::PathBuf, process::ExitCode, sync::Arc, time::Duration};
@@ -107,6 +109,9 @@ struct PrintOpcodesArgs {
     /// ts files to parse for classes
     #[arg(short, long, num_args(0..))]
     ts_files: Vec<std::path::PathBuf>,
+
+    #[arg(short, long, default_value_t = false)]
+    print_summary: bool,
 }
 
 fn set_logger(cli: &RunArgs) {
@@ -239,10 +244,29 @@ fn print_opcodes(cli: &PrintOpcodesArgs) -> ExitCode {
 
     let composite_opcodes =
         SnythesisTask::get_composite_opcodes(&classes, &class_names, true, &cache);
+    let opcodes_len = composite_opcodes.len();
 
-    composite_opcodes.iter().for_each(|op| {
-        println!("{}", op.op_name());
+    let sorted_opcodes = sort_opcodes(composite_opcodes);
+
+    println!("Composite opcodes:");
+    sorted_opcodes.iter().for_each(|(_, ops)| {
+        ops.iter().for_each(|op| println!("{}", op.op_name()));
     });
+
+    if cli.print_summary {
+        println!();
+        println!("summary:");
+        sorted_opcodes.iter().for_each(|(arg_types, ops)| {
+            println!(
+                "{0: <30} {1: <10}",
+                arg_types.iter().map(|x| x.to_string()).join(",") + ":",
+                ops.len()
+            );
+        });
+        println!("{0: <30} {1: <10}", "All:", opcodes_len);
+    } else {
+        println!("Opcodes count = {}", opcodes_len);
+    }
 
     ExitCode::SUCCESS
 }
