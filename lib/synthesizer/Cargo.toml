@@ -13,6 +13,7 @@ tokio = { version = "*", features = ["rt", "macros"] }
 tokio-util = "*"
 itertools = "*"
 rand = { version = "*", optional = true }
+tracing-subscriber = { version = "*", optional = true }
 
 tracing.workspace = true
 
