@@ -970,17 +970,21 @@ impl SnythesisTask {
             }
         }
 
-        let mut synthesizer = match bank_type {
-            BankType::SubsumptionBank => subsumption_ts_synthesizer(
-                context_array,
-                opcodes,
-                predicate,
-                valid,
-                max_context_depth,
-                iteration_workers_count,
-                cache.clone(),
-            ),
+        let bank = match bank_type {
+            BankType::SubsumptionBank => SubsumptionProgBank::default()
         };
+
+        let mut synthesizer = TsSynthesizer::new(
+            bank,
+            context_array,
+            opcodes,
+            predicate,
+            valid,
+            max_context_depth,
+            iteration_workers_count,
+            cache.clone(),
+        );
+
         if let Some(immutable) = &self.inner.immutable {
             for var in immutable {
                 synthesizer.set_immutable(&str_cached!(cache; var));

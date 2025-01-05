@@ -1,6 +1,6 @@
 use ruse_object_graph::{Cache, CachedString};
 use ruse_synthesizer::{
-    bank::{ProgBank, SubsumptionProgBank},
+    bank::ProgBank,
     context::ContextArray,
     opcode::OpcodesList,
     prog::SubProgram,
@@ -15,6 +15,30 @@ pub struct TsSynthesizer<P: ProgBank> {
 }
 
 impl<P: ProgBank + 'static> TsSynthesizer<P> {
+    pub fn new(
+        bank: P,
+        start_context: ContextArray,
+        opcodes: OpcodesList,
+        predicate: SynthesizerPredicate,
+        valid: SynthesizerPredicate,
+        max_context_depth: usize,
+        iteration_workers_count: usize,
+        cache: Arc<Cache>,
+    ) -> TsSynthesizer<P> {
+        Self {
+            inner: Arc::new(Synthesizer::new(
+                bank,
+                start_context,
+                opcodes,
+                predicate,
+                valid,
+                max_context_depth,
+                iteration_workers_count,
+                cache,
+            )),
+        }
+    }
+
     #[inline]
     pub async fn run_iteration(&mut self) -> Option<Arc<SubProgram>> {
         Synthesizer::run_iteration(&mut self.inner).await
@@ -35,27 +59,5 @@ impl<P: ProgBank + 'static> TsSynthesizer<P> {
 
     pub fn print_all_programs(&self) {
         self.inner.print_all_programs()
-    }
-}
-
-pub fn subsumption_ts_synthesizer(
-    start_context: ContextArray,
-    opcodes: OpcodesList,
-    predicate: SynthesizerPredicate,
-    valid: SynthesizerPredicate,
-    max_context_depth: usize,
-    iteration_workers_count: usize,
-    cache: Arc<Cache>,
-) -> TsSynthesizer<SubsumptionProgBank> {
-    TsSynthesizer {
-        inner: Arc::new(Synthesizer::new(
-            start_context,
-            opcodes,
-            predicate,
-            valid,
-            max_context_depth,
-            iteration_workers_count,
-            cache,
-        )),
     }
 }

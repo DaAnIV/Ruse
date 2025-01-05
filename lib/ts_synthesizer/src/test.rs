@@ -9,6 +9,7 @@ mod tests {
         vnum, vstr, GraphsMap, ObjectGraph,
     };
     use ruse_synthesizer::{
+        bank::SubsumptionProgBank,
         context::{Context, ContextArray, GraphIdGenerator},
         location::Location,
     };
@@ -83,7 +84,8 @@ mod tests {
         ]);
 
         let cache_clone = cache.clone();
-        let mut synthesizer = subsumption_ts_synthesizer(
+        let mut synthesizer = TsSynthesizer::new(
+            SubsumptionProgBank::default(),
             ctx.clone(),
             opcodes,
             Box::new(move |p| {
@@ -183,7 +185,8 @@ mod tests {
             ),
         ]);
 
-        let mut synthesizer = subsumption_ts_synthesizer(
+        let mut synthesizer = TsSynthesizer::new(
+            SubsumptionProgBank::default(),
             ctx.clone(),
             opcodes,
             Box::new(move |p| {

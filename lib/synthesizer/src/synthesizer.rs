@@ -168,6 +168,7 @@ pub struct Synthesizer<P: ProgBank> {
 
 impl<P: ProgBank + 'static> Synthesizer<P> {
     pub fn new(
+        bank: P,
         start_context: ContextArray,
         opcodes: OpcodesList,
         predicate: SynthesizerPredicate,
@@ -177,7 +178,7 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
         cache: Arc<Cache>,
     ) -> Self {
         Self {
-            bank: Default::default(),
+            bank,
             opcodes: sort_opcodes(opcodes),
             context: SynthesizerContext::from_context_array(start_context.clone(), cache),
             found_contexts: DashSet::new(),
@@ -454,11 +455,11 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
         if !p.out_value().iter().all(|x| self.check_out_value(x.val())) {
             return false;
         }
-
-        if self.bank.output_exists(p) {
+        if !(self.valid)(p) {
             return false;
         }
-        if !(self.valid)(p) {
+
+        if self.bank.output_exists(p) {
             return false;
         }
 

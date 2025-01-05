@@ -1,7 +1,10 @@
 use criterion::*;
 use ruse_object_graph as object_graph;
 use ruse_object_graph::*;
-use ruse_synthesizer::context::{Context, ContextArray, GraphIdGenerator};
+use ruse_synthesizer::{
+    bank::SubsumptionProgBank,
+    context::{Context, ContextArray, GraphIdGenerator},
+};
 use ruse_ts_synthesizer::*;
 use std::sync::Arc;
 
@@ -53,7 +56,8 @@ fn simple_synthesize_1(c: &mut Criterion) {
                         &ALL_UPDATE_NUM_OPCODES,
                     );
 
-                    subsumption_ts_synthesizer(
+                    TsSynthesizer::new(
+                        SubsumptionProgBank::default(),
                         ctx,
                         opcodes.clone(),
                         Box::new(|_| false),
