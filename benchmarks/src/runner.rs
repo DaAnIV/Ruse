@@ -4,6 +4,7 @@ use std::{
 
 use byte_unit::{Byte, Unit};
 use ruse_object_graph::Cache;
+use ruse_synthesizer::bank::ProgBank;
 use ruse_ts_synthesizer::TsSynthesizer;
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
@@ -72,8 +73,8 @@ async fn watch_for_error<I>(timeout: tokio::time::Timeout<I>, config: &Benchmark
     }
 }
 
-async fn run_synthesizer(
-    synthesizer: &mut TsSynthesizer,
+async fn run_synthesizer<P: ProgBank + 'static>(
+    synthesizer: &mut TsSynthesizer<P>,
     result: &mut BenchmarkResult,
     max_iterations: u32,
     cancel_token: CancellationToken,
@@ -135,6 +136,7 @@ pub fn run_task(path: &Path, cache: Arc<Cache>, bench_config: &BenchmarkConfig) 
     let mut synthesizer = match task.get_synthesizer(
         bench_config.max_context_depth,
         bench_config.iteration_workers_count,
+        bench_config.bank_type,
         &cache,
     ) {
         Ok(v) => v,

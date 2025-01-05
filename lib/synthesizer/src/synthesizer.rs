@@ -105,7 +105,8 @@ impl CurrentStatistics {
         let mut values = self.values.clone();
         values[StatisticsTypes::Evaluated as usize] -= rhs[StatisticsTypes::Evaluated];
         values[StatisticsTypes::BankSize as usize] -= rhs[StatisticsTypes::BankSize];
-        values[StatisticsTypes::FoundContextCount as usize] -= rhs[StatisticsTypes::FoundContextCount];
+        values[StatisticsTypes::FoundContextCount as usize] -=
+            rhs[StatisticsTypes::FoundContextCount];
         Self { values }
     }
 }
@@ -148,8 +149,8 @@ impl serde::Serialize for CurrentStatistics {
 
 pub type SynthesizerPredicate = Box<dyn Fn(&Arc<SubProgram>) -> bool + Send + Sync>;
 
-pub struct Synthesizer {
-    bank: ProgBank,
+pub struct Synthesizer<P: ProgBank> {
+    bank: P,
     opcodes: OpcodesMap,
     context: SynthesizerContext,
     found_contexts: DashSet<ContextArray>,
@@ -165,7 +166,7 @@ pub struct Synthesizer {
     statistics: Statistics,
 }
 
-impl Synthesizer {
+impl<P: ProgBank + 'static> Synthesizer<P> {
     pub fn new(
         start_context: ContextArray,
         opcodes: OpcodesList,
@@ -206,7 +207,7 @@ impl Synthesizer {
 
     fn init_context<const IS_START_CTX: bool>(
         &self,
-        iteration_map: &TypeMap,
+        iteration_map: &TypeMap<P::T>,
         ctx: &ContextArray,
     ) -> Option<Arc<SubProgram>> {
         trace!(target: "ruse::synthesizer", "Initializing context");
@@ -215,14 +216,16 @@ impl Synthesizer {
         let mut res = None;
 
         self.found_contexts.insert(ctx.clone());
-        self.statistics.inc_value(StatisticsTypes::FoundContextCount);
+        self.statistics
+            .inc_value(StatisticsTypes::FoundContextCount);
         for op in self.init_opcodes() {
             let p = match self.get_program_from_init_opcode(op.clone(), ctx) {
                 Some(p) => p,
                 None => continue,
             };
             if self.found_contexts.insert(p.pre_ctx().clone()) {
-                self.statistics.inc_value(StatisticsTypes::FoundContextCount);                
+                self.statistics
+                    .inc_value(StatisticsTypes::FoundContextCount);
             }
 
             if !self.check_program(&p) {
@@ -244,7 +247,7 @@ impl Synthesizer {
     }
 
     pub async fn run_iteration(self: &mut Arc<Self>) -> Option<Arc<SubProgram>> {
-        let current_iteration_map: Arc<TypeMap> = Default::default();
+        let current_iteration_map: Arc<TypeMap<P::T>> = Default::default();
 
         let found_prog =
             Self::run_iteration_inner(self.clone(), current_iteration_map.clone()).await;
@@ -256,7 +259,7 @@ impl Synthesizer {
 
     async fn run_iteration_inner(
         self: Arc<Self>,
-        current_iteration_map: Arc<TypeMap>,
+        current_iteration_map: Arc<TypeMap<P::T>>,
     ) -> Option<Arc<SubProgram>> {
         debug!(target: "ruse::synthesizer", "Starting iteration {}", self.bank.iteration_count());
 
@@ -278,7 +281,10 @@ impl Synthesizer {
         }
     }
 
-    fn run_init_iteration(&self, current_iteration_map: Arc<TypeMap>) -> Option<Arc<SubProgram>> {
+    fn run_init_iteration(
+        &self,
+        current_iteration_map: Arc<TypeMap<P::T>>,
+    ) -> Option<Arc<SubProgram>> {
         self.init_context::<true>(&current_iteration_map, &self.context.start_context)
     }
 
@@ -286,7 +292,7 @@ impl Synthesizer {
         &self,
         triplet: &ProgTriplet,
         ops: &OpcodesList,
-        current_batch_map: &TypeMap,
+        current_batch_map: &TypeMap<P::T>,
     ) -> Option<Arc<SubProgram>> {
         for op in ops {
             let Some(p) = self.get_program_from_composite_opcode(op.clone(), triplet) else {
@@ -319,7 +325,7 @@ impl Synthesizer {
         &'a self,
         i: usize,
         arg_types: &'a Vec<ValueType>,
-    ) -> ProgTripletIterator<BankIterator<'a>> {
+    ) -> ProgTripletIterator<BankIterator<'a, P>> {
         let mut children_iterator = bank_iterator(&self.bank, arg_types);
         let total_size = children_iterator.remaining();
         let skip = (total_size / self.worker_count) * i;
@@ -337,7 +343,7 @@ impl Synthesizer {
     async fn composite_iteration_worker(
         self: Arc<Self>,
         i: usize,
-    ) -> (TypeMap, Option<Arc<SubProgram>>) {
+    ) -> (TypeMap<P::T>, Option<Arc<SubProgram>>) {
         let type_map = TypeMap::default();
 
         for (arg_types, ops) in self.composite_opcodes() {
@@ -358,7 +364,7 @@ impl Synthesizer {
 
     async fn run_composite_iteration(
         self: Arc<Self>,
-        current_iteration_map: Arc<TypeMap>,
+        current_iteration_map: Arc<TypeMap<P::T>>,
     ) -> Option<Arc<SubProgram>> {
         let mut workers = JoinSet::new();
         for i in 0..self.worker_count {
@@ -396,7 +402,7 @@ impl Synthesizer {
         None
     }
 
-    fn insert_iteration(self: &mut Arc<Self>, current_iteration_map: Arc<TypeMap>) {
+    fn insert_iteration(self: &mut Arc<Self>, current_iteration_map: Arc<TypeMap<P::T>>) {
         Arc::get_mut(self)
             .unwrap()
             .bank
@@ -469,7 +475,7 @@ impl Synthesizer {
         true
     }
 
-    fn insert_program(&self, p: Arc<SubProgram>, iteration_map: &TypeMap) -> bool {
+    fn insert_program(&self, p: Arc<SubProgram>, iteration_map: &TypeMap<P::T>) -> bool {
         if p.is_terminal() {
             return true;
         }

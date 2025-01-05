@@ -1,4 +1,5 @@
 use std::{
+    fmt,
     hash::{BuildHasherDefault, DefaultHasher, Hash},
     sync::Arc,
 };
@@ -63,16 +64,24 @@ pub(crate) type ProgramsMapIter<'a> = iter_set::Iter<
     DashMap<Arc<SubProgram>, (), BankHasherBuilder>,
 >;
 
+pub trait ProgramsMap: Send + Sync + fmt::Debug + Default {
+    fn insert(&self, p: Arc<SubProgram>) -> bool;
+    fn contains(&self, p: &Arc<SubProgram>) -> bool;
+    fn iter(&self) -> ProgramsMapIter<'_>;
+    fn extend(&mut self, other: Self);
+    fn len(&self) -> usize;
+}
+
 // The bank is hierarchical
 // iteration -> out_type -> sub_prog
 
 #[derive(Debug, Default)]
-pub(crate) struct ProgramsMap {
+pub struct SubsumptionProgramsMap {
     map: DashMap<ProgOutput, Vec<Arc<SubProgram>>, BankHasherBuilder>,
     set: DashSet<Arc<SubProgram>, BankHasherBuilder>,
 }
 
-impl ProgramsMap {
+impl ProgramsMap for SubsumptionProgramsMap {
     fn insert(&self, p: Arc<SubProgram>) -> bool {
         let output: ProgOutput = p.clone().into();
         match self.map.entry(output) {
@@ -119,20 +128,10 @@ impl ProgramsMap {
     }
 }
 
-impl<'a> IntoIterator for &'a ProgramsMap {
-    type Item = <ProgramsMapIter<'a> as Iterator>::Item;
-
-    type IntoIter = ProgramsMapIter<'a>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.iter()
-    }
-}
-
 #[derive(Default, Debug)]
-pub struct TypeMap(DashMap<ValueType, ProgramsMap, BankHasherBuilder>);
+pub struct TypeMap<T: ProgramsMap>(DashMap<ValueType, T, BankHasherBuilder>);
 
-impl TypeMap {
+impl<T: ProgramsMap> TypeMap<T> {
     pub(crate) fn insert_program(&self, p: Arc<SubProgram>) -> bool {
         let mut binding = self.0.entry(p.out_type().clone()).or_default();
         let programs_map = binding.value_mut();
@@ -149,7 +148,7 @@ impl TypeMap {
     pub(crate) fn get(
         &self,
         value_type: &ValueType,
-    ) -> Option<dashmap::mapref::one::Ref<ValueType, ProgramsMap>> {
+    ) -> Option<dashmap::mapref::one::Ref<ValueType, T>> {
         self.0.get(value_type)
     }
 
@@ -163,54 +162,68 @@ impl TypeMap {
         }
     }
 
-    pub(crate) fn iter(&self) -> dashmap::iter::Iter<ValueType, ProgramsMap, BankHasherBuilder> {
+    pub(crate) fn iter(&self) -> dashmap::iter::Iter<ValueType, T, BankHasherBuilder> {
         self.0.iter()
     }
 }
 
-#[derive(Default)]
-pub struct ProgBank(Vec<Arc<TypeMap>>);
+pub trait ProgBank: Default + Send + Sync {
+    type T: ProgramsMap + 'static;
 
-impl ProgBank {
-    pub fn output_exists(&self, p: &Arc<SubProgram>) -> bool {
-        self.0.iter().any(|type_map| type_map.contains(p))
+    fn iterations(&self) -> &Vec<Arc<TypeMap<Self::T>>>;
+    fn mut_iterations(&mut self) -> &mut Vec<Arc<TypeMap<Self::T>>>;
+
+    fn iteration(&self, i: usize) -> &Arc<TypeMap<Self::T>> {
+        &self.iterations()[i]
+    }
+
+    fn output_exists(&self, p: &Arc<SubProgram>) -> bool {
+        self.iterations()
+            .iter()
+            .any(|type_map| type_map.contains(p))
     }
 
     #[inline]
-    pub(crate) fn insert(&mut self, type_map: Arc<TypeMap>) {
-        self.0.push(type_map);
+    fn insert(&mut self, type_map: Arc<TypeMap<Self::T>>) {
+        self.mut_iterations().push(type_map);
     }
 
     #[inline]
-    pub fn iteration_count(&self) -> usize {
-        self.0.len()
+    fn iteration_count(&self) -> usize {
+        self.iterations().len()
     }
 
-    pub fn print_all_programs(&self) {
-        for (i, type_map) in self.0.iter().enumerate() {
+    fn print_all_programs(&self) {
+        for (i, type_map) in self.iterations().iter().enumerate() {
             info!(target: "ruse::synthesizer", "Iteration {}", i);
             for values in type_map.0.iter() {
                 for p in values.value().iter() {
                     info!(target: "ruse::synthesizer", "");
-                    info!(target: "ruse::synthesizer", "{}", p.value());
+                    info!(target: "ruse::synthesizer", "{}", *p);
                 }
             }
         }
     }
 
-    pub fn number_of_programs(&self, iteration: usize, output_type: &ValueType) -> usize {
-        match self[iteration].get(output_type) {
+    fn number_of_programs(&self, iteration: usize, output_type: &ValueType) -> usize {
+        match self.iteration(iteration).get(output_type) {
             Some(map) => map.len(),
             None => 0,
         }
-
     }
 }
 
-impl std::ops::Index<usize> for ProgBank {
-    type Output = Arc<TypeMap>;
+#[derive(Default)]
+pub struct SubsumptionProgBank(Vec<Arc<TypeMap<SubsumptionProgramsMap>>>);
 
-    fn index(&self, index: usize) -> &Self::Output {
-        &self.0[index]
+impl ProgBank for SubsumptionProgBank {
+    type T = SubsumptionProgramsMap;
+
+    fn iterations(&self) -> &Vec<Arc<TypeMap<Self::T>>> {
+        &self.0
+    }
+
+    fn mut_iterations(&mut self) -> &mut Vec<Arc<TypeMap<Self::T>>> {
+        &mut self.0
     }
 }

@@ -9,10 +9,10 @@ use Option::{self as CurrentItems, None as NotYetPopulated, Some as Populated};
 use crate::bank::{ProgramsMap, ProgramsMapIter};
 use crate::prog::SubProgram;
 
-type ProgramsMapRef<'a> = &'a ProgramsMap;
+type ProgramsMapRef<'a, T> = &'a T;
 
-pub struct MultiProgramsMaps<'a> {
-    inner: State<MultiProgramsMapsInner<'a>>,
+pub struct MultiProgramsMaps<'a, T: ProgramsMap> {
+    inner: State<MultiProgramsMapsInner<'a, T>>,
     remaining: usize,
 }
 
@@ -25,9 +25,9 @@ pub trait ProgramChildrenIterator {
 }
 
 /// Internals for `MultiProduct`.
-struct MultiProgramsMapsInner<'a> {
+struct MultiProgramsMapsInner<'a, T: ProgramsMap> {
     /// Holds the iterators.
-    iters: Vec<MultiProgramsMapsIter<'a>>,
+    iters: Vec<MultiProgramsMapsIter<'a, T>>,
     /// Not populated at the beginning then it holds the current item of each iterator.
     cur: CurrentItems<Cell<Vec<Arc<SubProgram>>>>,
 
@@ -35,15 +35,15 @@ struct MultiProgramsMapsInner<'a> {
 }
 
 /// Holds the state of a single iterator within a `MultiProduct`.
-struct MultiProgramsMapsIter<'a> {
+struct MultiProgramsMapsIter<'a, T: ProgramsMap> {
     iter: ProgramsMapIter<'a>,
-    map_ref: ProgramsMapRef<'a>,
+    map_ref: ProgramsMapRef<'a, T>,
     i: usize,
     restart: bool,
 }
 
-impl<'a> MultiProgramsMapsIter<'a> {
-    fn new(map_ref: ProgramsMapRef<'a>) -> Self {
+impl<'a, T: ProgramsMap> MultiProgramsMapsIter<'a, T> {
+    fn new(map_ref: ProgramsMapRef<'a, T>) -> Self {
         Self {
             iter: map_ref.iter(),
             map_ref,
@@ -57,9 +57,9 @@ impl<'a> MultiProgramsMapsIter<'a> {
 /// of iterators of the same type.
 ///
 /// Iterator element is of type `Vec<H::Item::Item>`.
-pub fn multi_programs_map_product<'a, I>(maps: I) -> MultiProgramsMaps<'a>
+pub fn multi_programs_map_product<'a, T: ProgramsMap, I>(maps: I) -> MultiProgramsMaps<'a, T>
 where
-    I: Iterator<Item = *const ProgramsMap>,
+    I: Iterator<Item = *const T>,
 {
     let mut total_size = 1;
     let iters = maps
@@ -81,14 +81,14 @@ where
     }
 }
 
-pub fn multi_programs_map_end<'a>(_marker: PhantomData<&'a bool>) -> MultiProgramsMaps<'a> {
+pub fn multi_programs_map_end<'a, T: ProgramsMap>(_marker: PhantomData<&'a bool>) -> MultiProgramsMaps<'a, T> {
     MultiProgramsMaps {
         remaining: 0,
         inner: ProductEnded,
     }
 }
 
-impl<'a> MultiProgramsMapsInner<'a> {
+impl<'a, T: ProgramsMap> MultiProgramsMapsInner<'a, T> {
     fn advance_progs(&mut self) -> Option<usize> {
         match &mut self.cur {
             Populated(cur_progs) => {
@@ -176,7 +176,7 @@ impl<'a> MultiProgramsMapsInner<'a> {
     }
 }
 
-impl<'a> ProgramChildrenIterator for MultiProgramsMaps<'a> {
+impl<'a, T: ProgramsMap> ProgramChildrenIterator for MultiProgramsMaps<'a, T> {
     fn next(&mut self) -> Option<(usize, *const Vec<Arc<SubProgram>>)> {
         if self.remaining == 0 {
             self.inner = ProductEnded;

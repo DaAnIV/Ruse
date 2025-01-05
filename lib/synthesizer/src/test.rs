@@ -394,7 +394,7 @@ pub mod helpers {
 #[cfg(test)]
 mod bank_iterator_tests {
     use crate::{
-        bank::{BankHasherBuilder, ProgramsMap},
+        bank::{BankHasherBuilder, SubsumptionProgramsMap, ProgramsMap},
         bank_iterator::bank_iterator,
         context::GraphIdGenerator,
         multi_programs_map_product::{multi_programs_map_product, ProgramChildrenIterator},
@@ -411,7 +411,7 @@ mod bank_iterator_tests {
     };
 
     use crate::{
-        bank::{ProgBank, TypeMap},
+        bank::{SubsumptionProgBank, ProgBank, TypeMap},
         context::{ContextArray, SynthesizerContext},
         location::{LocValue, Location},
         opcode::{EvalResult, ExprOpcode},
@@ -419,7 +419,7 @@ mod bank_iterator_tests {
     };
 
     async fn run_gatherer(
-        bank: &ProgBank,
+        bank: &SubsumptionProgBank,
         op: &Arc<dyn ExprOpcode>,
         skip: Option<usize>,
         take: Option<usize>,
@@ -473,7 +473,7 @@ mod bank_iterator_tests {
         }
     }
 
-    fn add_iteration(bank: &mut ProgBank, n: usize, syn_ctx: &SynthesizerContext) {
+    fn add_iteration(bank: &mut SubsumptionProgBank, n: usize, syn_ctx: &SynthesizerContext) {
         let iteration = bank.iteration_count();
         let type_map = Arc::new(TypeMap::default());
         for i in 0..n {
@@ -484,8 +484,8 @@ mod bank_iterator_tests {
         bank.insert(type_map);
     }
 
-    fn create_programs_map(prefix: u32, n: u32, syn_ctx: &SynthesizerContext) -> ProgramsMap {
-        let map = ProgramsMap::default();
+    fn create_programs_map(prefix: u32, n: u32, syn_ctx: &SynthesizerContext) -> SubsumptionProgramsMap {
+        let map = SubsumptionProgramsMap::default();
         for i in 0..n {
             let full_value = (prefix as u64) << 32 | i as u64;
             let value = Number::from(full_value);
@@ -653,7 +653,7 @@ mod bank_iterator_tests {
         let cache = Arc::new(Cache::new());
         let _id_gen = GraphIdGenerator::default();
         let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default(), cache);
-        let mut bank = ProgBank::default();
+        let mut bank = SubsumptionProgBank::default();
         let bin_op: Arc<dyn ExprOpcode> = Arc::new(TestOpcode {
             arg_types: vec![ValueType::Number, ValueType::Number],
             returns: EvalResult::NoModification(LocValue {
@@ -674,7 +674,7 @@ mod bank_iterator_tests {
         let cache = Arc::new(Cache::new());
         let _id_gen = GraphIdGenerator::default();
         let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default(), cache);
-        let mut bank = ProgBank::default();
+        let mut bank = SubsumptionProgBank::default();
         let bin_op: Arc<dyn ExprOpcode> = Arc::new(TestOpcode {
             arg_types: vec![ValueType::Number, ValueType::Number],
             returns: EvalResult::NoModification(LocValue {
@@ -703,7 +703,7 @@ mod bank_iterator_tests {
         let cache = Arc::new(Cache::new());
         let _id_gen = GraphIdGenerator::default();
         let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default(), cache);
-        let mut bank = ProgBank::default();
+        let mut bank = SubsumptionProgBank::default();
         let bin_op: Arc<dyn ExprOpcode> = Arc::new(TestOpcode {
             arg_types: vec![ValueType::Number, ValueType::Number],
             returns: EvalResult::NoModification(LocValue {
@@ -733,7 +733,7 @@ mod bank_iterator_tests {
         let cache = Arc::new(Cache::new());
         let _id_gen = GraphIdGenerator::default();
         let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default(), cache);
-        let mut bank = ProgBank::default();
+        let mut bank = SubsumptionProgBank::default();
         let tri_op: Arc<dyn ExprOpcode> = Arc::new(TestOpcode {
             arg_types: vec![ValueType::Number, ValueType::Number, ValueType::Number],
             returns: EvalResult::NoModification(LocValue {
@@ -763,7 +763,7 @@ mod bank_iterator_tests {
         let cache = Arc::new(Cache::new());
         let _id_gen = GraphIdGenerator::default();
         let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default(), cache);
-        let mut bank = ProgBank::default();
+        let mut bank = SubsumptionProgBank::default();
         let bin_op: Arc<dyn ExprOpcode> = Arc::new(TestOpcode {
             arg_types: vec![ValueType::Number, ValueType::Number],
             returns: EvalResult::NoModification(LocValue {
@@ -797,7 +797,7 @@ mod bank_iterator_tests {
         let cache = Arc::new(Cache::new());
         let _id_gen = GraphIdGenerator::default();
         let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default(), cache);
-        let mut bank = ProgBank::default();
+        let mut bank = SubsumptionProgBank::default();
         let bin_op: Arc<dyn ExprOpcode> = Arc::new(TestOpcode {
             arg_types: vec![ValueType::Number, ValueType::Number],
             returns: EvalResult::NoModification(LocValue {
@@ -830,7 +830,7 @@ mod bank_iterator_tests {
         let cache = Arc::new(Cache::new());
         let _id_gen = GraphIdGenerator::default();
         let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default(), cache);
-        let mut bank = ProgBank::default();
+        let mut bank = SubsumptionProgBank::default();
         let bin_op: Arc<dyn ExprOpcode> = Arc::new(TestOpcode {
             arg_types: vec![ValueType::Number, ValueType::Number],
             returns: EvalResult::NoModification(LocValue {
@@ -861,7 +861,7 @@ mod bank_iterator_tests {
         let cache = Arc::new(Cache::new());
         let _id_gen = GraphIdGenerator::default();
         let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default(), cache);
-        let mut bank = ProgBank::default();
+        let mut bank = SubsumptionProgBank::default();
         let bin_op: Arc<dyn ExprOpcode> = Arc::new(TestOpcode {
             arg_types: vec![ValueType::Number, ValueType::Number],
             returns: EvalResult::NoModification(LocValue {

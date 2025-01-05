@@ -83,7 +83,7 @@ mod tests {
         ]);
 
         let cache_clone = cache.clone();
-        let mut synthesizer = TsSynthesizer::new(
+        let mut synthesizer = subsumption_ts_synthesizer(
             ctx.clone(),
             opcodes,
             Box::new(move |p| {
@@ -183,7 +183,7 @@ mod tests {
             ),
         ]);
 
-        let mut synthesizer = TsSynthesizer::new(
+        let mut synthesizer = subsumption_ts_synthesizer(
             ctx.clone(),
             opcodes,
             Box::new(move |p| {

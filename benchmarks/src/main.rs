@@ -12,7 +12,7 @@ use tracing_subscriber::{filter::Targets, prelude::*};
 
 mod results;
 use clap::Parser;
-use config::BenchmarkConfig;
+use config::{BankType, BenchmarkConfig};
 use results::ResultsWriter;
 use ruse_object_graph::Cache;
 
@@ -82,6 +82,9 @@ struct RunArgs {
 
     #[arg(long, default_value_t = 16)]
     workers_count: usize,
+
+    #[arg(long, default_value_t = BankType::SubsumptionBank)]
+    bank_type: BankType,
 
     #[arg(long, default_value_t = false)]
     print_all_programs: bool,
@@ -199,6 +202,7 @@ fn run_benchmarks(cli: &RunArgs) -> ExitCode {
         iteration_workers_count: cli.workers_count,
         benchmarks: cli.benchmarks.clone(),
         max_task_mem: Byte::parse_str(&cli.max_task_mem, true).unwrap(),
+        bank_type: cli.bank_type,
     };
 
     let max_task_mem = bench_config.max_task_mem;

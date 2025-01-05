@@ -14,6 +14,7 @@ use ruse_object_graph::{
     *,
 };
 use ruse_synthesizer::{
+    bank::SubsumptionProgBank,
     context::{Context, ContextArray, GraphIdGenerator, ValuesMap},
     opcode::{ExprOpcode, OpcodesList},
     prog::SubProgram,
@@ -26,7 +27,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::json;
 use wildmatch::WildMatch;
 
-use crate::results::BenchmarkResult;
+use crate::{config::BankType, results::BenchmarkResult};
 
 #[derive(Debug)]
 pub struct TodoError {
@@ -956,8 +957,9 @@ impl SnythesisTask {
         &self,
         mut max_context_depth: usize,
         iteration_workers_count: usize,
+        bank_type: BankType,
         cache: &Arc<Cache>,
-    ) -> Result<TsSynthesizer, SnythesisTaskError> {
+    ) -> Result<TsSynthesizer<SubsumptionProgBank>, SnythesisTaskError> {
         let opcodes = self.get_opcodes(cache);
         let context_array = self.get_context_array(cache)?;
         let predicate = self.get_predicate(cache)?;
@@ -968,15 +970,17 @@ impl SnythesisTask {
             }
         }
 
-        let mut synthesizer = TsSynthesizer::new(
-            context_array,
-            opcodes,
-            predicate,
-            valid,
-            max_context_depth,
-            iteration_workers_count,
-            cache.clone(),
-        );
+        let mut synthesizer = match bank_type {
+            BankType::SubsumptionBank => subsumption_ts_synthesizer(
+                context_array,
+                opcodes,
+                predicate,
+                valid,
+                max_context_depth,
+                iteration_workers_count,
+                cache.clone(),
+            ),
+        };
         if let Some(immutable) = &self.inner.immutable {
             for var in immutable {
                 synthesizer.set_immutable(&str_cached!(cache; var));

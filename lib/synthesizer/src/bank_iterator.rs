@@ -12,28 +12,28 @@ use crate::{
     multi_programs_map_product::{multi_programs_map_end, multi_programs_map_product},
 };
 
-pub struct BankIterator<'a> {
-    inner: State<BankIteratorInner<'a>>,
+pub struct BankIterator<'a, P: ProgBank> {
+    inner: State<BankIteratorInner<'a, P>>,
     remaining: usize,
 }
 
 /// Internals for `MultiProduct`.
-struct BankIteratorInner<'a> {
-    bank: &'a ProgBank,
+struct BankIteratorInner<'a, P: ProgBank> {
+    bank: &'a P,
     arg_types: &'a [ValueType],
 
     cutoff: usize,
     iterations_iter: MultiProduct<RangeInclusive<usize>>,
 
     /// Holds the iterators.
-    iter: MultiProgramsMaps<'a>,
+    iter: MultiProgramsMaps<'a, P::T>,
 
     total_size: usize,
 }
 
-impl<'a> BankIteratorInner<'a> {
+impl<'a, P: ProgBank> BankIteratorInner<'a, P> {
     fn get_iterations_iter(
-        bank: &'a ProgBank,
+        bank: &'a P,
         arg_types: &'a [ValueType],
         cutoff: usize,
     ) -> MultiProduct<RangeInclusive<usize>> {
@@ -47,7 +47,7 @@ impl<'a> BankIteratorInner<'a> {
             .multi_cartesian_product()
     }
 
-    fn calculate_size(bank: &'a ProgBank, arg_types: &'a [ValueType]) -> usize {
+    fn calculate_size(bank: &'a P, arg_types: &'a [ValueType]) -> usize {
         let mut size = 0;
 
         let n = if bank.iteration_count() == 1 {
@@ -68,8 +68,8 @@ impl<'a> BankIteratorInner<'a> {
     }
 }
 
-impl<'a> BankIteratorInner<'a> {
-    fn new(bank: &'a ProgBank, arg_types: &'a [ValueType]) -> Self {
+impl<'a, P: ProgBank> BankIteratorInner<'a, P> {
+    fn new(bank: &'a P, arg_types: &'a [ValueType]) -> Self {
         Self {
             bank,
             arg_types,
@@ -85,12 +85,12 @@ impl<'a> BankIteratorInner<'a> {
 
     fn set_programs_iter(&mut self, iterations: &[usize]) -> bool {
         if (0..self.arg_types.len())
-            .any(|i| self.bank[iterations[i]].get(&self.arg_types[i]).is_none())
+            .any(|i| self.bank.iteration(iterations[i]).get(&self.arg_types[i]).is_none())
         {
             return false;
         }
         let program_maps = (0..self.arg_types.len()).map(|i| {
-            let map_ref = self.bank[iterations[i]].get(&self.arg_types[i]).unwrap();
+            let map_ref = self.bank.iteration(iterations[i]).get(&self.arg_types[i]).unwrap();
             std::ptr::from_ref(map_ref.value())
         });
 
@@ -139,7 +139,7 @@ impl<'a> BankIteratorInner<'a> {
     }
 }
 
-pub fn bank_iterator<'a>(bank: &'a ProgBank, arg_types: &'a [ValueType]) -> BankIterator<'a> {
+pub fn bank_iterator<'a, P: ProgBank>(bank: &'a P, arg_types: &'a [ValueType]) -> BankIterator<'a, P> {
     let inner = BankIteratorInner::new(bank, arg_types);
     BankIterator {
         remaining: inner.total_size,
@@ -147,7 +147,7 @@ pub fn bank_iterator<'a>(bank: &'a ProgBank, arg_types: &'a [ValueType]) -> Bank
     }
 }
 
-impl<'a> ProgramChildrenIterator for BankIterator<'a> {
+impl<'a, P: ProgBank> ProgramChildrenIterator for BankIterator<'a, P> {
     fn next(&mut self) -> Option<(usize, *const Vec<Arc<SubProgram>>)> {
         if self.remaining == 0 {
             self.inner = ProductEnded;

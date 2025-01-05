@@ -53,7 +53,7 @@ fn simple_synthesize_1(c: &mut Criterion) {
                         &ALL_UPDATE_NUM_OPCODES,
                     );
 
-                    TsSynthesizer::new(
+                    subsumption_ts_synthesizer(
                         ctx,
                         opcodes.clone(),
                         Box::new(|_| false),
