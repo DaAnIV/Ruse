@@ -1,7 +1,7 @@
-use ruse_object_graph::{Cache, CachedString};
+use ruse_object_graph::CachedString;
 use ruse_synthesizer::{
     bank::ProgBank,
-    context::ContextArray,
+    context::SynthesizerContext,
     opcode::OpcodesList,
     prog::SubProgram,
     synthesizer::{CurrentStatistics, Synthesizer, SynthesizerPredicate},
@@ -17,24 +17,22 @@ pub struct TsSynthesizer<P: ProgBank> {
 impl<P: ProgBank + 'static> TsSynthesizer<P> {
     pub fn new(
         bank: P,
-        start_context: ContextArray,
+        syn_ctx: SynthesizerContext,
         opcodes: OpcodesList,
         predicate: SynthesizerPredicate,
         valid: SynthesizerPredicate,
         max_context_depth: usize,
         iteration_workers_count: usize,
-        cache: Arc<Cache>,
     ) -> TsSynthesizer<P> {
         Self {
             inner: Arc::new(Synthesizer::new(
                 bank,
-                start_context,
+                syn_ctx,
                 opcodes,
                 predicate,
                 valid,
                 max_context_depth,
                 iteration_workers_count,
-                cache,
             )),
         }
     }

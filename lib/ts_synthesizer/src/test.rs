@@ -10,10 +10,10 @@ mod tests {
     };
     use ruse_synthesizer::{
         bank::SubsumptionProgBank,
-        context::{Context, ContextArray, GraphIdGenerator},
+        context::{Context, ContextArray, GraphIdGenerator, SynthesizerContext},
         location::Location,
     };
-    use ruse_ts_interpreter::ts_class::TsClasses;
+    use ruse_ts_interpreter::ts_class::TsClassesBuilder;
     use swc_ecma_ast as ast;
 
     use crate::*;
@@ -31,10 +31,14 @@ mod tests {
         let id_gen2 = Arc::new(GraphIdGenerator::default());
         let mut graphs_map1 = GraphsMap::default();
         let mut graphs_map2 = GraphsMap::default();
-        let classes = TsClasses::new();
-        let user_class_name = classes
+        let mut builder = TsClassesBuilder::new();
+
+        let user_class_name = builder
             .add_class(code, &cache)
             .expect("Failed to add User class");
+
+        let classes = builder.finalize(&cache);
+
         let user_class = classes.get_class(&user_class_name).unwrap();
 
         let mut user1_graph = ObjectGraph::new(id_gen1.get_id_for_graph());
@@ -84,9 +88,10 @@ mod tests {
         ]);
 
         let cache_clone = cache.clone();
+        let syn_ctx = SynthesizerContext::from_context_array_with_data(ctx.clone(), classes, cache);
         let mut synthesizer = TsSynthesizer::new(
             SubsumptionProgBank::default(),
-            ctx.clone(),
+            syn_ctx,
             opcodes,
             Box::new(move |p| {
                 let expected_outputs = [
@@ -110,7 +115,6 @@ mod tests {
             Box::new(|_p| true),
             3,
             1,
-            cache,
         );
 
         for _ in 1..=5 {
@@ -135,8 +139,12 @@ mod tests {
         let id_gen2 = Arc::new(GraphIdGenerator::default());
         let mut graphs_map1 = GraphsMap::default();
         let mut graphs_map2 = GraphsMap::default();
-        let classes = TsClasses::new();
-        let point_class_name = classes.add_class(code, &cache).unwrap();
+        let mut builder = TsClassesBuilder::new();
+
+        let point_class_name = builder.add_class(code, &cache).unwrap();
+
+        let classes = builder.finalize(&cache);
+
         let point_class = classes.get_class(&point_class_name).unwrap();
 
         let mut point1_graph = ObjectGraph::new(id_gen1.get_id_for_graph());
@@ -185,9 +193,10 @@ mod tests {
             ),
         ]);
 
+        let syn_ctx = SynthesizerContext::from_context_array_with_data(ctx.clone(), classes, cache);
         let mut synthesizer = TsSynthesizer::new(
             SubsumptionProgBank::default(),
-            ctx.clone(),
+            syn_ctx,
             opcodes,
             Box::new(move |p| {
                 let expected_outputs = [Number::from(10), Number::from(12)];
@@ -208,7 +217,6 @@ mod tests {
             Box::new(|_p| true),
             3,
             1,
-            cache,
         );
 
         for _ in 1..=5 {

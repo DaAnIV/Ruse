@@ -11,7 +11,7 @@ use crate::{
 use dashmap::DashSet;
 use ruse_object_graph::{
     value::{Value, ValueType},
-    Cache, CachedString,
+    CachedString,
 };
 use serde::ser::SerializeStruct;
 use std::{
@@ -169,18 +169,17 @@ pub struct Synthesizer<P: ProgBank> {
 impl<P: ProgBank + 'static> Synthesizer<P> {
     pub fn new(
         bank: P,
-        start_context: ContextArray,
+        syn_ctx: SynthesizerContext,
         opcodes: OpcodesList,
         predicate: SynthesizerPredicate,
         valid: SynthesizerPredicate,
         max_context_depth: usize,
         iteration_workers_count: usize,
-        cache: Arc<Cache>,
     ) -> Self {
         Self {
             bank,
             opcodes: sort_opcodes(opcodes),
-            context: SynthesizerContext::from_context_array(start_context.clone(), cache),
+            context: syn_ctx,
             found_contexts: DashSet::new(),
             max_context_depth,
             cancel_token: CancellationToken::new(),

@@ -2,7 +2,7 @@ use byte_unit::Byte;
 use clap_verbosity_flag::{InfoLevel, Verbosity};
 use itertools::Itertools;
 use ruse_synthesizer::opcode::sort_opcodes;
-use ruse_ts_interpreter::ts_class::TsClasses;
+use ruse_ts_interpreter::ts_class::TsClassesBuilder;
 use serde_json::ser::Formatter;
 use std::{clone::Clone, fs::File, path::PathBuf, process::ExitCode, sync::Arc, time::Duration};
 use task::SnythesisTask;
@@ -112,6 +112,9 @@ struct PrintOpcodesArgs {
     /// ts files to parse for classes
     #[arg(short, long, num_args(0..))]
     ts_files: Vec<std::path::PathBuf>,
+
+    #[arg(short, long, default_value_t = false)]
+    only_ts: bool,
 
     #[arg(short, long, default_value_t = false)]
     print_summary: bool,
@@ -238,16 +241,20 @@ fn run_benchmarks(cli: &RunArgs) -> ExitCode {
 
 fn print_opcodes(cli: &PrintOpcodesArgs) -> ExitCode {
     let cache = Cache::new();
-    let classes = TsClasses::new();
+    let mut builder = TsClassesBuilder::new();
     let mut class_names = vec![];
 
-    class_names.extend(
-        SnythesisTask::add_classes_from_ts_files(&classes, cli.ts_files.iter().cloned(), &cache)
-            .unwrap(),
-    );
+    for full_path in cli.ts_files.iter() {
+        class_names.extend(builder.add_ts_file(&full_path, &cache).unwrap());
+    }
 
-    let composite_opcodes =
-        SnythesisTask::get_composite_opcodes(&classes, &class_names, true, &cache);
+    let classes = builder.finalize(&cache);
+
+    let composite_opcodes = if cli.only_ts {
+        SnythesisTask::get_classes_opcodes(&classes, &class_names)
+    } else {
+        SnythesisTask::get_composite_opcodes(&classes, &class_names, true, &cache)
+    };
     let opcodes_len = composite_opcodes.len();
 
     let sorted_opcodes = sort_opcodes(composite_opcodes);

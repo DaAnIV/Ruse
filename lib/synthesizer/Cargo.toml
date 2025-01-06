@@ -12,6 +12,7 @@ hashbrown = { version = "*", features = ["raw"], default-features = false }
 tokio = { version = "*", features = ["rt", "macros"] }
 tokio-util = "*"
 itertools = "*"
+downcast-rs = "*"
 rand = { version = "*", optional = true }
 tracing-subscriber = { version = "*", optional = true }
 

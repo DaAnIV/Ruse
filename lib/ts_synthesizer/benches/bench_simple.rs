@@ -3,7 +3,7 @@ use ruse_object_graph as object_graph;
 use ruse_object_graph::*;
 use ruse_synthesizer::{
     bank::SubsumptionProgBank,
-    context::{Context, ContextArray, GraphIdGenerator},
+    context::{Context, ContextArray, GraphIdGenerator, SynthesizerContext},
 };
 use ruse_ts_synthesizer::*;
 use std::sync::Arc;
@@ -56,15 +56,15 @@ fn simple_synthesize_1(c: &mut Criterion) {
                         &ALL_UPDATE_NUM_OPCODES,
                     );
 
+                    let syn_ctx = SynthesizerContext::from_context_array(ctx, cache);
                     TsSynthesizer::new(
                         SubsumptionProgBank::default(),
-                        ctx,
+                        syn_ctx,
                         opcodes.clone(),
                         Box::new(|_| false),
                         Box::new(|_| true),
                         2,
                         1,
-                        cache,
                     )
                 },
                 |mut synthesizer| async move {

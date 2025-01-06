@@ -15,12 +15,15 @@ use ruse_object_graph::{
 };
 use ruse_synthesizer::{
     bank::SubsumptionProgBank,
-    context::{Context, ContextArray, GraphIdGenerator, ValuesMap},
+    context::{Context, ContextArray, GraphIdGenerator, SynthesizerContext, ValuesMap},
     opcode::{ExprOpcode, OpcodesList},
     prog::SubProgram,
     synthesizer::SynthesizerPredicate,
 };
-use ruse_ts_interpreter::{dom, ts_class::TsClasses};
+use ruse_ts_interpreter::{
+    dom,
+    ts_class::{TsClasses, TsClassesBuilder},
+};
 use ruse_ts_synthesizer::*;
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -943,7 +946,7 @@ impl SnythesisTaskInner {
 #[derive(Debug)]
 pub struct SnythesisTask {
     inner: SnythesisTaskInner,
-    classes: TsClasses,
+    classes: Box<TsClasses>,
     class_names: Vec<ObjectType>,
     string_literals: HashSet<String, BuildHasherDefault<DefaultHasher>>,
     num_literals: HashSet<i64, BuildHasherDefault<DefaultHasher>>,
@@ -954,7 +957,7 @@ impl SnythesisTask {
     const DEFAULT_NUM_LITERALS: [i64; 2] = [0, 1];
 
     pub fn get_synthesizer(
-        &self,
+        self,
         mut max_context_depth: usize,
         iteration_workers_count: usize,
         bank_type: BankType,
@@ -971,21 +974,26 @@ impl SnythesisTask {
         }
 
         let bank = match bank_type {
-            BankType::SubsumptionBank => SubsumptionProgBank::default()
+            BankType::SubsumptionBank => SubsumptionProgBank::default(),
         };
 
+        let immutable_opt = self.inner.immutable;
+        let syn_ctx = SynthesizerContext::from_context_array_with_data(
+            context_array,
+            self.classes,
+            cache.clone(),
+        );
         let mut synthesizer = TsSynthesizer::new(
             bank,
-            context_array,
+            syn_ctx,
             opcodes,
             predicate,
             valid,
             max_context_depth,
             iteration_workers_count,
-            cache.clone(),
         );
 
-        if let Some(immutable) = &self.inner.immutable {
+        if let Some(immutable) = &immutable_opt {
             for var in immutable {
                 synthesizer.set_immutable(&str_cached!(cache; var));
             }
@@ -1082,45 +1090,6 @@ impl SnythesisTask {
         Ok(Box::new(move |_p| true))
     }
 
-    fn add_classes(
-        classes: &TsClasses,
-        classes_code: &Vec<String>,
-        cache: &Cache,
-    ) -> Result<Vec<CachedString>, SnythesisTaskError> {
-        let mut names = Vec::with_capacity(classes_code.len());
-        for code in classes_code {
-            match classes.add_class(code, cache) {
-                Ok(class_name) => names.push(class_name),
-                Err(e) => {
-                    return Err(parse_err!(code, e));
-                }
-            }
-        }
-
-        Ok(names)
-    }
-
-    pub fn add_classes_from_ts_files<I>(
-        classes: &TsClasses,
-        ts_file_paths: I,
-        cache: &Cache,
-    ) -> Result<Vec<CachedString>, SnythesisTaskError>
-    where
-        I: std::iter::IntoIterator<Item = PathBuf>,
-    {
-        let mut names: Vec<CachedString> = vec![];
-        for full_path in ts_file_paths {
-            match classes.add_ts_file(&full_path, cache) {
-                Ok(class_names) => names.extend(class_names),
-                Err(e) => {
-                    return Err(parse_err!(String::from(full_path.to_string_lossy()), e));
-                }
-            };
-        }
-
-        Ok(names)
-    }
-
     fn get_opcodes(&self, cache: &Cache) -> OpcodesList {
         let var_names: Vec<Arc<String>> = self
             .inner
@@ -1194,11 +1163,20 @@ impl SnythesisTask {
             add_seq_opcodes(&mut composite_opcodes, 2, &value_types);
         }
 
+        composite_opcodes.extend(Self::get_classes_opcodes(classes, class_names));
+
+        composite_opcodes
+    }
+
+    pub fn get_classes_opcodes(classes: &TsClasses, class_names: &Vec<ObjectType>) -> OpcodesList {
+        let mut composite_opcodes = OpcodesList::new();
+
         for class_name in class_names {
             let class = classes.get_class(class_name).unwrap();
             composite_opcodes.extend_from_slice(&class.member_opcodes);
             composite_opcodes.extend_from_slice(&class.method_opcodes);
         }
+
         composite_opcodes
     }
 
@@ -1237,21 +1215,31 @@ impl SnythesisTask {
             num_literals.extend(user_lit.clone());
         }
 
-        let classes = TsClasses::new();
+        let mut builder = TsClassesBuilder::new();
         let mut class_names = vec![];
         if let Some(classes_code) = &inner.classes {
-            class_names.extend(Self::add_classes(&classes, classes_code, cache)?);
+            for code in classes_code {
+                match builder.add_class(code, cache) {
+                    Ok(class_name) => class_names.push(class_name),
+                    Err(e) => {
+                        return Err(parse_err!(code, e));
+                    }
+                }
+            }
         }
 
         if let Some(ts_files) = &inner.ts_files {
-            class_names.extend(Self::add_classes_from_ts_files(
-                &classes,
-                ts_files
-                    .iter()
-                    .map(|rel_path| PathBuf::from_iter(&[&dir, rel_path])),
-                cache,
-            )?);
+            for full_path in ts_files {
+                match builder.add_ts_file(&full_path, cache) {
+                    Ok(names) => class_names.extend(names),
+                    Err(e) => {
+                        return Err(parse_err!(String::from(full_path.to_string_lossy()), e));
+                    }
+                };
+            }
         }
+
+        let classes = builder.finalize(cache);
 
         for (var, var_type) in &inner.variables {
             if let TaskType::Object(obj_type) = var_type {

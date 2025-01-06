@@ -12,7 +12,6 @@ use crate::{
 };
 
 pub struct ClassMethodOp {
-    classes: TsClasses,
     method_name: String,
     full_method_name: String,
     arg_types: Vec<ValueType>,
@@ -48,7 +47,6 @@ impl ClassMethodOp {
             full_method_name,
             arg_types,
             code,
-            classes,
         }
     }
 }
@@ -68,16 +66,12 @@ impl ExprOpcode for ClassMethodOp {
         post_ctx: &mut Context,
         syn_ctx: &SynthesizerContext,
     ) -> EvalResult {
-        let mut boa_ctx = self.classes.get_engine_ctx(post_ctx, &syn_ctx.cache);
+        let classes = syn_ctx.data.downcast_ref::<TsClasses>().unwrap();
+        let mut boa_ctx = classes.get_engine_ctx(post_ctx, &syn_ctx.cache);
         for (i, arg) in args.iter().enumerate() {
             let key = boa_engine::js_string!(format!("arg{}", i));
-            let value = value_to_js_value(
-                &self.classes,
-                arg.val(),
-                &mut boa_ctx,
-                post_ctx,
-                &syn_ctx.cache,
-            );
+            let value =
+                value_to_js_value(classes, arg.val(), &mut boa_ctx, post_ctx, &syn_ctx.cache);
             if boa_ctx
                 .register_global_property(key, value, boa_engine::property::Attribute::all())
                 .is_err()
@@ -90,17 +84,17 @@ impl ExprOpcode for ClassMethodOp {
             // Need to check if func changed the context
             Ok(res) => {
                 let output = post_ctx.temp_value(js_value_to_value(
-                &self.classes,
-                &res,
-                &mut boa_ctx,
-                &syn_ctx.cache,
-            ));
-            if boa_ctx.is_dirty() {
-                EvalResult::DirtyContext(output)
-            } else {
-                EvalResult::NoModification(output)
+                    classes,
+                    &res,
+                    &mut boa_ctx,
+                    &syn_ctx.cache,
+                ));
+                if boa_ctx.is_dirty() {
+                    EvalResult::DirtyContext(output)
+                } else {
+                    EvalResult::NoModification(output)
+                }
             }
-        },
             Err(_) => EvalResult::None,
         }
     }

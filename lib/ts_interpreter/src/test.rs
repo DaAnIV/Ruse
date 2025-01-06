@@ -254,12 +254,14 @@ mod ts_class_tests {
     use graph_map_value::GraphMapWrap;
     use ruse_object_graph::{str_cached, Cache};
     use ruse_object_graph::{value::*, *};
-    use ruse_synthesizer::context::{Context, ContextArray, GraphIdGenerator, SynthesizerContext, ValuesMap};
+    use ruse_synthesizer::context::{
+        Context, ContextArray, GraphIdGenerator, SynthesizerContext, ValuesMap,
+    };
     use ruse_synthesizer::test::helpers::{get_composite_prog, get_init_prog};
 
     use crate::js_value::value_to_js_value;
     use crate::opcode::{IdentOp, LitOp};
-    use crate::ts_class::TsClasses;
+    use crate::ts_class::{TsClasses, TsClassesBuilder};
 
     #[test]
     fn generate_object() {
@@ -270,10 +272,13 @@ mod ts_class_tests {
         let cache = Arc::new(Cache::new());
         let mut graphs_map = GraphsMap::default();
         let id_gen = Arc::new(GraphIdGenerator::default());
-        let classes = TsClasses::new();
-        let user_class_name = classes
+        let mut builder = TsClassesBuilder::new();
+
+        let user_class_name = builder
             .add_class(code, &cache)
             .expect("Failed to add User class");
+        let classes = builder.finalize(&cache);
+
         let mut graph = ObjectGraph::new(id_gen.get_id_for_graph());
         let user = classes
             .get_class(&user_class_name)
@@ -304,10 +309,13 @@ mod ts_class_tests {
                         public surname: string) {}
         }";
         let cache = Arc::new(Cache::new());
-        let classes = TsClasses::new();
-        let user_class_name = classes
+        let mut builder = TsClassesBuilder::new();
+
+        let user_class_name = builder
             .add_class(code, &cache)
             .expect("Failed to add User class");
+
+        let classes = builder.finalize(&cache);
 
         let user_class = classes.get_class(&user_class_name).unwrap();
         let opcodes = &user_class.member_opcodes;
@@ -332,10 +340,13 @@ mod ts_class_tests {
         }";
 
         let cache = Arc::new(Cache::new());
-        let classes = TsClasses::new();
+        let mut builder = TsClassesBuilder::new();
 
-        let student_class_name = classes.add_class(code1, &cache).unwrap();
-        let class_class_name = classes.add_class(code2, &cache).unwrap();
+        let student_class_name = builder.add_class(code1, &cache).unwrap();
+        let class_class_name = builder.add_class(code2, &cache).unwrap();
+
+        let classes = builder.finalize(&cache);
+
         let student_class = classes.get_class(&student_class_name).unwrap();
         let class_class = classes.get_class(&class_class_name).unwrap();
 
@@ -392,10 +403,14 @@ mod ts_class_tests {
         let cache = Arc::new(Cache::new());
         let mut graphs_map = GraphsMap::default();
         let id_gen = Arc::new(GraphIdGenerator::default());
-        let classes = TsClasses::new();
-        let user_class_name = classes
+        let mut builder = TsClassesBuilder::new();
+
+        let user_class_name = builder
             .add_class(code, &cache)
             .expect("Failed to add User class");
+
+        let classes = builder.finalize(&cache);
+
         let user_class = classes.get_class(&user_class_name).unwrap();
         let mut graph = ObjectGraph::new(id_gen.get_id_for_graph());
         let user = user_class.generate_object(
@@ -439,10 +454,13 @@ mod ts_class_tests {
         let cache = Arc::new(Cache::new());
         let mut graphs_map = GraphsMap::default();
         let id_gen = Arc::new(GraphIdGenerator::default());
+        let mut builder = TsClassesBuilder::new();
 
-        let classes = TsClasses::new();
-        let user_class_name = classes.add_class(code1, &cache).unwrap();
-        let user_pair_class_name = classes.add_class(code2, &cache).unwrap();
+        let user_class_name = builder.add_class(code1, &cache).unwrap();
+        let user_pair_class_name = builder.add_class(code2, &cache).unwrap();
+
+        let classes = builder.finalize(&cache);
+
         let user_class = classes.get_class(&user_class_name).unwrap();
         let user_class_pair = classes.get_class(&user_pair_class_name).unwrap();
 
@@ -497,7 +515,6 @@ mod ts_class_tests {
         assert_eq!(res.as_string().unwrap(), &js_string!("John Paul"));
     }
 
-    
     #[test]
     fn js_object_eval_set() {
         let code = "class User {
@@ -510,10 +527,14 @@ mod ts_class_tests {
         let cache = Arc::new(Cache::new());
         let mut graphs_map = GraphsMap::default();
         let id_gen = Arc::new(GraphIdGenerator::default());
-        let classes = TsClasses::new();
-        let user_class_name = classes
+        let mut builder = TsClassesBuilder::new();
+
+        let user_class_name = builder
             .add_class(code, &cache)
             .expect("Failed to add User class");
+
+        let classes = builder.finalize(&cache);
+
         let user_class = classes.get_class(&user_class_name).unwrap();
         let mut graph = ObjectGraph::new(id_gen.get_id_for_graph());
         let user = user_class.generate_object(
@@ -547,7 +568,6 @@ mod ts_class_tests {
         assert_eq!(user_name_after.unwrap().primitive().unwrap().string().unwrap().as_str(), "abc");
     }
 
-    
     #[test]
     fn js_object_method_opcode() {
         let code = "class User {
@@ -564,10 +584,14 @@ mod ts_class_tests {
         let cache = Arc::new(Cache::new());
         let mut graphs_map = GraphsMap::default();
         let id_gen = Arc::new(GraphIdGenerator::default());
-        let classes = TsClasses::new();
-        let user_class_name = classes
+        let mut builder = TsClassesBuilder::new();
+
+        let user_class_name = builder
             .add_class(code, &cache)
             .expect("Failed to add User class");
+
+        let classes = builder.finalize(&cache);
+
         let user_class = classes.get_class(&user_class_name).unwrap();
 
         assert_eq!(user_class.method_opcodes.len(), 1);
@@ -593,7 +617,7 @@ mod ts_class_tests {
 
         let ctx = Context::with_values(values, graphs_map.into(), id_gen);
         let ctx_arr = ContextArray::from(vec![ctx]);
-        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr.clone(), cache);
+        let syn_ctx = SynthesizerContext::from_context_array_with_data(ctx_arr.clone(), classes, cache);
 
         let user_op = Arc::new(IdentOp::new(syn_ctx.cached_string("user")));
         let user_prog = get_init_prog(user_op, &ctx_arr, &syn_ctx);
@@ -749,7 +773,7 @@ mod specific_bugs_tests {
         let splice_first_prog = get_composite_prog(
             first_item_op,
             vec![splice_prog.clone(), zero_prog.clone()],
-            &syn_ctx
+            &syn_ctx,
         );
         println!("{}\n", splice_first_prog);
 

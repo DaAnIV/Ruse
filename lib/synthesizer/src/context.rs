@@ -1,4 +1,5 @@
 use crate::location::{LocValue, Location, VarLoc};
+use downcast_rs::{impl_downcast, DowncastSync};
 use graph_equality::equal_graphs_by_nodes;
 use itertools::Itertools;
 use ruse_object_graph::{
@@ -52,18 +53,33 @@ impl Default for GraphIdGenerator {
     }
 }
 
+pub trait SynthesizerContextData: DowncastSync {}
+impl_downcast!(sync SynthesizerContextData);
+
+pub struct EmptySynthesizerData {}
+impl SynthesizerContextData for EmptySynthesizerData {}
+
 pub struct SynthesizerContext {
     all_variables: Arc<BTreeMap<VariableName, Variable>>,
     pub cache: Arc<Cache>,
     pub start_context: ContextArray,
+    pub data: Box<dyn SynthesizerContextData>,
 }
 
 impl SynthesizerContext {
     pub fn from_context_array(context_array: ContextArray, cache: Arc<Cache>) -> Self {
+        Self::from_context_array_with_data(context_array, Box::new(EmptySynthesizerData {}), cache)
+    }
+    pub fn from_context_array_with_data(
+        context_array: ContextArray,
+        data: Box<dyn SynthesizerContextData>,
+        cache: Arc<Cache>,
+    ) -> Self {
         Self {
             all_variables: context_array.get_variables(),
             cache,
             start_context: context_array,
+            data,
         }
     }
     pub fn get_variable(&self, name: &VariableName) -> Option<&Variable> {
