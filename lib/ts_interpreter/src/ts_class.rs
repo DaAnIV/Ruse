@@ -606,6 +606,7 @@ impl<'a> TsClassBuilder {
             method_name,
             &args,
             function_body.as_str(),
+            method.is_static,
         ));
         self.method_opcodes.push(method_op);
     }

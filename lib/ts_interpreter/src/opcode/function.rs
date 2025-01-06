@@ -16,6 +16,7 @@ pub struct ClassMethodOp {
     full_method_name: String,
     arg_types: Vec<ValueType>,
     code: String,
+    is_static: bool,
 }
 
 impl ClassMethodOp {
@@ -24,13 +25,16 @@ impl ClassMethodOp {
         method_name: String,
         args: &[(String, ValueType)],
         function_body: &str,
-        classes: TsClasses,
+        is_static: bool,
     ) -> Self {
         let full_method_name = format!("{}.{}", &obj_type, &method_name);
-        let mut arg_types = vec![ValueType::Object(obj_type)];
+        let mut arg_types = vec![];
+        if !is_static {
+            arg_types.push(ValueType::Object(obj_type));
+        };
         arg_types.extend(args.iter().map(|(_, value_type)| value_type.clone()));
-        let caller_args = (0..(arg_types.len() - 1))
-            .map(|i| format!("arg{}", i + 1))
+        let caller_args = (0..(arg_types.len()))
+            .map(|i| format!("arg{}", i))
             .collect::<Vec<_>>()
             .join(", ");
         let args_names = args
@@ -39,7 +43,7 @@ impl ClassMethodOp {
             .collect::<Vec<_>>()
             .join(", ");
         let code = format!(
-            "function func({}) {}\nfunc.call(arg0, {});",
+            "function func({}) {}\nfunc.call({});",
             args_names, function_body, caller_args
         );
         Self {
@@ -47,6 +51,7 @@ impl ClassMethodOp {
             full_method_name,
             arg_types,
             code,
+            is_static,
         }
     }
 }
@@ -109,6 +114,7 @@ impl std::fmt::Debug for ClassMethodOp {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ClassMethodOp")
             .field("method_name", &self.method_name)
+            .field("is_static", &self.is_static)
             .field("arg_types", &self.arg_types)
             .field("code", &self.code)
             .finish()
