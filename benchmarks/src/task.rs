@@ -1064,11 +1064,11 @@ impl SnythesisTask {
             if let Some(array) = &state_array {
                 for (actual, expected) in p.post_ctx().iter().zip(array) {
                     for (var, value) in expected.iter() {
-                        let actual_value = match actual.get_var_loc_value(var) {
+                        let actual_value = match actual.get_var_value(var) {
                             None => return false,
                             Some(v) => v,
                         };
-                        if actual_value.val().wrap(&actual.graphs_map)
+                        if actual_value.wrap(&actual.graphs_map)
                             != value.wrap(&predicate_graphs_map)
                         {
                             return false;

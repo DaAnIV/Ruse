@@ -45,18 +45,16 @@ pub(crate) fn merge_context(
     p_2: &Context,
     q_2: &Context,
 ) -> Result<(Context, Context), ()> {
-    trace!(target: "ruse::embedding", "Merging contexts");
-    trace!(target: "ruse::embedding", "p_1: {}", p_1);
-    trace!(target: "ruse::embedding", "q_1: {}", q_1);
-    trace!(target: "ruse::embedding", "p_2: {}", p_2);
-    trace!(target: "ruse::embedding", "q_2: {}", q_2);
+    // trace!(target: "ruse::embedding", "Merging contexts");
+    // trace!(target: "ruse::embedding", "p_1: {}", p_1);
+    // trace!(target: "ruse::embedding", "q_1: {}", q_1);
+    // trace!(target: "ruse::embedding", "p_2: {}", p_2);
+    // trace!(target: "ruse::embedding", "q_2: {}", q_2);
 
     let mut p_1_hat = p_1.values.as_ref().clone();
     let mut q_2_hat = q_2.values.as_ref().clone();
     let mut p_1_map_hat = GraphsMap::default();
     let mut q_2_map_hat = GraphsMap::default();
-    // let mut p_1_hat_graph = Arc::new(p_1.graph.as_ref().clone());
-    // let mut q_2_hat_graph = Arc::new(q_2.graph.as_ref().clone());
 
     let mut p1_hat_nodes_matches = HashMap::new();
     let mut q2_hat_nodes_matches = HashMap::new();
@@ -73,26 +71,26 @@ pub(crate) fn merge_context(
     variables.extend(p_2.variables());
 
     for var in variables {
-        match (q_1.get_var_loc_value(var), p_2.get_var_loc_value(var)) {
-            (None, Some(pre_val_2)) => match pre_val_2.val() {
+        match (q_1.get_var_value(var), p_2.get_var_value(var)) {
+            (None, Some(pre_val_2)) => match pre_val_2 {
                 Value::Primitive(_) => {
-                    pre_values.insert(var.clone(), pre_val_2.val().clone());
+                    pre_values.insert(var.clone(), pre_val_2.clone());
                 }
                 Value::Object(o) => only_p_2.push((var, o.clone())),
             },
-            (Some(post_val_1), None) => match post_val_1.val() {
+            (Some(post_val_1), None) => match post_val_1 {
                 Value::Primitive(_) => {
-                    post_values.insert(var.clone(), post_val_1.val().clone());
+                    post_values.insert(var.clone(), post_val_1.clone());
                 }
                 Value::Object(o) => only_q_1.push((var, o.clone())),
             },
-            (Some(post_val_1), Some(pre_val_2)) => match (post_val_1.val(), pre_val_2.val()) {
+            (Some(post_val_1), Some(pre_val_2)) => match (post_val_1, pre_val_2) {
                 (Value::Primitive(prim_1), Value::Primitive(prim_2)) => {
                     if prim_1 != prim_2 {
                         return Err(());
                     }
-                    if let Some(pre_val_1) = p_1.get_var_loc_value(var) {
-                        pre_values.insert(var.clone(), pre_val_1.val().clone());
+                    if let Some(pre_val_1) = p_1.get_var_value(var) {
+                        pre_values.insert(var.clone(), pre_val_1.clone());
                     }
                 }
                 (Value::Object(o_1), Value::Object(o_2)) => {
@@ -104,12 +102,12 @@ pub(crate) fn merge_context(
         }
     }
 
-    trace!(
-        target: "ruse::embedding", "intersection: [{}]",
-        intersection.iter().map(|x| x.0).join(",")
-    );
-    trace!(target: "ruse::embedding", "only_p_2: [{}]", only_p_2.iter().map(|x| x.0).join(","));
-    trace!(target: "ruse::embedding", "only_q_1: [{}]", only_q_1.iter().map(|x| x.0).join(","));
+    // trace!(
+    //     target: "ruse::embedding", "intersection: [{}]",
+    //     intersection.iter().map(|x| x.0).join(",")
+    // );
+    // trace!(target: "ruse::embedding", "only_p_2: [{}]", only_p_2.iter().map(|x| x.0).join(","));
+    // trace!(target: "ruse::embedding", "only_q_1: [{}]", only_q_1.iter().map(|x| x.0).join(","));
 
     let new_nodes_1 = triplet_new_nodes(p_1, q_1);
     let new_nodes_2 = HashSet::default();
@@ -128,10 +126,10 @@ pub(crate) fn merge_context(
     }
 
     for (var, _, _) in &intersection {
-        if let Some(q_2_o) = q_2.get_var_loc_value(var) {
+        if let Some(q_2_o) = q_2.get_var_value(var) {
             embed_object_value(
                 var,
-                q_2_o.val().obj().unwrap(),
+                q_2_o.obj().unwrap(),
                 &mut q_2_hat,
                 &mut q_2_map_hat,
                 q_2,
@@ -140,10 +138,10 @@ pub(crate) fn merge_context(
             );
         }
 
-        if let Some(p_1_o) = p_1.get_var_loc_value(var) {
+        if let Some(p_1_o) = p_1.get_var_value(var) {
             embed_object_value(
                 var,
-                p_1_o.val().obj().unwrap(),
+                p_1_o.obj().unwrap(),
                 &mut p_1_hat,
                 &mut p_1_map_hat,
                 p_1,
@@ -163,10 +161,10 @@ pub(crate) fn merge_context(
             &new_nodes_1,
             &mut p1_hat_nodes_matches,
         );
-        if let Some(q_o_2) = q_2.get_var_loc_value(var) {
+        if let Some(q_o_2) = q_2.get_var_value(var) {
             embed_object_value(
                 var,
-                q_o_2.val().obj().unwrap(),
+                q_o_2.obj().unwrap(),
                 &mut q_2_hat,
                 &mut q_2_map_hat,
                 q_2,
@@ -215,7 +213,7 @@ fn embed_object_value(
     new_nodes: &HashSet<NodeIndex>,
     matches: &mut HashMap<NodeIndex, (GraphIndex, NodeIndex)>,
 ) -> bool {
-    trace!(target: "ruse::embedding", "Embedding {}", var);
+    // trace!(target: "ruse::embedding", "Embedding {}", var);
 
     let (mut graph, new_var_value) = match matches.get(&obj_val.node) {
         Some((graph_id, node_id)) => {

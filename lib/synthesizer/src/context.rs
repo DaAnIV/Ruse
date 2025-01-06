@@ -227,6 +227,10 @@ impl Context {
         })
     }
 
+    pub fn get_var_value(&self, var: &VariableName) -> Option<Value> {
+        self.values.get(var).map(|x| x.clone())
+    }
+
     pub fn get_loc_value(&self, val: Value, loc: Location) -> LocValue {
         LocValue { val, loc }
     }
