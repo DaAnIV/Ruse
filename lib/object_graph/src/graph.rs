@@ -8,7 +8,7 @@ use std::{
 
 use crate::{
     graph_equality,
-    graph_map_value::{GraphMapEq, GraphMapHash, GraphMapValue, GraphMapWrap},
+    graph_map_value::{GraphMapDisplay, GraphMapEq, GraphMapHash, GraphMapValue, GraphMapWrap},
     graph_node::*,
     graph_walk::ObjectGraphWalker,
     node_index::{DefaultIx, NodeIndex},
@@ -541,3 +541,10 @@ impl GraphMapHash for ObjectGraph {
         }
     }
 }
+
+impl GraphMapDisplay for ObjectGraph {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>, graphs_map: &GraphsMap) -> core::fmt::Result {
+        self.fmt_graph(f, graphs_map)
+    }
+}
+
