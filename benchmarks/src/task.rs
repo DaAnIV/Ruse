@@ -1232,7 +1232,11 @@ impl SnythesisTask {
         }
 
         if let Some(ts_files) = &inner.ts_files {
-            for full_path in ts_files {
+            for ts_file in ts_files {
+                let full_path = match ts_file.is_relative() {
+                    true => path.parent().unwrap().join(ts_file),
+                    false => ts_file.clone(),
+                };
                 match builder.add_ts_file(&full_path, cache) {
                     Ok(names) => class_names.extend(names),
                     Err(e) => {
