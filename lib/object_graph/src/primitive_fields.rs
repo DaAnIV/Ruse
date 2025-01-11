@@ -7,9 +7,12 @@ use crate::CachedString;
 #[derive(bitcode::Encode, Clone, Copy, Debug, PartialOrd)]
 pub struct Number(pub f64);
 
+const NUMBER_TOLL: f64 = 0.000_1;
+
 impl PartialEq for Number {
     fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0 && self.0.is_sign_positive() == other.0.is_sign_positive()
+        (self.0 == other.0 || (self.0 - other.0).abs() < NUMBER_TOLL)
+            && self.0.is_sign_positive() == other.0.is_sign_positive()
     }
 }
 
