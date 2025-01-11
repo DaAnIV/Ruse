@@ -125,7 +125,7 @@ pub fn run_task(path: &Path, cache: Arc<Cache>, bench_config: &BenchmarkConfig) 
     let task = match task::SnythesisTask::from_json_file(path, &cache) {
         Ok(v) => v,
         Err(e) => {
-            error!(target: "ruse::runner", "Failed to parse task for {}. {}", task_name.display(), e);
+            error!(target: "ruse::runner", "Failed to run task {}. {}", task_name.display(), e);
             result.error(&e);
             return result;
         }

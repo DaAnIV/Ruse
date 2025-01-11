@@ -83,7 +83,29 @@ impl std::error::Error for VerifyError {}
 
 impl std::fmt::Display for VerifyError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.msg)
+        write!(f, "Verification error: {}", self.msg)
+    }
+}
+
+
+#[derive(Debug)]
+pub struct SkipError {
+    pub reason: String,
+}
+
+impl From<&str> for SkipError {
+    fn from(reason: &str) -> Self {
+        SkipError {
+            reason: reason.to_owned(),
+        }
+    }
+}
+
+impl std::error::Error for SkipError {}
+
+impl std::fmt::Display for SkipError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Skipped, reason: {}", self.reason)
     }
 }
 
@@ -92,6 +114,7 @@ pub enum SnythesisTaskError {
     IO(std::io::Error),
     Verify(VerifyError),
     Parse(ParseError),
+    Skip(SkipError),
 }
 
 impl std::error::Error for SnythesisTaskError {}
@@ -113,12 +136,22 @@ macro_rules! verify_err {
     };
 }
 
+macro_rules! skip_err {
+    ($reason:expr) => {
+        $crate::task::SnythesisTaskError::Skip($crate::task::SkipError {
+            reason: $reason.to_owned(),
+        })
+    };
+}
+
+
 impl std::fmt::Display for SnythesisTaskError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             SnythesisTaskError::IO(e) => write!(f, "{}", e),
             SnythesisTaskError::Verify(e) => write!(f, "{}", e),
             SnythesisTaskError::Parse(e) => write!(f, "{}", e),
+            SnythesisTaskError::Skip(e) => write!(f, "{}", e),
         }
     }
 }
@@ -889,7 +922,10 @@ struct SnythesisTaskInner {
     version: u32,
     #[serde(skip_serializing_if = "Option::is_none")]
     source: Option<String>,
-    variables: HashMap<String, TaskType>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    skip: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    variables: Option<HashMap<String, TaskType>>,
     #[serde(rename = "stringLiterals", skip_serializing_if = "Option::is_none")]
     string_literals: Option<Vec<String>>,
     #[serde(rename = "intLiterals", skip_serializing_if = "Option::is_none")]
@@ -900,47 +936,69 @@ struct SnythesisTaskInner {
     classes: Option<Vec<String>>,
     #[serde(rename = "import", skip_serializing_if = "Option::is_none")]
     ts_files: Option<Vec<PathBuf>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     immutable: Option<HashSet<String>>,
-    examples: Vec<SnythesisTaskExamples>,
-    solution: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    examples: Option<Vec<SnythesisTaskExamples>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    solution: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     opcodes: Option<HashSet<String>>,
 }
 
 impl SnythesisTaskInner {
     fn verify(&self) -> Result<(), SnythesisTaskError> {
+        if let Some(reason) = &self.skip {
+            return Err(skip_err!(reason));
+        }
+
+        if self.variables.is_none() {
+            return Err(verify_err!(
+                "Non skipped tasks must contain variables dict"
+            ));
+        }
+
+        if self.examples.is_none() {
+            return Err(verify_err!(
+                "Non skipped tasks must contain examples array"
+            ));
+        }
+
+        let variables = self.variables.as_ref().unwrap();
+        let examples = self.examples.as_ref().unwrap();
+
         if let Some(immutable) = &self.immutable {
-            if !immutable.iter().all(|x| self.variables.contains_key(x)) {
+            if !immutable.iter().all(|x| variables.contains_key(x)) {
                 return Err(verify_err!(
                     "Immutable contains a key which is not a variable"
                 ));
             }
         }
 
-        if self.examples.is_empty() {
+        if examples.is_empty() {
             return Err(verify_err!("No examples were given"));
         }
 
-        if self.return_type.is_some() && self.examples.iter().any(|x| x.output.is_none()) {
+        if self.return_type.is_some() && examples.iter().any(|x| x.output.is_none()) {
             return Err(verify_err!(
                 "All examples should have an output if the return type is given"
             ));
         }
 
-        if self.examples.iter().any(|x| x.output.is_some()) && self.return_type.is_none() {
+        if examples.iter().any(|x| x.output.is_some()) && self.return_type.is_none() {
             return Err(verify_err!(
                 "Can't give example outputs without a return type"
             ));
         }
 
-        if self.return_type.is_none() && self.examples.iter().any(|x| x.state.is_none()) {
+        if self.return_type.is_none() && examples.iter().any(|x| x.state.is_none()) {
             return Err(verify_err!(
                 "All examples should have a state if the return type is not given"
             ));
         }
 
-        if !(self.examples.iter().all(|x| x.state.is_some())
-            || self.examples.iter().all(|x| x.state.is_none()))
+        if !(examples.iter().all(|x| x.state.is_some())
+            || examples.iter().all(|x| x.state.is_none()))
         {
             return Err(verify_err!(
                 "All examples should either have a state predicate or none of them"
@@ -967,19 +1025,19 @@ impl SnythesisTaskInner {
                     ));
                 }
             }
-            if self.variables.iter().any(|var| var.1.is_object()) {
+            if variables.iter().any(|var| var.1.is_object()) {
                 return Err(verify_err!(
                     "Object type is only supported from .sy version 2"
                 ));
             }
-            if self.variables.iter().any(|var| var.1.is_var_ref()) {
+            if variables.iter().any(|var| var.1.is_var_ref()) {
                 return Err(verify_err!(
                     "Var Ref type is only supported from .sy version 2"
                 ));
             }
         }
 
-        for (var, var_type) in &self.variables {
+        for (var, var_type) in variables {
             if var == "document" && var_type != &TaskType::Dom {
                 return Err(verify_err!("document variable must be of type DOM"));
             }
@@ -988,12 +1046,12 @@ impl SnythesisTaskInner {
             }
 
             if var_type.is_var_ref() {
-                self.verify_no_var_ref_circle(var, &self.variables)?;
+                self.verify_no_var_ref_circle(var, variables)?;
             }
         }
 
-        if !(self.examples.iter().all(|x| {
-            self.variables
+        if !(examples.iter().all(|x| {
+            variables
                 .iter()
                 .filter(|(_, t)| !t.is_var_ref())
                 .all(|(k, _)| x.input.contains_key(k))
@@ -1007,8 +1065,8 @@ impl SnythesisTaskInner {
     }
 
     fn upgrade_from_version_1(&mut self) -> Result<(), SnythesisTaskError> {
-        for example in self.examples.iter_mut() {
-            example.upgrade_from_version_1(&self.variables, &self.return_type)?
+        for example in self.examples.as_mut().unwrap().iter_mut() {
+            example.upgrade_from_version_1(&self.variables.as_ref().unwrap(), &self.return_type)?
         }
 
         Ok(())
@@ -1053,12 +1111,14 @@ impl SnythesisTask {
         bank_type: BankType,
         cache: &Arc<Cache>,
     ) -> Result<TsSynthesizer<SubsumptionProgBank>, SnythesisTaskError> {
+        let variables = self.inner.variables.as_ref().unwrap();
+
         let opcodes = self.get_opcodes(cache);
         let context_array = self.get_context_array(cache)?;
         let predicate = self.get_predicate(cache)?;
         let valid = self.get_valid_predicate(cache)?;
         if let Some(immutable) = &self.inner.immutable {
-            if immutable.len() == self.inner.variables.len() {
+            if immutable.len() == variables.len() {
                 max_context_depth = 1;
             }
         }
@@ -1093,13 +1153,16 @@ impl SnythesisTask {
     }
 
     fn get_predicate(&self, cache: &Cache) -> Result<SynthesizerPredicate, SnythesisTaskError> {
+        let variables = self.inner.variables.as_ref().unwrap();
+        let examples = self.inner.examples.as_ref().unwrap();
+
         let mut predicate_graphs_map = GraphsMap::default();
         let predicate_gen_id = GraphIdGenerator::default();
         let root_name = cache.output_root_name();
         let output_array = match &self.inner.return_type {
             Some(return_type) => {
-                let mut array = Vec::with_capacity(self.inner.examples.len());
-                for example in &self.inner.examples {
+                let mut array = Vec::with_capacity(examples.len());
+                for example in examples {
                     let mut output = return_type.create_value(
                         example.output.as_ref().unwrap(),
                         &self.classes,
@@ -1117,13 +1180,13 @@ impl SnythesisTask {
             }
             None => None,
         };
-        let state_array = match self.inner.examples[0].state {
+        let state_array = match examples[0].state {
             Some(_) => {
-                let mut array = Vec::with_capacity(self.inner.examples.len());
-                for example in &self.inner.examples {
+                let mut array = Vec::with_capacity(examples.len());
+                for example in examples {
                     let state_map = parse_json_values(
                         example.state.as_ref().unwrap(),
-                        &self.inner.variables,
+                        variables,
                         &mut predicate_graphs_map,
                         &predicate_gen_id,
                         &self.classes,
@@ -1181,7 +1244,7 @@ impl SnythesisTask {
     fn get_opcodes(&self, cache: &Cache) -> OpcodesList {
         let var_names: Vec<Arc<String>> = self
             .inner
-            .variables
+            .variables.as_ref().unwrap()
             .keys()
             .map(|x| str_cached!(cache; x))
             .collect();
@@ -1269,9 +1332,12 @@ impl SnythesisTask {
     }
 
     fn get_context_array(&self, cache: &Cache) -> Result<ContextArray, SnythesisTaskError> {
-        let mut values = Vec::with_capacity(self.inner.examples.len());
-        for example in &self.inner.examples {
-            values.push(example.create_context(&self.inner.variables, &self.classes, cache)?);
+        let variables = self.inner.variables.as_ref().unwrap();
+        let examples = self.inner.examples.as_ref().unwrap();
+
+        let mut values = Vec::with_capacity(examples.len());
+        for example in examples {
+            values.push(example.create_context(variables, &self.classes, cache)?);
         }
 
         Ok(values.into())
@@ -1286,6 +1352,8 @@ impl SnythesisTask {
             }
         };
         inner.verify()?;
+
+        let variables = inner.variables.as_ref().unwrap();
 
         let mut dir = PathBuf::from(path);
         dir.pop();
@@ -1333,7 +1401,7 @@ impl SnythesisTask {
 
         let classes = builder.finalize(cache);
 
-        for (var, var_type) in &inner.variables {
+        for (var, var_type) in variables {
             if let TaskType::Object(obj_type) = var_type {
                 if classes.get_class(&str_cached!(cache; obj_type)).is_none() {
                     return Err(verify_err!(format!(
@@ -1344,11 +1412,11 @@ impl SnythesisTask {
             }
         }
 
-        for (var, var_type) in &inner.variables {
+        for (var, var_type) in variables {
             if var_type != &TaskType::Dom && var_type != &TaskType::DOMElement {
                 continue;
             };
-            for example in &mut inner.examples {
+            for example in inner.examples.as_mut().unwrap() {
                 example.load_var_value(dir.as_path(), var)?;
             }
         }
@@ -1356,7 +1424,7 @@ impl SnythesisTask {
         if inner.return_type == Some(TaskType::Dom)
             || inner.return_type == Some(TaskType::DOMElement)
         {
-            for example in &mut inner.examples {
+            for example in inner.examples.as_mut().unwrap() {
                 example.load_output_value(dir.as_path())?;
             }
         }
