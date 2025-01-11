@@ -2613,6 +2613,7 @@ dependencies = [
  "swc_ecma_ast",
  "swc_ecma_codegen",
  "swc_ecma_parser",
+ "tracing",
 ]
 
 [[package]]

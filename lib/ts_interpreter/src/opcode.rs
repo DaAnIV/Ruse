@@ -113,6 +113,46 @@ fn member_call_ast(callee_name: &str, children: &[Box<dyn ExprAst>]) -> Box<dyn 
     TsExprAst::create(ast::Expr::Call(expr))
 }
 
+fn static_member_call_ast(
+    obj_type: &str,
+    callee_name: &str,
+    children: &[Box<dyn ExprAst>],
+) -> Box<dyn ExprAst> {
+    let obj_ident = ast::Ident {
+        span: DUMMY_SP,
+        sym: obj_type.into(),
+        optional: false,
+        ctxt: Default::default(),
+    };
+
+    let callee_expr = ast::MemberExpr {
+        span: DUMMY_SP,
+        obj: ast::Expr::Ident(obj_ident).into(),
+        prop: ast::MemberProp::Ident(ast::IdentName::from(callee_name)),
+    };
+
+    let args = children
+        .iter()
+        .map(|x| {
+            let arg_ast = TsExprAst::from(x.as_ref());
+            ast::ExprOrSpread {
+                spread: None,
+                expr: arg_ast.node.to_owned(),
+            }
+        })
+        .collect();
+
+    let expr = ast::CallExpr {
+        span: DUMMY_SP,
+        callee: ast::Callee::Expr(ast::Expr::Member(callee_expr).into()),
+        args,
+        type_args: None,
+        ctxt: Default::default(),
+    };
+
+    TsExprAst::create(ast::Expr::Call(expr))
+}
+
 fn get_start_index(value: isize, len: usize) -> usize {
     let ilen = len as isize;
 
@@ -141,7 +181,6 @@ fn get_end_index(value: isize, len: usize) -> usize {
     }
 }
 
-mod set_ops;
 mod array_ops;
 mod bin;
 mod dom_ops;
@@ -149,11 +188,11 @@ mod function;
 mod ident;
 mod lit;
 mod member;
+mod sequence;
+mod set_ops;
 mod string_ops;
 mod unary;
-mod sequence;
 
-pub use set_ops::*;
 pub use array_ops::*;
 pub use bin::*;
 pub use dom_ops::*;
@@ -161,6 +200,7 @@ pub use function::*;
 pub use ident::*;
 pub use lit::*;
 pub use member::*;
+pub use sequence::*;
+pub use set_ops::*;
 pub use string_ops::*;
 pub use unary::*;
-pub use sequence::*;

@@ -4,14 +4,16 @@ use ruse_synthesizer::{
     location::*,
     opcode::{EvalResult, ExprAst, ExprOpcode},
 };
+use tracing::debug;
 
 use crate::{
     js_value::{js_value_to_value, value_to_js_value},
-    opcode::member_call_ast,
+    opcode::{member_call_ast, static_member_call_ast},
     ts_class::TsClasses,
 };
 
 pub struct ClassMethodOp {
+    obj_type: CachedString,
     method_name: String,
     full_method_name: String,
     arg_types: Vec<ValueType>,
@@ -30,7 +32,7 @@ impl ClassMethodOp {
         let full_method_name = format!("{}.{}", &obj_type, &method_name);
         let mut arg_types = vec![];
         if !is_static {
-            arg_types.push(ValueType::Object(obj_type));
+            arg_types.push(ValueType::Object(obj_type.clone()));
         };
         arg_types.extend(args.iter().map(|(_, value_type)| value_type.clone()));
         let caller_args = (0..(arg_types.len()))
@@ -42,11 +44,16 @@ impl ClassMethodOp {
             .map(|(name, _)| name.to_string())
             .collect::<Vec<_>>()
             .join(", ");
-        let code = format!(
-            "function func({}) {}\nfunc.call({});",
-            args_names, function_body, caller_args
-        );
+        let mut code = format!("function func({}) {}\n", args_names, function_body);
+
+        if is_static {
+            code += &format!("func.call(undefined, {});", caller_args);
+        } else {
+            code += &format!("func.call({});", caller_args);
+        }
+
         Self {
+            obj_type,
             method_name,
             full_method_name,
             arg_types,
@@ -77,10 +84,10 @@ impl ExprOpcode for ClassMethodOp {
             let key = boa_engine::js_string!(format!("arg{}", i));
             let value =
                 value_to_js_value(classes, arg.val(), &mut boa_ctx, post_ctx, &syn_ctx.cache);
-            if boa_ctx
-                .register_global_property(key, value, boa_engine::property::Attribute::all())
-                .is_err()
+            if let Err(err) =
+                boa_ctx.register_global_property(key, value, boa_engine::property::Attribute::all())
             {
+                debug!("Failed to register property. error: {}", err);
                 return EvalResult::None;
             }
         }
@@ -100,13 +107,23 @@ impl ExprOpcode for ClassMethodOp {
                     EvalResult::NoModification(output)
                 }
             }
-            Err(_) => EvalResult::None,
+            Err(err) => {
+                debug!(
+                    "Failed to evaluate {}. error: {}",
+                    self.full_method_name, err
+                );
+                EvalResult::None
+            }
         }
     }
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
         debug_assert_eq!(children.len(), self.arg_types.len());
-        member_call_ast(self.method_name.as_str(), children)
+        if self.is_static {
+            static_member_call_ast(self.obj_type.as_str(), self.method_name.as_str(), children)
+        } else {
+            member_call_ast(self.method_name.as_str(), children)
+        }
     }
 }
 
