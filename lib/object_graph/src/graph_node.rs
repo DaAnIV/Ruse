@@ -23,7 +23,46 @@ impl EdgeEndPoint {
     }
 }
 
-pub type FieldsMap = BTreeMap<FieldName, PrimitiveValue>;
+#[derive(Debug, Clone)]
+pub struct Attributes {
+    pub readonly: bool
+}
+
+impl Default for Attributes {
+    fn default() -> Self {
+        Self { readonly: false }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct PrimitiveField {
+    pub value: PrimitiveValue,
+    pub attributes: Attributes
+}
+
+impl From<PrimitiveValue> for PrimitiveField {
+    fn from(value: PrimitiveValue) -> Self {
+        Self {
+            value,
+            attributes: Attributes::default(),
+        }
+    }
+}
+
+impl Hash for PrimitiveField {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.value.hash(state);
+    }
+}
+
+impl Eq for PrimitiveField {}
+impl PartialEq for PrimitiveField {
+    fn eq(&self, other: &Self) -> bool {
+        self.value == other.value
+    }
+}
+
+pub type FieldsMap = BTreeMap<FieldName, PrimitiveField>;
 pub type PointersMap = BTreeMap<FieldName, EdgeEndPoint>;
 
 #[derive(Clone)]
@@ -31,6 +70,7 @@ pub struct ObjectGraphNode {
     obj_type: ObjectType,
     fields: FieldsMap,
     pointers: PointersMap,
+    pub attributes: Attributes
 }
 
 impl ObjectGraphNode {
@@ -39,6 +79,15 @@ impl ObjectGraphNode {
             obj_type,
             fields,
             pointers: pointers,
+            attributes: Attributes::default()
+        }
+    }
+    pub fn new_with_attrs(obj_type: ObjectType, fields: FieldsMap, pointers: PointersMap, attributes: Attributes) -> Self {
+        Self {
+            obj_type,
+            fields,
+            pointers: pointers,
+            attributes
         }
     }
 
@@ -89,11 +138,11 @@ impl ObjectGraphNode {
         self.fields.len()
     }
 
-    pub fn fields_iter(&self) -> impl std::iter::Iterator<Item = (&FieldName, &PrimitiveValue)> {
+    pub fn fields_iter(&self) -> impl std::iter::Iterator<Item = (&FieldName, &PrimitiveField)> {
         self.fields.iter()
     }
 
-    pub fn get_field(&self, field_name: &FieldName) -> Option<&PrimitiveValue> {
+    pub fn get_field(&self, field_name: &FieldName) -> Option<&PrimitiveField> {
         self.fields.get(field_name)
     }
 
@@ -101,11 +150,20 @@ impl ObjectGraphNode {
         &mut self,
         field_name: FieldName,
         value: PrimitiveValue,
-    ) -> Option<PrimitiveValue> {
-        self.fields.insert(field_name, value)
+    ) -> Option<PrimitiveField> {
+        self.insert_field_with_attributes(field_name, value, Attributes::default())
     }
 
-    pub fn remove_field(&mut self, field_name: &FieldName) -> Option<PrimitiveValue> {
+    pub fn insert_field_with_attributes(
+        &mut self,
+        field_name: FieldName,
+        value: PrimitiveValue,
+        attributes: Attributes
+    ) -> Option<PrimitiveField> {
+        self.fields.insert(field_name, PrimitiveField { value, attributes })
+    }
+
+    pub fn remove_field(&mut self, field_name: &FieldName) -> Option<PrimitiveField> {
         self.fields.remove(field_name)
     }
 }
@@ -132,8 +190,8 @@ impl PartialEq for ObjectGraphNode {
 impl fmt::Display for ObjectGraphNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "{}: {{", self.obj_type)?;
-        for (field, value) in &self.fields {
-            writeln!(f, "  {}: {}", field, value)?;
+        for (field_name, field) in &self.fields {
+            writeln!(f, "  {}: {}", field_name, field.value)?;
         }
         writeln!(f, "}}")?;
 
@@ -155,7 +213,10 @@ macro_rules! fields {
     () => (
         $crate::FieldsMap::default()
     );
-    ($($x:expr),+ $(,)?) => (
-        $crate::FieldsMap::from([$($x),+])
+    ($(($key:expr, $value:expr)),+) => (
+        $crate::FieldsMap::from([$(($key, $value.into())),+])
+    );
+    ($(($key:expr, $value:expr, $attrs:expr)),+ $(,)?) => (
+        $crate::FieldsMap::from([$(($key, $crate::PrimitiveField { value: $value, attributes: $attrs })),+])
     );
 }

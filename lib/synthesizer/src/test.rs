@@ -93,9 +93,9 @@ pub mod helpers {
             &self,
             _: &[&LocValue],
             post_ctx: &mut Context,
-            _: &SynthesizerContext,
+            syn_ctx: &SynthesizerContext,
         ) -> EvalResult {
-            if let Some(var) = post_ctx.get_var_loc_value(&self.id) {
+            if let Some(var) = post_ctx.get_var_loc_value(&self.id, syn_ctx) {
                 EvalResult::NoModification(var)
             } else {
                 EvalResult::None
@@ -188,6 +188,7 @@ pub mod helpers {
         ) -> EvalResult {
             let mut loc = Location::Var(VarLoc {
                 var: self.id.clone(),
+                attrs: Default::default(),
             });
             post_ctx.update_value(&self.new_value, &mut loc, syn_ctx);
             self.returns.clone()
@@ -230,7 +231,7 @@ pub mod helpers {
         for _ in 0..count {
             let key = scached!(cache; generate_random_str(4, rng));
             let value = generate_random_primitive_value(rng, cache);
-            fields.insert(key, value);
+            fields.insert(key, value.into());
         }
 
         fields
@@ -394,7 +395,7 @@ pub mod helpers {
 #[cfg(test)]
 mod bank_iterator_tests {
     use crate::{
-        bank::{BankHasherBuilder, SubsumptionProgramsMap, ProgramsMap},
+        bank::{BankHasherBuilder, ProgramsMap, SubsumptionProgramsMap},
         bank_iterator::bank_iterator,
         context::GraphIdGenerator,
         multi_programs_map_product::{multi_programs_map_product, ProgramChildrenIterator},
@@ -411,7 +412,7 @@ mod bank_iterator_tests {
     };
 
     use crate::{
-        bank::{SubsumptionProgBank, ProgBank, TypeMap},
+        bank::{ProgBank, SubsumptionProgBank, TypeMap},
         context::{ContextArray, SynthesizerContext},
         location::{LocValue, Location},
         opcode::{EvalResult, ExprOpcode},
@@ -484,7 +485,11 @@ mod bank_iterator_tests {
         bank.insert(type_map);
     }
 
-    fn create_programs_map(prefix: u32, n: u32, syn_ctx: &SynthesizerContext) -> SubsumptionProgramsMap {
+    fn create_programs_map(
+        prefix: u32,
+        n: u32,
+        syn_ctx: &SynthesizerContext,
+    ) -> SubsumptionProgramsMap {
         let map = SubsumptionProgramsMap::default();
         for i in 0..n {
             let full_value = (prefix as u64) << 32 | i as u64;
@@ -1102,22 +1107,22 @@ mod embedding_tests {
             .contains(&syn_ctx.cached_string("y")));
 
         let x = x_ctx
-            .get_var_loc_value(&syn_ctx.cached_string("x"))
+            .get_var_loc_value(&syn_ctx.cached_string("x"), &syn_ctx)
             .unwrap();
         let y = y_ctx
-            .get_var_loc_value(&syn_ctx.cached_string("y"))
+            .get_var_loc_value(&syn_ctx.cached_string("y"), &syn_ctx)
             .unwrap();
         let merged_pre_x = pre_merged_ctx
-            .get_var_loc_value(&syn_ctx.cached_string("x"))
+            .get_var_loc_value(&syn_ctx.cached_string("x"), &syn_ctx)
             .unwrap();
         let merged_pre_y = pre_merged_ctx
-            .get_var_loc_value(&syn_ctx.cached_string("y"))
+            .get_var_loc_value(&syn_ctx.cached_string("y"), &syn_ctx)
             .unwrap();
         let merged_post_x = post_merged_ctx
-            .get_var_loc_value(&syn_ctx.cached_string("x"))
+            .get_var_loc_value(&syn_ctx.cached_string("x"), &syn_ctx)
             .unwrap();
         let merged_post_y = post_merged_ctx
-            .get_var_loc_value(&syn_ctx.cached_string("y"))
+            .get_var_loc_value(&syn_ctx.cached_string("y"), &syn_ctx)
             .unwrap();
 
         assert_eq!(
@@ -1212,22 +1217,22 @@ mod embedding_tests {
             .contains(&syn_ctx.cached_string("y")));
 
         let x = x_ctx
-            .get_var_loc_value(&syn_ctx.cached_string("x"))
+            .get_var_loc_value(&syn_ctx.cached_string("x"), &syn_ctx)
             .unwrap();
         let y = y_ctx
-            .get_var_loc_value(&syn_ctx.cached_string("y"))
+            .get_var_loc_value(&syn_ctx.cached_string("y"), &syn_ctx)
             .unwrap();
         let merged_pre_x = pre_merged_ctx
-            .get_var_loc_value(&syn_ctx.cached_string("x"))
+            .get_var_loc_value(&syn_ctx.cached_string("x"), &syn_ctx)
             .unwrap();
         let merged_pre_y = pre_merged_ctx
-            .get_var_loc_value(&syn_ctx.cached_string("y"))
+            .get_var_loc_value(&syn_ctx.cached_string("y"), &syn_ctx)
             .unwrap();
         let merged_post_x = post_merged_ctx
-            .get_var_loc_value(&syn_ctx.cached_string("x"))
+            .get_var_loc_value(&syn_ctx.cached_string("x"), &syn_ctx)
             .unwrap();
         let merged_post_y = post_merged_ctx
-            .get_var_loc_value(&syn_ctx.cached_string("y"))
+            .get_var_loc_value(&syn_ctx.cached_string("y"), &syn_ctx)
             .unwrap();
 
         assert_eq!(

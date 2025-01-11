@@ -84,13 +84,20 @@ impl<'a, P: ProgBank> BankIteratorInner<'a, P> {
     }
 
     fn set_programs_iter(&mut self, iterations: &[usize]) -> bool {
-        if (0..self.arg_types.len())
-            .any(|i| self.bank.iteration(iterations[i]).get(&self.arg_types[i]).is_none())
-        {
+        if (0..self.arg_types.len()).any(|i| {
+            self.bank
+                .iteration(iterations[i])
+                .get(&self.arg_types[i])
+                .is_none()
+        }) {
             return false;
         }
         let program_maps = (0..self.arg_types.len()).map(|i| {
-            let map_ref = self.bank.iteration(iterations[i]).get(&self.arg_types[i]).unwrap();
+            let map_ref = self
+                .bank
+                .iteration(iterations[i])
+                .get(&self.arg_types[i])
+                .unwrap();
             std::ptr::from_ref(map_ref.value())
         });
 
@@ -139,7 +146,10 @@ impl<'a, P: ProgBank> BankIteratorInner<'a, P> {
     }
 }
 
-pub fn bank_iterator<'a, P: ProgBank>(bank: &'a P, arg_types: &'a [ValueType]) -> BankIterator<'a, P> {
+pub fn bank_iterator<'a, P: ProgBank>(
+    bank: &'a P,
+    arg_types: &'a [ValueType],
+) -> BankIterator<'a, P> {
     let inner = BankIteratorInner::new(bank, arg_types);
     BankIterator {
         remaining: inner.total_size,

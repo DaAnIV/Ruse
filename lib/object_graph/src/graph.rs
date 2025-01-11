@@ -202,15 +202,27 @@ impl ObjectGraph {
         Some(&self.get_node(node)?.obj_type())
     }
 
-    pub fn get_field(&self, node: &NodeIndex, field: &FieldName) -> Option<&PrimitiveValue> {
+    pub fn get_field(&self, node: &NodeIndex, field: &FieldName) -> Option<&PrimitiveField> {
         self.get_node(node)?.get_field(field).clone()
     }
 
     pub fn set_field(&mut self, node: &NodeIndex, field: FieldName, value: PrimitiveValue) {
-        self.get_mut_node(node).unwrap().insert_field(field, value);
+        self.set_field_with_attributes(node, field, value, Attributes::default());
     }
 
-    pub fn delete_field(&mut self, node: &NodeIndex, field: &FieldName) -> Option<PrimitiveValue> {
+    pub fn set_field_with_attributes(
+        &mut self,
+        node: &NodeIndex,
+        field: FieldName,
+        value: PrimitiveValue,
+        attributes: Attributes,
+    ) {
+        self.get_mut_node(node)
+            .unwrap()
+            .insert_field_with_attributes(field, value, attributes);
+    }
+
+    pub fn delete_field(&mut self, node: &NodeIndex, field: &FieldName) -> Option<PrimitiveField> {
         self.get_mut_node(node).unwrap().remove_field(field)
     }
 
@@ -222,7 +234,7 @@ impl ObjectGraph {
     pub fn fields(
         &self,
         id: &NodeIndex,
-    ) -> impl std::iter::Iterator<Item = (&FieldName, &PrimitiveValue)> {
+    ) -> impl std::iter::Iterator<Item = (&FieldName, &PrimitiveField)> {
         let node = self.get_node(id).unwrap();
         node.fields_iter()
     }
@@ -267,6 +279,10 @@ impl ObjectGraph {
 
     pub fn chained_graphs(&self) -> impl std::iter::Iterator<Item = &GraphIndex> {
         self.chained_graphs.keys()
+    }
+    
+    pub(crate) fn node_attributes(&self, node: NodeIndex) -> Option<Attributes> {
+        self.get_node(&node).map(|x| x.attributes.clone())
     }
 }
 
@@ -332,8 +348,8 @@ impl ObjectGraph {
             write!(f, "{} ", name)?;
         }
         writeln!(f, "{{")?;
-        for (field_name, val) in weight.fields_iter() {
-            writeln!(f, " {}{}: {},", indent_str, field_name, val)?;
+        for (field_name, field) in weight.fields_iter() {
+            writeln!(f, " {}{}: {},", indent_str, field_name, field.value)?;
         }
         for (field_name, val) in weight.pointers_iter() {
             match val {
@@ -391,6 +407,25 @@ impl ObjectGraph {
         self.add_simple_object_from_map(id, obj_type, map)
     }
 
+    pub fn add_primitive_array_object_from_fields<I>(
+        &mut self,
+        id: NodeIndex,
+        elem_type: &ValueType,
+        values: I,
+        cache: &Cache,
+    ) -> NodeIndex
+    where
+        I: IntoIterator,
+        I::Item: Into<PrimitiveField>,
+    {
+        let obj_type = ValueType::array_obj_cached_string(elem_type, cache);
+        let map = values
+            .into_iter()
+            .enumerate()
+            .map(|(i, f)| (scached!(cache; i.to_string()), f));
+        self.add_simple_object_from_fields_map(id, obj_type, map)
+    }
+
     pub fn add_array_object<I>(
         &mut self,
         id: NodeIndex,
@@ -421,13 +456,30 @@ impl ObjectGraph {
         I::Item: Into<PrimitiveValue>,
     {
         let obj_type = ValueType::set_obj_cached_string(elem_type, cache);
-        let map = values
-            .into_iter()
-            .map(|v| {
-                let pv: PrimitiveValue = v.into();
-                (scached!(cache; pv.to_string()), pv)
-            });
+        let map = values.into_iter().map(|v| {
+            let pv: PrimitiveValue = v.into();
+            (scached!(cache; pv.to_string()), pv)
+        });
         self.add_simple_object_from_map(id, obj_type, map)
+    }
+
+    pub fn add_primitive_set_object_from_fields<I>(
+        &mut self,
+        id: NodeIndex,
+        elem_type: &ValueType,
+        values: I,
+        cache: &Cache,
+    ) -> NodeIndex
+    where
+        I: IntoIterator,
+        I::Item: Into<PrimitiveField>,
+    {
+        let obj_type = ValueType::set_obj_cached_string(elem_type, cache);
+        let map = values.into_iter().map(|f| {
+            let pf: PrimitiveField = f.into();
+            (scached!(cache; pf.value.to_string()), pf)
+        });
+        self.add_simple_object_from_fields_map(id, obj_type, map)
     }
 
     pub fn add_simple_object_from_map<I, T>(
@@ -442,14 +494,57 @@ impl ObjectGraph {
     {
         let mut fields = FieldsMap::new();
 
-        for (key, val) in map {
-            fields.insert(key, val.into());
+        for (key, value) in map {
+            let pv: PrimitiveValue = value.into();
+            fields.insert(key, pv.into());
+        }
+
+        self.add_simple_object(id, obj_type, fields)
+    }
+
+    pub fn add_simple_object_from_fields_map<I, T>(
+        &mut self,
+        id: NodeIndex,
+        obj_type: ObjectType,
+        map: I,
+    ) -> NodeIndex
+    where
+        I: IntoIterator<Item = (FieldName, T)>,
+        T: Into<PrimitiveField>,
+    {
+        let mut fields = FieldsMap::new();
+
+        for (key, field) in map {
+            fields.insert(key, field.into());
         }
 
         self.add_simple_object(id, obj_type, fields)
     }
 
     pub fn add_object_from_map<I>(
+        &mut self,
+        id: NodeIndex,
+        obj_type: ObjectType,
+        map: I,
+    ) -> NodeIndex
+    where
+        I: IntoIterator<Item = (FieldName, Value)>,
+    {
+        let mut fields = FieldsMap::new();
+        let mut obj_keys = vec![];
+
+        for (key, val) in map {
+            Self::visit_value_in_map(val, &mut fields, key, &mut obj_keys);
+        }
+
+        if obj_keys.is_empty() {
+            self.add_simple_object(id, obj_type, fields)
+        } else {
+            self.add_object(id, obj_type, fields, obj_keys)
+        }
+    }
+
+    pub fn add_object_from_fields_map<I>(
         &mut self,
         id: NodeIndex,
         obj_type: ObjectType,
@@ -480,7 +575,7 @@ impl ObjectGraph {
     ) {
         match val {
             Value::Primitive(p) => {
-                fields.insert(key, p);
+                fields.insert(key, p.into());
             }
             Value::Object(o) => {
                 obj_keys.push((key, o));

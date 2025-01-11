@@ -216,14 +216,19 @@ impl Context {
         }
     }
 
-    pub fn get_var_loc_value(&self, var: &VariableName) -> Option<LocValue> {
-        let val = match self.values.get(var) {
-            None => return None,
-            Some(v) => v.clone(),
-        };
+    pub fn get_var_loc_value(
+        &self,
+        var: &VariableName,
+        syn_ctx: &SynthesizerContext,
+    ) -> Option<LocValue> {
+        let val = self.values.get(var)?.clone();
+        let readonly = syn_ctx.get_variable(var)?.immutable;
         Some(LocValue {
             val,
-            loc: Location::Var(VarLoc { var: var.clone() }),
+            loc: Location::Var(VarLoc {
+                var: var.clone(),
+                attrs: Attributes { readonly },
+            }),
         })
     }
 
@@ -295,7 +300,7 @@ impl Context {
     ) -> Option<Value> {
         let mut new_graph = self.graphs_map[graph].as_ref().clone();
         let result = if let Some(primitive_field) = new_graph.delete_field(&node, field_name) {
-            Value::Primitive(primitive_field)
+            Value::Primitive(primitive_field.value)
         } else {
             let neig = new_graph.get_neighbor(&node, field_name)?;
             let obj_val = match neig {
@@ -385,6 +390,37 @@ impl Context {
         let mut out_graph = ObjectGraph::new(out_graph_id);
 
         out_graph.add_primitive_array_object(out_node_id, elem_type, values, &syn_ctx.cache);
+
+        out_graph.set_as_root(syn_ctx.output_root_name().clone(), out_node_id);
+
+        self.update_graph(out_graph.into());
+        ObjectValue {
+            graph_id: out_graph_id,
+            node: out_node_id,
+        }
+    }
+
+    pub fn create_output_primitive_array_from_fields<I>(
+        &mut self,
+        elem_type: &ValueType,
+        values: I,
+        syn_ctx: &SynthesizerContext,
+    ) -> ObjectValue
+    where
+        I: IntoIterator,
+        I::Item: Into<PrimitiveField>,
+    {
+        let out_graph_id = self.graph_id_gen.get_id_for_graph();
+        let out_node_id = self.graph_id_gen.get_id_for_node();
+
+        let mut out_graph = ObjectGraph::new(out_graph_id);
+
+        out_graph.add_primitive_array_object_from_fields(
+            out_node_id,
+            elem_type,
+            values,
+            &syn_ctx.cache,
+        );
 
         out_graph.set_as_root(syn_ctx.output_root_name().clone(), out_node_id);
 

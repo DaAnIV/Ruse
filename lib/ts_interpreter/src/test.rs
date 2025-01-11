@@ -98,7 +98,7 @@ mod ts_simple_opcodes_tests {
         let mut update_out_ctx = id_out_ctx.clone();
         let out = op.eval(&[&x_val], &mut update_out_ctx, &syn_ctx).unwrap();
         assert_eq!(
-            ctx.get_var_loc_value(&id.name)
+            ctx.get_var_loc_value(&id.name, &syn_ctx)
                 .expect("Didn't find var")
                 .val()
                 .wrap(&ctx.graphs_map),
@@ -111,7 +111,8 @@ mod ts_simple_opcodes_tests {
         assert_eq!(
             x_val.loc(),
             &Location::Var(VarLoc {
-                var: id.name.clone()
+                var: id.name.clone(),
+                attrs: Attributes::default()
             })
         );
         assert_eq!(
@@ -121,7 +122,7 @@ mod ts_simple_opcodes_tests {
         assert_eq!(out.loc(), &Location::Temp);
         assert_eq!(
             update_out_ctx
-                .get_var_loc_value(&id.name)
+                .get_var_loc_value(&id.name, &syn_ctx)
                 .expect("Didn't find var")
                 .val()
                 .wrap(&update_out_ctx.graphs_map),
@@ -149,7 +150,7 @@ mod ts_simple_opcodes_tests {
         let mut update_out_ctx = id_out_ctx.clone();
         let out = op.eval(&[&x_val], &mut update_out_ctx, &syn_ctx).unwrap();
         assert_eq!(
-            ctx.get_var_loc_value(&id.name)
+            ctx.get_var_loc_value(&id.name, &syn_ctx)
                 .expect("Didn't find var")
                 .val()
                 .wrap(&ctx.graphs_map),
@@ -162,7 +163,8 @@ mod ts_simple_opcodes_tests {
         assert_eq!(
             x_val.loc(),
             &Location::Var(VarLoc {
-                var: id.name.clone()
+                var: id.name.clone(),
+                attrs: Attributes::default()
             })
         );
         assert_eq!(
@@ -172,7 +174,7 @@ mod ts_simple_opcodes_tests {
         assert_eq!(out.loc(), &Location::Temp);
         assert_eq!(
             update_out_ctx
-                .get_var_loc_value(&id.name)
+                .get_var_loc_value(&id.name, &syn_ctx)
                 .expect("Didn't find var")
                 .val()
                 .wrap(&update_out_ctx.graphs_map),
@@ -211,14 +213,14 @@ mod ts_simple_opcodes_tests {
             .unwrap();
 
         let orig_array = ctx
-            .get_var_loc_value(&id.name)
+            .get_var_loc_value(&id.name, &syn_ctx)
             .expect("Didn't find var")
             .val()
             .obj()
             .unwrap()
             .clone();
         let updated_array = update_out_ctx
-            .get_var_loc_value(&id.name)
+            .get_var_loc_value(&id.name, &syn_ctx)
             .expect("Didn't find var")
             .val()
             .obj()
@@ -551,11 +553,21 @@ mod ts_class_tests {
         values.insert(str_cached!(cache; "u"), Value::Object(user));
 
         let mut ctx = Context::with_values(values, graphs_map.into(), id_gen);
-        let mut boa_ctx = classes.get_engine_ctx(&mut ctx, &cache);
+        let syn_ctx =
+            SynthesizerContext::from_context_array(ContextArray::from(vec![ctx.clone()]), cache);
 
-        value_to_js_value(&classes, ctx.get_var_loc_value(&str_cached!(cache; "u")).unwrap().val(), &mut boa_ctx, &ctx, &cache);
+        value_to_js_value(
+            &classes,
+            ctx.get_var_loc_value(&syn_ctx.cached_string("u"), &syn_ctx)
+                .unwrap()
+                .val(),
+            &mut boa_ctx,
+            &ctx,
+            &syn_ctx.cache,
+        );
 
-        let js_user = user_class.generate_js_object(&classes, user, &mut boa_ctx, &cache);
+        let js_user =
+            user_class.generate_js_object(&classes, user, &mut boa_ctx, &syn_ctx.cache);
         boa_ctx
             .register_global_property(js_string!("u"), js_user, Attribute::all())
             .expect("Failed to register p");
@@ -563,9 +575,24 @@ mod ts_class_tests {
         let js_code = boa_engine::Source::from_bytes("u.name = \"abc\"");
         let _res = boa_ctx.eval(js_code).unwrap();
 
-        let user_after = ctx.get_var_loc_value(&str_cached!(cache; "u")).unwrap();
-        let user_name_after = user_after.val().obj().unwrap().get_field_value(&str_cached!(cache; "name"), &ctx.graphs_map);
-        assert_eq!(user_name_after.unwrap().primitive().unwrap().string().unwrap().as_str(), "abc");
+        let user_after = ctx
+            .get_var_loc_value(&syn_ctx.cached_string("u"), &syn_ctx)
+            .unwrap();
+        let user_name_after = user_after
+            .val()
+            .obj()
+            .unwrap()
+            .get_field_value(&syn_ctx.cached_string("name"), &ctx.graphs_map);
+        assert_eq!(
+            user_name_after
+                .unwrap()
+                .primitive()
+                .unwrap()
+                .string()
+                .unwrap()
+                .as_str(),
+            "abc"
+        );
     }
 
     #[test]
@@ -617,7 +644,9 @@ mod ts_class_tests {
 
         let ctx = Context::with_values(values, graphs_map.into(), id_gen);
         let ctx_arr = ContextArray::from(vec![ctx]);
-        let syn_ctx = SynthesizerContext::from_context_array_with_data(ctx_arr.clone(), classes, cache);
+        let syn_ctx =
+            SynthesizerContext::from_context_array(ctx_arr.clone(), cache);
+
 
         let user_op = Arc::new(IdentOp::new(syn_ctx.cached_string("user")));
         let user_prog = get_init_prog(user_op, &ctx_arr, &syn_ctx);
@@ -634,12 +663,37 @@ mod ts_class_tests {
             &syn_ctx,
         );
         println!("{}\n", test_prog);
-        let user_after = test_prog.post_ctx()[0].get_var_loc_value(&syn_ctx.cached_string("user")).unwrap();
-        let user_name_after = user_after.val().obj().unwrap().get_field_value(&syn_ctx.cached_string("name"), &test_prog.post_ctx()[0].graphs_map);
-        assert_eq!(user_name_after.unwrap().primitive().unwrap().string().unwrap().as_str(), "Name Lit");
-        let user_surname_after = user_after.val().obj().unwrap().get_field_value(&syn_ctx.cached_string("surname"), &test_prog.post_ctx()[0].graphs_map);
-        assert_eq!(user_surname_after.unwrap().primitive().unwrap().string().unwrap().as_str(), "Surname Lit");
-        
+        let user_after = test_prog.post_ctx()[0]
+            .get_var_loc_value(&syn_ctx.cached_string("user"), &syn_ctx)
+            .unwrap();
+        let user_name_after = user_after.val().obj().unwrap().get_field_value(
+            &syn_ctx.cached_string("name"),
+            &test_prog.post_ctx()[0].graphs_map,
+        );
+        assert_eq!(
+            user_name_after
+                .unwrap()
+                .primitive()
+                .unwrap()
+                .string()
+                .unwrap()
+                .as_str(),
+            "Name Lit"
+        );
+        let user_surname_after = user_after.val().obj().unwrap().get_field_value(
+            &syn_ctx.cached_string("surname"),
+            &test_prog.post_ctx()[0].graphs_map,
+        );
+        assert_eq!(
+            user_surname_after
+                .unwrap()
+                .primitive()
+                .unwrap()
+                .string()
+                .unwrap()
+                .as_str(),
+            "Surname Lit"
+        );
     }
 }
 
@@ -792,10 +846,10 @@ mod specific_bugs_tests {
             &syn_ctx.cache,
         );
         let final_arr = push_prog.post_ctx()[0]
-            .get_var_loc_value(&syn_ctx.cached_string("arr"))
+            .get_var_loc_value(&syn_ctx.cached_string("arr"), &syn_ctx)
             .unwrap();
         let expected_arr = expected_ctx
-            .get_var_loc_value(&syn_ctx.cached_string("arr"))
+            .get_var_loc_value(&syn_ctx.cached_string("arr"), &syn_ctx)
             .unwrap();
 
         assert_eq!(
@@ -854,7 +908,7 @@ mod specific_bugs_tests {
         let splice_first_prog = get_composite_prog(
             first_item_op,
             vec![splice_prog.clone(), zero_prog.clone()],
-            &syn_ctx
+            &syn_ctx,
         );
         println!("{}\n", splice_first_prog);
 
@@ -873,10 +927,10 @@ mod specific_bugs_tests {
             &syn_ctx.cache,
         );
         let final_arr = push_prog.post_ctx()[0]
-            .get_var_loc_value(&syn_ctx.cached_string("arr"))
+            .get_var_loc_value(&syn_ctx.cached_string("arr"), &syn_ctx)
             .unwrap();
         let expected_arr = expected_ctx
-            .get_var_loc_value(&syn_ctx.cached_string("arr"))
+            .get_var_loc_value(&syn_ctx.cached_string("arr"), &syn_ctx)
             .unwrap();
 
         assert_eq!(

@@ -1,18 +1,46 @@
 use ruse_object_graph::{
-    graph_map_value::*, value::Value, CachedString, GraphIndex, GraphsMap, NodeIndex,
+    graph_map_value::*, value::Value, Attributes, CachedString, GraphIndex, GraphsMap, NodeIndex,
 };
 use std::{fmt::Debug, fmt::Display, hash::Hash};
 
-#[derive(PartialEq, Eq, Debug, Clone, Hash)]
+#[derive(Debug, Clone)]
 pub struct ObjectFieldLoc {
     pub graph: GraphIndex,
     pub node: NodeIndex,
     pub field: CachedString,
+    pub attrs: Attributes,
 }
 
-#[derive(PartialEq, Eq, Debug, Clone, Hash)]
+impl Eq for ObjectFieldLoc {}
+impl PartialEq for ObjectFieldLoc {
+    fn eq(&self, other: &Self) -> bool {
+        self.graph == other.graph && self.node == other.node && self.field == other.field
+    }
+}
+impl Hash for ObjectFieldLoc {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.graph.hash(state);
+        self.node.hash(state);
+        self.field.hash(state);
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct VarLoc {
     pub var: CachedString,
+    pub attrs: Attributes,
+}
+
+impl Eq for VarLoc {}
+impl PartialEq for VarLoc {
+    fn eq(&self, other: &Self) -> bool {
+        self.var == other.var
+    }
+}
+impl Hash for VarLoc {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.var.hash(state);
+    }
 }
 
 #[derive(PartialEq, Eq, Debug, Clone, Hash)]
@@ -24,8 +52,8 @@ pub enum Location {
 
 #[derive(Debug, Clone)]
 pub struct LocValue {
-    pub(crate) loc: Location,
-    pub(crate) val: Value,
+    pub loc: Location,
+    pub val: Value,
 }
 
 impl Location {
@@ -81,6 +109,15 @@ impl LocValue {
         &self.loc
     }
 
+    #[inline]
+    pub fn readonly(&self) -> bool {
+        match &self.loc() {
+            Location::Temp => false,
+            Location::Var(var_loc) => var_loc.attrs.readonly,
+            Location::ObjectField(object_field_loc) => object_field_loc.attrs.readonly,
+        }
+    }
+
     pub fn get_obj_field_loc_value(
         &self,
         graphs_map: &GraphsMap,
@@ -88,17 +125,20 @@ impl LocValue {
     ) -> Option<Self> {
         let obj = self.val().obj().unwrap();
         let field = obj.get_field_value(field_name, graphs_map)?;
+        let attrs = obj.get_field_attrs(field_name, graphs_map)?;
         let loc = match &self.loc() {
             Location::Temp => Location::Temp,
             Location::Var(_l) => Location::ObjectField(ObjectFieldLoc {
                 graph: obj.graph_id,
                 node: obj.node,
                 field: field_name.clone(),
+                attrs,
             }),
             Location::ObjectField(_l) => Location::ObjectField(ObjectFieldLoc {
                 graph: obj.graph_id,
                 node: obj.node,
                 field: field_name.clone(),
+                attrs,
             }),
         };
 

@@ -3,8 +3,8 @@ use crate::{
     graph_map_value::*,
     graph_node::{EdgeEndPoint, FieldName, ObjectType},
     graph_walk::ObjectGraphWalker,
-    scached, Cache, CachedString, GraphIndex, GraphsMap, NodeIndex, Number, ObjectGraph,
-    PrimitiveValue,
+    scached, Attributes, Cache, CachedString, GraphIndex, GraphsMap, NodeIndex, Number,
+    ObjectGraph, PrimitiveField, PrimitiveValue,
 };
 use core::fmt;
 use std::{fmt::Debug, hash::Hash, sync::Arc};
@@ -76,9 +76,24 @@ impl ObjectValue {
         &graphs_map[self.graph_id]
     }
 
+    pub fn attrs(&self, graphs_map: &GraphsMap) -> Attributes {
+        self.graph_ref(graphs_map)
+            .node_attributes(self.node)
+            .unwrap()
+    }
+
     pub fn get_field_value(&self, field_name: &FieldName, graphs_map: &GraphsMap) -> Option<Value> {
         self.get_primitive_field_value(field_name, graphs_map)
             .or(self.get_object_field_value(field_name, graphs_map))
+    }
+
+    pub fn get_field_attrs(
+        &self,
+        field_name: &FieldName,
+        graphs_map: &GraphsMap,
+    ) -> Option<Attributes> {
+        self.get_primitive_field_attrs(field_name, graphs_map)
+            .or(self.get_object_field_attrs(field_name, graphs_map))
     }
 
     pub fn get_primitive_field_value(
@@ -86,9 +101,29 @@ impl ObjectValue {
         field_name: &FieldName,
         graphs_map: &GraphsMap,
     ) -> Option<Value> {
+        Option::map(self.get_primitive_field(field_name, graphs_map), |x| {
+            Value::Primitive(x.value)
+        })
+    }
+
+    pub fn get_primitive_field_attrs(
+        &self,
+        field_name: &FieldName,
+        graphs_map: &GraphsMap,
+    ) -> Option<Attributes> {
+        Option::map(self.get_primitive_field(field_name, graphs_map), |x| {
+            x.attributes
+        })
+    }
+
+    fn get_primitive_field(
+        &self,
+        field_name: &FieldName,
+        graphs_map: &GraphsMap,
+    ) -> Option<PrimitiveField> {
         Option::map(
             self.graph(graphs_map).get_field(&self.node, field_name),
-            |x| Value::Primitive(x.clone()),
+            |x| x.clone(),
         )
     }
 
@@ -97,19 +132,37 @@ impl ObjectValue {
         field_name: &FieldName,
         graphs_map: &GraphsMap,
     ) -> Option<Value> {
+        Option::map(self.get_object_field(field_name, graphs_map), |x| {
+            Value::Object(x)
+        })
+    }
+
+    pub fn get_object_field_attrs(
+        &self,
+        field_name: &FieldName,
+        graphs_map: &GraphsMap,
+    ) -> Option<Attributes> {
+        Option::map(self.get_object_field(field_name, graphs_map), |x| {
+            x.attrs(graphs_map)
+        })
+    }
+
+    pub fn get_object_field(
+        &self,
+        field_name: &FieldName,
+        graphs_map: &GraphsMap,
+    ) -> Option<ObjectValue> {
         Option::map(
             self.graph(graphs_map).get_neighbor(&self.node, field_name),
             |x| match x {
-                EdgeEndPoint::Internal(field_node_index) => Value::Object(ObjectValue {
+                EdgeEndPoint::Internal(field_node_index) => ObjectValue {
                     graph_id: self.graph_id,
                     node: *field_node_index,
-                }),
-                EdgeEndPoint::Chain(field_graph_index, field_node_index) => {
-                    Value::Object(ObjectValue {
-                        graph_id: *field_graph_index,
-                        node: *field_node_index,
-                    })
-                }
+                },
+                EdgeEndPoint::Chain(field_graph_index, field_node_index) => ObjectValue {
+                    graph_id: *field_graph_index,
+                    node: *field_node_index,
+                },
             },
         )
     }
@@ -141,7 +194,7 @@ impl ObjectValue {
     pub fn fields<'a>(
         &self,
         graphs_map: &'a GraphsMap,
-    ) -> impl Iterator<Item = (&'a FieldName, &'a PrimitiveValue)> {
+    ) -> impl Iterator<Item = (&'a FieldName, &'a PrimitiveField)> {
         graphs_map[&self.graph_id].fields(&self.node)
     }
 
@@ -161,10 +214,10 @@ impl GraphMapDisplay for ObjectValue {
             let mut iter = graph.fields(&self.node);
             match iter.next() {
                 None => (),
-                Some((_, first_val)) => {
-                    write!(f, "{}", first_val).unwrap();
-                    iter.for_each(|(_, val)| {
-                        write!(f, ", {}", val).unwrap();
+                Some((_, first_field)) => {
+                    write!(f, "{}", first_field.value)?;
+                    iter.for_each(|(_, field)| {
+                        write!(f, ", {}", field.value).unwrap();
                     });
                 }
             }
@@ -175,10 +228,10 @@ impl GraphMapDisplay for ObjectValue {
             let mut iter = graph.fields(&self.node);
             match iter.next() {
                 None => (),
-                Some((_, first_val)) => {
-                    write!(f, "{}", first_val).unwrap();
-                    iter.for_each(|(_, val)| {
-                        write!(f, ", {}", val).unwrap();
+                Some((_, first_field)) => {
+                    write!(f, "{}", first_field.value)?;
+                    iter.for_each(|(_, field)| {
+                        write!(f, ", {}", field.value).unwrap();
                     });
                 }
             }
@@ -297,7 +350,11 @@ impl fmt::Debug for Value {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Value::Primitive(primitive_value) => write!(f, "{}", primitive_value),
-            Value::Object(object_value) => write!(f, "graph_id: {}, node_id: {}", object_value.graph_id, object_value.node),
+            Value::Object(object_value) => write!(
+                f,
+                "graph_id: {}, node_id: {}",
+                object_value.graph_id, object_value.node
+            ),
         }
     }
 }
@@ -349,6 +406,13 @@ impl GraphMapDisplay for Value {
             Value::Object(o) => GraphMapDisplay::fmt(o, f, graphs_map),
         }
     }
+}
+
+#[macro_export]
+macro_rules! vnull {
+    () => {
+        $crate::value::Value::Primitive(ruse_object_graph::PrimitiveValue::Null)
+    };
 }
 
 #[macro_export]

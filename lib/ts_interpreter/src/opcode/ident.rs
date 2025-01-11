@@ -33,11 +33,11 @@ impl ExprOpcode for IdentOp {
         &self,
         args: &[&LocValue],
         post_ctx: &mut Context,
-        _: &SynthesizerContext,
+        syn_ctx: &SynthesizerContext,
     ) -> EvalResult {
         debug_assert_eq!(args.len(), 0);
 
-        post_ctx.get_var_loc_value(&self.name).into()
+        post_ctx.get_var_loc_value(&self.name, syn_ctx).into()
     }
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {

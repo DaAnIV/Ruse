@@ -1,6 +1,7 @@
 use html_parser::{self, Dom};
 use ruse_object_graph::{
     fields, scached, str_cached, Cache, CachedString, FieldsMap, NodeIndex, ObjectGraph,
+    PrimitiveValue,
 };
 use ruse_synthesizer::context::GraphIdGenerator;
 
@@ -31,25 +32,28 @@ impl DomLoader {
     ) -> NodeIndex {
         let mut fields = FieldsMap::from([(
             str_cached!(cache; "name"),
-            str_cached!(cache; &element.name).into(),
+            PrimitiveValue::String(str_cached!(cache; &element.name)).into(),
         )]);
         if let Some(id) = &element.id {
-            fields.insert(str_cached!(cache; "id"), str_cached!(cache; id).into());
+            fields.insert(
+                str_cached!(cache; "id"),
+                PrimitiveValue::String(str_cached!(cache; id)).into(),
+            );
         }
         for (attr, val) in &element.attributes {
             match val {
-                Some(s) => fields.insert(str_cached!(cache; attr), str_cached!(cache; s).into()),
-                None => fields.insert(
+                Some(s) => fields.insert(
                     str_cached!(cache; attr),
-                    ruse_object_graph::PrimitiveValue::Bool(true),
+                    PrimitiveValue::String(str_cached!(cache; s)).into(),
                 ),
+                None => fields.insert(str_cached!(cache; attr), PrimitiveValue::Bool(true).into()),
             };
         }
         if !element.classes.is_empty() {
             let classes = element.classes.join(" ");
             fields.insert(
                 str_cached!(cache; "className"),
-                scached!(cache; classes).into(),
+                PrimitiveValue::String(scached!(cache; classes)).into(),
             );
         }
 

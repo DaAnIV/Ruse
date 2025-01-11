@@ -267,7 +267,7 @@ impl ExprOpcode for ArraySliceOp {
                 .skip(start)
                 .take(end - start)
                 .map(|(_, p)| p.clone());
-            post_ctx.create_output_primitive_array(&self.elem_type, fields, &syn_ctx)
+            post_ctx.create_output_primitive_array_from_fields(&self.elem_type, fields, &syn_ctx)
         } else {
             let fields = graph
                 .neighbors(&arr.node)
@@ -332,9 +332,9 @@ impl ExprOpcode for ArrayConcatOp {
             let values = graph.fields(&arr.node).map(|x| x.1.clone()).chain(
                 args.iter()
                     .skip(1)
-                    .map(|x| x.val().primitive().unwrap().clone()),
+                    .map(|x| x.val().primitive().unwrap().clone().into() ),
             );
-            post_ctx.create_output_primitive_array(&self.elem_type, values, &syn_ctx)
+            post_ctx.create_output_primitive_array_from_fields(&self.elem_type, values, &syn_ctx)
         } else {
             let values = graph
                 .neighbors(&arr.node)
@@ -421,7 +421,7 @@ impl ExprOpcode for ArraySpliceOp {
             graph
                 .fields(&arr.node)
                 .skip(start + delete_count)
-                .map(|(_, p)| Value::Primitive(p.clone())),
+                .map(|(_, p)| Value::Primitive(p.value.clone())),
         );
 
         let deleted_items_arr = if self.elem_type.is_primitive() {
@@ -429,7 +429,7 @@ impl ExprOpcode for ArraySpliceOp {
                 .fields(&arr.node)
                 .skip(start)
                 .take(delete_count)
-                .map(|(_, p)| p.clone());
+                .map(|(_, p)| p.value.clone());
             post_ctx.create_output_primitive_array(&self.elem_type, fields, &syn_ctx)
         } else {
             let fields = graph
@@ -510,8 +510,8 @@ impl ExprOpcode for ArrayConcatArrayOp {
         let new_arr = if self.elem_type.is_primitive() {
             let values = graph
                 .fields(&arr.node)
-                .map(|x| x.1.clone())
-                .chain(graph_to_add.fields(&arr_to_add.node).map(|x| x.1.clone()));
+                .map(|x| x.1.value.clone())
+                .chain(graph_to_add.fields(&arr_to_add.node).map(|x| x.1.value.clone()));
             post_ctx.create_output_primitive_array(&self.elem_type, values, &syn_ctx)
         } else {
             let values = graph

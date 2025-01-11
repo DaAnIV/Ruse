@@ -24,8 +24,8 @@ impl GetElementByIdOp {
     }
 
     fn node_id_equal(&self, node: &ObjectGraphNode, id: &CachedString) -> bool {
-        if let Some(node_id) = node.get_field(&self.id_field_name) {
-            node_id.string().as_ref().unwrap() == id
+        if let Some(field) = node.get_field(&self.id_field_name) {
+            field.value.string().as_ref().unwrap() == id
         } else {
             false
         }
@@ -69,6 +69,7 @@ impl ExprOpcode for GetElementByIdOp {
                         graph: graph.id,
                         node: node_id,
                         field: field.clone(),
+                        attrs: Attributes::default()
                     };
                     found = EvalResult::NoModification(
                         post_ctx.get_loc_value(Value::Object(val), Location::ObjectField(loc)),
