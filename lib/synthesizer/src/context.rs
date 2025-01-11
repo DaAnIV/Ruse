@@ -35,6 +35,13 @@ pub struct GraphIdGenerator {
 }
 
 impl GraphIdGenerator {
+    pub fn with_initial_values(node_id: NodeIndex, graph_id: GraphIndex) -> Self {
+        Self {
+            node_id: node_id.0.into(),
+            graph_id: graph_id.into(),
+        }
+    }
+
     pub fn get_id_for_node(&self) -> NodeIndex {
         NodeIndex(self.node_id.fetch_add(1, atomic::Ordering::Relaxed))
     }
@@ -42,14 +49,19 @@ impl GraphIdGenerator {
     pub fn get_id_for_graph(&self) -> GraphIndex {
         self.graph_id.fetch_add(1, atomic::Ordering::Relaxed)
     }
+
+    pub fn max_node_id(&self) -> NodeIndex {
+        NodeIndex(self.node_id.load(atomic::Ordering::Relaxed))
+    }
+
+    pub fn max_graph_id(&self) -> GraphIndex {
+        self.graph_id.load(atomic::Ordering::Relaxed)
+    }
 }
 
 impl Default for GraphIdGenerator {
     fn default() -> Self {
-        Self {
-            node_id: 0.into(),
-            graph_id: 0.into(),
-        }
+        Self::with_initial_values(0.into(), 0)
     }
 }
 
@@ -333,6 +345,12 @@ impl Context {
         self.graphs_map = new_map.into();
     }
 
+    pub fn insert_if_new(&mut self, new_graph: Arc<ObjectGraph>) {
+        if !self.graphs_map.contains(new_graph.id) {
+            self.update_graph(new_graph);
+        }
+    }
+
     pub fn variable_count(&self) -> usize {
         self.values.len()
     }
@@ -351,7 +369,7 @@ impl Context {
         self.graphs_map = new_map.into();
     }
 
-    fn get_partial_context<'a, I>(&self, required_variables: I) -> Option<Self>
+    pub(crate) fn get_partial_context<'a, I>(&self, required_variables: I) -> Option<Self>
     where
         I: IntoIterator<Item = &'a CachedString> + Copy,
     {

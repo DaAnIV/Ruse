@@ -1,6 +1,6 @@
 use std::{
     collections::{BTreeMap, HashMap},
-    fmt::{self, Debug},
+    fmt::{self, Debug, Display},
     hash::{BuildHasherDefault, DefaultHasher, Hash, Hasher},
     ops::{self, AddAssign, SubAssign},
     sync::Arc,
@@ -26,8 +26,22 @@ impl GraphsMap {
         self.0.insert(graph.id, graph)
     }
 
+    pub fn insert_graph_if_new(&mut self, graph: Arc<ObjectGraph>) -> bool {
+        match self.0.entry(graph.id) {
+            std::collections::hash_map::Entry::Occupied(_) => false,
+            std::collections::hash_map::Entry::Vacant(vacant_entry) => {
+                vacant_entry.insert(graph);
+                true
+            },
+        }
+    }
+
     pub fn get(&self, index: &GraphIndex) -> Option<&Arc<ObjectGraph>> {
         self.0.get(&index)
+    }
+
+    pub fn get_mut(&mut self, index: &GraphIndex) -> Option<&mut Arc<ObjectGraph>> {
+        self.0.get_mut(&index)
     }
 
     pub fn contains(&self, index: GraphIndex) -> bool {
@@ -46,6 +60,14 @@ impl GraphsMap {
 
     pub fn keys(&self) -> impl std::iter::Iterator<Item = &usize> {
         self.0.keys()
+    }
+    
+    pub fn add_static_graphs(&mut self, from: &GraphsMap) {
+        for g in from.0.values() {
+            if g.is_static() {
+                self.insert_graph_if_new(g.clone());
+            }
+        }
     }
 }
 
@@ -67,6 +89,16 @@ impl ops::Index<GraphIndex> for GraphsMap {
     }
 }
 
+impl Display for GraphsMap {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for g in self.0.values() {
+            g.fmt_graph(f, self)?
+        }
+
+        Ok(())
+    }
+}
+
 type NodesMap = HashMap<NodeIndex, Arc<ObjectGraphNode>>;
 pub type RootName = CachedString;
 type RootsMap = BTreeMap<RootName, NodeIndex>;
@@ -74,6 +106,7 @@ type RootsMap = BTreeMap<RootName, NodeIndex>;
 #[derive(Clone, Debug)]
 pub struct ObjectGraph {
     pub id: GraphIndex,
+    is_static: bool,
     pub(crate) nodes: NodesMap,
     pub(crate) roots: RootsMap,
     pub(crate) chained_graphs: HashMap<GraphIndex, usize>,
@@ -86,7 +119,22 @@ impl ObjectGraph {
             nodes: Default::default(),
             roots: Default::default(),
             chained_graphs: Default::default(),
+            is_static: false
         }
+    }
+
+    pub fn new_static(id: GraphIndex) -> Self {
+        Self {
+            id,
+            nodes: Default::default(),
+            roots: Default::default(),
+            chained_graphs: Default::default(),
+            is_static: true
+        }
+    }
+
+    pub fn is_static(&self) -> bool {
+        self.is_static
     }
 
     pub fn add_node(&mut self, id: NodeIndex, node: ObjectGraphNode) -> &mut ObjectGraphNode {
@@ -123,12 +171,8 @@ impl ObjectGraph {
         self.nodes.get(id)
     }
 
-    fn get_mut_node(&mut self, id: &NodeIndex) -> Option<&mut ObjectGraphNode> {
-        let old_node = self.nodes.get(id)?;
-        let node_clone = (**old_node).clone();
-        self.nodes.insert(*id, node_clone.into());
-
-        Arc::get_mut(self.nodes.get_mut(id).unwrap())
+    pub(crate) fn get_mut_node(&mut self, id: &NodeIndex) -> Option<&mut ObjectGraphNode> {
+        Some(Arc::make_mut(self.nodes.get_mut(id)?))
     }
 
     pub fn node_count(&self) -> usize {
@@ -583,7 +627,7 @@ impl ObjectGraph {
         };
     }
 
-    fn add_object(
+    pub fn add_object(
         &mut self,
         id: NodeIndex,
         obj_type: ObjectType,

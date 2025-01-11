@@ -56,6 +56,11 @@ pub(crate) fn merge_context(
     let mut p_1_map_hat = GraphsMap::default();
     let mut q_2_map_hat = GraphsMap::default();
 
+    p_1_map_hat.add_static_graphs(&p_2.graphs_map);
+    p_1_map_hat.add_static_graphs(&p_1.graphs_map);
+    q_2_map_hat.add_static_graphs(&q_2.graphs_map);
+    q_2_map_hat.add_static_graphs(&q_1.graphs_map);
+
     let mut p1_hat_nodes_matches = HashMap::new();
     let mut q2_hat_nodes_matches = HashMap::new();
 
@@ -263,6 +268,10 @@ fn embed(
     q.push_back((graph_id, node_id));
     while let Some((cur_graph_id, cur_node_id)) = q.pop_front() {
         let graph = &graphs_map[cur_graph_id];
+        if graph.is_static() {
+            matches.insert(cur_node_id, (cur_graph_id, cur_node_id));
+            continue;
+        }
         let node = graph.get_node(&cur_node_id).unwrap();
         let new_node = new_graph.add_node(cur_node_id, node.clone_without_pointers());
         matches.insert(cur_node_id, (new_graph_id, cur_node_id));

@@ -748,7 +748,10 @@ impl SnythesisTaskExamples {
         classes: &TsClasses,
         cache: &Cache,
     ) -> Result<Context, SnythesisTaskError> {
-        let id_gen = Arc::new(GraphIdGenerator::default());
+        let id_gen = Arc::new(GraphIdGenerator::with_initial_values(
+            classes.static_classes_gen_id.max_node_id(),
+            classes.static_classes_gen_id.max_graph_id(),
+        ));
         let mut graphs_map = GraphsMap::default();
         let mut values = parse_json_values(
             &self.input,

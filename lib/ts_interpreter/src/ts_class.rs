@@ -6,17 +6,19 @@ use std::{
 };
 
 use ruse_object_graph::{
-    scached, str_cached, Cache, CachedString, FieldName, ObjectGraph, RootName,
+    fields, scached, str_cached, vbool, vnull, vnum, vobj, vstring, Attributes, Cache,
+    CachedString, FieldName, NodeIndex, ObjectGraph, PrimitiveValue, RootName,
 };
 use ruse_synthesizer::{
     context::{Context, GraphIdGenerator, SynthesizerContextData},
-    opcode::OpcodesList,
+    location::{LocValue, Location, ObjectFieldLoc},
+    opcode::{ExprOpcode, OpcodesList},
 };
 use swc_common::{
     errors::{ColorConfig, Handler},
     FileName, SourceMap, DUMMY_SP,
 };
-use swc_ecma_ast::{self as ast, ClassDecl};
+use swc_ecma_ast::{self as ast, ClassDecl, ClassProp};
 
 use anyhow::Error;
 use ruse_object_graph::value::*;
@@ -24,11 +26,12 @@ use swc_ecma_parser::{Syntax, TsSyntax};
 
 use crate::{
     js_value::{js_value_to_value, value_to_js_value},
-    opcode::{ClassMethodOp, MemberOp},
+    opcode::{ClassMethodOp, MemberOp, StaticMemberOp},
 };
 
 #[derive(Debug)]
 pub struct TsClasses {
+    pub static_classes_gen_id: Arc<GraphIdGenerator>,
     classes: HashMap<CachedString, TsClass>,
 }
 
@@ -167,6 +170,8 @@ pub struct TsClass {
     pub fields: HashMap<CachedString, ValueType>,
     pub member_opcodes: OpcodesList,
     pub method_opcodes: OpcodesList,
+    pub static_graph: Arc<ObjectGraph>,
+    pub static_fields: HashMap<CachedString, (ValueType, LocValue)>,
 }
 
 impl TsClass {
@@ -409,24 +414,33 @@ impl TsClassesBuilder {
 
     pub fn finalize(self, cache: &Cache) -> Box<TsClasses> {
         let mut classes = HashMap::default();
+        let gen_id = Arc::new(GraphIdGenerator::default());
         for class_decl in self.classes.values() {
-            let class = TsClassBuilder::from_class_decl(class_decl, cache).finalize(cache);
+            let class = TsClassBuilder::from_class_decl(class_decl, &gen_id, cache)
+                .finalize(&self.classes, cache);
             classes.insert(class.class_name.clone(), class);
         }
 
-        Box::new(TsClasses { classes })
+        Box::new(TsClasses {
+            static_classes_gen_id: gen_id,
+            classes,
+        })
     }
 }
 
-struct TsClassBuilder {
+struct TsClassBuilder<'a> {
     class: Box<ast::Class>,
     member_opcodes: OpcodesList,
     method_opcodes: OpcodesList,
     class_name: CachedString,
     fields: HashMap<CachedString, ValueType>,
+    gen_id: &'a GraphIdGenerator,
+    static_graph: Arc<ObjectGraph>,
+    root_node: NodeIndex,
+    static_fields: HashMap<CachedString, (ValueType, LocValue)>,
 }
 
-impl<'a> TsClassBuilder {
+impl<'a> TsClassBuilder<'a> {
     fn get_class_decl(code: &str) -> Result<ClassDecl, Error> {
         let script = TsClass::get_ast(code)?.script().unwrap();
         Ok(script.body[0]
@@ -441,19 +455,24 @@ impl<'a> TsClassBuilder {
         str_cached!(cache; decl.ident.sym.as_str())
     }
 
-    fn from_class_decl(decl: &ClassDecl, cache: &Cache) -> Self {
+    fn from_class_decl(decl: &ClassDecl, gen_id: &'a GraphIdGenerator, cache: &Cache) -> Self {
         let class = Self {
             class: decl.class.clone(),
             class_name: Self::get_class_name(decl, cache),
             fields: Default::default(),
             member_opcodes: Default::default(),
             method_opcodes: Default::default(),
+            static_graph: ObjectGraph::new_static(gen_id.get_id_for_graph()).into(),
+            root_node: gen_id.get_id_for_node(),
+            static_fields: Default::default(),
+            gen_id,
         };
 
         class
     }
 
-    fn finalize(mut self, cache: &Cache) -> TsClass {
+    fn finalize(mut self, classes: &HashMap<CachedString, ClassDecl>, cache: &Cache) -> TsClass {
+        self.generate_static_graph(classes, cache);
         self.populate_opcodes(cache);
 
         TsClass {
@@ -462,6 +481,8 @@ impl<'a> TsClassBuilder {
             fields: self.fields,
             member_opcodes: self.member_opcodes,
             method_opcodes: self.method_opcodes,
+            static_graph: self.static_graph,
+            static_fields: self.static_fields,
         }
     }
 
@@ -560,14 +581,24 @@ impl<'a> TsClassBuilder {
         let ident = prop.key.as_ident().unwrap();
         let member = str_cached!(cache; ident.sym.as_str());
 
-        let member_type =
-            Self::get_value_type(&prop.type_ann.as_ref().unwrap().type_ann, cache);
-        if let Some(_field_type) = self.fields.get(&member) {
-            // TODO: check field type matches
-            return;
-        }
-        self.fields.insert(member.clone(), member_type);
-        let accessor = Arc::new(MemberOp::new(self.class_name.clone(), member));
+        let accessor: Arc<dyn ExprOpcode> = if prop.is_static {
+            let loc_val = self.static_fields[&member].1.clone();
+            Arc::new(StaticMemberOp::new(
+                self.class_name.clone(),
+                member,
+                self.static_graph.clone().into(),
+                loc_val,
+            ))
+        } else {
+            let member_type =
+                Self::get_value_type(&prop.type_ann.as_ref().unwrap().type_ann, cache);
+            if let Some(_field_type) = self.fields.get(&member) {
+                // TODO: check field type matches
+                return;
+            }
+            self.fields.insert(member.clone(), member_type);
+            Arc::new(MemberOp::new(self.class_name.clone(), member))
+        };
         self.member_opcodes.push(accessor);
     }
 
@@ -621,6 +652,243 @@ impl<'a> TsClassBuilder {
                 Self::pat_to_name_type(&assign_pat.left, cache)
             }
             _ => todo!(),
+        }
+    }
+
+    fn generate_object_from_constructor<I>(
+        decl: &ClassDecl,
+        class_name: CachedString,
+        graph: &mut ObjectGraph,
+        node: NodeIndex,
+        params: I,
+        classes: &HashMap<CachedString, ClassDecl>,
+        gen_id: &GraphIdGenerator,
+        cache: &Cache,
+    ) -> ObjectValue
+    where
+        I: IntoIterator<Item = Value> + Clone,
+    {
+        graph.construct_node(node, class_name, fields!());
+
+        for member in decl.class.body.iter() {
+            match &member {
+                swc_ecma_ast::ClassMember::Constructor(constructor) => {
+                    Self::add_fields_from_constructor(
+                        graph,
+                        node,
+                        constructor,
+                        params.clone(),
+                        cache,
+                    )
+                }
+                swc_ecma_ast::ClassMember::ClassProp(class_prop) => {
+                    if class_prop.is_static {
+                        continue;
+                    }
+                    let _ =
+                        Self::add_field_from_prop(graph, node, class_prop, classes, gen_id, cache);
+                }
+                _ => (),
+            }
+        }
+
+        ObjectValue {
+            graph_id: graph.id,
+            node: node,
+        }
+    }
+
+    fn add_fields_from_constructor<I>(
+        graph: &mut ObjectGraph,
+        node: NodeIndex,
+        constructor: &ast::Constructor,
+        params: I,
+        cache: &Cache,
+    ) where
+        I: IntoIterator<Item = Value>,
+    {
+        for (param, param_value) in constructor.params.iter().zip(params) {
+            let ts_param = param.as_ts_param_prop().unwrap();
+            let ident = ts_param.param.as_ident().unwrap();
+            let field = str_cached!(cache; ident.sym.as_str());
+            match param_value {
+                Value::Primitive(primitive_value) => {
+                    graph.set_field(&node, field.clone(), primitive_value)
+                }
+                Value::Object(object_value) => {
+                    graph.set_edge(&node, object_value.node, field.clone());
+                }
+            };
+        }
+    }
+
+    fn generate_static_graph(&mut self, classes: &HashMap<CachedString, ClassDecl>, cache: &Cache) {
+        self.add_root_node(cache);
+
+        for member in self.class.body.clone().iter() {
+            match member {
+                ast::ClassMember::ClassProp(prop) => {
+                    if prop.is_static {
+                        self.add_static_field_from_prop(prop, classes, cache);
+                    }
+                }
+                ast::ClassMember::StaticBlock(_) => todo!(),
+                _ => continue,
+            };
+        }
+    }
+
+    fn add_static_field_from_prop(
+        &mut self,
+        prop: &ClassProp,
+        classes: &HashMap<CachedString, ClassDecl>,
+        cache: &Cache,
+    ) {
+        debug_assert!(prop.is_static);
+
+        let graph = Arc::get_mut(&mut self.static_graph).unwrap();
+        if let Ok((val, value_type)) =
+            Self::add_field_from_prop(graph, self.root_node, prop, classes, &self.gen_id, cache)
+        {
+            let ident = prop.key.as_ident().unwrap();
+            let member = str_cached!(cache; ident.sym.as_str());
+
+            let attrs = Attributes {
+                readonly: prop.readonly,
+            };
+            let loc = Location::ObjectField(ObjectFieldLoc {
+                graph: self.static_graph.id,
+                node: self.root_node,
+                field: member.clone(),
+                attrs: attrs.clone(),
+            });
+
+            self.static_fields
+                .insert(member, (value_type, LocValue { loc, val }));
+        }
+    }
+
+    fn add_root_node(&mut self, cache: &Cache) {
+        let graph = Arc::get_mut(&mut self.static_graph).unwrap();
+        graph.construct_node(
+            self.root_node,
+            scached!(cache; self.class_name.to_string() + "Static"),
+            fields!(),
+        );
+        graph.set_as_root(
+            scached!(cache; self.class_name.to_string() + "Static"),
+            self.root_node,
+        );
+    }
+
+    fn add_field_from_prop(
+        graph: &mut ObjectGraph,
+        node: NodeIndex,
+        prop: &ast::ClassProp,
+        classes: &HashMap<CachedString, ClassDecl>,
+        gen_id: &GraphIdGenerator,
+        cache: &Cache,
+    ) -> Result<(Value, ValueType), ()> {
+        if prop.accessibility.unwrap_or(ast::Accessibility::Public) != ast::Accessibility::Public {
+            return Err(());
+        }
+        let ident = prop.key.as_ident().unwrap();
+        let member = str_cached!(cache; ident.sym.as_str());
+
+        let attrs = Attributes {
+            readonly: prop.readonly,
+        };
+
+        let (val, value_type) = Self::get_value_for_prop(graph, prop, classes, gen_id, cache);
+        match &val {
+            Value::Primitive(primitive_value) => graph.set_field_with_attributes(
+                &node,
+                member.clone(),
+                primitive_value.clone(),
+                attrs,
+            ),
+            Value::Object(object_value) => graph.set_edge(&node, object_value.node, member.clone()),
+        }
+
+        Ok((val, value_type))
+    }
+
+    fn get_value_for_prop(
+        graph: &mut ObjectGraph,
+        prop: &ast::ClassProp,
+        classes: &HashMap<CachedString, ClassDecl>,
+        gen_id: &GraphIdGenerator,
+        cache: &Cache,
+    ) -> (Value, ValueType) {
+        assert!(prop.value.is_some() || prop.type_ann.is_some());
+
+        let member_type = prop
+            .type_ann
+            .as_ref()
+            .map(|type_ann| Self::get_value_type(&type_ann.type_ann, cache));
+
+        if let Some(value) = &prop.value {
+            Self::get_value_from_expr(graph, value.as_ref(), classes, gen_id, cache)
+        } else {
+            let value = match unsafe { member_type.as_ref().unwrap_unchecked() } {
+                ValueType::Number => PrimitiveValue::Number(Default::default()),
+                ValueType::Bool => PrimitiveValue::Bool(Default::default()),
+                ValueType::String => PrimitiveValue::String(Default::default()),
+                ValueType::Object(_) => {
+                    unreachable!("Don't support static properties of type object without a value")
+                }
+            };
+            (Value::Primitive(value), unsafe {
+                member_type.unwrap_unchecked()
+            })
+        }
+    }
+
+    fn get_value_from_expr(
+        graph: &mut ObjectGraph,
+        expr: &ast::Expr,
+        classes: &HashMap<CachedString, ClassDecl>,
+        gen_id: &GraphIdGenerator,
+        cache: &Cache,
+    ) -> (Value, ValueType) {
+        match expr {
+            ast::Expr::Lit(lit) => match lit {
+                ast::Lit::Str(s) => (vstring!(cache; s.value.to_string()), ValueType::String),
+                ast::Lit::Bool(bool) => (vbool!(bool.value), ValueType::Number),
+                ast::Lit::Null(_) => (vnull!(), ValueType::Number),
+                ast::Lit::Num(number) => (vnum!(number.value.into()), ValueType::Number),
+                _ => todo!(),
+            },
+            ast::Expr::New(new) => {
+                let id = new.callee.as_ident().unwrap();
+                let name = str_cached!(cache; id.sym.as_str());
+                let node = gen_id.get_id_for_node();
+
+                let mut params = vec![];
+                if let Some(args) = &new.args {
+                    for arg in args {
+                        params.push(
+                            Self::get_value_from_expr(graph, &arg.expr, classes, gen_id, cache).0,
+                        );
+                    }
+                }
+
+                let class_decl = classes.get(&name).unwrap();
+
+                Self::generate_object_from_constructor(
+                    class_decl,
+                    name.clone(),
+                    graph,
+                    node,
+                    params,
+                    classes,
+                    gen_id,
+                    cache,
+                );
+
+                (vobj!(graph.id, node), ValueType::Object(name))
+            }
+            _ => todo!("Can't parse static prop value {:#?}", expr),
         }
     }
 }
