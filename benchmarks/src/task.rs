@@ -21,7 +21,7 @@ use ruse_synthesizer::{
     synthesizer::SynthesizerPredicate,
 };
 use ruse_ts_interpreter::{
-    dom,
+    dom::{self, DomLoader},
     ts_class::{TsClasses, TsClassesBuilder},
 };
 use ruse_ts_synthesizer::*;
@@ -219,6 +219,36 @@ impl TaskType {
     pub fn create_value(
         &self,
         value: &serde_json::Value,
+        classes: &TsClasses,
+        graphs_map: &mut GraphsMap,
+        id_gen: &GraphIdGenerator,
+        cache: &Cache,
+    ) -> Result<Value, SnythesisTaskError> {
+        if let Some(expr) = Self::get_expr_value(value) {
+            self.parse_expr_value(expr, classes, graphs_map, cache)
+        } else {
+            let mut graph = ObjectGraph::new(id_gen.get_id_for_graph());
+            let out =
+                self.create_regular_value(value, &mut graph, classes, graphs_map, id_gen, cache);
+            graphs_map.insert_graph(graph.into());
+
+            out
+        }
+    }
+
+    fn get_expr_value(value: &serde_json::Value) -> Option<&str> {
+        if let Some(value_string) = value.as_str() {
+            if !Self::is_string_value(value_string) {
+                return Some(value_string);
+            }
+        }
+
+        None
+    }
+
+    fn create_regular_value(
+        &self,
+        value: &serde_json::Value,
         graph: &mut ObjectGraph,
         classes: &TsClasses,
         graphs_map: &mut GraphsMap,
@@ -287,11 +317,11 @@ impl TaskType {
                 None => Err(parse_err!(value, "Value is not a boolean")),
             },
             TaskType::String => match value.as_str() {
-                Some(s) => Ok(vstr!(cache; s)),
+                Some(s) => Ok(vstr!(cache; Self::strip_string(s)?)),
                 None => Err(parse_err!(value, "Value is not a string")),
             },
             TaskType::StringArray => {
-                let strings = match value.as_array() {
+                let strings: Result<Vec<_>, _> = match value.as_array() {
                     Some(value_array) => {
                         if value_array.iter().any(|x| !x.is_string()) {
                             return Err(parse_err!(
@@ -299,16 +329,21 @@ impl TaskType {
                                 "Value is an array with an invalid string value"
                             ));
                         }
+
                         value_array
                             .iter()
-                            .map(|x| str_cached!(cache; x.as_str().unwrap()))
+                            .map(|x| {
+                                Self::strip_string(x.as_str().unwrap())
+                                    .map(|s| str_cached!(cache; s))
+                            })
+                            .collect()
                     }
                     None => return Err(parse_err!(value, "Value is not an array")),
                 };
                 let node = graph.add_primitive_array_object(
                     id_gen.get_id_for_node(),
                     &ValueType::String,
-                    strings,
+                    strings?,
                     cache,
                 );
 
@@ -339,7 +374,7 @@ impl TaskType {
                 Ok(vobj!(graph.id, node))
             }
             TaskType::StringSet => {
-                let strings = match value.as_array() {
+                let strings: Result<Vec<_>, _> = match value.as_array() {
                     Some(value_array) => {
                         if value_array.iter().any(|x| !x.is_string()) {
                             return Err(parse_err!(
@@ -349,14 +384,18 @@ impl TaskType {
                         }
                         value_array
                             .iter()
-                            .map(|x| str_cached!(cache; x.as_str().unwrap()))
+                            .map(|x| {
+                                Self::strip_string(x.as_str().unwrap())
+                                    .map(|s| str_cached!(cache; s))
+                            })
+                            .collect()
                     }
                     None => return Err(parse_err!(value, "Value is not an array")),
                 };
                 let node = graph.add_primitive_set_object(
                     id_gen.get_id_for_node(),
                     &ValueType::String,
-                    strings.unique(),
+                    strings?.into_iter().unique(),
                     cache,
                 );
 
@@ -413,6 +452,85 @@ impl TaskType {
         }
     }
 
+    pub fn parse_expr_value(
+        &self,
+        value_string: &str,
+        classes: &TsClasses,
+        graphs_map: &mut GraphsMap,
+        cache: &Cache,
+    ) -> Result<Value, SnythesisTaskError> {
+        if let Some(static_ref) = value_string.strip_prefix('$') {
+            self.parse_static_ref_expr_value(static_ref, value_string, classes, graphs_map, cache)
+        } else {
+            Err(parse_err!(
+                value_string,
+                format!("The expr {} has unknown prefix", value_string)
+            ))
+        }
+    }
+
+    fn parse_static_ref_expr_value(
+        &self,
+        static_ref: &str,
+        value_string: &str,
+        classes: &TsClasses,
+        graphs_map: &mut GraphsMap,
+        cache: &Cache,
+    ) -> Result<Value, SnythesisTaskError> {
+        let (class_name, field_name) = static_ref.split_once('.').ok_or(parse_err!(
+            value_string,
+            format!("The static ref expr contains no '.'")
+        ))?;
+        let class = classes
+            .get_class(&str_cached!(cache; class_name))
+            .ok_or(parse_err!(
+                value_string,
+                format!(
+                    "The class {} is not defined, can't parse static field ref",
+                    class_name
+                )
+            ))?;
+        let (value_type, value) = class
+            .static_fields
+            .get(&str_cached!(cache; field_name))
+            .ok_or(parse_err!(
+                value_string,
+                format!(
+                    "The field {} is not defined for class {}, can't parse static field ref",
+                    field_name, class_name
+                )
+            ))?;
+        if value_type != &self.value_type(cache) {
+            return Err(parse_err!(
+                value_string,
+                format!(
+                    "The static field {} is not of variable type {:?}",
+                    static_ref, self
+                )
+            ));
+        }
+        graphs_map.insert_graph(class.static_graph.clone());
+        Ok(value.val().clone())
+    }
+
+    fn value_type(&self, cache: &Cache) -> ValueType {
+        match self {
+            TaskType::Int => ValueType::Number,
+            TaskType::IntArray => ValueType::array_value_type(&ValueType::Number, cache),
+            TaskType::IntSet => ValueType::set_value_type(&ValueType::Number, cache),
+            TaskType::Double => ValueType::Number,
+            TaskType::DoubleArray => ValueType::array_value_type(&ValueType::Number, cache),
+            TaskType::Bool => ValueType::Bool,
+            TaskType::String => ValueType::String,
+            TaskType::StringArray => ValueType::array_value_type(&ValueType::String, cache),
+            TaskType::StringSet => ValueType::set_value_type(&ValueType::String, cache),
+            TaskType::Dom => ValueType::Object(DomLoader::document_obj_type(cache)),
+            TaskType::DOMElement => ValueType::Object(DomLoader::element_obj_type(cache)),
+            TaskType::VarRef(_var_ref) => todo!(),
+            TaskType::Object(o) => ValueType::Object(str_cached!(cache; o)),
+        }
+    }
+
     fn is_var_ref(&self) -> bool {
         match self {
             TaskType::VarRef(_) => true,
@@ -438,40 +556,8 @@ impl TaskType {
         Ok(stripped)
     }
 
-    fn parse_string(value_string: &str) -> Result<serde_json::Value, SnythesisTaskError> {
-        Ok(json!(Self::strip_string(value_string)?))
-    }
-
-    fn parse_string_array(value_string: &str) -> Result<serde_json::Value, SnythesisTaskError> {
-        let mut part = String::new();
-        let mut collected = Vec::new();
-
-        let mut char_iter = value_string.chars();
-
-        if char_iter.next() != Some('[') {
-            return Err(parse_err!(value_string, "Missing opening bracket"));
-        }
-
-        loop {
-            match char_iter
-                .next()
-                .ok_or(parse_err!(value_string, "Missing closing bracket"))?
-            {
-                ']' => {
-                    if !part.is_empty() {
-                        collected.push(Self::strip_string(&part)?.to_string());
-                    }
-                    return Ok(json!(collected));
-                }
-                ',' => {
-                    if !part.is_empty() {
-                        collected.push(Self::strip_string(&part)?.to_string());
-                        part = String::new();
-                    }
-                }
-                x => part.push(x),
-            }
-        }
+    fn is_string_value(value_string: &str) -> bool {
+        value_string.starts_with('\'') && value_string.ends_with('\'')
     }
 
     fn parse_string_set(value_string: &str) -> Result<serde_json::Value, SnythesisTaskError> {
@@ -491,13 +577,13 @@ impl TaskType {
             {
                 '}' => {
                     if !part.is_empty() {
-                        collected.push(Self::strip_string(&part)?.to_string());
+                        collected.push(part.clone());
                     }
                     return Ok(json!(collected));
                 }
                 ',' => {
                     if !part.is_empty() {
-                        collected.push(Self::strip_string(&part)?.to_string());
+                        collected.push(part.clone());
                         part = String::new();
                     }
                 }
@@ -545,8 +631,11 @@ impl TaskType {
                 Ok(b) => Ok(json!(b)),
                 Err(e) => Err(parse_err!(value_string, e)),
             },
-            TaskType::String => Self::parse_string(value_string),
-            TaskType::StringArray => Self::parse_string_array(value_string),
+            TaskType::String => Ok(json!(value_string)),
+            TaskType::StringArray => match serde_json::from_str::<Vec<String>>(value_string) {
+                Ok(strings) => Ok(json!(strings)),
+                Err(e) => Err(parse_err!(value_string, e)),
+            },
             TaskType::IntSet => Self::parse_int_set(value_string),
             TaskType::StringSet => Self::parse_string_set(value_string),
             TaskType::Dom => Ok(json!(value_string)),
@@ -673,13 +762,11 @@ fn parse_json_values(
             Some(value_type) => value_type,
             None => return Err(verify_err!(format!("{} type is unknown", k))),
         };
-        let mut graph = ObjectGraph::new(id_gen.get_id_for_graph());
-        let mut value =
-            value_type.create_value(v, &mut graph, classes, graphs_map, id_gen, cache)?;
+        let mut value = value_type.create_value(v, classes, graphs_map, id_gen, cache)?;
         if let Some(obj) = value.mut_obj() {
-            graph.set_as_root(key.clone(), obj.node);
+            let graph = graphs_map.get_mut(&obj.graph_id).unwrap();
+            Arc::make_mut(graph).set_as_root(key.clone(), obj.node);
         }
-        graphs_map.insert_graph(graph.into());
         values.insert(key, value);
     }
 
@@ -1013,18 +1100,16 @@ impl SnythesisTask {
             Some(return_type) => {
                 let mut array = Vec::with_capacity(self.inner.examples.len());
                 for example in &self.inner.examples {
-                    let mut graph = ObjectGraph::new(predicate_gen_id.get_id_for_graph());
                     let mut output = return_type.create_value(
                         example.output.as_ref().unwrap(),
-                        &mut graph,
                         &self.classes,
                         &mut predicate_graphs_map,
                         &predicate_gen_id,
                         cache,
                     )?;
                     if let Some(obj) = output.mut_obj() {
-                        graph.set_as_root(root_name.clone(), obj.node);
-                        predicate_graphs_map.insert_graph(graph.into());
+                        let graph = predicate_graphs_map.get_mut(&obj.graph_id).unwrap();
+                        Arc::make_mut(graph).set_as_root(root_name.clone(), obj.node);
                     }
                     array.push(output);
                 }

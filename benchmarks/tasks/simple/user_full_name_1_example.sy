@@ -12,9 +12,9 @@
   "examples": [
     {
       "input": {
-        "a": {"name": "John", "surname": "Doe"}
+        "a": {"name": "'John", "surname": "'Doe'"}
       },
-      "output": "John Doe"
+      "output": "'John Doe'"
     }
   ],
   "solution": [ "a.name + \" \" a.surname" ]
