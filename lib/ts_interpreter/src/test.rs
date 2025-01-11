@@ -537,27 +537,36 @@ mod ts_class_tests {
 
         let classes = builder.finalize(&cache);
 
-        let user_class = classes.get_class(&user_class_name).unwrap();
         let mut graph = ObjectGraph::new(id_gen.get_id_for_graph());
-        let user = user_class.generate_object(
-            HashMap::from([
-                (str_cached!(cache; "surname"), vstr!(cache; "Doe")),
-                (str_cached!(cache; "name"), vstr!(cache; "John")),
-            ]),
-            &mut graph,
-            &id_gen,
-        );
+        let user = {
+            let user_class = classes.get_class(&user_class_name).unwrap();
+            user_class.generate_object(
+                HashMap::from([
+                    (str_cached!(cache; "surname"), vstr!(cache; "Doe")),
+                    (str_cached!(cache; "name"), vstr!(cache; "John")),
+                ]),
+                &mut graph,
+                &id_gen,
+            )
+        };
         graphs_map.insert_graph(graph.into());
 
         let mut values = ValuesMap::default();
         values.insert(str_cached!(cache; "u"), Value::Object(user));
 
         let mut ctx = Context::with_values(values, graphs_map.into(), id_gen);
-        let syn_ctx =
-            SynthesizerContext::from_context_array(ContextArray::from(vec![ctx.clone()]), cache);
+        let syn_ctx = SynthesizerContext::from_context_array_with_data(
+            ContextArray::from(vec![ctx.clone()]),
+            classes,
+            cache,
+        );
+        let classes_ref = syn_ctx.data.downcast_ref::<TsClasses>().unwrap();
+        let user_class = classes_ref.get_class(&user_class_name).unwrap();
+
+        let mut boa_ctx = classes_ref.get_engine_ctx(&mut ctx, &syn_ctx.cache);
 
         value_to_js_value(
-            &classes,
+            &classes_ref,
             ctx.get_var_loc_value(&syn_ctx.cached_string("u"), &syn_ctx)
                 .unwrap()
                 .val(),
@@ -567,7 +576,7 @@ mod ts_class_tests {
         );
 
         let js_user =
-            user_class.generate_js_object(&classes, user, &mut boa_ctx, &syn_ctx.cache);
+            user_class.generate_js_object(classes_ref, user, &mut boa_ctx, &syn_ctx.cache);
         boa_ctx
             .register_global_property(js_string!("u"), js_user, Attribute::all())
             .expect("Failed to register p");
@@ -619,24 +628,29 @@ mod ts_class_tests {
 
         let classes = builder.finalize(&cache);
 
-        let user_class = classes.get_class(&user_class_name).unwrap();
+        {
+            let user_class = classes.get_class(&user_class_name).unwrap();
 
-        assert_eq!(user_class.method_opcodes.len(), 1);
-        println!("{}", user_class.method_opcodes[0].op_name());
-        for arg in user_class.method_opcodes[0].arg_types() {
-            print!("{}, ", arg);
+            assert_eq!(user_class.method_opcodes.len(), 1);
+            println!("{}", user_class.method_opcodes[0].op_name());
+            for arg in user_class.method_opcodes[0].arg_types() {
+                print!("{}, ", arg);
+            }
+            println!("");
         }
-        println!("");
 
         let mut graph = ObjectGraph::new(id_gen.get_id_for_graph());
-        let user = user_class.generate_object(
-            HashMap::from([
-                (str_cached!(cache; "surname"), vstr!(cache; "Doe")),
-                (str_cached!(cache; "name"), vstr!(cache; "John")),
-            ]),
-            &mut graph,
-            &id_gen,
-        );
+        let user = classes
+            .get_class(&user_class_name)
+            .unwrap()
+            .generate_object(
+                HashMap::from([
+                    (str_cached!(cache; "surname"), vstr!(cache; "Doe")),
+                    (str_cached!(cache; "name"), vstr!(cache; "John")),
+                ]),
+                &mut graph,
+                &id_gen,
+            );
         graphs_map.insert_graph(graph.into());
 
         let mut values = ValuesMap::default();
@@ -645,8 +659,10 @@ mod ts_class_tests {
         let ctx = Context::with_values(values, graphs_map.into(), id_gen);
         let ctx_arr = ContextArray::from(vec![ctx]);
         let syn_ctx =
-            SynthesizerContext::from_context_array(ctx_arr.clone(), cache);
+            SynthesizerContext::from_context_array_with_data(ctx_arr.clone(), classes, cache);
 
+        let classes_ref = syn_ctx.data.downcast_ref::<TsClasses>().unwrap();
+        let user_class = classes_ref.get_class(&user_class_name).unwrap();
 
         let user_op = Arc::new(IdentOp::new(syn_ctx.cached_string("user")));
         let user_prog = get_init_prog(user_op, &ctx_arr, &syn_ctx);
