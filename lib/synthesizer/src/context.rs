@@ -379,12 +379,20 @@ impl Context {
         I: IntoIterator,
         I::Item: Into<PrimitiveValue>,
     {
-        let obj_type = ValueType::array_obj_cached_string(elem_type, &syn_ctx.cache);
-        let map = values
-            .into_iter()
-            .enumerate()
-            .map(|(i, v)| (syn_ctx.cached_string(&i.to_string()), v));
-        self.create_output_simple_object_from_map(obj_type, map, syn_ctx)
+        let out_graph_id = self.graph_id_gen.get_id_for_graph();
+        let out_node_id = self.graph_id_gen.get_id_for_node();
+
+        let mut out_graph = ObjectGraph::new(out_graph_id);
+
+        out_graph.add_primitive_array_object(out_node_id, elem_type, values, &syn_ctx.cache);
+
+        out_graph.set_as_root(syn_ctx.output_root_name().clone(), out_node_id);
+
+        self.update_graph(out_graph.into());
+        ObjectValue {
+            graph_id: out_graph_id,
+            node: out_node_id,
+        }
     }
 
     pub fn create_output_array_object<I>(
@@ -396,12 +404,20 @@ impl Context {
     where
         I: IntoIterator<Item = Value>,
     {
-        let obj_type = ValueType::array_obj_cached_string(elem_type, &syn_ctx.cache);
-        let values_map = values
-            .into_iter()
-            .enumerate()
-            .map(|(i, v)| (syn_ctx.cached_string(&i.to_string()), v));
-        self.create_output_object_from_map(obj_type, values_map, syn_ctx)
+        let out_graph_id = self.graph_id_gen.get_id_for_graph();
+        let out_node_id = self.graph_id_gen.get_id_for_node();
+
+        let mut out_graph = ObjectGraph::new(out_graph_id);
+
+        out_graph.add_array_object(out_node_id, elem_type, values, &syn_ctx.cache);
+
+        out_graph.set_as_root(syn_ctx.output_root_name().clone(), out_node_id);
+
+        self.update_graph(out_graph.into());
+        ObjectValue {
+            graph_id: out_graph_id,
+            node: out_node_id,
+        }
     }
 
     pub fn create_output_primitive_set<I>(
@@ -414,12 +430,20 @@ impl Context {
         I: IntoIterator,
         I::Item: Into<PrimitiveValue>,
     {
-        let obj_type = ValueType::set_obj_cached_string(elem_type, &syn_ctx.cache);
-        let map = values.into_iter().map(|v| {
-            let pv: PrimitiveValue = v.into();
-            (syn_ctx.cached_string(&pv.to_string()), pv)
-        });
-        self.create_output_simple_object_from_map(obj_type, map, syn_ctx)
+        let out_graph_id = self.graph_id_gen.get_id_for_graph();
+        let out_node_id = self.graph_id_gen.get_id_for_node();
+
+        let mut out_graph = ObjectGraph::new(out_graph_id);
+
+        out_graph.add_primitive_set_object(out_node_id, elem_type, values, &syn_ctx.cache);
+
+        out_graph.set_as_root(syn_ctx.output_root_name().clone(), out_node_id);
+
+        self.update_graph(out_graph.into());
+        ObjectValue {
+            graph_id: out_graph_id,
+            node: out_node_id,
+        }
     }
 
     pub fn create_output_simple_object_from_map<I, T>(
@@ -432,13 +456,20 @@ impl Context {
         I: IntoIterator<Item = (FieldName, T)>,
         T: Into<PrimitiveValue>,
     {
-        let mut fields = FieldsMap::new();
+        let out_graph_id = self.graph_id_gen.get_id_for_graph();
+        let out_node_id = self.graph_id_gen.get_id_for_node();
 
-        for (key, val) in map {
-            fields.insert(key, val.into());
+        let mut out_graph = ObjectGraph::new(out_graph_id);
+
+        out_graph.add_simple_object_from_map(out_node_id, obj_type, map);
+
+        out_graph.set_as_root(syn_ctx.output_root_name().clone(), out_node_id);
+
+        self.update_graph(out_graph.into());
+        ObjectValue {
+            graph_id: out_graph_id,
+            node: out_node_id,
         }
-
-        self.create_output_simple_object(obj_type, fields, syn_ctx)
     }
 
     pub fn create_output_object_from_map<I>(
@@ -450,47 +481,13 @@ impl Context {
     where
         I: IntoIterator<Item = (FieldName, Value)>,
     {
-        let mut fields = FieldsMap::new();
-        let mut obj_keys = vec![];
-
-        for (key, val) in map {
-            Self::visit_value_in_map(val, &mut fields, key, &mut obj_keys);
-        }
-
-        self.create_output_object(obj_type, fields, obj_keys, syn_ctx)
-    }
-
-    fn visit_value_in_map(
-        val: Value,
-        fields: &mut FieldsMap,
-        key: FieldName,
-        obj_keys: &mut Vec<(FieldName, ObjectValue)>,
-    ) {
-        match val {
-            Value::Primitive(p) => {
-                fields.insert(key, p);
-            }
-            Value::Object(o) => {
-                obj_keys.push((key, o));
-            }
-        };
-    }
-
-    fn create_output_object(
-        &mut self,
-        obj_type: ObjectType,
-        fields: FieldsMap,
-        obj_keys: Vec<(FieldName, ObjectValue)>,
-        syn_ctx: &SynthesizerContext,
-    ) -> ObjectValue {
         let out_graph_id = self.graph_id_gen.get_id_for_graph();
         let out_node_id = self.graph_id_gen.get_id_for_node();
 
         let mut out_graph = ObjectGraph::new(out_graph_id);
-        let node = out_graph.construct_node(out_node_id, obj_type, fields);
-        for (key, neig) in obj_keys {
-            node.insert_chain_edge(key, neig.graph_id, neig.node);
-        }
+
+        out_graph.add_object_from_map(out_node_id, obj_type, map);
+
         out_graph.set_as_root(syn_ctx.output_root_name().clone(), out_node_id);
 
         self.update_graph(out_graph.into());
@@ -498,15 +495,6 @@ impl Context {
             graph_id: out_graph_id,
             node: out_node_id,
         }
-    }
-
-    pub fn create_output_simple_object(
-        &mut self,
-        obj_type: ObjectType,
-        fields: FieldsMap,
-        syn_ctx: &SynthesizerContext,
-    ) -> ObjectValue {
-        self.create_output_object(obj_type, fields.into(), vec![], syn_ctx)
     }
 }
 
