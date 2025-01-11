@@ -68,7 +68,7 @@ pub trait ProgramsMap: Send + Sync + fmt::Debug + Default {
     fn insert(&self, p: Arc<SubProgram>) -> bool;
     fn contains(&self, p: &Arc<SubProgram>) -> bool;
     fn iter(&self) -> ProgramsMapIter<'_>;
-    fn extend(&mut self, other: Self);
+    fn take_minimal_prog(&mut self, other: Self);
     fn len(&self) -> usize;
 }
 
@@ -122,9 +122,38 @@ impl ProgramsMap for SubsumptionProgramsMap {
         self.set.iter()
     }
 
-    fn extend(&mut self, other: Self) {
-        self.map.extend(other.map.into_iter());
-        self.set.extend(other.set.into_iter());
+    fn take_minimal_prog(&mut self, other: Self) {
+        for (out, progs) in other.map {
+            match self.map.entry(out) {
+                Entry::Occupied(mut existing_progs) => {
+                    for p in progs {
+                        let mut inserted = false;
+                        for ep in existing_progs.get_mut().iter_mut() {
+                            if ep.pre_ctx() == p.pre_ctx() {
+                                if p.size() < ep.size() {
+                                    *ep = p.clone();
+                                    self.set.remove(ep);
+                                    inserted = true;
+                                    break;
+                                } else {
+                                    continue;
+                                }
+                            } else if ep.pre_ctx().subset(p.pre_ctx()) {
+                                continue
+                            }
+                        }
+                        if !inserted {
+                            existing_progs.get_mut().push(p.clone());
+                        }
+                        self.set.insert(p);
+                    }
+                }
+                Entry::Vacant(vacant_entry) => {
+                    self.set.extend(progs.iter().cloned());
+                    vacant_entry.insert(progs);
+                }
+            }            
+        }
     }
 }
 
@@ -152,10 +181,10 @@ impl<T: ProgramsMap> TypeMap<T> {
         self.0.get(value_type)
     }
 
-    pub(crate) fn extend(&self, x: Self) {
+    pub(crate) fn take_minimal_prog(&self, x: Self) {
         for (value_type, programs_map) in x.0.into_iter() {
             if let Some(mut cur_map) = self.0.get_mut(&value_type) {
-                cur_map.extend(programs_map);
+                cur_map.take_minimal_prog(programs_map);
             } else {
                 self.0.insert(value_type, programs_map);
             }

@@ -380,7 +380,7 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
                 while workers.join_next().await.is_some() {}
                 return found;
             }
-            current_iteration_map.extend(worker_type_map);
+            current_iteration_map.take_minimal_prog(worker_type_map);
         }
 
         debug!(target: "ruse::synthesizer", "Initializing new contexts!");
@@ -397,7 +397,7 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
                 }
             }
         }
-        current_iteration_map.extend(new_ctx);
+        current_iteration_map.take_minimal_prog(new_ctx);
 
         None
     }
