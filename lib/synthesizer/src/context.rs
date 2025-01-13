@@ -553,28 +553,43 @@ impl Context {
 }
 
 impl Context {
-    pub fn reachable_nodes(&self) -> HashSet<NodeIndex> {
+    pub fn reachable_nodes(&self) -> HashSet<(GraphIndex, NodeIndex)> {
+        Self::reachable_nodes_from_iter(self.variable_values(), &self.graphs_map)
+    }
+
+    fn reachable_nodes_from_iter<'a, I>(
+        values: I,
+        graphs_map: &GraphsMap,
+    ) -> HashSet<(GraphIndex, NodeIndex)>
+    where
+        I: Iterator<Item = &'a Value>,
+    {
         let mut nodes = HashSet::new();
 
-        for var in self.variable_values() {
+        for var in values {
             if let Value::Object(obj) = var {
-                self.add_nodes(obj.graph_id, obj.node, &mut nodes);
+                Self::add_reachable_nodes(graphs_map, obj.graph_id, obj.node, &mut nodes);
             }
         }
 
         nodes
     }
 
-    fn add_nodes(&self, graph_id: GraphIndex, node_id: NodeIndex, seen: &mut HashSet<NodeIndex>) {
+    fn add_reachable_nodes(
+        graphs_map: &GraphsMap,
+        graph_id: GraphIndex,
+        node_id: NodeIndex,
+        seen: &mut HashSet<(GraphIndex, NodeIndex)>,
+    ) {
         let mut q = VecDeque::new();
         q.push_back((graph_id, node_id));
         while let Some((cur_graph_id, cur_node_id)) = q.pop_back() {
-            if seen.contains(&cur_node_id) {
+            if seen.contains(&(cur_graph_id, cur_node_id)) {
                 continue;
             }
 
-            seen.insert(cur_node_id);
-            let graph = &self.graphs_map[cur_graph_id];
+            seen.insert((cur_graph_id, cur_node_id));
+            let graph = &graphs_map[cur_graph_id];
             for (_, neig) in graph.neighbors(&cur_node_id) {
                 match neig {
                     ruse_object_graph::EdgeEndPoint::Internal(neig_node_id) => {
