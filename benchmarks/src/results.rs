@@ -8,7 +8,7 @@ use std::{
 
 use ruse_synthesizer::{prog::SubProgram, synthesizer::CurrentStatistics};
 
-use serde::{Serialize, Serializer};
+use serde::Serialize;
 use serde_json::ser::{CompactFormatter, Formatter, PrettyFormatter};
 
 use crate::config::BenchmarkConfig;
@@ -25,21 +25,10 @@ pub struct BenchmarkResult {
     string_literals: Option<Vec<String>>,
     num_literals: Option<Vec<i64>>,
     iterations: Vec<BenchmarksIteration>,
-    #[serde(serialize_with = "serialize_found")]
-    found: Option<Arc<SubProgram>>,
+    found: String,
     total_time: Option<Duration>,
     total_statistics: Option<CurrentStatistics>,
     error: Option<String>,
-}
-
-fn serialize_found<S>(found: &Option<Arc<SubProgram>>, serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    match found {
-        Some(p) => serializer.serialize_str(&p.get_code()),
-        None => serializer.serialize_str("-"),
-    }
 }
 
 impl BenchmarkResult {
@@ -49,13 +38,13 @@ impl BenchmarkResult {
             iterations: vec![],
             string_literals: None,
             num_literals: None,
-            found: None,
+            found: "_".to_owned(),
             total_time: None,
             total_statistics: None,
             error: None,
         }
     }
-    
+
     pub fn set_literals(&mut self, string_literals: Vec<String>, num_literals: Vec<i64>) {
         self.string_literals.replace(string_literals);
         self.num_literals.replace(num_literals);
@@ -83,7 +72,9 @@ impl BenchmarkResult {
         statistics: CurrentStatistics,
     ) {
         self.total_time = Some(time);
-        self.found = found;
+        if let Some(p) = found {
+            self.found = p.get_code();
+        }
         self.total_statistics = Some(statistics);
     }
 }
@@ -104,7 +95,8 @@ impl Sysinfo {
         let mut sys = sysinfo::System::new();
         sys.refresh_cpu_all();
         let cpu_brand = sys.cpus()[0].brand().to_string();
-        let cpu_fq = sys.cpus().iter().map(|x| x.frequency()).sum::<u64>() / sys.cpus().len() as u64;
+        let cpu_fq =
+            sys.cpus().iter().map(|x| x.frequency()).sum::<u64>() / sys.cpus().len() as u64;
         Self {
             name: sysinfo::System::name().unwrap(),
             kernel: sysinfo::System::kernel_version().unwrap(),
@@ -273,13 +265,13 @@ where
 }
 
 impl ResultsWriter<CompactFormatter> {
-    pub fn from_path(path: &Path, config: &BenchmarkConfig, ) -> Self {
+    pub fn from_path(path: &Path, config: &BenchmarkConfig) -> Self {
         Self::from_path_with_formatter(path, config, CompactFormatter)
     }
 }
 
 impl<'a> ResultsWriter<PrettyFormatter<'a>> {
-    pub fn from_path_pretty(path: &Path, config: &BenchmarkConfig, ) -> Self {
+    pub fn from_path_pretty(path: &Path, config: &BenchmarkConfig) -> Self {
         Self::from_path_with_formatter(path, config, PrettyFormatter::new())
     }
 }

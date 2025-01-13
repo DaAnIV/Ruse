@@ -14,7 +14,7 @@ use ruse_object_graph::{
     *,
 };
 use ruse_synthesizer::{
-    bank::SubsumptionProgBank,
+    bank::{ProgBank, SubsumptionProgBank},
     context::{Context, ContextArray, GraphIdGenerator, SynthesizerContext, ValuesMap},
     opcode::{ExprOpcode, OpcodesList},
     prog::SubProgram,
@@ -87,7 +87,6 @@ impl std::fmt::Display for VerifyError {
     }
 }
 
-
 #[derive(Debug)]
 pub struct SkipError {
     pub reason: String,
@@ -143,7 +142,6 @@ macro_rules! skip_err {
         })
     };
 }
-
 
 impl std::fmt::Display for SnythesisTaskError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -953,15 +951,11 @@ impl SnythesisTaskInner {
         }
 
         if self.variables.is_none() {
-            return Err(verify_err!(
-                "Non skipped tasks must contain variables dict"
-            ));
+            return Err(verify_err!("Non skipped tasks must contain variables dict"));
         }
 
         if self.examples.is_none() {
-            return Err(verify_err!(
-                "Non skipped tasks must contain examples array"
-            ));
+            return Err(verify_err!("Non skipped tasks must contain examples array"));
         }
 
         let variables = self.variables.as_ref().unwrap();
@@ -1110,7 +1104,7 @@ impl SnythesisTask {
         iteration_workers_count: usize,
         bank_type: BankType,
         cache: &Arc<Cache>,
-    ) -> Result<TsSynthesizer<SubsumptionProgBank>, SnythesisTaskError> {
+    ) -> Result<TsSynthesizer<impl ProgBank>, SnythesisTaskError> {
         let variables = self.inner.variables.as_ref().unwrap();
 
         let opcodes = self.get_opcodes(cache);
@@ -1199,7 +1193,7 @@ impl SnythesisTask {
             None => None,
         };
 
-        let predicate = Box::new(move |p: &Arc<SubProgram>| {
+        let predicate = Box::new(move |p: &SubProgram| {
             if let Some(array) = &output_array {
                 for (actual, actual_ctx, expected) in
                     izip!(p.out_value().iter(), p.post_ctx().iter(), array)
@@ -1244,7 +1238,9 @@ impl SnythesisTask {
     fn get_opcodes(&self, cache: &Cache) -> OpcodesList {
         let var_names: Vec<Arc<String>> = self
             .inner
-            .variables.as_ref().unwrap()
+            .variables
+            .as_ref()
+            .unwrap()
             .keys()
             .map(|x| str_cached!(cache; x))
             .collect();

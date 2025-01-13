@@ -476,7 +476,7 @@ mod bank_iterator_tests {
 
     fn add_iteration(bank: &mut SubsumptionProgBank, n: usize, syn_ctx: &SynthesizerContext) {
         let iteration = bank.iteration_count();
-        let type_map = Arc::new(TypeMap::default());
+        let mut type_map = TypeMap::default();
         for i in 0..n {
             let value = Number::from(iteration << 32 | i);
             let p = get_prog_for_bank(vnum!(value), syn_ctx);
@@ -490,7 +490,7 @@ mod bank_iterator_tests {
         n: u32,
         syn_ctx: &SynthesizerContext,
     ) -> SubsumptionProgramsMap {
-        let map = SubsumptionProgramsMap::default();
+        let mut map = SubsumptionProgramsMap::default();
         for i in 0..n {
             let full_value = (prefix as u64) << 32 | i as u64;
             let value = Number::from(full_value);

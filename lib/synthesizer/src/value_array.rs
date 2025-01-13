@@ -1,4 +1,4 @@
-use std::{fmt::Display, hash::Hash, ops::Index, sync::Arc};
+use std::{fmt::Display, hash::Hash, ops::Index};
 
 use itertools::izip;
 use ruse_object_graph::graph_map_value::GraphMapWrap;
@@ -6,7 +6,7 @@ use ruse_object_graph::graph_map_value::GraphMapWrap;
 use crate::{context::ContextArray, location::LocValue};
 
 #[derive(Debug)]
-pub struct ValueArray(Arc<Vec<LocValue>>);
+pub struct ValueArray(Vec<LocValue>);
 impl ValueArray {
     pub fn len(&self) -> usize {
         self.0.len()
@@ -19,7 +19,7 @@ impl ValueArray {
 
 impl From<Vec<LocValue>> for ValueArray {
     fn from(value: Vec<LocValue>) -> Self {
-        Self(Arc::new(value))
+        Self(value)
     }
 }
 

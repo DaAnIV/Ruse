@@ -6,10 +6,11 @@ use itertools::Itertools;
 use Option::{self as State, None as ProductEnded, Some as ProductInProgress};
 use Option::{self as CurrentItems, None as NotYetPopulated, Some as Populated};
 
-use crate::bank::{ProgramsMap, ProgramsMapIter};
+use crate::bank::ProgramsMap;
 use crate::prog::SubProgram;
 
 type ProgramsMapRef<'a, T> = &'a T;
+type ProgramsMapIter<'a> = Box<dyn Iterator<Item = &'a Arc<SubProgram>> + Send + 'a>;
 
 pub struct MultiProgramsMaps<'a, T: ProgramsMap> {
     inner: State<MultiProgramsMapsInner<'a, T>>,
@@ -45,7 +46,7 @@ struct MultiProgramsMapsIter<'a, T: ProgramsMap> {
 impl<'a, T: ProgramsMap> MultiProgramsMapsIter<'a, T> {
     fn new(map_ref: ProgramsMapRef<'a, T>) -> Self {
         Self {
-            iter: map_ref.iter(),
+            iter: Box::new(map_ref.iter()),
             map_ref,
             i: 0,
             restart: false,
@@ -81,7 +82,9 @@ where
     }
 }
 
-pub fn multi_programs_map_end<'a, T: ProgramsMap>(_marker: PhantomData<&'a bool>) -> MultiProgramsMaps<'a, T> {
+pub fn multi_programs_map_end<'a, T: ProgramsMap>(
+    _marker: PhantomData<&'a bool>,
+) -> MultiProgramsMaps<'a, T> {
     MultiProgramsMaps {
         remaining: 0,
         inner: ProductEnded,
@@ -104,7 +107,7 @@ impl<'a, T: ProgramsMap> MultiProgramsMapsInner<'a, T> {
                         }
                     }
 
-                    iter.iter = iter.map_ref.iter();
+                    iter.iter = Box::new(iter.map_ref.iter());
                     iter.i = 0;
                     iter.restart = false;
                     cur_progs.get_mut()[i] = (*iter.iter.next().unwrap()).clone();
@@ -125,11 +128,7 @@ impl<'a, T: ProgramsMap> MultiProgramsMapsInner<'a, T> {
                     // This cartesian product had at most one item to generate and now ends.
                     return None;
                 } else {
-                    let progs = next
-                        .unwrap()
-                        .iter()
-                        .map(|p| (*p).clone())
-                        .collect_vec();
+                    let progs = next.unwrap().into_iter().cloned().collect_vec();
                     self.cur = Populated(progs.into());
                 }
                 Some(0)
@@ -164,7 +163,7 @@ impl<'a, T: ProgramsMap> MultiProgramsMapsInner<'a, T> {
             if iter.i + remainder > iter.map_ref.len() {
                 let cur_iter_n = iter.i + remainder - iter.map_ref.len();
                 remaining += 1;
-                iter.iter = iter.map_ref.iter();
+                iter.iter = Box::new(iter.map_ref.iter());
                 iter.i = cur_iter_n;
                 iter.restart = false;
                 cur_progs.get_mut()[i] = (*iter.iter.nth(cur_iter_n).unwrap()).clone();

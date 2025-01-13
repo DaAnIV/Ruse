@@ -1,11 +1,10 @@
+use ruse_object_graph::value::ValueType;
 use std::{
+    collections::{hash_map::Entry, HashMap, HashSet},
     fmt,
     hash::{BuildHasherDefault, DefaultHasher, Hash},
     sync::Arc,
 };
-
-use dashmap::{iter_set, DashMap, DashSet, Entry};
-use ruse_object_graph::value::ValueType;
 use tracing::info;
 
 use crate::{context::ContextArray, prog::SubProgram, value_array::ValueArray};
@@ -57,17 +56,10 @@ impl Hash for ProgOutput {
     }
 }
 
-pub(crate) type ProgramsMapIter<'a> = iter_set::Iter<
-    'a,
-    Arc<SubProgram>,
-    BankHasherBuilder,
-    DashMap<Arc<SubProgram>, (), BankHasherBuilder>,
->;
-
 pub trait ProgramsMap: Send + Sync + fmt::Debug + Default {
-    fn insert(&self, p: Arc<SubProgram>) -> bool;
+    fn insert(&mut self, p: Arc<SubProgram>) -> bool;
     fn contains(&self, p: &Arc<SubProgram>) -> bool;
-    fn iter(&self) -> ProgramsMapIter<'_>;
+    fn iter(&self) -> impl Iterator<Item = &Arc<SubProgram>> + Send;
     fn take_minimal_prog(&mut self, other: Self);
     fn len(&self) -> usize;
 }
@@ -77,12 +69,38 @@ pub trait ProgramsMap: Send + Sync + fmt::Debug + Default {
 
 #[derive(Debug, Default)]
 pub struct SubsumptionProgramsMap {
-    map: DashMap<ProgOutput, Vec<Arc<SubProgram>>, BankHasherBuilder>,
-    set: DashSet<Arc<SubProgram>, BankHasherBuilder>,
+    map: HashMap<ProgOutput, Vec<Arc<SubProgram>>, BankHasherBuilder>,
+    set: HashSet<Arc<SubProgram>, BankHasherBuilder>,
+}
+
+enum MinmalProgResult<'a> {
+    LargerProg(&'a mut Arc<SubProgram>),
+    SmallerProg,
+    NonComparable,
+}
+
+impl SubsumptionProgramsMap {
+    fn find_minmal<'a>(
+        p: &Arc<SubProgram>,
+        existing_progs: &'a mut Vec<Arc<SubProgram>>,
+    ) -> MinmalProgResult<'a> {
+        for ep in existing_progs {
+            if ep.pre_ctx() == p.pre_ctx() {
+                if p.size() < ep.size() {
+                    return MinmalProgResult::LargerProg(ep);
+                } else {
+                    return MinmalProgResult::SmallerProg;
+                }
+            } else if ep.pre_ctx().subset(p.pre_ctx()) {
+                return MinmalProgResult::SmallerProg;
+            }
+        }
+        return MinmalProgResult::NonComparable;
+    }
 }
 
 impl ProgramsMap for SubsumptionProgramsMap {
-    fn insert(&self, p: Arc<SubProgram>) -> bool {
+    fn insert(&mut self, p: Arc<SubProgram>) -> bool {
         let output: ProgOutput = p.clone().into();
         match self.map.entry(output) {
             Entry::Occupied(mut existing_progs) => {
@@ -118,91 +136,83 @@ impl ProgramsMap for SubsumptionProgramsMap {
         self.set.len()
     }
 
-    fn iter(&self) -> ProgramsMapIter<'_> {
+    fn iter(&self) -> impl Iterator<Item = &Arc<SubProgram>> + Send {
         self.set.iter()
     }
 
-    fn take_minimal_prog(&mut self, other: Self) {
+    fn take_minimal_prog(&mut self, mut other: Self) {
         for (out, progs) in other.map {
             match self.map.entry(out) {
                 Entry::Occupied(mut existing_progs) => {
                     for p in progs {
-                        let mut inserted = false;
-                        for ep in existing_progs.get_mut().iter_mut() {
-                            if ep.pre_ctx() == p.pre_ctx() {
-                                if p.size() < ep.size() {
-                                    *ep = p.clone();
-                                    self.set.remove(ep);
-                                    inserted = true;
-                                    break;
-                                } else {
-                                    continue;
-                                }
-                            } else if ep.pre_ctx().subset(p.pre_ctx()) {
-                                continue
+                        other.set.remove(&p);
+                        match Self::find_minmal(&p, existing_progs.get_mut()) {
+                            MinmalProgResult::LargerProg(larger_p) => {
+                                self.set.remove(larger_p);
+                                *larger_p = p.clone();
+                                self.set.insert(p);
+                            }
+                            MinmalProgResult::SmallerProg => (),
+                            MinmalProgResult::NonComparable => {
+                                existing_progs.get_mut().push(p.clone());
+                                self.set.insert(p);
                             }
                         }
-                        if !inserted {
-                            existing_progs.get_mut().push(p.clone());
-                        }
-                        self.set.insert(p);
                     }
                 }
                 Entry::Vacant(vacant_entry) => {
                     self.set.extend(progs.iter().cloned());
                     vacant_entry.insert(progs);
                 }
-            }            
+            }
         }
     }
 }
 
 #[derive(Default, Debug)]
-pub struct TypeMap<T: ProgramsMap>(DashMap<ValueType, T, BankHasherBuilder>);
+pub struct TypeMap<T: ProgramsMap> {
+    maps: HashMap<ValueType, T, BankHasherBuilder>,
+}
 
 impl<T: ProgramsMap> TypeMap<T> {
-    pub(crate) fn insert_program(&self, p: Arc<SubProgram>) -> bool {
-        let mut binding = self.0.entry(p.out_type().clone()).or_default();
-        let programs_map = binding.value_mut();
+    pub(crate) fn insert_program(&mut self, p: Arc<SubProgram>) -> bool {
+        let programs_map = self.maps.entry(p.out_type().clone()).or_default();
         programs_map.insert(p)
     }
 
     pub(crate) fn contains(&self, p: &Arc<SubProgram>) -> bool {
-        match self.0.get(&p.out_type()) {
+        match self.maps.get(&p.out_type()) {
             None => false,
             Some(values) => values.contains(p),
         }
     }
 
-    pub(crate) fn get(
-        &self,
-        value_type: &ValueType,
-    ) -> Option<dashmap::mapref::one::Ref<ValueType, T>> {
-        self.0.get(value_type)
+    pub(crate) fn get(&self, value_type: &ValueType) -> Option<&T> {
+        self.maps.get(value_type)
     }
 
-    pub(crate) fn take_minimal_prog(&self, x: Self) {
-        for (value_type, programs_map) in x.0.into_iter() {
-            if let Some(mut cur_map) = self.0.get_mut(&value_type) {
+    pub(crate) fn take_minimal_prog(&mut self, x: Self) {
+        for (value_type, programs_map) in x.maps.into_iter() {
+            if let Some(cur_map) = self.maps.get_mut(&value_type) {
                 cur_map.take_minimal_prog(programs_map);
             } else {
-                self.0.insert(value_type, programs_map);
+                self.maps.insert(value_type, programs_map);
             }
         }
     }
 
-    pub(crate) fn iter(&self) -> dashmap::iter::Iter<ValueType, T, BankHasherBuilder> {
-        self.0.iter()
+    pub(crate) fn iter(&self) -> impl Iterator<Item = (&ValueType, &T)> {
+        self.maps.iter()
     }
 }
 
 pub trait ProgBank: Default + Send + Sync {
     type T: ProgramsMap + 'static;
 
-    fn iterations(&self) -> &Vec<Arc<TypeMap<Self::T>>>;
-    fn mut_iterations(&mut self) -> &mut Vec<Arc<TypeMap<Self::T>>>;
+    fn iterations(&self) -> &Vec<TypeMap<Self::T>>;
+    fn mut_iterations(&mut self) -> &mut Vec<TypeMap<Self::T>>;
 
-    fn iteration(&self, i: usize) -> &Arc<TypeMap<Self::T>> {
+    fn iteration(&self, i: usize) -> &TypeMap<Self::T> {
         &self.iterations()[i]
     }
 
@@ -213,7 +223,7 @@ pub trait ProgBank: Default + Send + Sync {
     }
 
     #[inline]
-    fn insert(&mut self, type_map: Arc<TypeMap<Self::T>>) {
+    fn insert(&mut self, type_map: TypeMap<Self::T>) {
         self.mut_iterations().push(type_map);
     }
 
@@ -225,8 +235,8 @@ pub trait ProgBank: Default + Send + Sync {
     fn print_all_programs(&self) {
         for (i, type_map) in self.iterations().iter().enumerate() {
             info!(target: "ruse::synthesizer", "Iteration {}", i);
-            for values in type_map.0.iter() {
-                for p in values.value().iter() {
+            for (_, maps) in type_map.maps.iter() {
+                for p in maps.iter() {
                     info!(target: "ruse::synthesizer", "");
                     info!(target: "ruse::synthesizer", "{}", *p);
                 }
@@ -243,16 +253,16 @@ pub trait ProgBank: Default + Send + Sync {
 }
 
 #[derive(Default)]
-pub struct SubsumptionProgBank(Vec<Arc<TypeMap<SubsumptionProgramsMap>>>);
+pub struct SubsumptionProgBank(Vec<TypeMap<SubsumptionProgramsMap>>);
 
 impl ProgBank for SubsumptionProgBank {
     type T = SubsumptionProgramsMap;
 
-    fn iterations(&self) -> &Vec<Arc<TypeMap<Self::T>>> {
+    fn iterations(&self) -> &Vec<TypeMap<Self::T>> {
         &self.0
     }
 
-    fn mut_iterations(&mut self) -> &mut Vec<Arc<TypeMap<Self::T>>> {
+    fn mut_iterations(&mut self) -> &mut Vec<TypeMap<Self::T>> {
         &mut self.0
     }
 }

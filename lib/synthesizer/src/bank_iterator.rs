@@ -98,7 +98,7 @@ impl<'a, P: ProgBank> BankIteratorInner<'a, P> {
                 .iteration(iterations[i])
                 .get(&self.arg_types[i])
                 .unwrap();
-            std::ptr::from_ref(map_ref.value())
+            std::ptr::from_ref(map_ref)
         });
 
         self.iter = multi_programs_map_product(program_maps);
