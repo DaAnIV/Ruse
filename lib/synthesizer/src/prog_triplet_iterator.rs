@@ -1,6 +1,4 @@
-use itertools::Itertools;
 use std::sync::Arc;
-use tracing::trace;
 
 use crate::{
     context::ContextArray, embedding::merge_context_arrays,
@@ -62,20 +60,6 @@ where
                 return None;
             }
         }
-
-        trace!("{} merged ctx:", cur_ctxs.len());
-        cur_ctxs.iter().enumerate().for_each(|(i, c)| {
-            trace!(
-                "merged: [{}]",
-                cur_progs
-                    .iter()
-                    .take(i + 1)
-                    .map(|p| p.get_code())
-                    .join(", ")
-            );
-            trace!("pre_hat: {}", c.0[0]);
-            trace!("post_hat: {}", c.1[0]);
-        });
 
         Some(unsafe { cur_ctxs.last().unwrap_unchecked() })
     }
