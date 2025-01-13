@@ -11,6 +11,18 @@ use crate::location::*;
 use crate::opcode::*;
 use crate::value_array::ValueArray;
 
+#[cfg(feature = "trace_evaluations")]
+use tracing::trace;
+
+#[cfg(feature = "trace_evaluations")]
+macro_rules! evaluate_trace {
+    ($($arg:tt)+) => trace!($($arg)+);
+}
+#[cfg(not(feature = "trace_evaluations"))]
+macro_rules! evaluate_trace {
+    ($($arg:tt)+) => ();
+}
+
 pub struct SubProgram {
     pub opcode: Arc<dyn ExprOpcode>,
     pub children: Vec<Arc<SubProgram>>,
@@ -97,6 +109,13 @@ impl SubProgram {
         let mut out_value = Vec::with_capacity(examples_count);
         let mut dirty = false;
 
+        evaluate_trace!("Evaluating: {}", self.get_code());
+        evaluate_trace!("pre_ctx: {}", self.pre_ctx);
+        evaluate_trace!("post_ctx (before): {}", self.post_ctx);
+        self.post_ctx.iter().for_each(|_ctx| {
+            evaluate_trace!("post_ctx graphs: {}", _ctx.graphs_map);
+        }); 
+
         for i in 0..examples_count {
             // Gather arguments
             let args: Vec<&LocValue> = self.children.iter().map(|c| &c.out_value()[i]).collect();
@@ -125,6 +144,8 @@ impl SubProgram {
         self.dirty = Some(dirty);
         self.out_type = out_type;
         self.out_value = Some(out_value.into());
+
+        evaluate_trace!("output: {}", self.out_value().wrap(self.post_ctx()));
 
         true
     }

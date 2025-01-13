@@ -21,6 +21,8 @@ tracing.workspace = true
 [features]
 default = ["test_helpers"]
 test_helpers = ["dep:rand", "dep:tracing-subscriber"]
+trace_evaluations = []
+trace_embeddings = []
 
 [dev-dependencies]
 criterion = "*"

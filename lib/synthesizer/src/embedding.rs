@@ -1,11 +1,24 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 
 use crate::context::{Context, ContextArray, ValuesMap, VariableName};
-use itertools::{self, izip, Itertools};
+use itertools::{self, izip};
 use ruse_object_graph::{
-    graph_equality, value::{ObjectValue, Value}, vobj, GraphIndex, GraphsMap, NodeIndex, ObjectGraph
+    graph_equality,
+    value::{ObjectValue, Value},
+    vobj, GraphIndex, GraphsMap, NodeIndex, ObjectGraph,
 };
+
+#[cfg(feature = "trace_embeddings")]
 use tracing::trace;
+
+#[cfg(feature = "trace_embeddings")]
+macro_rules! embeddings_trace {
+    ($($arg:tt)+) => trace!($($arg)+);
+}
+#[cfg(not(feature = "trace_embeddings"))]
+macro_rules! embeddings_trace {
+    ($($arg:tt)+) => {};
+}
 
 pub fn merge_context_arrays(
     p_1_array: &ContextArray,
@@ -45,11 +58,11 @@ pub(crate) fn merge_context(
     p_2: &Context,
     q_2: &Context,
 ) -> Result<(Context, Context), ()> {
-    // trace!(target: "ruse::embedding", "Merging contexts");
-    // trace!(target: "ruse::embedding", "p_1: {}", p_1);
-    // trace!(target: "ruse::embedding", "q_1: {}", q_1);
-    // trace!(target: "ruse::embedding", "p_2: {}", p_2);
-    // trace!(target: "ruse::embedding", "q_2: {}", q_2);
+    embeddings_trace!("Merging contexts");
+    embeddings_trace!("p_1: {}", p_1);
+    embeddings_trace!("q_1: {}", q_1);
+    embeddings_trace!("p_2: {}", p_2);
+    embeddings_trace!("q_2: {}", q_2);
 
     let mut p_1_hat = p_1.values.as_ref().clone();
     let mut q_2_hat = q_2.values.as_ref().clone();
@@ -107,12 +120,12 @@ pub(crate) fn merge_context(
         }
     }
 
-    // trace!(
-    //     target: "ruse::embedding", "intersection: [{}]",
-    //     intersection.iter().map(|x| x.0).join(",")
-    // );
-    // trace!(target: "ruse::embedding", "only_p_2: [{}]", only_p_2.iter().map(|x| x.0).join(","));
-    // trace!(target: "ruse::embedding", "only_q_1: [{}]", only_q_1.iter().map(|x| x.0).join(","));
+    embeddings_trace!(
+        "intersection: [{}]",
+        intersection.iter().map(|x| x.0).join(","),
+    );
+    embeddings_trace!("only_p_2: [{}]", only_p_2.iter().map(|x| x.0).join(","));
+    embeddings_trace!("only_q_1: [{}]", only_q_1.iter().map(|x| x.0).join(","));
 
     let new_nodes_1 = triplet_new_nodes(p_1, q_1);
     let new_nodes_2 = HashSet::default();
