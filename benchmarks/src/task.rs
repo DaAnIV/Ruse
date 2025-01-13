@@ -591,13 +591,19 @@ impl TaskType {
         value_string.starts_with('\'') && value_string.ends_with('\'')
     }
 
-    fn parse_string_set(value_string: &str) -> Result<serde_json::Value, SnythesisTaskError> {
+    fn parse_string_collection(
+        value_string: &str,
+        is_set: bool,
+    ) -> Result<serde_json::Value, SnythesisTaskError> {
         let mut part = String::new();
         let mut collected = Vec::new();
 
         let mut char_iter = value_string.chars();
 
-        if char_iter.next() != Some('{') {
+        let start = if is_set { '{' } else { '[' };
+        let end = if is_set { '}' } else { ']' };
+
+        if char_iter.next() != Some(start) {
             return Err(parse_err!(value_string, "Missing opening bracket"));
         }
 
@@ -606,7 +612,7 @@ impl TaskType {
                 .next()
                 .ok_or(parse_err!(value_string, "Missing closing bracket"))?
             {
-                '}' => {
+                x if x == end => {
                     if !part.is_empty() {
                         collected.push(part.clone());
                     }
@@ -663,12 +669,9 @@ impl TaskType {
                 Err(e) => Err(parse_err!(value_string, e)),
             },
             TaskType::String => Ok(json!(value_string)),
-            TaskType::StringArray => match serde_json::from_str::<Vec<String>>(value_string) {
-                Ok(strings) => Ok(json!(strings)),
-                Err(e) => Err(parse_err!(value_string, e)),
-            },
+            TaskType::StringArray => Self::parse_string_collection(value_string, false),
             TaskType::IntSet => Self::parse_int_set(value_string),
-            TaskType::StringSet => Self::parse_string_set(value_string),
+            TaskType::StringSet => Self::parse_string_collection(value_string, true),
             TaskType::Dom => Ok(json!(value_string)),
             TaskType::DOMElement => Ok(json!(value_string)),
             TaskType::VarRef(_) => Err(parse_err!(
