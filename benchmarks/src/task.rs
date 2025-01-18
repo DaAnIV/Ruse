@@ -1,8 +1,8 @@
 use std::{
     collections::{HashMap, HashSet, VecDeque},
     fmt::{Debug, Display},
+    fs,
     hash::{BuildHasherDefault, DefaultHasher},
-    io::Read,
     path::{Path, PathBuf},
     sync::Arc,
 };
@@ -228,24 +228,6 @@ enum TaskType {
     Object(String),
 }
 
-fn get_value_from_file_or_value(
-    dir: &Path,
-    value: &serde_json::Value,
-) -> Result<serde_json::Value, SnythesisTaskError> {
-    if let Some(filename) = value.as_str() {
-        let full_path = dir.join(filename);
-        if let Ok(mut html_file) = std::fs::File::open(full_path) {
-            let mut buf = String::new();
-            if let Err(e) = html_file.read_to_string(&mut buf) {
-                return Err(parse_err!(value, e));
-            }
-            return Ok(serde_json::Value::String(buf));
-        }
-    }
-
-    Ok(value.to_owned())
-}
-
 impl TaskType {
     pub fn create_value(
         &self,
@@ -455,31 +437,42 @@ impl TaskType {
 
                 Ok(Value::Object(obj))
             }
-            TaskType::Dom => {
+            TaskType::Dom | TaskType::DOMElement => {
                 let html = match value.as_str() {
-                    Some(str) => str,
+                    Some(str) => Self::strip_string(str),
                     None => return Err(parse_err!(value, "Value for html is not an string value")),
-                };
+                }?;
+                self.parse_dom(html, graph, id_gen, cache)
+            }
+            TaskType::VarRef(_) => Err(parse_err!(value, "Var ref is a delayed type")),
+        }
+    }
+
+    pub fn parse_dom(
+        &self,
+        html: &str,
+        graph: &mut ObjectGraph,
+        id_gen: &GraphIdGenerator,
+        cache: &Cache,
+    ) -> Result<Value, SnythesisTaskError> {
+        match self {
+            TaskType::Dom => {
                 let dom_value = match dom::DomLoader::load_dom(id_gen, graph, html, cache) {
                     Ok(v) => v,
-                    Err(e) => return Err(parse_err!(value, e)),
+                    Err(e) => return Err(parse_err!(html, e)),
                 };
 
                 Ok(vobj!(graph.id, dom_value))
             }
             TaskType::DOMElement => {
-                let html = match value.as_str() {
-                    Some(str) => str,
-                    None => return Err(parse_err!(value, "Value for html is not an string value")),
-                };
                 let dom_value = match dom::DomLoader::load_element(id_gen, graph, html, cache) {
                     Ok(v) => v,
-                    Err(e) => return Err(parse_err!(value, e)),
+                    Err(e) => return Err(parse_err!(html, e)),
                 };
 
                 Ok(vobj!(graph.id, dom_value))
             }
-            TaskType::VarRef(_) => Err(parse_err!(value, "Var ref is a delayed type")),
+            _ => unreachable!("Not a dom type"),
         }
     }
 
@@ -684,6 +677,49 @@ impl TaskType {
             )),
         }
     }
+
+    fn load_value(&self, dir: &Path, val: &mut serde_json::Value) -> Result<(), SnythesisTaskError> {
+        if let Some(value_string) = val.as_str() {
+            if let Some(html_path) = value_string.strip_prefix('#').map(PathBuf::from) {
+                if html_path.is_relative() {
+                    *val = self.load_html_path_value(dir.join(html_path).as_path(), value_string)?;
+                } else {
+                    *val = self.load_html_path_value(html_path.as_path(), value_string)?;
+                }
+                return Ok(());
+            }
+        }
+
+        Ok(())
+    }
+
+    fn load_html_path_value(
+        &self,
+        html_path: &Path,
+        expr_value: &str,
+    ) -> Result<serde_json::Value, SnythesisTaskError> {
+        match self {
+            TaskType::Dom | TaskType::DOMElement => {
+                let data = fs::read(html_path).map_err(|_| {
+                    parse_err!(
+                        expr_value,
+                        format!("{} is not a valid html file path", html_path.display())
+                    )
+                })?;
+                let html = String::from_utf8(data).map_err(|_| {
+                    parse_err!(expr_value, format!("Failed to parse {} text", html_path.display()))
+                })?;
+                Ok(json!(format!("'{}'", html)))
+            }
+            _ => Err(parse_err!(
+                expr_value,
+                format!(
+                    "The expr {} is only valid for DOM or DOMElement",
+                    expr_value
+                )
+            )),
+        }
+    }
 }
 
 impl From<&ValueType> for TaskType {
@@ -884,32 +920,6 @@ impl SnythesisTaskExamples {
         )?;
         set_var_refs_variables(variables, &mut values, &mut graphs_map, cache)?;
         Ok(Context::with_values(values, graphs_map.into(), id_gen))
-    }
-
-    fn load_var_value(&mut self, dir: &Path, var: &str) -> Result<(), SnythesisTaskError> {
-        self.input.insert(
-            var.to_owned(),
-            get_value_from_file_or_value(dir, &self.input[var])?,
-        );
-        if let Some(state) = &mut self.state {
-            if state.contains_key(var) {
-                state.insert(
-                    var.to_owned(),
-                    get_value_from_file_or_value(dir, &state[var])?,
-                );
-            }
-        }
-
-        Ok(())
-    }
-
-    fn load_output_value(&mut self, dir: &Path) -> Result<(), SnythesisTaskError> {
-        self.output = Some(get_value_from_file_or_value(
-            dir,
-            self.output.as_ref().unwrap(),
-        )?);
-
-        Ok(())
     }
 }
 
@@ -1411,20 +1421,12 @@ impl SnythesisTask {
             }
         }
 
-        for (var, var_type) in variables {
-            if var_type != &TaskType::Dom && var_type != &TaskType::DOMElement {
-                continue;
-            };
-            for example in inner.examples.as_mut().unwrap() {
-                example.load_var_value(dir.as_path(), var)?;
+        for example in inner.examples.as_mut().unwrap() {
+            if let Some(return_type) = &inner.return_type {
+                return_type.load_value(dir.as_path(), example.output.as_mut().unwrap())?;
             }
-        }
-
-        if inner.return_type == Some(TaskType::Dom)
-            || inner.return_type == Some(TaskType::DOMElement)
-        {
-            for example in inner.examples.as_mut().unwrap() {
-                example.load_output_value(dir.as_path())?;
+            for (var, var_type) in variables {
+                var_type.load_value(dir.as_path(), example.input.get_mut(var).unwrap())?;
             }
         }
 
