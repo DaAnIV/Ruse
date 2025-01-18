@@ -77,9 +77,6 @@ pub(crate) fn merge_context(
     let mut p1_hat_nodes_matches = HashMap::new();
     let mut q2_hat_nodes_matches = HashMap::new();
 
-    let mut pre_values = HashMap::<VariableName, Value>::new();
-    let mut post_values = HashMap::<VariableName, Value>::new();
-
     let mut intersection = Vec::new();
     let mut only_p_2 = Vec::new();
     let mut only_q_1 = Vec::new();
@@ -91,24 +88,17 @@ pub(crate) fn merge_context(
     for var in variables {
         match (q_1.get_var_value(var), p_2.get_var_value(var)) {
             (None, Some(pre_val_2)) => match pre_val_2 {
-                Value::Primitive(_) => {
-                    pre_values.insert(var.clone(), pre_val_2.clone());
-                }
+                Value::Primitive(_) => (),
                 Value::Object(o) => only_p_2.push((var, o.clone())),
             },
             (Some(post_val_1), None) => match post_val_1 {
-                Value::Primitive(_) => {
-                    post_values.insert(var.clone(), post_val_1.clone());
-                }
+                Value::Primitive(_) => (),
                 Value::Object(o) => only_q_1.push((var, o.clone())),
             },
             (Some(post_val_1), Some(pre_val_2)) => match (post_val_1, pre_val_2) {
                 (Value::Primitive(prim_1), Value::Primitive(prim_2)) => {
                     if prim_1 != prim_2 {
                         return Err(());
-                    }
-                    if let Some(pre_val_1) = p_1.get_var_value(var) {
-                        pre_values.insert(var.clone(), pre_val_1.clone());
                     }
                 }
                 (Value::Object(o_1), Value::Object(o_2)) => {
