@@ -263,7 +263,7 @@ impl ExprOpcode for ArraySliceOp {
 
         let new_arr = if self.elem_type.is_primitive() {
             let fields = graph
-                .fields(&arr.node)
+                .primitive_fields(&arr.node)
                 .skip(start)
                 .take(end - start)
                 .map(|(_, p)| p.clone());
@@ -329,7 +329,7 @@ impl ExprOpcode for ArrayConcatOp {
         let graph = arr.graph(&post_ctx.graphs_map);
 
         let new_arr = if self.elem_type.is_primitive() {
-            let values = graph.fields(&arr.node).map(|x| x.1.clone()).chain(
+            let values = graph.primitive_fields(&arr.node).map(|x| x.1.clone()).chain(
                 args.iter()
                     .skip(1)
                     .map(|x| x.val().primitive().unwrap().clone().into() ),
@@ -419,14 +419,14 @@ impl ExprOpcode for ArraySpliceOp {
 
         let fields = items_to_add.chain(
             graph
-                .fields(&arr.node)
+                .primitive_fields(&arr.node)
                 .skip(start + delete_count)
                 .map(|(_, p)| Value::Primitive(p.value.clone())),
         );
 
         let deleted_items_arr = if self.elem_type.is_primitive() {
             let fields = graph
-                .fields(&arr.node)
+                .primitive_fields(&arr.node)
                 .skip(start)
                 .take(delete_count)
                 .map(|(_, p)| p.value.clone());
@@ -509,9 +509,9 @@ impl ExprOpcode for ArrayConcatArrayOp {
 
         let new_arr = if self.elem_type.is_primitive() {
             let values = graph
-                .fields(&arr.node)
+                .primitive_fields(&arr.node)
                 .map(|x| x.1.value.clone())
-                .chain(graph_to_add.fields(&arr_to_add.node).map(|x| x.1.value.clone()));
+                .chain(graph_to_add.primitive_fields(&arr_to_add.node).map(|x| x.1.value.clone()));
             post_ctx.create_output_primitive_array(&self.elem_type, values, &syn_ctx)
         } else {
             let values = graph

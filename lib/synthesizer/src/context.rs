@@ -287,18 +287,7 @@ impl Context {
         value: &Value,
     ) -> bool {
         let mut new_graph = self.graphs_map[graph].as_ref().clone();
-        match value {
-            Value::Primitive(p) => {
-                new_graph.set_field(&node, field_name.clone(), p.clone());
-            }
-            Value::Object(o) => {
-                if graph == o.graph_id {
-                    new_graph.set_edge(&node, o.node, field_name);
-                } else {
-                    new_graph.set_chain_edge(&node, o.graph_id, o.node, field_name);
-                }
-            }
-        };
+        new_graph.set_field(&node, field_name.clone(), value);
         self.update_graph(new_graph.into());
         self.update_hash();
         true
@@ -311,7 +300,7 @@ impl Context {
         field_name: &FieldName,
     ) -> Option<Value> {
         let mut new_graph = self.graphs_map[graph].as_ref().clone();
-        let result = if let Some(primitive_field) = new_graph.delete_field(&node, field_name) {
+        let result = if let Some(primitive_field) = new_graph.delete_primitive_field(&node, field_name) {
             Value::Primitive(primitive_field.value)
         } else {
             let neig = new_graph.get_neighbor(&node, field_name)?;

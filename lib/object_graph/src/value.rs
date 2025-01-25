@@ -122,7 +122,7 @@ impl ObjectValue {
         graphs_map: &GraphsMap,
     ) -> Option<PrimitiveField> {
         Option::map(
-            self.graph(graphs_map).get_field(&self.node, field_name),
+            self.graph(graphs_map).get_primitive_field(&self.node, field_name),
             |x| x.clone(),
         )
     }
@@ -172,7 +172,7 @@ impl ObjectValue {
     }
 
     pub fn primitive_field_count(&self, graphs_map: &GraphsMap) -> usize {
-        self.graph(graphs_map).fields_count(&self.node)
+        self.graph(graphs_map).primitive_fields_count(&self.node)
     }
 
     pub fn pointers_field_count(&self, graphs_map: &GraphsMap) -> usize {
@@ -195,7 +195,7 @@ impl ObjectValue {
         &self,
         graphs_map: &'a GraphsMap,
     ) -> impl Iterator<Item = (&'a FieldName, &'a PrimitiveField)> {
-        graphs_map[&self.graph_id].fields(&self.node)
+        graphs_map[&self.graph_id].primitive_fields(&self.node)
     }
 
     pub fn neighbors<'a>(
@@ -211,7 +211,7 @@ impl GraphMapDisplay for ObjectValue {
         let graph = self.graph(graphs_map);
         if self.is_array(graphs_map) && self.pointers_field_count(graphs_map) == 0 {
             write!(f, "[")?;
-            let mut iter = graph.fields(&self.node);
+            let mut iter = graph.primitive_fields(&self.node);
             match iter.next() {
                 None => (),
                 Some((_, first_field)) => {
@@ -225,7 +225,7 @@ impl GraphMapDisplay for ObjectValue {
             fmt::Result::Ok(())
         } else if self.is_set(graphs_map) && self.pointers_field_count(graphs_map) == 0 {
             write!(f, "{{")?;
-            let mut iter = graph.fields(&self.node);
+            let mut iter = graph.primitive_fields(&self.node);
             match iter.next() {
                 None => (),
                 Some((_, first_field)) => {

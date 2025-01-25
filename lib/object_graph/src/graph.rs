@@ -246,15 +246,28 @@ impl ObjectGraph {
         Some(&self.get_node(node)?.obj_type())
     }
 
-    pub fn get_field(&self, node: &NodeIndex, field: &FieldName) -> Option<&PrimitiveField> {
+    pub fn set_field(&mut self, node: &NodeIndex, field: FieldName, value: &Value) {
+        match value {
+            Value::Primitive(primitive_value) => self.set_primitive_field(node, field, primitive_value.clone()),
+            Value::Object(object_value) => {
+                if object_value.graph_id == self.id {
+                    self.set_edge(node, object_value.node, field);
+                } else {
+                    self.set_chain_edge(node, object_value.graph_id, object_value.node, field);
+                }
+            },
+        }
+    }
+
+    pub fn get_primitive_field(&self, node: &NodeIndex, field: &FieldName) -> Option<&PrimitiveField> {
         self.get_node(node)?.get_field(field).clone()
     }
 
-    pub fn set_field(&mut self, node: &NodeIndex, field: FieldName, value: PrimitiveValue) {
-        self.set_field_with_attributes(node, field, value, Attributes::default());
+    pub fn set_primitive_field(&mut self, node: &NodeIndex, field: FieldName, value: PrimitiveValue) {
+        self.set_primitive_field_with_attributes(node, field, value, Attributes::default());
     }
 
-    pub fn set_field_with_attributes(
+    pub fn set_primitive_field_with_attributes(
         &mut self,
         node: &NodeIndex,
         field: FieldName,
@@ -266,16 +279,16 @@ impl ObjectGraph {
             .insert_field_with_attributes(field, value, attributes);
     }
 
-    pub fn delete_field(&mut self, node: &NodeIndex, field: &FieldName) -> Option<PrimitiveField> {
+    pub fn delete_primitive_field(&mut self, node: &NodeIndex, field: &FieldName) -> Option<PrimitiveField> {
         self.get_mut_node(node).unwrap().remove_field(field)
     }
 
-    pub fn fields_count(&self, id: &NodeIndex) -> usize {
+    pub fn primitive_fields_count(&self, id: &NodeIndex) -> usize {
         let node = self.get_node(id).unwrap();
         node.fields_len()
     }
 
-    pub fn fields(
+    pub fn primitive_fields(
         &self,
         id: &NodeIndex,
     ) -> impl std::iter::Iterator<Item = (&FieldName, &PrimitiveField)> {
