@@ -15,6 +15,7 @@ itertools = "*"
 downcast-rs = "*"
 rand = { version = "*", optional = true }
 tracing-subscriber = { version = "*", optional = true }
+futures = { version = "*" }
 
 tracing.workspace = true
 

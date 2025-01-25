@@ -4,7 +4,16 @@ use itertools::Itertools;
 use ruse_synthesizer::opcode::sort_opcodes;
 use ruse_ts_interpreter::ts_class::TsClassesBuilder;
 use serde_json::ser::Formatter;
-use std::{clone::Clone, fs::File, path::PathBuf, process::ExitCode, sync::Arc, time::Duration};
+use std::{
+    backtrace::{Backtrace, BacktraceStatus},
+    clone::Clone,
+    fs::File,
+    panic::PanicHookInfo,
+    path::PathBuf,
+    process::ExitCode,
+    sync::Arc,
+    time::Duration,
+};
 use task::SnythesisTask;
 use tracing::{error, info, level_filters::LevelFilter};
 use tracing_log::AsTrace;
@@ -120,6 +129,39 @@ struct PrintOpcodesArgs {
     print_summary: bool,
 }
 
+// Taken and modified from tracing_panic::panic_hook crate (need the target: ruse)
+fn panic_hook(panic_info: &PanicHookInfo) {
+    let payload = panic_info.payload();
+
+    #[allow(clippy::manual_map)]
+    let payload = if let Some(s) = payload.downcast_ref::<&str>() {
+        Some(&**s)
+    } else if let Some(s) = payload.downcast_ref::<String>() {
+        Some(s.as_str())
+    } else {
+        None
+    };
+
+    let location = panic_info.location().map(|l| l.to_string());
+    let (backtrace, note) = {
+        let backtrace = Backtrace::capture();
+        let note = (backtrace.status() == BacktraceStatus::Disabled)
+            .then_some("run with RUST_BACKTRACE=1 environment variable to display a backtrace");
+        (Some(backtrace), note)
+    };
+
+    tracing::error!(
+        target: "ruse",
+        {
+            panic.payload = payload,
+            panic.location = location,
+            panic.backtrace = backtrace.map(tracing::field::display),
+            panic.note = note,
+        },
+        "A panic occurred",
+    );
+}
+
 fn set_logger(cli: &RunArgs) {
     // let fmt_layer = tracing_subscriber::fmt::layer();
     let verbose_filter = Targets::default()
@@ -161,6 +203,8 @@ fn set_logger(cli: &RunArgs) {
 
         tracing_subscriber::registry().with(console_layer).init();
     }
+
+    std::panic::set_hook(Box::new(panic_hook));
 }
 
 fn run_all_benchmarks<F>(

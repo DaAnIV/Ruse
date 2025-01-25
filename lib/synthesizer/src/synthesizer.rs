@@ -9,6 +9,7 @@ use crate::{
     prog_triplet_iterator::{prog_triplet_iterator, ProgTripletIterator},
 };
 use dashmap::DashSet;
+use futures::FutureExt;
 use ruse_object_graph::{
     value::{Value, ValueType},
     CachedString,
@@ -17,11 +18,12 @@ use serde::ser::SerializeStruct;
 use std::{
     fmt::Display,
     ops::Index,
+    panic,
     sync::{atomic::*, Arc},
 };
 use tokio::task::JoinSet;
 use tokio_util::sync::CancellationToken;
-use tracing::{debug, error, trace};
+use tracing::{debug, trace};
 
 const ALLOW_NON_FINITE_NUMBER: bool = false;
 
@@ -247,37 +249,32 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
     }
 
     pub async fn run_iteration(self: &mut Arc<Self>) -> Option<Arc<SubProgram>> {
-        let (current_iteration_map, found_prog) =
-            Self::run_iteration_inner(self.clone()).await;
+        let (current_iteration_map, found_prog) = Self::run_iteration_inner(self.clone()).await;
 
         Self::insert_iteration(self, current_iteration_map);
 
         found_prog
     }
 
-    async fn run_iteration_inner(
-        self: Arc<Self>,
-    ) -> (TypeMap<P::T>, Option<Arc<SubProgram>>) {
+    async fn run_iteration_inner(self: Arc<Self>) -> (TypeMap<P::T>, Option<Arc<SubProgram>>) {
         debug!(target: "ruse::synthesizer", "Starting iteration {}", self.bank.iteration_count());
 
-        let res = tokio::spawn(async move {
-            let mut current_iteration_map = TypeMap::default();
-            let found = if self.bank.iteration_count() == 0 {
-                self.run_init_iteration(&mut current_iteration_map)
-            } else {
-                self.run_composite_iteration(&mut current_iteration_map).await
-            };
-            (current_iteration_map, found)
-        })
+        let res = tokio::spawn(
+            panic::AssertUnwindSafe(async move {
+                let mut current_iteration_map = TypeMap::default();
+                let found = if self.bank.iteration_count() == 0 {
+                    self.run_init_iteration(&mut current_iteration_map)
+                } else {
+                    self.run_composite_iteration(&mut current_iteration_map)
+                        .await
+                };
+                (current_iteration_map, found)
+            })
+            .catch_unwind(),
+        )
         .await;
 
-        match res {
-            Ok(iter_output) => iter_output,
-            Err(err) => {
-                error!(target: "ruse::synthesizer", "Got error {}", err);
-                panic!("{}", err);
-            }
-        }
+        res.unwrap().unwrap()
     }
 
     fn run_init_iteration(
@@ -367,10 +364,14 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
     ) -> Option<Arc<SubProgram>> {
         let mut workers = JoinSet::new();
         for i in 0..self.worker_count {
-            workers.spawn(Self::composite_iteration_worker(self.clone(), i));
+            workers.spawn(
+                panic::AssertUnwindSafe(Self::composite_iteration_worker(self.clone(), i))
+                    .catch_unwind(),
+            );
         }
 
-        while let Some(Ok((worker_type_map, found))) = workers.join_next().await {
+        while let Some(worker_res) = workers.join_next().await {
+            let (worker_type_map, found) = worker_res.unwrap().unwrap();
             if self.cancel_token.is_cancelled() {
                 return None;
             }
