@@ -224,7 +224,7 @@ impl Display for VarRef {
 enum ExprPrefix {
     FieldRef,
     StaticRef,
-    HtmlRef,
+    HtmlFile,
 }
 
 impl ExprPrefix {
@@ -236,7 +236,7 @@ impl ExprPrefix {
         match self {
             ExprPrefix::FieldRef => "*",
             ExprPrefix::StaticRef => "$",
-            ExprPrefix::HtmlRef => "#",
+            ExprPrefix::HtmlFile => "#",
         }
     }
 }
@@ -731,7 +731,7 @@ impl TaskType {
         val: &mut serde_json::Value,
     ) -> Result<(), SnythesisTaskError> {
         if let Some(value_string) = val.as_str() {
-            if let Some(html_path) = ExprPrefix::HtmlRef.get(value_string).map(PathBuf::from) {
+            if let Some(html_path) = ExprPrefix::HtmlFile.get(value_string).map(PathBuf::from) {
                 if html_path.is_relative() {
                     *val =
                         self.load_html_path_value(dir.join(html_path).as_path(), value_string)?;
