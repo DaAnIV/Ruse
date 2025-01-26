@@ -792,6 +792,7 @@ impl From<&ValueType> for TaskType {
                 dom::DomLoader::ELEMENT_CLASS_STR => TaskType::DOMElement,
                 s => TaskType::Object(s.to_owned()),
             },
+            ValueType::Null => unreachable!()
         }
     }
 }
@@ -1366,7 +1367,7 @@ impl SnythesisTask {
             cache,
         );
         if add_seq {
-            let mut value_types = vec![ValueType::Number, ValueType::String];
+            let mut value_types = vec![ValueType::Number, ValueType::String, ValueType::Null];
             value_types.extend(class_names.iter().map(|x| ValueType::Object(x.clone())));
             value_types.push(ValueType::array_value_type(&ValueType::Number, cache));
             value_types.push(ValueType::array_value_type(&ValueType::String, cache));

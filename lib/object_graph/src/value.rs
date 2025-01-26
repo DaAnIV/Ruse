@@ -11,6 +11,7 @@ use std::{fmt::Debug, hash::Hash, sync::Arc};
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug, PartialOrd, Ord)]
 pub enum ValueType {
+    Null,
     Number,
     Bool,
     String,
@@ -300,7 +301,7 @@ impl Value {
                 PrimitiveValue::Number(_) => ValueType::Number,
                 PrimitiveValue::Bool(_) => ValueType::Bool,
                 PrimitiveValue::String(_) => ValueType::String,
-                PrimitiveValue::Null => todo!(),
+                PrimitiveValue::Null => ValueType::Null,
             },
             Value::Object(o) => ValueType::Object(o.obj_type(graphs_map).clone()),
         }
@@ -365,6 +366,7 @@ impl fmt::Display for ValueType {
             ValueType::Number => f.write_str("Number"),
             ValueType::Bool => f.write_str("Bool"),
             ValueType::String => f.write_str("String"),
+            ValueType::Null => f.write_str("Null"),
             ValueType::Object(o) => f.write_fmt(format_args!("{}", o.as_str())),
         }
     }
