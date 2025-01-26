@@ -201,12 +201,42 @@ impl VarRef {
     }
 }
 
+impl From<&str> for VarRef {
+    fn from(value: &str) -> Self {
+        let mut iter = value.split(".");
+        let var = iter.next().unwrap().to_string();
+        let fields = iter.map(|x| FieldName::from(x.to_string())).collect();
+        VarRef { var, fields }
+    }
+}
+
 impl Display for VarRef {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.fields.is_empty() {
             write!(f, "{}", &self.var)
         } else {
             write!(f, "{}.{}", &self.var, self.fields.iter().join("."))
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+enum ExprPrefix {
+    FieldRef,
+    StaticRef,
+    HtmlRef,
+}
+
+impl ExprPrefix {
+    fn get<'a>(&self, expr: &'a str) -> Option<&'a str> {
+        expr.strip_prefix(self.as_str())
+    }
+
+    fn as_str(&self) -> &str {
+        match self {
+            ExprPrefix::FieldRef => "*",
+            ExprPrefix::StaticRef => "$",
+            ExprPrefix::HtmlRef => "#",
         }
     }
 }
@@ -483,7 +513,7 @@ impl TaskType {
         graphs_map: &mut GraphsMap,
         cache: &Cache,
     ) -> Result<Value, SnythesisTaskError> {
-        if let Some(static_ref) = value_string.strip_prefix('$') {
+        if let Some(static_ref) = ExprPrefix::StaticRef.get(value_string) {
             self.parse_static_ref_expr_value(static_ref, value_string, classes, graphs_map, cache)
         } else {
             Err(parse_err!(
@@ -678,11 +708,16 @@ impl TaskType {
         }
     }
 
-    fn load_value(&self, dir: &Path, val: &mut serde_json::Value) -> Result<(), SnythesisTaskError> {
+    fn load_value(
+        &self,
+        dir: &Path,
+        val: &mut serde_json::Value,
+    ) -> Result<(), SnythesisTaskError> {
         if let Some(value_string) = val.as_str() {
-            if let Some(html_path) = value_string.strip_prefix('#').map(PathBuf::from) {
+            if let Some(html_path) = ExprPrefix::HtmlRef.get(value_string).map(PathBuf::from) {
                 if html_path.is_relative() {
-                    *val = self.load_html_path_value(dir.join(html_path).as_path(), value_string)?;
+                    *val =
+                        self.load_html_path_value(dir.join(html_path).as_path(), value_string)?;
                 } else {
                     *val = self.load_html_path_value(html_path.as_path(), value_string)?;
                 }
@@ -707,7 +742,10 @@ impl TaskType {
                     )
                 })?;
                 let html = String::from_utf8(data).map_err(|_| {
-                    parse_err!(expr_value, format!("Failed to parse {} text", html_path.display()))
+                    parse_err!(
+                        expr_value,
+                        format!("Failed to parse {} text", html_path.display())
+                    )
                 })?;
                 Ok(json!(format!("'{}'", html)))
             }
@@ -760,11 +798,8 @@ impl<'de> Deserialize<'de> for TaskType {
             "DOM" => Ok(TaskType::Dom),
             "DOMElement" => Ok(TaskType::DOMElement),
             _ => {
-                if let Some(var_ref) = val.strip_prefix("VAR:") {
-                    let mut iter = var_ref.split(".");
-                    let var = iter.next().unwrap().to_string();
-                    let fields = iter.map(|x| FieldName::from(x.to_string())).collect();
-                    Ok(TaskType::VarRef(VarRef { var, fields }))
+                if let Some(var_ref) = val.strip_prefix(ExprPrefix::FieldRef.as_str()) {
+                    Ok(TaskType::VarRef(VarRef::from(var_ref)))
                 } else {
                     Ok(TaskType::Object(val))
                 }

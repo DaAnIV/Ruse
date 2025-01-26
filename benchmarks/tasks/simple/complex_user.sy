@@ -5,8 +5,8 @@
     "class ComplexUser {\nconstructor(public user_a: User,\npublic user_b: User) {}\n}"
   ],
   "variables": {
-    "a": "VAR:c.user_a",
-    "b": "VAR:c.user_b",
+    "a": "*:c.user_a",
+    "b": "*:c.user_b",
     "c": "ComplexUser"
   },
   "intLiterals": [],
