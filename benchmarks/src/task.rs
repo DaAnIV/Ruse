@@ -456,9 +456,10 @@ impl TaskType {
                 };
                 let fields_types = HashMap::from_iter(
                     class
+                        .description
                         .fields
                         .iter()
-                        .map(|(k, v)| (k.to_string(), TaskType::from(v))),
+                        .map(|(k, v)| (k.to_string(), TaskType::from(&v.value_type))),
                 );
                 let values =
                     parse_json_values(&fields, &fields_types, graphs_map, id_gen, classes, cache)?;
@@ -544,7 +545,23 @@ impl TaskType {
                     class_name
                 )
             ))?;
-        let (value_type, value) = class
+        let field_desc = class.description.fields.get(field_name).ok_or(parse_err!(
+            value_string,
+            format!(
+                "The field {} is not defined for class {}, can't parse static field ref",
+                field_name, class_name
+            )
+        ))?;
+        if !field_desc.is_static {
+            return Err(parse_err!(
+                value_string,
+                format!(
+                    "The field {} is not a static field for class {}, can't parse static field ref",
+                    field_name, class_name
+                )
+            ));
+        }
+        let value = class
             .static_fields
             .get(&str_cached!(cache; field_name))
             .ok_or(parse_err!(
@@ -554,7 +571,7 @@ impl TaskType {
                     field_name, class_name
                 )
             ))?;
-        if value_type != &self.value_type(cache) {
+        if &field_desc.value_type != &self.value_type(cache) {
             return Err(parse_err!(
                 value_string,
                 format!(
@@ -563,7 +580,7 @@ impl TaskType {
                 )
             ));
         }
-        graphs_map.insert_graph(class.static_graph.clone());
+        graphs_map.insert_graph(class.static_graph.as_ref().unwrap().clone());
         Ok(value.val().clone())
     }
 
@@ -1387,7 +1404,10 @@ impl SnythesisTask {
         Ok(values.into())
     }
 
-    pub fn from_json_file(path: &Path, cache: &Cache) -> Result<SnythesisTask, SnythesisTaskError> {
+    pub fn from_json_file(
+        path: &Path,
+        cache: &Arc<Cache>,
+    ) -> Result<SnythesisTask, SnythesisTaskError> {
         let reader = std::fs::File::open(path).map_err(|e| SnythesisTaskError::IO(e))?;
         let mut inner: SnythesisTaskInner = match serde_json::from_reader(reader) {
             Ok(val) => val,

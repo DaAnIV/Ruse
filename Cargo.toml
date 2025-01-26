@@ -13,6 +13,10 @@ ruse_ts_interpreter = { path = "./lib/ts_interpreter" }
 ruse_synthesizer = { path = "./lib/synthesizer" }
 ruse_ts_synthesizer = { path = "./lib/ts_synthesizer" }
 
+boa_engine = "*"
+
+[patch.crates-io]
+boa_engine = { git = "https://github.com/DaAnIV/boa.git" }
 
 [profile.release]
 lto = "thin"

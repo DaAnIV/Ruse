@@ -261,6 +261,7 @@ mod ts_class_tests {
     };
     use ruse_synthesizer::test::helpers::{get_composite_prog, get_init_prog};
 
+    use crate::js_object_wrapper::{EngineContext, JsWrapped};
     use crate::js_value::value_to_js_value;
     use crate::opcode::{IdentOp, LitOp};
     use crate::ts_class::{TsClasses, TsClassesBuilder};
@@ -352,47 +353,38 @@ mod ts_class_tests {
         let student_class = classes.get_class(&student_class_name).unwrap();
         let class_class = classes.get_class(&class_class_name).unwrap();
 
-        assert!(student_class
-            .fields
-            .get(&str_cached!(cache; "name"))
-            .is_some());
-        assert!(student_class
-            .fields
-            .get(&str_cached!(cache; "surname"))
-            .is_some());
-        assert!(student_class
-            .fields
-            .get(&str_cached!(cache; "age"))
-            .is_some());
-        assert!(student_class
-            .fields
-            .get(&str_cached!(cache; "grades"))
-            .is_some());
-        assert!(class_class
-            .fields
-            .get(&str_cached!(cache; "students"))
-            .is_some());
+        assert!(student_class.description.fields.get("name").is_some());
+        assert!(student_class.description.fields.get("surname").is_some());
+        assert!(student_class.description.fields.get("age").is_some());
+        assert!(student_class.description.fields.get("grades").is_some());
+        assert!(class_class.description.fields.get("students").is_some());
 
         assert_eq!(
-            student_class.fields[&str_cached!(cache; "name")],
+            student_class.description.fields["name"].value_type,
             ValueType::String
         );
         assert_eq!(
-            student_class.fields[&str_cached!(cache; "surname")],
+            student_class.description.fields["surname"].value_type,
             ValueType::String
         );
         assert_eq!(
-            student_class.fields[&str_cached!(cache; "age")],
+            student_class.description.fields["age"].value_type,
             ValueType::Number
         );
         assert_eq!(
-            student_class.fields[&str_cached!(cache; "grades")],
+            student_class.description.fields["grades"].value_type,
             ValueType::array_value_type(&ValueType::Number, &cache)
         );
         assert_eq!(
-            class_class.fields[&str_cached!(cache; "students")],
+            class_class.description.fields["students"].value_type,
             ValueType::array_value_type(&student_class.obj_type(), &cache)
         );
+
+        assert!(class_class
+            .description
+            .fields
+            .values()
+            .all(|field| !field.is_private && !field.is_static && !field.is_readonly))
     }
 
     #[test]
@@ -426,9 +418,11 @@ mod ts_class_tests {
         graphs_map.insert_graph(graph.into());
 
         let mut ctx = Context::with_values([].into(), graphs_map.into(), id_gen);
-        let mut boa_ctx = classes.get_engine_ctx(&mut ctx, &cache);
+        let mut boa_ctx = EngineContext::new_boa_ctx();
+        let mut engine_context = EngineContext::create_engine_ctx(&mut boa_ctx, &classes);
+        engine_context.reset_with_context(&mut ctx, &classes, &cache);
 
-        let js_user = user_class.generate_js_object(&classes, user, &mut boa_ctx, &cache);
+        let js_user = user_class.wrap_as_js_object(user, &mut engine_context);
         boa_ctx
             .register_global_property(js_string!("u"), js_user, Attribute::all())
             .expect("Failed to register p");
@@ -503,10 +497,11 @@ mod ts_class_tests {
         graphs_map.insert_graph(complex_user_graph.into());
 
         let mut ctx = Context::with_values([].into(), graphs_map.into(), id_gen);
-        let mut boa_ctx = classes.get_engine_ctx(&mut ctx, &cache);
+        let mut boa_ctx = EngineContext::new_boa_ctx();
+        let mut engine_context = EngineContext::create_engine_ctx(&mut boa_ctx, &classes);
+        engine_context.reset_with_context(&mut ctx, &classes, &cache);
 
-        let js_obj =
-            user_class_pair.generate_js_object(&classes, complex_user, &mut boa_ctx, &cache);
+        let js_obj = user_class_pair.wrap_as_js_object(complex_user, &mut engine_context);
         boa_ctx
             .register_global_property(js_string!("up"), js_obj, Attribute::all())
             .expect("Failed to register p");
@@ -563,26 +558,26 @@ mod ts_class_tests {
         let classes_ref = syn_ctx.data.downcast_ref::<TsClasses>().unwrap();
         let user_class = classes_ref.get_class(&user_class_name).unwrap();
 
-        let mut boa_ctx = classes_ref.get_engine_ctx(&mut ctx, &syn_ctx.cache);
+        let mut boa_ctx = EngineContext::new_boa_ctx();
+        let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, classes_ref);
+        engine_ctx.reset_with_context(&mut ctx, classes_ref, &syn_ctx.cache);
 
         value_to_js_value(
             &classes_ref,
             ctx.get_var_loc_value(&syn_ctx.cached_string("u"), &syn_ctx)
                 .unwrap()
                 .val(),
-            &mut boa_ctx,
-            &ctx,
-            &syn_ctx.cache,
+            &mut engine_ctx,
+            &ctx.graphs_map,
         );
 
-        let js_user =
-            user_class.generate_js_object(classes_ref, user, &mut boa_ctx, &syn_ctx.cache);
-        boa_ctx
+        let js_user = user_class.wrap_as_js_object(user, &mut engine_ctx);
+        engine_ctx
             .register_global_property(js_string!("u"), js_user, Attribute::all())
             .expect("Failed to register p");
 
         let js_code = boa_engine::Source::from_bytes("u.name = \"abc\"");
-        let _res = boa_ctx.eval(js_code).unwrap();
+        let _res = engine_ctx.eval(js_code).unwrap();
 
         let user_after = ctx
             .get_var_loc_value(&syn_ctx.cached_string("u"), &syn_ctx)
@@ -709,6 +704,119 @@ mod ts_class_tests {
                 .unwrap()
                 .as_str(),
             "Surname Lit"
+        );
+    }
+
+    #[test]
+    fn call_constructor() {
+        let code = "class User {
+            public fullname: string;
+
+            constructor(public name: string, 
+                        public surname: string) {
+                this.fullname = name + surname;            
+            }
+        }";
+
+        let cache = Arc::new(Cache::new());
+        let mut graphs_map = GraphsMap::default();
+        let id_gen = Arc::new(GraphIdGenerator::default());
+        let mut builder = TsClassesBuilder::new();
+
+        let user_class_name = builder
+            .add_class(code, &cache)
+            .expect("Failed to add User class");
+
+        let classes = builder.finalize(&cache);
+
+        let user_class = classes.get_class(&user_class_name).unwrap();
+
+        let graph_id = id_gen.get_id_for_graph();
+        graphs_map.insert_graph(ObjectGraph::new(graph_id).into());
+        let js_user = user_class.call_constructor(
+            &[vstr!(cache; "a"), vstr!(cache; "b")],
+            graph_id,
+            &mut graphs_map,
+            &classes,
+            &id_gen,
+            &cache,
+        );
+        let name_field = js_user.get_field_value(&str_cached!(cache; "name"), &graphs_map);
+        let surname_field = js_user.get_field_value(&str_cached!(cache; "surname"), &graphs_map);
+        let fullname_field = js_user.get_field_value(&str_cached!(cache; "fullname"), &graphs_map);
+
+        print!("{}", js_user.wrap(&graphs_map));
+
+        assert!(name_field.is_some());
+        assert_eq!(
+            name_field.unwrap().wrap(&graphs_map),
+            vstr!(cache; "a").wrap(&graphs_map)
+        );
+        assert!(surname_field.is_some());
+        assert_eq!(
+            surname_field.unwrap().wrap(&graphs_map),
+            vstr!(cache; "b").wrap(&graphs_map)
+        );
+        assert!(fullname_field.is_some());
+        assert_eq!(
+            fullname_field.unwrap().wrap(&graphs_map),
+            vstr!(cache; "ab").wrap(&graphs_map)
+        );
+    }
+
+    #[test]
+    fn eval_new() {
+        let code = "class User {
+            public fullname: string;
+
+            constructor(public name: string, 
+                        public surname: string) {
+                this.fullname = name + surname;            
+            }
+        }";
+
+        let cache = Arc::new(Cache::new());
+        let mut graphs_map = GraphsMap::default();
+        let id_gen = Arc::new(GraphIdGenerator::default());
+        let mut builder = TsClassesBuilder::new();
+
+        builder
+            .add_class(code, &cache)
+            .expect("Failed to add User class");
+
+        let classes = builder.finalize(&cache);
+
+        let graph_id = id_gen.get_id_for_graph();
+        graphs_map.insert_graph(ObjectGraph::new(graph_id).into());
+        let mut boa_ctx = EngineContext::new_boa_ctx();
+        let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, &classes);
+        engine_ctx.reset_with_graph(graph_id, &mut graphs_map, &classes, &id_gen, &cache);
+
+        let res = engine_ctx
+            .eval(boa_engine::Source::from_bytes("new User(\"a\", \"b\")"))
+            .unwrap();
+        let js_user = JsWrapped::<ObjectValue>::get_from_js_val(&res).unwrap();
+
+        let name_field = js_user.get_field_value(&str_cached!(cache; "name"), &graphs_map);
+        let surname_field = js_user.get_field_value(&str_cached!(cache; "surname"), &graphs_map);
+        let fullname_field = js_user.get_field_value(&str_cached!(cache; "fullname"), &graphs_map);
+
+        print!("{}", js_user.wrap(&graphs_map));
+
+        assert!(name_field.is_some());
+        assert_eq!(
+            name_field.unwrap().wrap(&graphs_map),
+            vstr!(cache; "a").wrap(&graphs_map)
+        );
+        assert!(surname_field.is_some());
+        assert_eq!(
+            surname_field.unwrap().wrap(&graphs_map),
+            vstr!(cache; "b").wrap(&graphs_map)
+        );
+        assert!(fullname_field.is_some());
+        assert_eq!(
+            fullname_field.unwrap().wrap(&graphs_map),
+            vstr!(cache; "ab").wrap(&graphs_map)
         );
     }
 }

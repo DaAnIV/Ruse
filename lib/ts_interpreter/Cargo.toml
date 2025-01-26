@@ -19,8 +19,7 @@ itertools = "*"
 
 html_parser = "*"
 
-boa_engine = "*"
-boa_gc = "*"
+boa_engine.workspace = true
 
 tracing.workspace = true
 

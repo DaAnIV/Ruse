@@ -300,25 +300,26 @@ impl Context {
         field_name: &FieldName,
     ) -> Option<Value> {
         let mut new_graph = self.graphs_map[graph].as_ref().clone();
-        let result = if let Some(primitive_field) = new_graph.delete_primitive_field(&node, field_name) {
-            Value::Primitive(primitive_field.value)
-        } else {
-            let neig = new_graph.get_neighbor(&node, field_name)?;
-            let obj_val = match neig {
-                EdgeEndPoint::Internal(neig_node) => ObjectValue {
-                    graph_id: graph,
-                    node: *neig_node,
-                },
-                EdgeEndPoint::Chain(chained_graph, neig_node) => ObjectValue {
-                    graph_id: *chained_graph,
-                    node: *neig_node,
-                },
+        let result =
+            if let Some(primitive_field) = new_graph.delete_primitive_field(&node, field_name) {
+                Value::Primitive(primitive_field.value)
+            } else {
+                let neig = new_graph.get_neighbor(&node, field_name)?;
+                let obj_val = match neig {
+                    EdgeEndPoint::Internal(neig_node) => ObjectValue {
+                        graph_id: graph,
+                        node: *neig_node,
+                    },
+                    EdgeEndPoint::Chain(chained_graph, neig_node) => ObjectValue {
+                        graph_id: *chained_graph,
+                        node: *neig_node,
+                    },
+                };
+
+                new_graph.remove_edge(&node, field_name.clone());
+
+                Value::Object(obj_val)
             };
-
-            new_graph.remove_edge(&node, field_name.clone());
-
-            Value::Object(obj_val)
-        };
         self.update_graph(new_graph.into());
         self.update_hash();
         Some(result)
@@ -326,6 +327,13 @@ impl Context {
 
     pub fn create_graph(&self) -> ObjectGraph {
         ObjectGraph::new(self.graph_id_gen.get_id_for_graph())
+    }
+
+    pub fn create_graph_in_map(&mut self) -> &mut ObjectGraph {
+        let id = self.graph_id_gen.get_id_for_graph();
+        let new_map = Arc::make_mut(&mut self.graphs_map);
+        new_map.insert_graph(ObjectGraph::new(id).into());
+        Arc::make_mut(new_map.get_mut(&id).unwrap())
     }
 
     pub fn update_graph(&mut self, new_graph: Arc<ObjectGraph>) {

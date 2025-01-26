@@ -284,7 +284,7 @@ fn run_benchmarks(cli: &RunArgs) -> ExitCode {
 }
 
 fn print_opcodes(cli: &PrintOpcodesArgs) -> ExitCode {
-    let cache = Cache::new();
+    let cache = Arc::new(Cache::new());
     let mut builder = TsClassesBuilder::new();
     let mut class_names = vec![];
 

@@ -7,7 +7,7 @@ use ruse_synthesizer::{
 use tracing::debug;
 
 use crate::{
-    js_value::{js_value_to_value, value_to_js_value},
+    js_object_wrapper::EngineContext,
     opcode::{member_call_ast, static_member_call_ast},
     ts_class::TsClasses,
 };
@@ -17,47 +17,26 @@ pub struct ClassMethodOp {
     method_name: String,
     full_method_name: String,
     arg_types: Vec<ValueType>,
-    code: String,
     is_static: bool,
 }
 
 impl ClassMethodOp {
-    pub fn new(
-        obj_type: CachedString,
-        method_name: String,
-        args: &[(String, ValueType)],
-        function_body: &str,
-        is_static: bool,
-    ) -> Self {
+    pub fn new<I>(obj_type: CachedString, method_name: String, args: I, is_static: bool) -> Self
+    where
+        I: IntoIterator<Item = ValueType>,
+    {
         let full_method_name = format!("{}.{}", &obj_type, &method_name);
         let mut arg_types = vec![];
         if !is_static {
             arg_types.push(ValueType::Object(obj_type.clone()));
         };
-        arg_types.extend(args.iter().map(|(_, value_type)| value_type.clone()));
-        let caller_args = (0..(arg_types.len()))
-            .map(|i| format!("arg{}", i))
-            .collect::<Vec<_>>()
-            .join(", ");
-        let args_names = args
-            .iter()
-            .map(|(name, _)| name.to_string())
-            .collect::<Vec<_>>()
-            .join(", ");
-        let mut code = format!("function func({}) {}\n", args_names, function_body);
-
-        if is_static {
-            code += &format!("func.call(undefined, {});", caller_args);
-        } else {
-            code += &format!("func.call({});", caller_args);
-        }
+        arg_types.extend(args);
 
         Self {
             obj_type,
             method_name,
             full_method_name,
             arg_types,
-            code,
             is_static,
         }
     }
@@ -79,29 +58,37 @@ impl ExprOpcode for ClassMethodOp {
         syn_ctx: &SynthesizerContext,
     ) -> EvalResult {
         let classes = syn_ctx.data.downcast_ref::<TsClasses>().unwrap();
-        let mut boa_ctx = classes.get_engine_ctx(post_ctx, &syn_ctx.cache);
-        for (i, arg) in args.iter().enumerate() {
-            let key = boa_engine::js_string!(format!("arg{}", i));
-            let value =
-                value_to_js_value(classes, arg.val(), &mut boa_ctx, post_ctx, &syn_ctx.cache);
-            if let Err(err) =
-                boa_ctx.register_global_property(key, value, boa_engine::property::Attribute::all())
-            {
-                debug!("Failed to register property. error: {}", err);
-                return EvalResult::None;
-            }
-        }
-        let js_souce = boa_engine::Source::from_bytes(self.code.as_str());
-        match boa_ctx.eval(js_souce) {
+        let mut boa_ctx = EngineContext::new_boa_ctx();
+        let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, classes);
+        engine_ctx.reset_with_context(post_ctx, classes, &syn_ctx.cache);
+        let class = classes.get_class(&self.obj_type).unwrap();
+
+        let result = if self.is_static {
+            class.call_static_method(
+                &self.method_name,
+                args.iter().map(|x| x.val()),
+                &post_ctx.graphs_map,
+                classes,
+                &syn_ctx.cache,
+                &mut engine_ctx,
+            )
+        } else {
+            class.call_method(
+                &self.method_name,
+                args[0].val(),
+                args.iter().skip(1).map(|x| x.val()),
+                &post_ctx.graphs_map,
+                classes,
+                &syn_ctx.cache,
+                &mut engine_ctx,
+            )
+        };
+
+        match result {
             // Need to check if func changed the context
             Ok(res) => {
-                let output = post_ctx.temp_value(js_value_to_value(
-                    classes,
-                    &res,
-                    &mut boa_ctx,
-                    &syn_ctx.cache,
-                ));
-                if boa_ctx.is_dirty() {
+                let output = post_ctx.temp_value(res);
+                if engine_ctx.is_dirty() {
                     EvalResult::DirtyContext(output)
                 } else {
                     EvalResult::NoModification(output)
@@ -133,7 +120,6 @@ impl std::fmt::Debug for ClassMethodOp {
             .field("method_name", &self.method_name)
             .field("is_static", &self.is_static)
             .field("arg_types", &self.arg_types)
-            .field("code", &self.code)
             .finish()
     }
 }
