@@ -27,4 +27,9 @@
         "type summary add -F lldb_lookup.summary_lookup  -e -x -h \"^&(mut )?(std::([a-z_]+::)+)Path$\" --category Rust",
         "type category enable Rust"
     ],
+    "files.watcherExclude": {
+        "**/.git/objects/**": true,
+        "**/.git/subtree-cache/**": true,
+        "**/target/*/**": true
+    }
 }
