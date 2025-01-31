@@ -1,4 +1,5 @@
 use crate::{
+    dot::Dot,
     graph_equality::equal_graphs_by_node,
     graph_map_value::*,
     graph_node::{EdgeEndPoint, FieldName, ObjectType},
@@ -254,7 +255,11 @@ impl GraphMapDisplay for ObjectValue {
             write!(f, "}}")?;
             fmt::Result::Ok(())
         } else {
-            self.graph(graphs_map).fmt_node(f, graphs_map, &self.node)
+            write!(
+                f,
+                "{}",
+                Dot::from_nodes(graphs_map, vec![(self.graph_id, self.node)])
+            )
         }
     }
 }

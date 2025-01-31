@@ -11,39 +11,39 @@ pub struct ObjectGraphWalker<'a> {
 }
 
 impl<'a> ObjectGraphWalker<'a> {
-    pub fn from_node(graphs_map: &'a GraphsMap, start_graph: GraphIndex, start_node: NodeIndex) -> Self {
-        let mut instance = Self {
-            graphs_map,
-            nodes: VecDeque::new(),
-            seen: Default::default(),
-        };
-
-        instance.nodes.push_back((start_graph, start_node));
-
-        instance
+    pub fn from_node(
+        graphs_map: &'a GraphsMap,
+        start_graph: GraphIndex,
+        start_node: NodeIndex,
+    ) -> Self {
+        Self::from_nodes(graphs_map, [(start_graph, start_node)])
     }
 
     pub fn from_graph(graphs_map: &'a GraphsMap, graph: GraphIndex) -> Self {
         Self::from_graphs(graphs_map, [graph])
     }
 
-    pub fn from_graphs<I>(graphs_map: &'a GraphsMap, graphs: I) -> Self 
+    pub fn from_graphs<I>(graphs_map: &'a GraphsMap, graphs: I) -> Self
     where
-        I: IntoIterator<Item = GraphIndex> {
-        let mut instance = Self {
+        I: IntoIterator<Item = GraphIndex>,
+    {
+        Self::from_nodes(
             graphs_map,
-            nodes: VecDeque::new(),
+            graphs
+                .into_iter()
+                .flat_map(|g| graphs_map[&g].roots.values().map(move |r| (g, *r))),
+        )
+    }
+
+    pub fn from_nodes<I>(graphs_map: &'a GraphsMap, nodes: I) -> Self
+    where
+        I: IntoIterator<Item = (GraphIndex, NodeIndex)>,
+    {
+        Self {
+            graphs_map,
+            nodes: nodes.into_iter().collect(),
             seen: Default::default(),
-        };
-
-        for graph_id in graphs {
-            let graph = &instance.graphs_map[graph_id];
-            for (_, id) in &graph.roots {
-                instance.push_node(graph_id, *id);
-            }
         }
-
-        instance
     }
 
     fn push_node(&mut self, graph_id: GraphIndex, node_id: NodeIndex) {
@@ -61,15 +61,12 @@ impl<'a> std::iter::Iterator for ObjectGraphWalker<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         if let Some((graph_id, node_id)) = self.nodes.pop_front() {
-            
             let graph = &self.graphs_map[graph_id];
             let node = graph.get_node(&node_id).unwrap();
 
             for (_, neig) in node.pointers_iter() {
                 match neig {
-                    EdgeEndPoint::Internal(neig_node) => {
-                        self.push_node(graph_id, *neig_node)
-                    }
+                    EdgeEndPoint::Internal(neig_node) => self.push_node(graph_id, *neig_node),
                     EdgeEndPoint::Chain(neig_graph, neig_node) => {
                         self.push_node(*neig_graph, *neig_node)
                     }

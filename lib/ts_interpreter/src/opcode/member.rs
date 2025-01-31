@@ -10,6 +10,8 @@ use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};
 use swc_common::DUMMY_SP;
 use swc_ecma_ast as ast;
 
+use crate::opcode::member_field_ast;
+
 use super::TsExprAst;
 
 #[derive(Debug)]
@@ -51,13 +53,7 @@ impl ExprOpcode for MemberOp {
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
         debug_assert_eq!(children.len(), 1);
 
-        let expr = ast::MemberExpr {
-            span: DUMMY_SP,
-            obj: TsExprAst::from(children[0].as_ref()).get_paren_expr(),
-            prop: ast::MemberProp::Ident(ast::IdentName::from(self.field_name.as_str())),
-        };
-
-        TsExprAst::create(ast::Expr::Member(expr))
+        member_field_ast(&children[0], &self.field_name)
     }
 
     fn arg_types(&self) -> &[ValueType] {

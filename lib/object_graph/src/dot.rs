@@ -1,9 +1,8 @@
 use core::fmt;
-use std::fmt::{Display, Write};
+use std::{collections::HashSet, fmt::{Display, Write}};
 
 use crate::{
-    graph_node::ObjectGraphNode, graph_walk::ObjectGraphWalker, GraphIndex, GraphsMap, NodeIndex,
-    ObjectGraph, RootName,
+    graph_node::ObjectGraphNode, graph_walk::ObjectGraphWalker, FieldName, FieldsMap, GraphIndex, GraphsMap, NodeIndex, ObjectGraph, PrimitiveField, RootName
 };
 
 static DOT_GRAPH_TYPE: &str = "digraph";
@@ -11,13 +10,16 @@ static DOT_SUBGRAPH: &str = "subgraph";
 static EDGE: &str = "->";
 static INDENT: &str = "    ";
 
+#[derive(Debug, Clone)]
 pub struct SubgraphConfig {
     pub name: String,
 }
 
+#[derive(Debug, Clone)]
 pub struct DotConfig {
     pub prefix: Option<String>,
     pub subgraph: Option<SubgraphConfig>,
+    pub exclude_fields: HashSet<String>,
     pub print_only_content: bool,
 }
 
@@ -27,13 +29,14 @@ impl Default for DotConfig {
             prefix: None,
             subgraph: None,
             print_only_content: false,
+            exclude_fields: Default::default()
         }
     }
 }
 
 pub struct Dot<'a> {
     graphs_map: &'a GraphsMap,
-    graph_ids: Vec<GraphIndex>,
+    nodes: Vec<(GraphIndex, NodeIndex)>,
     config: DotConfig,
 }
 
@@ -61,8 +64,29 @@ where
         self.0.write_char(c)
     }
 }
+struct NameEscaper<W>(W);
 
-struct Escaped<T>(T);
+impl<W> fmt::Write for NameEscaper<W>
+where
+    W: fmt::Write,
+{
+    fn write_str(&mut self, s: &str) -> fmt::Result {
+        for c in s.chars() {
+            self.write_char(c)?;
+        }
+        Ok(())
+    }
+
+    fn write_char(&mut self, c: char) -> fmt::Result {
+        match c {
+            '.' | '(' | ')' | ' ' => return self.0.write_str("_"),
+            _ => {}
+        }
+        self.0.write_char(c)
+    }
+}
+
+pub struct Escaped<T>(pub T);
 
 impl<T> fmt::Display for Escaped<T>
 where
@@ -76,16 +100,51 @@ where
         }
     }
 }
+pub struct EscapedName<T>(pub T);
 
-/// Format data using a specific format function
-struct FnFmt<'a, T, F>(&'a T, F);
-
-impl<'a, T, F> fmt::Display for FnFmt<'a, T, F>
+impl<T> fmt::Display for EscapedName<T>
 where
-    F: Fn(&'a T, &mut fmt::Formatter<'_>) -> fmt::Result,
+    T: fmt::Display,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        self.1(self.0, f)
+        if f.alternate() {
+            writeln!(&mut NameEscaper(f), "{:#}", &self.0)
+        } else {
+            write!(&mut NameEscaper(f), "{}", &self.0)
+        }
+    }
+}
+
+struct ObjectGraphNodeDotDisplay<'a> {
+    node: &'a ObjectGraphNode,
+    dot_config: &'a DotConfig
+}
+
+impl<'a> ObjectGraphNodeDotDisplay<'a> {
+    fn fields_iter(&self) -> impl std::iter::Iterator<Item = (&FieldName, &PrimitiveField)> {
+        self.node.fields_iter().filter(|(n, _v)| !self.dot_config.exclude_fields.contains(n.as_str()))
+    }
+}
+
+impl<'a> fmt::Display for ObjectGraphNodeDotDisplay<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "{}: {{", self.node.obj_type())?;
+        for (field_name, field) in self.fields_iter() {
+            writeln!(f, "  {}: {}", field_name, field.value)?;
+        }
+        writeln!(f, "}}")?;
+
+        Ok(())
+    }
+}
+
+impl<'a> fmt::Debug for ObjectGraphNodeDotDisplay<'a>  {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let fields= FieldsMap::from_iter(self.fields_iter().map(|(k, v)| (k.clone(), v.clone())));
+        f.debug_struct("ObjectGraphNode")
+            .field("obj_type", self.node.obj_type())
+            .field("fields", &fields)
+            .finish()
     }
 }
 
@@ -109,7 +168,7 @@ impl<'a> Dot<'a> {
     pub fn from_graphs_map_with_config(graphs_map: &'a GraphsMap, config: DotConfig) -> Self {
         Self::from_graphs_with_config(
             graphs_map,
-            Vec::from_iter(graphs_map.graphs().map(|x| *x)),
+            Vec::from_iter(graphs_map.graph_indices().map(|x| *x)),
             config,
         )
     }
@@ -123,15 +182,28 @@ impl<'a> Dot<'a> {
         graphs: Vec<GraphIndex>,
         config: DotConfig,
     ) -> Self {
+        let nodes: Vec<(GraphIndex, NodeIndex)> = graphs.iter().flat_map(|g| graphs_map[g].roots.values().map(|r| (*g, *r))).collect();
+        Self::from_nodes_with_config(graphs_map, nodes, config)
+    }
+
+    pub fn from_nodes(graphs_map: &'a GraphsMap, nodes: Vec<(GraphIndex, NodeIndex)>) -> Self {
+        Self::from_nodes_with_config(graphs_map, nodes, DotConfig::default())
+    }
+
+    pub fn from_nodes_with_config(
+        graphs_map: &'a GraphsMap,
+        nodes: Vec<(GraphIndex, NodeIndex)>,
+        config: DotConfig,
+    ) -> Self {
         Self {
             graphs_map,
-            graph_ids: graphs,
+            nodes,
             config,
         }
     }
 
     fn write_subgraph_header(f: &mut fmt::Formatter, name: &str) -> fmt::Result {
-        writeln!(f, "{} cluster_{} {{", DOT_SUBGRAPH, name)?;
+        writeln!(f, "{} cluster_{} {{", DOT_SUBGRAPH, EscapedName(name))?;
         writeln!(f, "{}label=\"{}\"", INDENT, name)?;
         writeln!(f, "{}graph[style=dotted];", INDENT)?;
         writeln!(f, "{}margin=20;", INDENT)?;
@@ -171,9 +243,14 @@ impl<'a> Dot<'a> {
         }
     }
 
-    fn graph_fmt<NF>(&self, f: &mut fmt::Formatter, node_fmt: NF) -> fmt::Result
-    where
-        NF: Fn(&ObjectGraphNode, &mut fmt::Formatter) -> fmt::Result,
+    fn node_fmt(&self, node: &ObjectGraphNode, f: &mut fmt::Formatter) -> fmt::Result {
+        let node_dot_display = ObjectGraphNodeDotDisplay {
+            node, dot_config: &self.config
+        };
+        Escaped(&node_dot_display).fmt(f)
+    }
+
+    fn graph_fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
     {
         if !self.config.print_only_content {
             match &self.config.subgraph {
@@ -185,11 +262,11 @@ impl<'a> Dot<'a> {
         let mut edges = Vec::new();
 
         for (cur_graph, cur_node_id, cur_node) in
-            ObjectGraphWalker::from_graphs(&self.graphs_map, self.graph_ids.clone())
+            ObjectGraphWalker::from_nodes(&self.graphs_map, self.nodes.iter().copied())
         {
             write!(f, "{}{} [ ", INDENT, self.get_dot_id(&cur_node_id))?;
             write!(f, "label = \"")?;
-            Escaped(FnFmt(cur_node, &node_fmt)).fmt(f)?;
+            self.node_fmt(cur_node, f)?;
             write!(f, "\"")?;
             if let Some(root_name) = self.is_root(cur_graph, &cur_node_id) {
                 write!(f, ", xlabel = \"{}:\"", root_name)?;
@@ -204,6 +281,10 @@ impl<'a> Dot<'a> {
 
         // output all edges
         for (node_id, edge_name, neig) in edges {
+            if self.config.exclude_fields.contains(edge_name.as_str()) {
+                continue;
+            }
+            
             write!(
                 f,
                 "{}{} {} {} [ ",
@@ -232,12 +313,7 @@ impl<'a> Dot<'a> {
 
 impl<'a> fmt::Display for Dot<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        self.graph_fmt(f, fmt::Display::fmt)
+        self.graph_fmt(f)
     }
 }
 
-impl<'a> fmt::Debug for Dot<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        self.graph_fmt(f, fmt::Debug::fmt)
-    }
-}

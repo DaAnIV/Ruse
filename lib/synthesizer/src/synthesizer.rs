@@ -11,6 +11,7 @@ use crate::{
 use dashmap::DashSet;
 use futures::FutureExt;
 use ruse_object_graph::{
+    graph_map_value::GraphMapWrap,
     value::{Value, ValueType},
     CachedString,
 };
@@ -149,7 +150,7 @@ impl serde::Serialize for CurrentStatistics {
     }
 }
 
-pub type SynthesizerPredicate = Box<dyn Fn(&SubProgram) -> bool + Send + Sync>;
+pub type SynthesizerPredicate = Box<dyn Fn(&SubProgram, &SynthesizerContext) -> bool + Send + Sync>;
 
 pub struct Synthesizer<P: ProgBank> {
     bank: P,
@@ -238,7 +239,7 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
                 continue;
             }
 
-            if IS_START_CTX && (self.predicate)(&p) {
+            if IS_START_CTX && (self.predicate)(&p, &self.context) {
                 res = Some(p);
                 break;
             }
@@ -303,9 +304,14 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
                 continue;
             }
 
-            if p.pre_ctx().subset(&self.context.start_context) && (self.predicate)(&p) {
+            if p.pre_ctx().subset(&self.context.start_context)
+                && (self.predicate)(&p, &self.context)
+            {
                 debug!(target: "ruse::synthesizer", "Found program \"{}\"", p.get_code());
-                trace!(target: "ruse::synthesizer", "{}", p);
+                for (name, value) in p.post_ctx()[0].variables() {
+                    debug!(target: "ruse::synthesizer", "post_ctx[0] {}:\n{}", name, value.wrap(&p.post_ctx()[0].graphs_map));
+                }
+                debug!(target: "ruse::synthesizer", "output[0]: {}", p.out_value()[0].wrap(&p.post_ctx()[0].graphs_map));
                 return Some(p);
             }
         }
@@ -410,6 +416,7 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
     }
 
     fn evaluate_program(&self, p: &mut Arc<SubProgram>) -> bool {
+        // trace!(target: "ruse::synthesizer", "Evaluating program {}", p.get_code());
         self.statistics.inc_value(StatisticsTypes::Evaluated);
         unsafe { Arc::get_mut(p).unwrap_unchecked() }.evaluate(&self.context)
     }
@@ -454,7 +461,7 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
         if !p.out_value().iter().all(|x| self.check_out_value(x.val())) {
             return false;
         }
-        if !(self.valid)(p) {
+        if !(self.valid)(p, &self.context) {
             return false;
         }
 

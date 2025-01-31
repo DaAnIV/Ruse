@@ -93,7 +93,7 @@ mod tests {
             SubsumptionProgBank::default(),
             syn_ctx,
             opcodes,
-            Box::new(move |p| {
+            Box::new(move |p, _syn_ctx| {
                 let expected_outputs = [
                     str_cached!(cache_clone; "John Doe"),
                     str_cached!(cache_clone; "Paul Simon"),
@@ -112,7 +112,7 @@ mod tests {
                 }
                 return true;
             }),
-            Box::new(|_p| true),
+            Box::new(|_p, _syn_ctx| true),
             3,
             1,
         );
@@ -198,7 +198,7 @@ mod tests {
             SubsumptionProgBank::default(),
             syn_ctx,
             opcodes,
-            Box::new(move |p| {
+            Box::new(move |p, _syn_ctx| {
                 let expected_outputs = [Number::from(10), Number::from(12)];
                 if p.out_type() != &ValueType::Number {
                     return false;
@@ -214,7 +214,7 @@ mod tests {
                 }
                 return true;
             }),
-            Box::new(|_p| true),
+            Box::new(|_p, _syn_ctx| true),
             3,
             1,
         );

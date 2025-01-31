@@ -350,7 +350,11 @@ impl Context {
         self.values.len()
     }
 
-    pub fn variables(&self) -> impl std::iter::Iterator<Item = &VariableName> {
+    pub fn variables(&self) -> impl std::iter::Iterator<Item = (&VariableName, &Value)> {
+        self.values.iter()
+    }
+
+    pub fn variable_names(&self) -> impl std::iter::Iterator<Item = &VariableName> {
         self.values.keys()
     }
 
@@ -610,7 +614,7 @@ impl Context {
 
 impl Context {
     pub fn subset(&self, other: &Self) -> bool {
-        if !self.variables().all(|v| other.values.contains_key(v)) {
+        if !self.variable_names().all(|v| other.values.contains_key(v)) {
             return false;
         }
 
@@ -853,7 +857,8 @@ impl PartialEq for ContextArray {
 
 impl Display for ContextArray {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "[")?;
+        writeln!(f, "depth: {}", self.depth)?;
+        writeln!(f, "contexts: [")?;
         for ctx in &self.inner {
             writeln!(f, "{}", ctx)?;
         }

@@ -1102,16 +1102,16 @@ mod embedding_tests {
         println!("merged post: {}", post_merged_ctx);
 
         assert!(pre_merged_ctx
-            .variables()
+            .variable_names()
             .contains(&syn_ctx.cached_string("x")));
         assert!(pre_merged_ctx
-            .variables()
+            .variable_names()
             .contains(&syn_ctx.cached_string("y")));
         assert!(post_merged_ctx
-            .variables()
+            .variable_names()
             .contains(&syn_ctx.cached_string("x")));
         assert!(post_merged_ctx
-            .variables()
+            .variable_names()
             .contains(&syn_ctx.cached_string("y")));
 
         let x = x_ctx
@@ -1212,16 +1212,16 @@ mod embedding_tests {
         println!("merged post: {}", post_merged_ctx);
 
         assert!(pre_merged_ctx
-            .variables()
+            .variable_names()
             .contains(&syn_ctx.cached_string("x")));
         assert!(pre_merged_ctx
-            .variables()
+            .variable_names()
             .contains(&syn_ctx.cached_string("y")));
         assert!(post_merged_ctx
-            .variables()
+            .variable_names()
             .contains(&syn_ctx.cached_string("x")));
         assert!(post_merged_ctx
-            .variables()
+            .variable_names()
             .contains(&syn_ctx.cached_string("y")));
 
         let x = x_ctx

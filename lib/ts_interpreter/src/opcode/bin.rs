@@ -168,7 +168,7 @@ impl ExprOpcode for BinOp {
             },
             (Value::Object(_), Value::Primitive(_)) => todo!(),
             (Value::Object(_), Value::Object(_)) => todo!(),
-            _ => panic!("Unexpected binary args"),
+            _ => return EvalResult::None,
         };
 
         EvalResult::NoModification(post_ctx.temp_value(val))

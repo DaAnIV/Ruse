@@ -253,6 +253,7 @@ mod ts_simple_opcodes_tests {
 mod ts_class_tests {
     use std::{collections::HashMap, sync::Arc};
 
+    use boa_engine::JsValue;
     use boa_engine::{js_string, property::Attribute};
     use graph_map_value::GraphMapWrap;
     use ruse_object_graph::{str_cached, Cache};
