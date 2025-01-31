@@ -1,0 +1,20 @@
+[package]
+name = "ruse_task_parser"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ruse_object_graph.workspace = true
+ruse_synthesizer.workspace = true
+ruse_ts_interpreter.workspace = true
+ruse_ts_synthesizer.workspace = true
+
+itertools = "*"
+
+serde = { version = "*", features = ["derive"] }
+serde_json = "*"
+serde_with = "*"
+
+wildmatch = "*"
+
+boa_engine.workspace = true

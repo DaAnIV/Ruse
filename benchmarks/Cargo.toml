@@ -13,6 +13,7 @@ ruse_object_graph.workspace = true
 ruse_ts_interpreter.workspace = true
 ruse_synthesizer.workspace = true
 ruse_ts_synthesizer.workspace = true
+ruse_task_parser.workspace = true
 
 clap = { version = "*", features = ["derive"] }
 clap-verbosity-flag = "*"
@@ -46,3 +47,5 @@ tokio = { version = "*", features = [
 ] }
 tokio-util = "*"
 console-subscriber = "*"
+
+boa_engine.workspace = true

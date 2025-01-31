@@ -2,6 +2,7 @@ use byte_unit::Byte;
 use clap_verbosity_flag::{InfoLevel, Verbosity};
 use itertools::Itertools;
 use ruse_synthesizer::opcode::sort_opcodes;
+use ruse_task_parser::task::{SnythesisTask};
 use ruse_ts_interpreter::ts_class::TsClassesBuilder;
 use serde_json::ser::Formatter;
 use std::{
@@ -14,7 +15,6 @@ use std::{
     sync::Arc,
     time::Duration,
 };
-use task::SnythesisTask;
 use tracing::{error, info, level_filters::LevelFilter};
 use tracing_log::AsTrace;
 use tracing_subscriber::{filter::Targets, prelude::*};
@@ -27,7 +27,6 @@ use ruse_object_graph::Cache;
 
 mod config;
 mod runner;
-mod task;
 
 #[cfg(not(target_env = "msvc"))]
 use jemallocator::Jemalloc;

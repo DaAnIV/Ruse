@@ -2,18 +2,29 @@ use core::fmt;
 use std::{path::PathBuf, time::Duration};
 
 use byte_unit::Byte;
+use ruse_task_parser::task;
 use serde_with::{serde_as, DurationSeconds};
 
-#[derive(Copy, Clone, serde::Deserialize, serde::Serialize, Debug, clap::ValueEnum, PartialEq, Eq)]
+#[derive(
+    Copy, Clone, serde::Deserialize, serde::Serialize, Debug, clap::ValueEnum, PartialEq, Eq,
+)]
 #[serde(rename_all = "kebab-case")]
 pub enum BankType {
-    SubsumptionBank
+    SubsumptionBank,
 }
 
 impl fmt::Display for BankType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             BankType::SubsumptionBank => write!(f, "subsumption-bank"),
+        }
+    }
+}
+
+impl Into<task::BankType> for BankType {
+    fn into(self) -> task::BankType {
+        match self {
+            BankType::SubsumptionBank => task::BankType::SubsumptionBank,
         }
     }
 }
@@ -29,5 +40,5 @@ pub struct BenchmarkConfig {
     pub iteration_workers_count: usize,
     pub benchmarks: Vec<PathBuf>,
     pub max_task_mem: Byte,
-    pub bank_type: BankType
+    pub bank_type: BankType,
 }

@@ -2623,6 +2623,7 @@ dependencies = [
 name = "ruse_benchmarks"
 version = "0.1.0"
 dependencies = [
+ "boa_engine",
  "byte-unit",
  "chrono",
  "clap",
@@ -2633,6 +2634,7 @@ dependencies = [
  "procfs",
  "ruse_object_graph",
  "ruse_synthesizer",
+ "ruse_task_parser",
  "ruse_ts_interpreter",
  "ruse_ts_synthesizer",
  "serde",
@@ -2677,6 +2679,22 @@ dependencies = [
  "tokio-util",
  "tracing",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "ruse_task_parser"
+version = "0.1.0"
+dependencies = [
+ "boa_engine",
+ "itertools 0.10.5",
+ "ruse_object_graph",
+ "ruse_synthesizer",
+ "ruse_ts_interpreter",
+ "ruse_ts_synthesizer",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "wildmatch",
 ]
 
 [[package]]

@@ -1,20 +1,24 @@
 use std::{
-    future::Future, path::{Path, PathBuf}, sync::Arc, time::{Duration, Instant}
+    future::Future,
+    path::{Path, PathBuf},
+    sync::Arc,
+    time::{Duration, Instant},
 };
 
 use byte_unit::{Byte, Unit};
 use ruse_object_graph::Cache;
 use ruse_synthesizer::bank::ProgBank;
+use ruse_task_parser::task::SnythesisTask;
 use ruse_ts_synthesizer::TsSynthesizer;
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
 
-use crate::{config::BenchmarkConfig, results::BenchmarkResult, task};
+use crate::{config::BenchmarkConfig, results::BenchmarkResult};
 
 #[derive(Debug)]
 enum RunnerError {
     Timeout,
-    OOM
+    OOM,
 }
 
 impl std::error::Error for RunnerError {}
@@ -56,7 +60,13 @@ async fn watch_vm_usage(max_task_mem: Byte) {
     }
 }
 
-async fn watch_for_error<I>(timeout: tokio::time::Timeout<I>, config: &BenchmarkConfig) -> Result<(), RunnerError> where I: Future {
+async fn watch_for_error<I>(
+    timeout: tokio::time::Timeout<I>,
+    config: &BenchmarkConfig,
+) -> Result<(), RunnerError>
+where
+    I: Future,
+{
     tokio::select! {
         res = timeout => {
             if let Err(_) = res {
@@ -118,11 +128,18 @@ fn get_tokio_runtime(bench_config: &BenchmarkConfig) -> tokio::runtime::Runtime 
     runtime_builder.enable_all().build().unwrap()
 }
 
+fn init_results(task: &SnythesisTask, results: &mut BenchmarkResult) {
+    results.set_literals(
+        Vec::from_iter(task.string_literals.iter().cloned()),
+        Vec::from_iter(task.num_literals.iter().cloned()),
+    );
+}
+
 pub fn run_task(path: &Path, cache: Arc<Cache>, bench_config: &BenchmarkConfig) -> BenchmarkResult {
     let task_name = PathBuf::from(path.file_name().unwrap());
     let mut result = BenchmarkResult::new(path);
 
-    let task = match task::SnythesisTask::from_json_file(path, &cache) {
+    let task = match SnythesisTask::from_json_file(path, &cache) {
         Ok(v) => v,
         Err(e) => {
             error!(target: "ruse::runner", "Failed to run task {}. {}", task_name.display(), e);
@@ -131,12 +148,12 @@ pub fn run_task(path: &Path, cache: Arc<Cache>, bench_config: &BenchmarkConfig) 
         }
     };
 
-    task.populate_results(&mut result);
+    init_results(&task, &mut result);
 
     let mut synthesizer = match task.get_synthesizer(
         bench_config.max_context_depth,
         bench_config.iteration_workers_count,
-        bench_config.bank_type,
+        bench_config.bank_type.into(),
         &cache,
     ) {
         Ok(v) => v,
