@@ -985,7 +985,7 @@ impl SnythesisTaskExamples {
         variables: &HashMap<String, TaskType>,
         classes: &TsClasses,
         cache: &Cache,
-    ) -> Result<Context, SnythesisTaskError> {
+    ) -> Result<Box<Context>, SnythesisTaskError> {
         let id_gen = Arc::new(GraphIdGenerator::with_initial_values(
             classes.static_classes_gen_id.max_node_id(),
             classes.static_classes_gen_id.max_graph_id(),

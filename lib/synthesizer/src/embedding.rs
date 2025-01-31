@@ -57,7 +57,7 @@ pub(crate) fn merge_context(
     q_1: &Context,
     p_2: &Context,
     q_2: &Context,
-) -> Result<(Context, Context), ()> {
+) -> Result<(Box<Context>, Box<Context>), ()> {
     embeddings_trace!("Merging contexts");
     embeddings_trace!("p_1: {}", p_1);
     embeddings_trace!("q_1: {}", q_1);

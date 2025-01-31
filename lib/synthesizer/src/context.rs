@@ -12,7 +12,6 @@ use std::{
     fmt::Display,
     hash::{DefaultHasher, Hash, Hasher},
     ops::{Deref, DerefMut, Index},
-    slice::Iter,
     sync::{
         atomic::{self, AtomicUsize},
         Arc,
@@ -193,13 +192,13 @@ impl Context {
         values: ValuesMap,
         graphs_map: Arc<GraphsMap>,
         graph_id_gen: Arc<GraphIdGenerator>,
-    ) -> Self {
-        let mut instance = Self {
+    ) -> Box<Self> {
+        let mut instance = Box::new(Self {
             hashes: Default::default(),
             values: values.into(),
             graphs_map,
             graph_id_gen,
-        };
+        });
 
         instance.update_hash();
 
@@ -365,7 +364,7 @@ impl Context {
         self.graphs_map = new_map.into();
     }
 
-    pub(crate) fn get_partial_context<'a, I>(&self, required_variables: I) -> Option<Self>
+    pub(crate) fn get_partial_context<'a, I>(&self, required_variables: I) -> Option<Box<Self>>
     where
         I: IntoIterator<Item = &'a CachedString> + Copy,
     {
@@ -378,12 +377,15 @@ impl Context {
             hashes.insert((*var).clone(), var_hash);
         }
 
-        Some(Self {
-            hashes: hashes.into(),
-            values: values.into(),
-            graphs_map: self.graphs_map.clone(),
-            graph_id_gen: self.graph_id_gen.clone(),
-        })
+        Some(
+            Self {
+                hashes: hashes.into(),
+                values: values.into(),
+                graphs_map: self.graphs_map.clone(),
+                graph_id_gen: self.graph_id_gen.clone(),
+            }
+            .into(),
+        )
     }
 }
 
@@ -649,16 +651,6 @@ impl Context {
     }
 }
 
-impl Default for Context {
-    fn default() -> Self {
-        Self::with_values(
-            Default::default(),
-            GraphsMap::default().into(),
-            GraphIdGenerator::default().into(),
-        )
-    }
-}
-
 impl Hash for Context {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         for (k, hash) in self.hashes.iter() {
@@ -741,7 +733,7 @@ impl Display for Context {
 #[derive(Clone, Debug)]
 pub struct ContextArray {
     pub depth: usize,
-    inner: Vec<Context>,
+    inner: Vec<Box<Context>>,
 }
 
 impl ContextArray {
@@ -753,11 +745,11 @@ impl ContextArray {
         self.inner.is_empty()
     }
 
-    pub fn iter(&self) -> Iter<Context> {
+    pub fn iter(&self) -> impl Iterator<Item = &Box<Context>> {
         self.inner.iter()
     }
 
-    pub fn get_mut(&mut self, index: usize) -> Option<&mut Context> {
+    pub fn get_mut(&mut self, index: usize) -> Option<&mut Box<Context>> {
         self.inner.get_mut(index)
     }
 
@@ -772,7 +764,7 @@ impl ContextArray {
     where
         I: IntoIterator<Item = &'a CachedString> + Copy,
     {
-        let mut ctxs = Vec::<Context>::with_capacity(self.len());
+        let mut ctxs = Vec::<Box<Context>>::with_capacity(self.len());
 
         for ctx in self.iter() {
             ctxs.push(ctx.get_partial_context(required_variables)?);
@@ -816,13 +808,17 @@ impl Default for ContextArray {
     fn default() -> Self {
         Self {
             depth: 0,
-            inner: vec![Context::default()],
+            inner: vec![Context::with_values(
+                Default::default(),
+                GraphsMap::default().into(),
+                GraphIdGenerator::default().into(),
+            )],
         }
     }
 }
 
-impl From<Vec<Context>> for ContextArray {
-    fn from(value: Vec<Context>) -> Self {
+impl From<Vec<Box<Context>>> for ContextArray {
+    fn from(value: Vec<Box<Context>>) -> Self {
         assert!(!value.is_empty(), "Must have at least one example");
         let obj = ContextArray {
             inner: value,

@@ -277,7 +277,7 @@ pub mod helpers {
         num_primitive: usize,
         num_objects: usize,
         cache: &Cache,
-    ) -> Context {
+    ) -> Box<Context> {
         let graph_id_gen = Arc::new(GraphIdGenerator::default());
         let mut graphs_map = GraphsMap::default();
 
@@ -333,7 +333,7 @@ pub mod helpers {
         elem_type: &ValueType,
         elements: I,
         cache: &Cache,
-    ) -> Context
+    ) -> Box<Context>
     where
         I: IntoIterator<Item = Value>,
     {
