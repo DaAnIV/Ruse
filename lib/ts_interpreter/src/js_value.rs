@@ -1,5 +1,5 @@
 use ruse_object_graph::value::*;
-use ruse_object_graph::{scached, Cache, GraphsMap, Number, PrimitiveValue};
+use ruse_object_graph::{scached, Cache, Number, PrimitiveValue};
 
 use crate::js_object_wrapper::{EngineContext, JsWrapped};
 use crate::ts_class::TsClasses;
@@ -26,7 +26,6 @@ pub fn value_to_js_value(
     classes: &TsClasses,
     value: &Value,
     engine_ctx: &mut EngineContext<'_>,
-    graphs_map: &GraphsMap,
 ) -> boa_engine::JsValue {
     match value {
         Value::Primitive(p) => primitive_value_to_js_value(p),
