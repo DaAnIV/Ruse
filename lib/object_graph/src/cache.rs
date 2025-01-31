@@ -1,5 +1,5 @@
 use dashmap::DashMap;
-use std::sync::{atomic, Arc};
+use std::sync::Arc;
 
 pub type CachedString = Arc<String>;
 
@@ -8,12 +8,12 @@ pub struct Cache {
     output_root_name: CachedString,
 }
 
-static TEMP: atomic::AtomicU64 = atomic::AtomicU64::new(0);
-
 impl Cache {
+    pub const OUTPUT_ROOT_NAME: &str = "____output_root_name";
+
     pub fn new() -> Self {
         let strings = DashMap::default();
-        let output_root_name = Arc::new("____output_root_name".to_string());
+        let output_root_name = Arc::new(Self::OUTPUT_ROOT_NAME.to_string());
 
         strings.insert(output_root_name.to_string(), output_root_name.clone());
 
@@ -23,12 +23,6 @@ impl Cache {
         };
 
         instance
-    }
-
-    pub fn temp_string(&self) -> CachedString {
-        let val = TEMP.fetch_add(1, atomic::Ordering::Relaxed);
-        let str = format!("____temp_str_{val}");
-        self.get_or_insert_string(str)
     }
 
     pub fn output_root_name(&self) -> &CachedString {
