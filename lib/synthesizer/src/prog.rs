@@ -131,9 +131,9 @@ impl SubProgram {
             };
 
             debug_assert!(
-                out_type.is_none() || out_type == Some(out_val.val.val_type(&out_ctx.graphs_map))
+                out_type.is_none() || out_type == Some(out_val.val.val_type())
             );
-            let _ = out_type.get_or_insert(out_val.val.val_type(&out_ctx.graphs_map));
+            let _ = out_type.get_or_insert(out_val.val.val_type());
 
             out_value.push(out_val);
         }

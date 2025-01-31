@@ -325,7 +325,11 @@ impl TaskType {
                     cache,
                 );
 
-                Ok(vobj!(graph.id, node))
+                Ok(vobj!(
+                    ValueType::array_obj_cached_string(&ValueType::Number, cache),
+                    graph.id,
+                    node
+                ))
             }
             TaskType::Double => match value.as_f64() {
                 Some(num) => Ok(vnum!(ruse_object_graph::Number::from(num))),
@@ -353,7 +357,11 @@ impl TaskType {
                     cache,
                 );
 
-                Ok(vobj!(graph.id, node))
+                Ok(vobj!(
+                    ValueType::array_obj_cached_string(&ValueType::Number, cache),
+                    graph.id,
+                    node
+                ))
             }
             TaskType::Bool => match value.as_bool() {
                 Some(b) => Ok(vbool!(b)),
@@ -390,7 +398,11 @@ impl TaskType {
                     cache,
                 );
 
-                Ok(vobj!(graph.id, node))
+                Ok(vobj!(
+                    ValueType::array_obj_cached_string(&ValueType::String, cache),
+                    graph.id,
+                    node
+                ))
             }
             TaskType::IntSet => {
                 let numbers = match value.as_array() {
@@ -414,7 +426,11 @@ impl TaskType {
                     cache,
                 );
 
-                Ok(vobj!(graph.id, node))
+                Ok(vobj!(
+                    ValueType::set_obj_cached_string(&ValueType::Number, cache),
+                    graph.id,
+                    node
+                ))
             }
             TaskType::StringSet => {
                 let strings: Result<Vec<_>, _> = match value.as_array() {
@@ -442,7 +458,11 @@ impl TaskType {
                     cache,
                 );
 
-                Ok(vobj!(graph.id, node))
+                Ok(vobj!(
+                    ValueType::set_obj_cached_string(&ValueType::String, cache),
+                    graph.id,
+                    node
+                ))
             }
             TaskType::Object(s) => {
                 let class_name = str_cached!(cache; s);
@@ -493,7 +513,11 @@ impl TaskType {
                     Err(e) => return Err(parse_err!(html, e)),
                 };
 
-                Ok(vobj!(graph.id, dom_value))
+                Ok(vobj!(
+                    dom::DomLoader::document_obj_type(cache),
+                    graph.id,
+                    dom_value
+                ))
             }
             TaskType::DOMElement => {
                 let dom_value = match dom::DomLoader::load_element(id_gen, graph, html, cache) {
@@ -501,7 +525,11 @@ impl TaskType {
                     Err(e) => return Err(parse_err!(html, e)),
                 };
 
-                Ok(vobj!(graph.id, dom_value))
+                Ok(vobj!(
+                    dom::DomLoader::element_obj_type(cache),
+                    graph.id,
+                    dom_value
+                ))
             }
             _ => unreachable!("Not a dom type"),
         }

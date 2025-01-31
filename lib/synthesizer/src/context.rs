@@ -261,7 +261,7 @@ impl Context {
         match loc {
             Location::Var(l) => {
                 let var = syn_ctx.all_variables.get(&l.var).unwrap();
-                assert!(var.value_type == new_val.val_type(&self.graphs_map));
+                assert!(var.value_type == new_val.val_type());
 
                 if var.immutable {
                     return false;
@@ -307,10 +307,15 @@ impl Context {
                 let neig = new_graph.get_neighbor(&node, field_name)?;
                 let obj_val = match neig {
                     EdgeEndPoint::Internal(neig_node) => ObjectValue {
+                        obj_type: new_graph.obj_type(neig_node).unwrap().clone(),
                         graph_id: graph,
                         node: *neig_node,
                     },
                     EdgeEndPoint::Chain(chained_graph, neig_node) => ObjectValue {
+                        obj_type: self.graphs_map[chained_graph]
+                            .obj_type(neig_node)
+                            .unwrap()
+                            .clone(),
                         graph_id: *chained_graph,
                         node: *neig_node,
                     },
@@ -410,6 +415,7 @@ impl Context {
 
         self.update_graph(out_graph.into());
         ObjectValue {
+            obj_type: ValueType::array_obj_cached_string(elem_type, &syn_ctx.cache),
             graph_id: out_graph_id,
             node: out_node_id,
         }
@@ -441,6 +447,7 @@ impl Context {
 
         self.update_graph(out_graph.into());
         ObjectValue {
+            obj_type: ValueType::array_obj_cached_string(elem_type, &syn_ctx.cache),
             graph_id: out_graph_id,
             node: out_node_id,
         }
@@ -466,6 +473,7 @@ impl Context {
 
         self.update_graph(out_graph.into());
         ObjectValue {
+            obj_type: ValueType::array_obj_cached_string(elem_type, &syn_ctx.cache),
             graph_id: out_graph_id,
             node: out_node_id,
         }
@@ -492,6 +500,7 @@ impl Context {
 
         self.update_graph(out_graph.into());
         ObjectValue {
+            obj_type: ValueType::set_obj_cached_string(elem_type, &syn_ctx.cache),
             graph_id: out_graph_id,
             node: out_node_id,
         }
@@ -512,12 +521,13 @@ impl Context {
 
         let mut out_graph = ObjectGraph::new(out_graph_id);
 
-        out_graph.add_simple_object_from_map(out_node_id, obj_type, map);
+        out_graph.add_simple_object_from_map(out_node_id, obj_type.clone(), map);
 
         out_graph.set_as_root(syn_ctx.output_root_name().clone(), out_node_id);
 
         self.update_graph(out_graph.into());
         ObjectValue {
+            obj_type: obj_type,
             graph_id: out_graph_id,
             node: out_node_id,
         }
@@ -537,12 +547,13 @@ impl Context {
 
         let mut out_graph = ObjectGraph::new(out_graph_id);
 
-        out_graph.add_object_from_map(out_node_id, obj_type, map);
+        out_graph.add_object_from_map(out_node_id, obj_type.clone(), map);
 
         out_graph.set_as_root(syn_ctx.output_root_name().clone(), out_node_id);
 
         self.update_graph(out_graph.into());
         ObjectValue {
+            obj_type: obj_type,
             graph_id: out_graph_id,
             node: out_node_id,
         }
@@ -791,7 +802,7 @@ impl ContextArray {
                 name.clone(),
                 Variable {
                     name: name.clone(),
-                    value_type: val.val_type(&first.graphs_map),
+                    value_type: val.val_type(),
                     immutable: false,
                 },
             );

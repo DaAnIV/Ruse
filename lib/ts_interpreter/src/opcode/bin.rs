@@ -145,11 +145,11 @@ impl ExprOpcode for BinOp {
     ) -> EvalResult {
         debug_assert_eq!(args.len(), 2);
         debug_assert_eq!(
-            args[0].val().val_type(&post_ctx.graphs_map),
+            args[0].val().val_type(),
             self.arg_types[0]
         );
         debug_assert_eq!(
-            args[1].val().val_type(&post_ctx.graphs_map),
+            args[1].val().val_type(),
             self.arg_types[1]
         );
 

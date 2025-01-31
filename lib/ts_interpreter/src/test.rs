@@ -189,6 +189,7 @@ mod ts_simple_opcodes_tests {
         let id_gen = Arc::new(GraphIdGenerator::default());
         let mut graph = ObjectGraph::new(id_gen.get_id_for_graph());
         let arr = ObjectValue {
+            obj_type: ValueType::array_obj_cached_string(&ValueType::Number, &cache),
             graph_id: graph.id,
             node: graph.add_array_object(id_gen.get_id_for_node(), &ValueType::Number, [], &cache),
         };
@@ -547,7 +548,7 @@ mod ts_class_tests {
         graphs_map.insert_graph(graph.into());
 
         let mut values = ValuesMap::default();
-        values.insert(str_cached!(cache; "u"), Value::Object(user));
+        values.insert(str_cached!(cache; "u"), Value::Object(user.clone()));
 
         let mut ctx = Context::with_values(values, graphs_map.into(), id_gen);
         let syn_ctx = SynthesizerContext::from_context_array_with_data(
@@ -568,10 +569,9 @@ mod ts_class_tests {
                 .unwrap()
                 .val(),
             &mut engine_ctx,
-            &ctx.graphs_map,
         );
 
-        let js_user = user_class.wrap_as_js_object(user, &mut engine_ctx);
+        let js_user = user_class.wrap_as_js_object(user.clone(), &mut engine_ctx);
         engine_ctx
             .register_global_property(js_string!("u"), js_user, Attribute::all())
             .expect("Failed to register p");

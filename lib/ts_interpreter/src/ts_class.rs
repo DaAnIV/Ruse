@@ -349,6 +349,14 @@ pub struct TsClassDescription {
     pub constructor: MethodDescription,
 }
 
+fn static_graph_obj_type(class_name: &str, cache: &Cache) -> ObjectType {
+    scached!(cache; format!("{}_{}", class_name, &"Static"))
+}
+
+fn static_graph_root_name(class_name: &str, cache: &Cache) -> CachedString {
+    scached!(cache; format!("{}_{}", class_name, &"Static"))
+}
+
 #[derive(Debug)]
 pub struct TsClass {
     pub description: Arc<TsClassDescription>,
@@ -357,6 +365,7 @@ pub struct TsClass {
     pub static_graph: Option<Arc<ObjectGraph>>,
     pub root_node: NodeIndex,
     pub static_fields: HashMap<CachedString, LocValue>,
+    static_graph_obj_type: ObjectType,
     wrapper: JsObjectWrapper,
 }
 
@@ -383,6 +392,7 @@ impl TsClass {
         );
 
         ObjectValue {
+            obj_type: self.description.class_name.clone(),
             graph_id: graph.id,
             node: obj_id,
         }
@@ -455,7 +465,7 @@ impl TsClass {
         let target = constructor.constructor();
         let args = params
             .into_iter()
-            .map(|x| value_to_js_value(classes, x, &mut engine_ctx, graphs_map))
+            .map(|x| value_to_js_value(classes, x, &mut engine_ctx))
             .collect_vec();
         let obj = self
             .wrapper
@@ -470,7 +480,6 @@ impl TsClass {
         &self,
         method_name: &str,
         param_values: I,
-        graphs_map: &GraphsMap,
         classes: &TsClasses,
         cache: &Arc<Cache>,
         engine_ctx: &mut EngineContext<'_>,
@@ -485,7 +494,7 @@ impl TsClass {
         let this = JsValue::new(constructor.prototype());
         let args = param_values
             .into_iter()
-            .map(|x| value_to_js_value(classes, x, engine_ctx, graphs_map))
+            .map(|x| value_to_js_value(classes, x, engine_ctx))
             .collect_vec();
 
         let result = self
@@ -500,7 +509,6 @@ impl TsClass {
         method_name: &str,
         this: &Value,
         param_values: I,
-        graphs_map: &GraphsMap,
         classes: &TsClasses,
         cache: &Arc<Cache>,
         engine_ctx: &mut EngineContext<'_>,
@@ -510,10 +518,10 @@ impl TsClass {
     {
         debug_assert!(!self.description.methods[method_name].is_static);
 
-        let this = value_to_js_value(classes, &this, engine_ctx, graphs_map);
+        let this = value_to_js_value(classes, &this, engine_ctx);
         let args = param_values
             .into_iter()
-            .map(|x| value_to_js_value(classes, x, engine_ctx, graphs_map))
+            .map(|x| value_to_js_value(classes, x, engine_ctx))
             .collect_vec();
 
         let result = self
@@ -526,6 +534,7 @@ impl TsClass {
     pub fn static_object_value(&self) -> Option<ObjectValue> {
         let static_graph = self.static_graph.as_ref()?;
         Some(ObjectValue {
+            obj_type: self.static_graph_obj_type.clone(),
             graph_id: static_graph.id,
             node: self.root_node,
         })
@@ -673,6 +682,7 @@ impl TsClassBuilder {
             methods: self.methods.clone(),
         });
 
+        let static_graph_obj_type = static_graph_obj_type(&description.class_name, cache);
         let wrapper = JsObjectWrapper::new(description.clone());
 
         let class = TsClass {
@@ -682,6 +692,7 @@ impl TsClassBuilder {
             static_graph: None,
             root_node: classes.static_classes_gen_id.get_id_for_node(),
             static_fields: Default::default(),
+            static_graph_obj_type,
             wrapper,
         };
         let root_node = class.root_node;
@@ -844,11 +855,11 @@ impl TsClassBuilder {
     fn add_root_node(&self, graph: &mut ObjectGraph, root_node: NodeIndex, cache: &Cache) {
         graph.construct_node(
             root_node,
-            scached!(cache; self.class_name.to_string() + "Static"),
+            static_graph_obj_type(&self.class_name, cache),
             fields!(),
         );
         graph.set_as_root(
-            scached!(cache; self.class_name.to_string() + "Static"),
+            static_graph_root_name(&self.class_name, cache),
             root_node,
         );
     }

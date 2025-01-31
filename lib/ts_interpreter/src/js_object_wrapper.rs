@@ -126,7 +126,7 @@ trait GlobalObjectInner {
         value: &Value,
         engine_ctx: &mut EngineContext<'_>,
     ) -> boa_engine::JsValue {
-        value_to_js_value(self.classes(), value, engine_ctx, self.graphs_map())
+        value_to_js_value(self.classes(), value, engine_ctx)
     }
 }
 
@@ -635,6 +635,7 @@ impl JsObjectWrapper {
         );
 
         Ok(JsWrapped(ObjectValue {
+            obj_type: self.desc.class_name.clone(),
             graph_id: graph_id,
             node: node_id,
         }))

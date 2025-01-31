@@ -248,7 +248,7 @@ fn embed_object_value(
     };
     graph.set_as_root(var.clone(), new_var_value.1);
     map_hat.insert_graph(graph.into());
-    values_hat.insert(var.clone(), vobj!(new_var_value.0, new_var_value.1));
+    values_hat.insert(var.clone(), vobj!(obj_val.obj_type().clone(), new_var_value.0, new_var_value.1));
 
     true
 }

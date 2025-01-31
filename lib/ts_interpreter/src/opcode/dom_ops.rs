@@ -57,10 +57,12 @@ impl ExprOpcode for GetElementByIdOp {
                 if self.node_id_equal(neig_node, &id) {
                     let val = match neig {
                         EdgeEndPoint::Internal(node_index) => ObjectValue {
+                            obj_type: neig_node.obj_type().clone(),
                             graph_id: graph.id,
                             node: *node_index,
                         },
                         EdgeEndPoint::Chain(graph_id, node_index) => ObjectValue {
+                            obj_type: neig_node.obj_type().clone(),
                             graph_id: *graph_id,
                             node: *node_index,
                         },

@@ -54,10 +54,18 @@ impl ValueType {
     pub fn is_primitive(&self) -> bool {
         !matches!(self, ValueType::Object(_))
     }
+
+    pub fn obj_type(&self) -> Option<&ObjectType> {
+        match self {
+            ValueType::Object(obj_type) => Some(obj_type),
+            _ => None,
+        }
+    }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct ObjectValue {
+    pub obj_type: ObjectType,
     pub graph_id: GraphIndex,
     pub node: NodeIndex,
 }
@@ -123,7 +131,8 @@ impl ObjectValue {
         graphs_map: &GraphsMap,
     ) -> Option<PrimitiveField> {
         Option::map(
-            self.graph(graphs_map).get_primitive_field(&self.node, field_name),
+            self.graph(graphs_map)
+                .get_primitive_field(&self.node, field_name),
             |x| x.clone(),
         )
     }
@@ -157,19 +166,24 @@ impl ObjectValue {
             self.graph(graphs_map).get_neighbor(&self.node, field_name),
             |x| match x {
                 EdgeEndPoint::Internal(field_node_index) => ObjectValue {
+                    obj_type: self
+                        .graph(graphs_map)
+                        .obj_type(field_node_index)
+                        .unwrap()
+                        .clone(),
                     graph_id: self.graph_id,
                     node: *field_node_index,
                 },
                 EdgeEndPoint::Chain(field_graph_index, field_node_index) => ObjectValue {
+                    obj_type: graphs_map[field_graph_index]
+                        .obj_type(field_node_index)
+                        .unwrap()
+                        .clone(),
                     graph_id: *field_graph_index,
                     node: *field_node_index,
                 },
             },
         )
-    }
-
-    pub fn obj_type(&self, graphs_map: &GraphsMap) -> ObjectType {
-        self.graph(graphs_map).obj_type(&self.node).unwrap().clone()
     }
 
     pub fn primitive_field_count(&self, graphs_map: &GraphsMap) -> usize {
@@ -184,12 +198,12 @@ impl ObjectValue {
         self.primitive_field_count(graphs_map) + self.pointers_field_count(graphs_map)
     }
 
-    pub fn is_array(&self, graphs_map: &GraphsMap) -> bool {
-        ValueType::is_array_obj_type(&self.obj_type(graphs_map))
+    pub fn is_array(&self) -> bool {
+        ValueType::is_array_obj_type(&self.obj_type)
     }
 
-    pub fn is_set(&self, graphs_map: &GraphsMap) -> bool {
-        ValueType::is_set_obj_type(&self.obj_type(graphs_map))
+    pub fn is_set(&self) -> bool {
+        ValueType::is_set_obj_type(&self.obj_type)
     }
 
     pub fn fields<'a>(
@@ -210,7 +224,7 @@ impl ObjectValue {
 impl GraphMapDisplay for ObjectValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>, graphs_map: &GraphsMap) -> fmt::Result {
         let graph = self.graph(graphs_map);
-        if self.is_array(graphs_map) && self.pointers_field_count(graphs_map) == 0 {
+        if self.is_array() && self.pointers_field_count(graphs_map) == 0 {
             write!(f, "[")?;
             let mut iter = graph.primitive_fields(&self.node);
             match iter.next() {
@@ -224,7 +238,7 @@ impl GraphMapDisplay for ObjectValue {
             }
             write!(f, "]")?;
             fmt::Result::Ok(())
-        } else if self.is_set(graphs_map) && self.pointers_field_count(graphs_map) == 0 {
+        } else if self.is_set() && self.pointers_field_count(graphs_map) == 0 {
             write!(f, "{{")?;
             let mut iter = graph.primitive_fields(&self.node);
             match iter.next() {
@@ -295,7 +309,7 @@ impl Value {
         }
     }
 
-    pub fn val_type(&self, graphs_map: &GraphsMap) -> ValueType {
+    pub fn val_type(&self) -> ValueType {
         match &self {
             Value::Primitive(p) => match p {
                 PrimitiveValue::Number(_) => ValueType::Number,
@@ -303,7 +317,7 @@ impl Value {
                 PrimitiveValue::String(_) => ValueType::String,
                 PrimitiveValue::Null => ValueType::Null,
             },
-            Value::Object(o) => ValueType::Object(o.obj_type(graphs_map).clone()),
+            Value::Object(o) => ValueType::Object(o.obj_type.clone()),
         }
     }
 }
@@ -450,8 +464,9 @@ macro_rules! vcstring {
 
 #[macro_export]
 macro_rules! vobj {
-    ($g:expr,$r:expr) => {
+    ($t:expr,$g:expr,$r:expr) => {
         $crate::value::Value::Object($crate::value::ObjectValue {
+            obj_type: $t,
             graph_id: $g,
             node: $r,
         })

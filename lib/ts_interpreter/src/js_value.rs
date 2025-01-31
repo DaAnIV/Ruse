@@ -17,9 +17,8 @@ pub fn object_value_to_js_value(
     classes: &TsClasses,
     value: &ObjectValue,
     engine_ctx: &mut EngineContext<'_>,
-    graphs_map: &GraphsMap,
 ) -> boa_engine::JsValue {
-    let class = classes.get_class(&value.obj_type(graphs_map)).unwrap();
+    let class = classes.get_class(&value.obj_type).unwrap();
     let js_obj = class.wrap_as_js_object(value.clone(), engine_ctx);
     boa_engine::JsValue::new(js_obj)
 }
@@ -32,7 +31,7 @@ pub fn value_to_js_value(
 ) -> boa_engine::JsValue {
     match value {
         Value::Primitive(p) => primitive_value_to_js_value(p),
-        Value::Object(o) => object_value_to_js_value(classes, o, engine_ctx, graphs_map),
+        Value::Object(o) => object_value_to_js_value(classes, o, engine_ctx),
     }
 }
 
