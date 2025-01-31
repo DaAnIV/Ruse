@@ -127,10 +127,7 @@ impl ValuesMap {
         let mut map = ValuesHashMap::default();
         for (k, v) in &self.0 {
             let mut state = DefaultHasher::default();
-            match v {
-                Value::Primitive(primitive_value) => primitive_value.hash(&mut state),
-                Value::Object(object_value) => object_value.calculate_hash(&mut state, graphs_map),
-            };
+            v.calculate_hash(&mut state, graphs_map);
             map.insert(k.clone(), state.finish());
         }
 
@@ -178,10 +175,7 @@ impl GraphMapHash for ValuesMap {
     fn calculate_hash<H: std::hash::Hasher>(&self, state: &mut H, graphs_map: &GraphsMap) {
         for (k, v) in &self.0 {
             k.hash(state);
-            match v {
-                Value::Primitive(primitive_value) => primitive_value.hash(state),
-                Value::Object(object_value) => object_value.calculate_hash(state, graphs_map),
-            }
+            v.calculate_hash(state, graphs_map);
         }
     }
 }
