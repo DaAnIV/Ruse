@@ -22,7 +22,9 @@ use ruse_synthesizer::{
 };
 use ruse_ts_interpreter::{
     dom::{self, DomLoader},
-    ts_class::{TsClasses, TsClassesBuilder},
+    js_object_wrapper::EngineContext,
+    js_value::value_to_js_value,
+    ts_class::{TsClass, TsClasses, TsClassesBuilder},
 };
 use ruse_ts_synthesizer::*;
 
@@ -112,6 +114,7 @@ impl std::fmt::Display for SkipError {
 pub enum SnythesisTaskError {
     IO(std::io::Error),
     Verify(VerifyError),
+    Eval(boa_engine::JsError),
     Parse(ParseError),
     Skip(SkipError),
 }
@@ -148,13 +151,14 @@ impl std::fmt::Display for SnythesisTaskError {
         match self {
             SnythesisTaskError::IO(e) => write!(f, "{}", e),
             SnythesisTaskError::Verify(e) => write!(f, "{}", e),
+            SnythesisTaskError::Eval(e) => write!(f, "{}", e),
             SnythesisTaskError::Parse(e) => write!(f, "{}", e),
             SnythesisTaskError::Skip(e) => write!(f, "{}", e),
         }
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct VarRef {
     var: String,
     fields: Vec<FieldName>,
@@ -225,6 +229,7 @@ enum ExprPrefix {
     FieldRef,
     StaticRef,
     HtmlFile,
+    StaticMethod,
     Null,
 }
 
@@ -238,9 +243,17 @@ impl ExprPrefix {
             ExprPrefix::FieldRef => "*",
             ExprPrefix::StaticRef => "$",
             ExprPrefix::HtmlFile => "#",
+            ExprPrefix::StaticMethod => "@",
             ExprPrefix::Null => "Null",
         }
     }
+}
+
+fn get_or_create_graph(graphs_map: &mut GraphsMap, graph_id: GraphIndex) -> &mut ObjectGraph {
+    if !graphs_map.contains(graph_id) {
+        graphs_map.insert_graph(ObjectGraph::new(graph_id).into());
+    }
+    Arc::make_mut(graphs_map.get_mut(&graph_id).unwrap())
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -265,17 +278,24 @@ impl TaskType {
         &self,
         value: &serde_json::Value,
         classes: &TsClasses,
+        graph_id: GraphIndex,
         graphs_map: &mut GraphsMap,
-        id_gen: &GraphIdGenerator,
-        cache: &Cache,
+        id_gen: &Arc<GraphIdGenerator>,
+        refs_graph_id: Option<GraphIndex>,
+        cache: &Arc<Cache>,
     ) -> Result<Value, SnythesisTaskError> {
         if let Some(expr) = Self::get_expr_value(value) {
-            self.parse_expr_value(expr, classes, graphs_map, cache)
+            self.parse_expr_value(expr, classes, graphs_map, refs_graph_id, id_gen, cache)
         } else {
-            let mut graph = ObjectGraph::new(id_gen.get_id_for_graph());
-            let out =
-                self.create_regular_value(value, &mut graph, classes, graphs_map, id_gen, cache);
-            graphs_map.insert_graph(graph.into());
+            let out = self.create_regular_value(
+                value,
+                graph_id,
+                classes,
+                graphs_map,
+                id_gen,
+                refs_graph_id,
+                cache,
+            );
 
             out
         }
@@ -294,11 +314,12 @@ impl TaskType {
     fn create_regular_value(
         &self,
         value: &serde_json::Value,
-        graph: &mut ObjectGraph,
+        graph_id: GraphIndex,
         classes: &TsClasses,
         graphs_map: &mut GraphsMap,
-        id_gen: &GraphIdGenerator,
-        cache: &Cache,
+        id_gen: &Arc<GraphIdGenerator>,
+        refs_graph_id: Option<GraphIndex>,
+        cache: &Arc<Cache>,
     ) -> Result<Value, SnythesisTaskError> {
         match self {
             TaskType::Int => match value.as_i64() {
@@ -320,6 +341,7 @@ impl TaskType {
                     }
                     None => return Err(parse_err!(value, "Value is not an array")),
                 };
+                let graph = get_or_create_graph(graphs_map, graph_id);
                 let node = graph.add_primitive_array_object(
                     id_gen.get_id_for_node(),
                     &ValueType::Number,
@@ -352,6 +374,7 @@ impl TaskType {
                     }
                     None => return Err(parse_err!(value, "Value is not an array")),
                 };
+                let graph = get_or_create_graph(graphs_map, graph_id);
                 let node = graph.add_primitive_array_object(
                     id_gen.get_id_for_node(),
                     &ValueType::Number,
@@ -393,6 +416,7 @@ impl TaskType {
                     }
                     None => return Err(parse_err!(value, "Value is not an array")),
                 };
+                let graph = get_or_create_graph(graphs_map, graph_id);
                 let node = graph.add_primitive_array_object(
                     id_gen.get_id_for_node(),
                     &ValueType::String,
@@ -421,6 +445,7 @@ impl TaskType {
                     }
                     None => return Err(parse_err!(value, "Value is not an array")),
                 };
+                let graph = get_or_create_graph(graphs_map, graph_id);
                 let node = graph.add_primitive_set_object(
                     id_gen.get_id_for_node(),
                     &ValueType::Number,
@@ -453,6 +478,7 @@ impl TaskType {
                     }
                     None => return Err(parse_err!(value, "Value is not an array")),
                 };
+                let graph = get_or_create_graph(graphs_map, graph_id);
                 let node = graph.add_primitive_set_object(
                     id_gen.get_id_for_node(),
                     &ValueType::String,
@@ -468,36 +494,144 @@ impl TaskType {
             }
             TaskType::Object(s) => {
                 let class_name = str_cached!(cache; s);
-                let class = match classes.get_class(&class_name) {
-                    Some(v) => v,
-                    None => return Err(verify_err!(format!("object type {} is not defined", s))),
-                };
-                let fields = match value.as_object() {
-                    Some(obj) => obj,
-                    None => return Err(parse_err!(value, "Value is not an object value")),
-                };
-                let fields_types = HashMap::from_iter(
-                    class
-                        .description
-                        .fields
-                        .iter()
-                        .map(|(k, v)| (k.to_string(), TaskType::from(&v.value_type))),
-                );
-                let values =
-                    parse_json_values(&fields, &fields_types, graphs_map, id_gen, classes, cache)?;
+                let class = classes
+                    .get_class(&class_name)
+                    .ok_or(verify_err!(format!("object type {} is not defined", s)))?;
+                let fields = value
+                    .as_object()
+                    .ok_or(parse_err!(value, "Value is not an object value"))?;
 
-                let obj = class.generate_object(values, graph, id_gen);
-
-                Ok(Value::Object(obj))
+                if fields.contains_key(ExprPrefix::StaticMethod.as_str()) {
+                    let method_name = fields[ExprPrefix::StaticMethod.as_str()]
+                        .as_str()
+                        .ok_or(parse_err!(value, "@ Static method value is not a string"))?;
+                    let args_value = fields.get("args").ok_or(parse_err!(
+                        value,
+                        "@ Static method doesn't contain args field"
+                    ))?;
+                    let json_args = args_value.as_array().ok_or(parse_err!(
+                        value,
+                        "@ Static method args field is not an array"
+                    ))?;
+                    self.create_object_from_method(
+                        class,
+                        method_name,
+                        json_args,
+                        graph_id,
+                        classes,
+                        graphs_map,
+                        id_gen,
+                        cache,
+                    )
+                } else {
+                    self.create_object_from_fields(
+                        fields,
+                        class,
+                        graph_id,
+                        classes,
+                        graphs_map,
+                        id_gen,
+                        refs_graph_id,
+                        cache,
+                    )
+                }
             }
             TaskType::Dom | TaskType::DOMElement => {
                 let html = match value.as_str() {
                     Some(str) => Self::strip_string(str),
                     None => return Err(parse_err!(value, "Value for html is not an string value")),
                 }?;
+                let graph = get_or_create_graph(graphs_map, graph_id);
                 self.parse_dom(html, graph, id_gen, cache)
             }
             TaskType::VarRef(_) => Err(parse_err!(value, "Var ref is a delayed type")),
+        }
+    }
+
+    fn create_object_from_fields(
+        &self,
+        fields: &JsonValuesMap,
+        class: &TsClass,
+        graph_id: GraphIndex,
+        classes: &TsClasses,
+        graphs_map: &mut GraphsMap,
+        id_gen: &Arc<GraphIdGenerator>,
+        refs_graph_id: Option<GraphIndex>,
+        cache: &Arc<Cache>,
+    ) -> Result<Value, SnythesisTaskError> {
+        let fields_types = HashMap::from_iter(
+            class
+                .description
+                .fields
+                .iter()
+                .map(|(k, v)| (k.to_string(), TaskType::from(&v.value_type))),
+        );
+
+        let values = parse_json_values_map(
+            fields,
+            &fields_types,
+            graph_id,
+            graphs_map,
+            id_gen,
+            refs_graph_id,
+            classes,
+            cache,
+        )?;
+
+        let graph = get_or_create_graph(graphs_map, graph_id);
+        let obj = class.generate_object(values, graph, id_gen);
+
+        Ok(Value::Object(obj))
+    }
+
+    fn create_object_from_method(
+        &self,
+        class: &TsClass,
+        method_name: &str,
+        json_args: &Vec<serde_json::Value>,
+        graph_id: GraphIndex,
+        classes: &TsClasses,
+        graphs_map: &mut GraphsMap,
+        id_gen: &Arc<GraphIdGenerator>,
+        cache: &Arc<Cache>,
+    ) -> Result<Value, SnythesisTaskError> {
+        let method_desc = if method_name == "constructor" {
+            &class.description.constructor
+        } else {
+            let desc = class
+                .description
+                .methods
+                .get(method_name)
+                .ok_or(verify_err!(format!(
+                    "object {} has no method {}",
+                    &class.description.class_name, method_name
+                )))?;
+            if !desc.is_static {
+                return Err(verify_err!(format!(
+                    "{}.{} is not static",
+                    &class.description.class_name, method_name
+                )));
+            } else {
+                desc
+            }
+        };
+        let arg_types = method_desc.params.iter().map(|x| Self::from(&x.value_type));
+        let args = parse_json_values_array(
+            json_args, arg_types, graph_id, graphs_map, id_gen, classes, None, cache,
+        )?;
+
+        let mut boa_ctx = EngineContext::new_boa_ctx();
+        let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, classes);
+        get_or_create_graph(graphs_map, graph_id); // Make sure graph exists
+        engine_ctx.reset_with_graph(graph_id, graphs_map, classes, id_gen, cache);
+
+        if method_name == "constructor" {
+            let new_obj = class.call_constructor(&args, classes, &mut engine_ctx);
+            Ok(Value::Object(new_obj))
+        } else {
+            class
+                .call_static_method(method_name, &args, classes, cache, &mut engine_ctx)
+                .map_err(|x| SnythesisTaskError::Eval(x))
         }
     }
 
@@ -542,6 +676,8 @@ impl TaskType {
         value_string: &str,
         classes: &TsClasses,
         graphs_map: &mut GraphsMap,
+        refs_graph_id_opt: Option<GraphIndex>,
+        id_gen: &GraphIdGenerator,
         cache: &Cache,
     ) -> Result<Value, SnythesisTaskError> {
         if let Some(static_ref) = ExprPrefix::StaticRef.get(value_string) {
@@ -555,6 +691,17 @@ impl TaskType {
                     format!("Only object types can be set to null")
                 ))
             }
+        } else if let Some(field_ref) = ExprPrefix::FieldRef.get(value_string) {
+            let refs_graph_id = refs_graph_id_opt
+                .ok_or(parse_err!(value_string, "Ref expr in an invalid location"))?;
+            self.parse_field_ref_expr_value(
+                field_ref,
+                value_string,
+                graphs_map,
+                refs_graph_id,
+                id_gen,
+                cache,
+            )
         } else {
             Err(parse_err!(
                 value_string,
@@ -621,6 +768,36 @@ impl TaskType {
         }
         graphs_map.insert_graph(class.static_graph.as_ref().unwrap().clone());
         Ok(value.val().clone())
+    }
+
+    fn parse_field_ref_expr_value(
+        &self,
+        field_ref: &str,
+        value_string: &str,
+        graphs_map: &mut GraphsMap,
+        refs_graph_id: GraphIndex,
+        id_gen: &GraphIdGenerator,
+        cache: &Cache,
+    ) -> Result<Value, SnythesisTaskError> {
+        if !self.is_object() {
+            return Err(parse_err!(
+                value_string,
+                format!("The field ref expression is only valid for object types")
+            ));
+        }
+
+        let refs_graph = Arc::make_mut(graphs_map.get_mut(&refs_graph_id).unwrap());
+        let obj_type = str_cached!(cache; REF_GRAPH_OBJ_TYPE);
+        let ref_id = refs_graph.add_simple_object_from_fields_map(
+            id_gen.get_id_for_node(),
+            obj_type.clone(),
+            fields!((
+                str_cached!(cache; REF_GRAPH_FIELD_NAME),
+                PrimitiveValue::String(str_cached!(cache; field_ref))
+            )),
+        );
+
+        Ok(vobj!(obj_type, refs_graph_id, ref_id))
     }
 
     fn value_type(&self, cache: &Cache) -> ValueType {
@@ -909,14 +1086,18 @@ fn upgrade_values_map(
     Ok(())
 }
 
-fn parse_json_values(
-    map: &JsonValuesMap,
+fn parse_json_values_map_roots<'a, M>(
+    map: M,
     types: &HashMap<String, TaskType>,
     graphs_map: &mut GraphsMap,
-    id_gen: &GraphIdGenerator,
+    id_gen: &Arc<GraphIdGenerator>,
+    refs_graph_id: Option<GraphIndex>,
     classes: &TsClasses,
-    cache: &Cache,
-) -> Result<ValuesMap, SnythesisTaskError> {
+    cache: &Arc<Cache>,
+) -> Result<ValuesMap, SnythesisTaskError>
+where
+    M: IntoIterator<Item = (&'a String, &'a serde_json::Value)>,
+{
     let mut values = ValuesMap::default();
     for (k, v) in map {
         let key = str_cached!(cache; k);
@@ -924,12 +1105,87 @@ fn parse_json_values(
             Some(value_type) => value_type,
             None => return Err(verify_err!(format!("{} type is unknown", k))),
         };
-        let mut value = value_type.create_value(v, classes, graphs_map, id_gen, cache)?;
+        let mut value = value_type.create_value(
+            v,
+            classes,
+            id_gen.get_id_for_graph(),
+            graphs_map,
+            id_gen,
+            refs_graph_id,
+            cache,
+        )?;
+
         if let Some(obj) = value.mut_obj() {
             let graph = graphs_map.get_mut(&obj.graph_id).unwrap();
             Arc::make_mut(graph).set_as_root(key.clone(), obj.node);
         }
         values.insert(key, value);
+    }
+
+    Ok(values)
+}
+
+fn parse_json_values_map<'a, M>(
+    map: M,
+    types: &HashMap<String, TaskType>,
+    graph_id: GraphIndex,
+    graphs_map: &mut GraphsMap,
+    id_gen: &Arc<GraphIdGenerator>,
+    refs_graph_id: Option<GraphIndex>,
+    classes: &TsClasses,
+    cache: &Arc<Cache>,
+) -> Result<ValuesMap, SnythesisTaskError>
+where
+    M: IntoIterator<Item = (&'a String, &'a serde_json::Value)>,
+{
+    let mut values = ValuesMap::default();
+    for (k, v) in map {
+        let key = str_cached!(cache; k);
+        let value_type = &match types.get(k) {
+            Some(value_type) => value_type,
+            None => return Err(verify_err!(format!("{} type is unknown", k))),
+        };
+        let value = value_type.create_value(
+            v,
+            classes,
+            graph_id,
+            graphs_map,
+            id_gen,
+            refs_graph_id,
+            cache,
+        )?;
+        values.insert(key, value);
+    }
+
+    Ok(values)
+}
+
+fn parse_json_values_array<'a, V, T>(
+    arr: V,
+    types: T,
+    graph_id: GraphIndex,
+    graphs_map: &mut GraphsMap,
+    id_gen: &Arc<GraphIdGenerator>,
+    classes: &TsClasses,
+    refs_graph_id: Option<GraphIndex>,
+    cache: &Arc<Cache>,
+) -> Result<Vec<Value>, SnythesisTaskError>
+where
+    V: IntoIterator<Item = &'a serde_json::Value>,
+    T: IntoIterator<Item = TaskType>,
+{
+    let mut values = vec![];
+    for (value, task_type) in arr.into_iter().zip_eq(types) {
+        let value = task_type.create_value(
+            value,
+            classes,
+            graph_id,
+            graphs_map,
+            id_gen,
+            refs_graph_id,
+            cache,
+        )?;
+        values.push(value);
     }
 
     Ok(values)
@@ -942,24 +1198,102 @@ struct SnythesisTaskExamples {
     output: Option<serde_json::Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
     state: Option<JsonValuesMap>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    predicate_js: Option<String>,
 }
 
-fn set_var_refs_variables(
+const REF_GRAPH_ID: usize = usize::MAX;
+const REF_GRAPH_FIELD_NAME: &str = "ref";
+const REF_GRAPH_OBJ_TYPE: &str = "VARREF";
+
+fn set_var_refs(
     variables: &HashMap<String, TaskType>,
     values: &mut ValuesMap,
     graphs_map: &mut GraphsMap,
     cache: &Cache,
 ) -> Result<(), SnythesisTaskError> {
+    let mut refs = Vec::new();
+    for (graph, node_id, node) in graph_walk::ObjectGraphWalker::from_graphs(
+        graphs_map,
+        graphs_map
+            .graph_indices()
+            .map(|g_id| *g_id)
+            .filter(|g_id| *g_id != REF_GRAPH_ID),
+    ) {
+        for edge in node.pointers_iter() {
+            if let EdgeEndPoint::Chain(edge_graph_id, edge_node_id) = edge.1 {
+                if *edge_graph_id == REF_GRAPH_ID {
+                    let ref_graph = graphs_map.get(&REF_GRAPH_ID).unwrap();
+                    let var_ref = ref_graph
+                        .get_primitive_field(
+                            edge_node_id,
+                            &str_cached!(cache; REF_GRAPH_FIELD_NAME),
+                        )
+                        .unwrap()
+                        .value
+                        .string()
+                        .unwrap();
+
+                    refs.push((
+                        graph.id,
+                        node_id,
+                        edge.0.clone(),
+                        graph.get_root_name(node_id),
+                        VarRef::from(var_ref.as_str()),
+                    ));
+                }
+            }
+        }
+    }
+    for (graph_id, node_id, field_name, root_name_opt, var_ref) in refs {
+        let actual_value = var_ref.create_value(values, graphs_map)?;
+        let graph = Arc::make_mut(graphs_map.get_mut(&graph_id).unwrap());
+        let actual_obj = actual_value.obj().unwrap();
+
+        if actual_obj.graph_id == graph_id {
+            graph.set_edge(&node_id, actual_obj.node, field_name);
+        } else {
+            graph.set_chain_edge(&node_id, actual_obj.graph_id, actual_obj.node, field_name);
+        }
+        if let Some(root_name) = root_name_opt {
+            graph.set_as_root(root_name.clone(), actual_obj.node);
+            if values.contains_key(&root_name) {
+                values.insert(root_name, Value::Object(actual_obj.clone()));
+            }
+        }
+    }
+
     let mut var_refs: VecDeque<_> = variables
         .iter()
         .filter_map(|(k, var_type)| {
             if let TaskType::VarRef(var_ref) = var_type {
-                Some((str_cached!(cache; k), var_ref))
+                Some((str_cached!(cache; k), var_ref.clone()))
             } else {
                 None
             }
         })
         .collect();
+
+    for (key, value) in values.iter_mut() {
+        if let Value::Object(obj_val) = value {
+            if obj_val.graph_id == REF_GRAPH_ID {
+                let ref_graph = graphs_map.get(&REF_GRAPH_ID).unwrap();
+                let var_ref = VarRef::from(
+                    ref_graph
+                        .get_primitive_field(
+                            &obj_val.node,
+                            &str_cached!(cache; REF_GRAPH_FIELD_NAME),
+                        )
+                        .unwrap()
+                        .value
+                        .string()
+                        .unwrap()
+                        .as_str(),
+                );
+                var_refs.push_back((key.clone(), var_ref));
+            }
+        }
+    }
 
     while let Some((key, var_ref)) = var_refs.pop_front() {
         if !values.contains_key(&var_ref.var) {
@@ -967,6 +1301,10 @@ fn set_var_refs_variables(
             continue;
         }
         let value = var_ref.create_value(&values, graphs_map)?;
+        if let Value::Object(obj_val) = &value {
+            let graph = Arc::make_mut(graphs_map.get_mut(&obj_val.graph_id).unwrap());
+            graph.set_as_root(key.clone(), obj_val.node);
+        }
         values.insert(key, value);
     }
 
@@ -995,22 +1333,26 @@ impl SnythesisTaskExamples {
         &self,
         variables: &HashMap<String, TaskType>,
         classes: &TsClasses,
-        cache: &Cache,
+        cache: &Arc<Cache>,
     ) -> Result<Box<Context>, SnythesisTaskError> {
         let id_gen = Arc::new(GraphIdGenerator::with_initial_values(
             classes.static_classes_gen_id.max_node_id(),
             classes.static_classes_gen_id.max_graph_id(),
         ));
         let mut graphs_map = GraphsMap::default();
-        let mut values = parse_json_values(
+        graphs_map.insert_graph(ObjectGraph::new(REF_GRAPH_ID).into());
+
+        let mut values = parse_json_values_map_roots(
             &self.input,
             variables,
             &mut graphs_map,
             &id_gen,
+            Some(REF_GRAPH_ID),
             classes,
             cache,
         )?;
-        set_var_refs_variables(variables, &mut values, &mut graphs_map, cache)?;
+        set_var_refs(variables, &mut values, &mut graphs_map, cache)?;
+        graphs_map.remove(REF_GRAPH_ID);
         Ok(Context::with_values(values, graphs_map.into(), id_gen))
     }
 }
@@ -1090,9 +1432,12 @@ impl SnythesisTaskInner {
             ));
         }
 
-        if self.return_type.is_none() && examples.iter().any(|x| x.state.is_none()) {
+        if examples
+            .iter()
+            .any(|x| x.output.is_none() && x.state.is_none() && x.predicate_js.is_none())
+        {
             return Err(verify_err!(
-                "All examples should have a state if the return type is not given"
+                "All examples must have at least one form of predicate for success (output, state, predicate_js)"
             ));
         }
 
@@ -1101,6 +1446,14 @@ impl SnythesisTaskInner {
         {
             return Err(verify_err!(
                 "All examples should either have a state predicate or none of them"
+            ));
+        }
+
+        if !(examples.iter().all(|x| x.predicate_js.is_some())
+            || examples.iter().all(|x| x.predicate_js.is_none()))
+        {
+            return Err(verify_err!(
+                "All examples should either have a JS predicate or none of them"
             ));
         }
 
@@ -1251,12 +1604,15 @@ impl SnythesisTask {
         Ok(synthesizer)
     }
 
-    fn get_predicate(&self, cache: &Cache) -> Result<SynthesizerPredicate, SnythesisTaskError> {
+    fn get_predicate(
+        &self,
+        cache: &Arc<Cache>,
+    ) -> Result<SynthesizerPredicate, SnythesisTaskError> {
         let variables = self.inner.variables.as_ref().unwrap();
         let examples = self.inner.examples.as_ref().unwrap();
 
         let mut predicate_graphs_map = GraphsMap::default();
-        let predicate_gen_id = GraphIdGenerator::default();
+        let predicate_gen_id = Arc::new(GraphIdGenerator::default());
         let root_name = cache.output_root_name();
         let output_array = match &self.inner.return_type {
             Some(return_type) => {
@@ -1265,8 +1621,10 @@ impl SnythesisTask {
                     let mut output = return_type.create_value(
                         example.output.as_ref().unwrap(),
                         &self.classes,
+                        predicate_gen_id.get_id_for_graph(),
                         &mut predicate_graphs_map,
                         &predicate_gen_id,
+                        None,
                         cache,
                     )?;
                     if let Some(obj) = output.mut_obj() {
@@ -1283,11 +1641,12 @@ impl SnythesisTask {
             Some(_) => {
                 let mut array = Vec::with_capacity(examples.len());
                 for example in examples {
-                    let state_map = parse_json_values(
+                    let state_map = parse_json_values_map_roots(
                         example.state.as_ref().unwrap(),
                         variables,
                         &mut predicate_graphs_map,
                         &predicate_gen_id,
+                        None,
                         &self.classes,
                         cache,
                     )?;
@@ -1298,7 +1657,11 @@ impl SnythesisTask {
             None => None,
         };
 
-        let predicate = Box::new(move |p: &SubProgram| {
+        let predicate_js: Option<Vec<String>> =
+            examples.iter().map(|e| &e.predicate_js).cloned().collect();
+        let predicate_cache = cache.clone();
+
+        let predicate = Box::new(move |p: &SubProgram, syn_ctx: &SynthesizerContext| {
             if let Some(array) = &output_array {
                 for (actual, actual_ctx, expected) in
                     izip!(p.out_value().iter(), p.post_ctx().iter(), array)
@@ -1312,7 +1675,7 @@ impl SnythesisTask {
             }
 
             if let Some(array) = &state_array {
-                for (actual, expected) in p.post_ctx().iter().zip(array) {
+                for (actual, expected) in p.post_ctx().iter().zip_eq(array) {
                     for (var, value) in expected.iter() {
                         let actual_value = match actual.get_var_value(var) {
                             None => return false,
@@ -1327,6 +1690,40 @@ impl SnythesisTask {
                 }
             }
 
+            if let Some(js_vec) = &predicate_js {
+                let classes = syn_ctx.data.downcast_ref::<TsClasses>().unwrap();
+                let mut boa_ctx = EngineContext::new_boa_ctx();
+                let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, classes);
+
+                for (ctx, js) in p.post_ctx().iter().zip_eq(js_vec) {
+                    engine_ctx.reset_with_context(ctx, classes, &predicate_cache);
+                    let mut arg_names = Vec::with_capacity(ctx.variable_count());
+                    let mut js_values = Vec::with_capacity(ctx.variable_count());
+                    for (var, value) in ctx.variables() {
+                        arg_names.push(var.as_str());
+                        js_values.push(value_to_js_value(classes, value, &mut engine_ctx));
+                    }
+                    let code = format!(
+                        "function func({}) {{return {}}}\nfunc",
+                        arg_names.join(", "),
+                        js
+                    );
+                    let js_func = engine_ctx
+                        .eval(boa_engine::Source::from_bytes(&code))
+                        .unwrap();
+                    let func = js_func.as_callable().unwrap();
+                    match func.call(&boa_engine::JsValue::null(), &js_values, &mut engine_ctx) {
+                        Ok(val) => {
+                            if let Some(b) = val.as_boolean() {
+                                return b;
+                            }
+                            return false;
+                        }
+                        Err(_) => return false,
+                    };
+                }
+            }
+
             true
         });
 
@@ -1337,7 +1734,7 @@ impl SnythesisTask {
         &self,
         _cache: &Cache,
     ) -> Result<SynthesizerPredicate, SnythesisTaskError> {
-        Ok(Box::new(move |_p| true))
+        Ok(Box::new(move |_p, _syn_ctx| true))
     }
 
     fn get_opcodes(&self, cache: &Cache) -> OpcodesList {
@@ -1432,7 +1829,7 @@ impl SnythesisTask {
         composite_opcodes
     }
 
-    fn get_context_array(&self, cache: &Cache) -> Result<ContextArray, SnythesisTaskError> {
+    fn get_context_array(&self, cache: &Arc<Cache>) -> Result<ContextArray, SnythesisTaskError> {
         let variables = self.inner.variables.as_ref().unwrap();
         let examples = self.inner.examples.as_ref().unwrap();
 

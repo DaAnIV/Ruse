@@ -421,7 +421,7 @@ mod ts_class_tests {
         let mut ctx = Context::with_values([].into(), graphs_map.into(), id_gen);
         let mut boa_ctx = EngineContext::new_boa_ctx();
         let mut engine_context = EngineContext::create_engine_ctx(&mut boa_ctx, &classes);
-        engine_context.reset_with_context(&mut ctx, &classes, &cache);
+        engine_context.reset_with_mut_context(&mut ctx, &classes, &cache);
 
         let js_user = user_class.wrap_as_js_object(user, &mut engine_context);
         boa_ctx
@@ -500,7 +500,7 @@ mod ts_class_tests {
         let mut ctx = Context::with_values([].into(), graphs_map.into(), id_gen);
         let mut boa_ctx = EngineContext::new_boa_ctx();
         let mut engine_context = EngineContext::create_engine_ctx(&mut boa_ctx, &classes);
-        engine_context.reset_with_context(&mut ctx, &classes, &cache);
+        engine_context.reset_with_mut_context(&mut ctx, &classes, &cache);
 
         let js_obj = user_class_pair.wrap_as_js_object(complex_user, &mut engine_context);
         boa_ctx
@@ -561,7 +561,7 @@ mod ts_class_tests {
 
         let mut boa_ctx = EngineContext::new_boa_ctx();
         let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, classes_ref);
-        engine_ctx.reset_with_context(&mut ctx, classes_ref, &syn_ctx.cache);
+        engine_ctx.reset_with_mut_context(&mut ctx, classes_ref, &syn_ctx.cache);
 
         value_to_js_value(
             &classes_ref,
@@ -729,17 +729,18 @@ mod ts_class_tests {
 
         let classes = builder.finalize(&cache);
 
-        let user_class = classes.get_class(&user_class_name).unwrap();
-
         let graph_id = id_gen.get_id_for_graph();
         graphs_map.insert_graph(ObjectGraph::new(graph_id).into());
+
+        let mut boa_ctx = EngineContext::new_boa_ctx();
+        let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, &classes);
+        engine_ctx.reset_with_graph(graph_id, &mut graphs_map, &classes, &id_gen, &cache);
+
+        let user_class = classes.get_class(&user_class_name).unwrap();
         let js_user = user_class.call_constructor(
             &[vstr!(cache; "a"), vstr!(cache; "b")],
-            graph_id,
-            &mut graphs_map,
             &classes,
-            &id_gen,
-            &cache,
+            &mut engine_ctx
         );
         let name_field = js_user.get_field_value(&str_cached!(cache; "name"), &graphs_map);
         let surname_field = js_user.get_field_value(&str_cached!(cache; "surname"), &graphs_map);
@@ -818,6 +819,28 @@ mod ts_class_tests {
             fullname_field.unwrap().wrap(&graphs_map),
             vstr!(cache; "ab").wrap(&graphs_map)
         );
+    }
+
+    #[test]
+    fn eval_func() {
+        let mut boa_ctx = EngineContext::new_boa_ctx();
+        let res = boa_ctx.eval(boa_engine::Source::from_bytes("function func(a, b, c) { return a + b + c; }\nfunc")).unwrap();
+        let a = res.as_callable().unwrap();
+        let func_res = a.call(&boa_engine::JsValue::null(), &[JsValue::new(1), JsValue::new(2), JsValue::new(3)], &mut boa_ctx).unwrap();
+        let func_res_number = func_res.as_i32().unwrap();
+        assert_eq!(func_res_number, 1 + 2 + 3);
+
+    }
+
+    #[test]
+    fn eval_max() {
+        let mut boa_ctx = EngineContext::new_boa_ctx();
+        let res = boa_ctx.eval(boa_engine::Source::from_bytes("function func(a, b) { return Math.max(a, b); }\nfunc")).unwrap();
+        let a = res.as_callable().unwrap();
+        let func_res = a.call(&boa_engine::JsValue::null(), &[JsValue::new(1), JsValue::new(5)], &mut boa_ctx).unwrap();
+        let func_res_number = func_res.as_i32().unwrap();
+        assert_eq!(func_res_number, 5);
+
     }
 }
 
