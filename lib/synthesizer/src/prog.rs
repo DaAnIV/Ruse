@@ -12,11 +12,8 @@ use crate::opcode::*;
 use crate::value_array::ValueArray;
 
 #[cfg(feature = "trace_evaluations")]
-use tracing::trace;
-
-#[cfg(feature = "trace_evaluations")]
 macro_rules! evaluate_trace {
-    ($($arg:tt)+) => trace!($($arg)+);
+    ($($arg:tt)+) => { tracing::trace!($($arg)+); }
 }
 #[cfg(not(feature = "trace_evaluations"))]
 macro_rules! evaluate_trace {
@@ -110,7 +107,7 @@ impl SubProgram {
         let mut dirty = false;
 
         evaluate_trace!("Evaluating: {}", self.get_code());
-        evaluate_trace!("pre_ctx: {}", self.pre_ctx);
+        evaluate_trace!("pre_ctx {}", self.pre_ctx);
         evaluate_trace!("post_ctx (before): {}", self.post_ctx);
         self.post_ctx.iter().for_each(|_ctx| {
             evaluate_trace!("post_ctx graphs: {}", _ctx.graphs_map);
@@ -120,6 +117,8 @@ impl SubProgram {
             // Gather arguments
             let args: Vec<&LocValue> = self.children.iter().map(|c| &c.out_value()[i]).collect();
             let out_ctx = self.post_ctx.get_mut(i).unwrap();
+            evaluate_trace!("post_ctx[{}] (before) {:?}", i, out_ctx);
+            
             // Evaluate and verify the output type is consistent
             let out_val = match self.opcode.eval(&args, out_ctx, context) {
                 EvalResult::DirtyContext(out_val) => {
@@ -129,6 +128,7 @@ impl SubProgram {
                 EvalResult::NoModification(out_val) => out_val,
                 EvalResult::None => return false,
             };
+            evaluate_trace!("post_ctx[{}] (after) graphs: {:?}", i, out_ctx);
 
             debug_assert!(
                 out_type.is_none() || out_type == Some(out_val.val.val_type())
@@ -145,6 +145,7 @@ impl SubProgram {
         self.out_type = out_type;
         self.out_value = Some(out_value.into());
 
+        evaluate_trace!("post_ctx (after): {}", self.post_ctx);
         evaluate_trace!("output: {}", self.out_value().wrap(self.post_ctx()));
 
         true

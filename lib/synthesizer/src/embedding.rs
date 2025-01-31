@@ -9,11 +9,11 @@ use ruse_object_graph::{
 };
 
 #[cfg(feature = "trace_embeddings")]
-use tracing::trace;
+use itertools::Itertools;
 
 #[cfg(feature = "trace_embeddings")]
 macro_rules! embeddings_trace {
-    ($($arg:tt)+) => trace!($($arg)+);
+    ($($arg:tt)+) => { tracing::trace!($($arg)+); }
 }
 #[cfg(not(feature = "trace_embeddings"))]
 macro_rules! embeddings_trace {
