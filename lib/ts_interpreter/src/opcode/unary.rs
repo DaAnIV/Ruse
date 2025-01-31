@@ -80,6 +80,7 @@ impl ExprOpcode for UnaryOp {
                 _ => unreachable!(),
             },
             Value::Object(_) => todo!(),
+            Value::Null => return EvalResult::None
         };
 
         EvalResult::NoModification(post_ctx.temp_value(res))

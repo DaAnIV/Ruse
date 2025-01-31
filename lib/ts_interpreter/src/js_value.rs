@@ -9,7 +9,6 @@ pub fn primitive_value_to_js_value(value: &PrimitiveValue) -> boa_engine::JsValu
         PrimitiveValue::Number(n) => boa_engine::JsValue::rational(n.0),
         PrimitiveValue::Bool(b) => boa_engine::JsValue::new(*b),
         PrimitiveValue::String(s) => boa_engine::JsValue::new(boa_engine::js_string!(s.as_str())),
-        PrimitiveValue::Null => boa_engine::JsValue::null(),
     }
 }
 
@@ -32,6 +31,7 @@ pub fn value_to_js_value(
     match value {
         Value::Primitive(p) => primitive_value_to_js_value(p),
         Value::Object(o) => object_value_to_js_value(classes, o, engine_ctx),
+        Value::Null => boa_engine::JsValue::null(),
     }
 }
 
@@ -52,8 +52,8 @@ pub fn js_value_to_value(
     cache: &Cache,
 ) -> Value {
     match value.variant() {
-        boa_engine::JsVariant::Null => Value::Primitive(PrimitiveValue::Null),
-        boa_engine::JsVariant::Undefined => Value::Primitive(PrimitiveValue::Null),
+        boa_engine::JsVariant::Null => Value::Null,
+        boa_engine::JsVariant::Undefined => Value::Null,
         boa_engine::JsVariant::Boolean(b) => Value::Primitive(PrimitiveValue::Bool(b)),
         boa_engine::JsVariant::String(s) => Value::Primitive(PrimitiveValue::String(
             scached!(cache; s.to_std_string().unwrap()),
@@ -75,8 +75,8 @@ pub fn js_value_to_primitive_value(
     cache: &Cache,
 ) -> Option<PrimitiveValue> {
     match value.variant() {
-        boa_engine::JsVariant::Null => Some(PrimitiveValue::Null),
-        boa_engine::JsVariant::Undefined => Some(PrimitiveValue::Null),
+        boa_engine::JsVariant::Null => None,
+        boa_engine::JsVariant::Undefined => None,
         boa_engine::JsVariant::Boolean(b) => Some(PrimitiveValue::Bool(b)),
         boa_engine::JsVariant::String(s) => Some(PrimitiveValue::String(
             scached!(cache; s.to_std_string().unwrap()),

@@ -36,7 +36,7 @@ impl ExprOpcode for LitOp {
     ) -> EvalResult {
         debug_assert_eq!(args.len(), 0);
         let val = match self {
-            LitOp::Null => Value::Primitive(PrimitiveValue::Null),
+            LitOp::Null => Value::Null,
             LitOp::Str(s) => vcstring!(s.clone()),
             LitOp::Bool(b) => vbool!(*b),
             LitOp::Num(n) => vnum!(*n),

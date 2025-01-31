@@ -109,9 +109,6 @@ impl SubProgram {
         evaluate_trace!("Evaluating: {}", self.get_code());
         evaluate_trace!("pre_ctx {}", self.pre_ctx);
         evaluate_trace!("post_ctx (before): {}", self.post_ctx);
-        self.post_ctx.iter().for_each(|_ctx| {
-            evaluate_trace!("post_ctx graphs: {}", _ctx.graphs_map);
-        }); 
 
         for i in 0..examples_count {
             // Gather arguments
@@ -130,10 +127,12 @@ impl SubProgram {
             };
             evaluate_trace!("post_ctx[{}] (after) graphs: {:?}", i, out_ctx);
 
-            debug_assert!(
-                out_type.is_none() || out_type == Some(out_val.val.val_type())
-            );
-            let _ = out_type.get_or_insert(out_val.val.val_type());
+            if let Some(p_out_type) = &out_type {
+                if p_out_type == &ValueType::Null {
+                    let _ = out_type.insert(out_val.val.val_type());
+                }
+            }
+            out_type.get_or_insert(out_val.val.val_type());
 
             out_value.push(out_val);
         }

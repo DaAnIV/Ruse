@@ -225,6 +225,7 @@ enum ExprPrefix {
     FieldRef,
     StaticRef,
     HtmlFile,
+    Null,
 }
 
 impl ExprPrefix {
@@ -237,6 +238,7 @@ impl ExprPrefix {
             ExprPrefix::FieldRef => "*",
             ExprPrefix::StaticRef => "$",
             ExprPrefix::HtmlFile => "#",
+            ExprPrefix::Null => "Null",
         }
     }
 }
@@ -544,6 +546,15 @@ impl TaskType {
     ) -> Result<Value, SnythesisTaskError> {
         if let Some(static_ref) = ExprPrefix::StaticRef.get(value_string) {
             self.parse_static_ref_expr_value(static_ref, value_string, classes, graphs_map, cache)
+        } else if value_string == ExprPrefix::Null.as_str() {
+            if self.is_object() {
+                Ok(vnull!())
+            } else {
+                Err(parse_err!(
+                    value_string,
+                    format!("Only object types can be set to null")
+                ))
+            }
         } else {
             Err(parse_err!(
                 value_string,
@@ -820,7 +831,7 @@ impl From<&ValueType> for TaskType {
                 dom::DomLoader::ELEMENT_CLASS_STR => TaskType::DOMElement,
                 s => TaskType::Object(s.to_owned()),
             },
-            ValueType::Null => unreachable!()
+            ValueType::Null => unreachable!(),
         }
     }
 }
@@ -844,7 +855,7 @@ impl<'de> Deserialize<'de> for TaskType {
             "DOM" => Ok(TaskType::Dom),
             "DOMElement" => Ok(TaskType::DOMElement),
             _ => {
-                if let Some(var_ref) = val.strip_prefix(ExprPrefix::FieldRef.as_str()) {
+                if let Some(var_ref) = ExprPrefix::FieldRef.get(&val) {
                     Ok(TaskType::VarRef(VarRef::from(var_ref)))
                 } else {
                     Ok(TaskType::Object(val))

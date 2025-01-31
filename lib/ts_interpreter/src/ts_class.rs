@@ -1,10 +1,10 @@
-use std::{collections::HashMap, io::Read, sync::Arc};
+use std::{collections::HashMap, io::Read, path::Path, sync::Arc};
 
 use boa_engine::{class::DynamicClassBuilder, JsValue};
 use itertools::Itertools;
 use ruse_object_graph::{
     fields, scached, str_cached, vbool, vnull, vnum, vstring, Attributes, Cache, CachedString,
-    FieldName, GraphIndex, GraphsMap, NodeIndex, ObjectGraph, PrimitiveValue, RootName,
+    FieldName, GraphIndex, GraphsMap, NodeIndex, ObjectGraph, ObjectType, PrimitiveValue, RootName,
 };
 use ruse_synthesizer::{
     context::{GraphIdGenerator, SynthesizerContextData},
@@ -22,7 +22,7 @@ use ruse_object_graph::value::*;
 use swc_ecma_parser::{Syntax, TsSyntax};
 
 use crate::{
-    js_object_wrapper::{EngineContext, JsObjectWrapper, JsWrapped},
+    js_object_wrapper::{error_null_this, EngineContext, JsObjectWrapper, JsWrapped},
     js_value::{js_value_to_value, value_to_js_value},
     opcode::{ClassMethodOp, MemberOp, StaticMemberOp},
 };
@@ -78,7 +78,7 @@ impl JsFieldDescription {
                     Some(PrimitiveValue::String(str_cached!(cache; s.value.as_str())))
                 }
                 ast::Lit::Bool(bool) => Some(PrimitiveValue::Bool(bool.value)),
-                ast::Lit::Null(_) => Some(PrimitiveValue::Null),
+                ast::Lit::Null(_) => None,
                 ast::Lit::Num(number) => Some(PrimitiveValue::Number(number.value.into())),
                 _ => todo!(),
             },
@@ -112,8 +112,8 @@ impl FromWithCache<&ast::ClassProp> for JsFieldDescription {
 
 #[derive(Debug, Clone)]
 pub struct ParamDescription {
-    pub(crate) name: CachedString,
-    pub(crate) value_type: ValueType,
+    pub name: CachedString,
+    pub value_type: ValueType,
     pub(crate) is_prop: bool,
 }
 
@@ -185,12 +185,30 @@ impl FromWithCache<&ast::ParamOrTsParamProp> for ParamDescription {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MethodKind {
+    Method,
+    Getter,
+    Setter,
+}
+
+impl From<ast::MethodKind> for MethodKind {
+    fn from(value: ast::MethodKind) -> Self {
+        match value {
+            ast::MethodKind::Method => MethodKind::Method,
+            ast::MethodKind::Getter => MethodKind::Getter,
+            ast::MethodKind::Setter => MethodKind::Setter,
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct MethodDescription {
-    pub(crate) name: CachedString,
-    pub(crate) params: Vec<ParamDescription>,
-    pub(crate) is_static: bool,
-    pub(crate) is_private: bool,
+    pub name: CachedString,
+    pub params: Vec<ParamDescription>,
+    pub is_static: bool,
+    pub is_private: bool,
+    pub kind: MethodKind,
     pub(crate) body: Option<String>,
 }
 
@@ -210,6 +228,7 @@ impl FromWithCache<&ast::ClassMethod> for MethodDescription {
             params,
             is_static: value.is_static,
             is_private: access != ast::Accessibility::Public,
+            kind: value.kind.into(),
             body: body,
         }
     }
@@ -228,7 +247,7 @@ fn get_value_type_from_ts_type(type_ann: &ast::TsType, cache: &Cache) -> ValueTy
             swc_ecma_ast::TsKeywordTypeKind::TsSymbolKeyword => todo!(),
             swc_ecma_ast::TsKeywordTypeKind::TsVoidKeyword => todo!(),
             swc_ecma_ast::TsKeywordTypeKind::TsUndefinedKeyword => todo!(),
-            swc_ecma_ast::TsKeywordTypeKind::TsNullKeyword => todo!(),
+            swc_ecma_ast::TsKeywordTypeKind::TsNullKeyword => ValueType::Null,
             swc_ecma_ast::TsKeywordTypeKind::TsNeverKeyword => todo!(),
             swc_ecma_ast::TsKeywordTypeKind::TsIntrinsicKeyword => todo!(),
         },
@@ -247,7 +266,21 @@ fn get_value_type_from_ts_type(type_ann: &ast::TsType, cache: &Cache) -> ValueTy
         ast::TsType::TsTupleType(_) => todo!(),
         ast::TsType::TsOptionalType(_) => todo!(),
         ast::TsType::TsRestType(_) => todo!(),
-        ast::TsType::TsUnionOrIntersectionType(_) => todo!(),
+        ast::TsType::TsUnionOrIntersectionType(t) => {
+            if let Some(u) = t.as_ts_union_type() {
+                if u.types.len() == 2 {
+                    let left = get_value_type_from_ts_type(&u.types[0], cache);
+                    let right = get_value_type_from_ts_type(&u.types[1], cache);
+                    if left == ValueType::Null && !right.is_primitive() {
+                        return right;
+                    } else if right == ValueType::Null && !left.is_primitive() {
+                        return left;
+                    }
+                }
+            }
+
+            todo!()
+        }
         ast::TsType::TsConditionalType(_) => todo!(),
         ast::TsType::TsInferType(_) => todo!(),
         ast::TsType::TsParenthesizedType(_) => todo!(),
@@ -305,7 +338,7 @@ pub fn get_value_from_expr(
     graph_id: GraphIndex,
     graphs_map: &mut GraphsMap,
     classes: &TsClasses,
-    gen_id: &Arc<GraphIdGenerator>,
+    id_gen: &Arc<GraphIdGenerator>,
     cache: &Arc<Cache>,
 ) -> Value {
     match expr {
@@ -325,16 +358,18 @@ pub fn get_value_from_expr(
             if let Some(args) = &new.args {
                 for arg in args {
                     params.push(get_value_from_expr(
-                        &arg.expr, graph_id, graphs_map, classes, gen_id, cache,
+                        &arg.expr, graph_id, graphs_map, classes, id_gen, cache,
                     ));
                 }
             }
 
-            let class = classes.get_class(&str_cached!(cache; name)).unwrap();
+            let mut boa_ctx = EngineContext::new_boa_ctx();
+            let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, classes);
 
-            Value::Object(
-                class.call_constructor(&params, graph_id, graphs_map, classes, gen_id, cache),
-            )
+            engine_ctx.reset_with_graph(graph_id, graphs_map, classes, id_gen, cache);
+
+            let class = classes.get_class(&str_cached!(cache; name)).unwrap();
+            Value::Object(class.call_constructor(&params, classes, &mut engine_ctx))
         }
         _ => todo!("Can't parse static prop value {:#?}", expr),
     }
@@ -446,34 +481,26 @@ impl TsClass {
     pub fn call_constructor<'a, I>(
         &self,
         params: I,
-        graph_id: GraphIndex,
-        graphs_map: &mut GraphsMap,
         classes: &TsClasses,
-        id_gen: &Arc<GraphIdGenerator>,
-        cache: &Arc<Cache>,
+        engine_ctx: &mut EngineContext<'_>,
     ) -> ObjectValue
     where
         I: IntoIterator<Item = &'a Value>,
     {
-        let mut boa_ctx = EngineContext::new_boa_ctx();
-        let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, classes);
-
-        engine_ctx.reset_with_graph(graph_id, graphs_map, classes, id_gen, cache);
-
         let constructor = engine_ctx.get_global_dynamic_class(&self.wrapper).unwrap();
 
         let target = constructor.constructor();
         let args = params
             .into_iter()
-            .map(|x| value_to_js_value(classes, x, &mut engine_ctx))
+            .map(|x| value_to_js_value(classes, x, engine_ctx))
             .collect_vec();
         let obj = self
             .wrapper
-            .construct(&boa_engine::JsValue::new(target), &args, &mut engine_ctx)
+            .construct(&boa_engine::JsValue::new(target), &args, engine_ctx)
             .unwrap();
         let new_instance = JsWrapped::<ObjectValue>::get_from_js_obj(&obj).unwrap();
 
-        **new_instance
+        new_instance.clone()
     }
 
     pub fn call_static_method<'a, I>(
@@ -517,6 +544,9 @@ impl TsClass {
         I: IntoIterator<Item = &'a Value>,
     {
         debug_assert!(!self.description.methods[method_name].is_static);
+        if this.is_null() {
+            return Err(error_null_this());
+        }
 
         let this = value_to_js_value(classes, &this, engine_ctx);
         let args = param_values
@@ -562,19 +592,19 @@ impl TsClassesBuilder {
         Ok(class_name)
     }
 
-    pub fn add_ts_file(
+    pub fn add_ts_file<P: AsRef<Path>>(
         &mut self,
-        full_path: &std::path::PathBuf,
+        full_path: P,
         cache: &Cache,
     ) -> Result<Vec<CachedString>, Error> {
         let cm = Arc::<SourceMap>::default();
         let handler = Handler::with_tty_emitter(ColorConfig::Auto, true, false, Some(cm.clone()));
         let c = swc::Compiler::new(cm.clone());
 
-        let mut file = std::fs::File::open(full_path)?;
+        let mut file = std::fs::File::open(full_path.as_ref())?;
         let mut src = String::new();
         file.read_to_string(&mut src)?;
-        let fm = cm.new_source_file(FileName::Real(full_path.clone()).into(), src);
+        let fm = cm.new_source_file(FileName::Real(full_path.as_ref().into()).into(), src);
 
         let script = c
             .parse_js(
@@ -653,9 +683,10 @@ impl TsClassBuilder {
         let mut constructor = MethodDescription {
             name: str_cached!(cache; Self::get_class_name(decl)),
             params: Default::default(),
-            body: None,
+            kind: MethodKind::Method,
             is_static: false,
             is_private: false,
+            body: None,
         };
 
         Self::add_fields(&decl.class, &mut fields, &mut constructor, cache);
@@ -820,13 +851,10 @@ impl TsClassBuilder {
         if method.is_private {
             return None;
         }
-        let args = method.params.iter().map(|param| param.value_type.clone());
 
         Some(Arc::new(ClassMethodOp::new(
             self.class_name.clone(),
-            method.name.to_string(),
-            args,
-            method.is_static,
+            method,
         )))
     }
 }
@@ -858,10 +886,7 @@ impl TsClassBuilder {
             static_graph_obj_type(&self.class_name, cache),
             fields!(),
         );
-        graph.set_as_root(
-            static_graph_root_name(&self.class_name, cache),
-            root_node,
-        );
+        graph.set_as_root(static_graph_root_name(&self.class_name, cache), root_node);
     }
 
     fn add_static_field(

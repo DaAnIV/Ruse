@@ -111,8 +111,7 @@ impl Default for Number {
 pub enum PrimitiveValue {
     Number(Number),
     Bool(bool),
-    String(CachedString),
-    Null,
+    String(CachedString)
 }
 
 impl PrimitiveValue {
@@ -168,7 +167,6 @@ impl Display for PrimitiveValue {
             PrimitiveValue::Number(n) => write!(f, "{}", n),
             PrimitiveValue::Bool(b) => write!(f, "{}", b),
             PrimitiveValue::String(s) => write!(f, "\"{}\"", s),
-            PrimitiveValue::Null => write!(f, "Null"),
         }
     }
 }

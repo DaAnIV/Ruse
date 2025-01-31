@@ -11,11 +11,11 @@ use std::{fmt::Debug, hash::Hash, sync::Arc};
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug, PartialOrd, Ord)]
 pub enum ValueType {
-    Null,
     Number,
     Bool,
     String,
     Object(ObjectType),
+    Null,
 }
 
 impl ValueType {
@@ -74,6 +74,7 @@ pub struct ObjectValue {
 pub enum Value {
     Primitive(PrimitiveValue),
     Object(ObjectValue),
+    Null,
 }
 
 impl ObjectValue {
@@ -315,10 +316,14 @@ impl Value {
                 PrimitiveValue::Number(_) => ValueType::Number,
                 PrimitiveValue::Bool(_) => ValueType::Bool,
                 PrimitiveValue::String(_) => ValueType::String,
-                PrimitiveValue::Null => ValueType::Null,
             },
             Value::Object(o) => ValueType::Object(o.obj_type.clone()),
+            Value::Null => ValueType::Null,
         }
+    }
+
+    pub fn is_null(&self) -> bool {
+        matches!(self, Value::Null)
     }
 }
 
@@ -364,12 +369,9 @@ impl From<PrimitiveValue> for Value {
 impl fmt::Debug for Value {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Value::Primitive(primitive_value) => write!(f, "{}", primitive_value),
-            Value::Object(object_value) => write!(
-                f,
-                "graph_id: {}, node_id: {}",
-                object_value.graph_id, object_value.node
-            ),
+            Value::Primitive(primitive_value) => fmt::Debug::fmt(primitive_value, f),
+            Value::Object(object_value) => fmt::Debug::fmt(object_value, f),
+            Value::Null => write!(f, "Null"),
         }
     }
 }
@@ -377,11 +379,11 @@ impl fmt::Debug for Value {
 impl fmt::Display for ValueType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ValueType::Number => f.write_str("Number"),
-            ValueType::Bool => f.write_str("Bool"),
-            ValueType::String => f.write_str("String"),
-            ValueType::Null => f.write_str("Null"),
-            ValueType::Object(o) => f.write_fmt(format_args!("{}", o.as_str())),
+            ValueType::Number => write!(f, "Number"),
+            ValueType::Bool => write!(f, "Bool"),
+            ValueType::String => write!(f, "String"),
+            ValueType::Null => write!(f, "Null"),
+            ValueType::Object(o) => write!(f, "{}", o.as_str()),
         }
     }
 }
@@ -411,6 +413,7 @@ impl GraphMapHash for Value {
         match self {
             Value::Primitive(primitive_value) => primitive_value.hash(state),
             Value::Object(object_value) => object_value.calculate_hash(state, graphs_map),
+            Value::Null => 0.hash(state),
         }
     }
 }
@@ -420,6 +423,7 @@ impl GraphMapDisplay for Value {
         match &self {
             Value::Primitive(p) => write!(f, "{}", p),
             Value::Object(o) => GraphMapDisplay::fmt(o, f, graphs_map),
+            Value::Null => write!(f, "Null"),
         }
     }
 }
@@ -427,7 +431,7 @@ impl GraphMapDisplay for Value {
 #[macro_export]
 macro_rules! vnull {
     () => {
-        $crate::value::Value::Primitive(ruse_object_graph::PrimitiveValue::Null)
+        $crate::value::Value::Null
     };
 }
 
