@@ -6,27 +6,28 @@ edition = "2021"
 [dependencies]
 ruse_object_graph.workspace = true
 
-serde = "*"
-dashmap = { version = "*", features = ["raw-api"] }
-hashbrown = { version = "*", features = ["raw"], default-features = false }
-tokio = { version = "*", features = ["rt", "macros"] }
-tokio-util = "*"
-itertools = "*"
-downcast-rs = "*"
-rand = { version = "*", optional = true }
-tracing-subscriber = { version = "*", optional = true }
-futures = { version = "*" }
+serde.workspace = true
+dashmap.workspace = true
+tokio = { workspace = true, features = ["rt", "macros"] }
+tokio-util.workspace = true
+itertools.workspace = true
+downcast-rs.workspace = true
+tracing-subscriber.workspace = true
+futures.workspace = true
 
 tracing.workspace = true
+siphasher.workspace = true
+getrandom.workspace = true
+rand.workspace = true
 
 [features]
 default = ["test_helpers"]
-test_helpers = ["dep:rand", "dep:tracing-subscriber"]
+test_helpers = []
 trace_evaluations = []
 trace_embeddings = []
 
 [dev-dependencies]
-criterion = "*"
+criterion.workspace = true
 
 [[bench]]
 name = "benches"

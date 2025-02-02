@@ -9,12 +9,12 @@ ruse_synthesizer.workspace = true
 ruse_ts_interpreter.workspace = true
 ruse_ts_synthesizer.workspace = true
 
-itertools = "*"
+itertools.workspace = true
 
-serde = { version = "*", features = ["derive"] }
-serde_json = "*"
-serde_with = "*"
+serde.workspace = true
+serde_json.workspace = true
+serde_with.workspace = true
 
-wildmatch = "*"
+wildmatch.workspace = true
 
 boa_engine.workspace = true

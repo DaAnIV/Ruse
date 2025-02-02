@@ -22,7 +22,7 @@ tracing.workspace = true
 tracing-subscriber = { version = "*", features = ["json"] }
 tracing-log = { version = "*" }
 
-wildmatch = "*"
+wildmatch.workspace = true
 
 chrono = "*"
 sysinfo = { version = "*", default-features = false, features = [
@@ -30,22 +30,22 @@ sysinfo = { version = "*", default-features = false, features = [
     "system",
 ] }
 walkdir = "*"
-itertools = "*"
+itertools.workspace = true
 
-serde = { version = "*", features = ["derive"] }
-serde_json = "*"
-serde_with = "*"
+serde.workspace = true
+serde_json.workspace = true
+serde_with.workspace = true
 
 procfs = "*"
 byte-unit = { version = "*", features = ["serde"] }
 
-tokio = { version = "*", features = [
-    "rt-multi-thread",
-    "sync",
-    "time",
-    "macros",
-] }
-tokio-util = "*"
+tokio.workspace = true
+tokio-util.workspace = true
+
 console-subscriber = "*"
 
 boa_engine.workspace = true
+
+[features]
+trace_evaluations=["ruse_synthesizer/trace_evaluations"]
+trace_embeddings=["ruse_synthesizer/trace_embeddings"]

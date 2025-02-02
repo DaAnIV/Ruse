@@ -7,21 +7,22 @@ edition = "2021"
 ruse_object_graph.workspace = true
 ruse_synthesizer.workspace = true
 
-dashmap = "*"
+dashmap.workspace = true
 
-swc = "*"
-swc_common = {version = "*", features = ["tty-emitter"]}
-swc_ecma_codegen = "*"
-swc_ecma_parser = "*"
-swc_ecma_ast = "*"
-anyhow = "*"
-itertools = "*"
+swc.workspace = true
+swc_common.workspace = true
+swc_ecma_codegen.workspace = true
+swc_ecma_parser.workspace = true
+swc_ecma_ast.workspace = true
 
-html_parser = "*"
+anyhow.workspace = true
+itertools.workspace = true
+
+html_parser.workspace = true
 
 boa_engine.workspace = true
 
 tracing.workspace = true
 
 [dev-dependencies]
-criterion = "*"
+criterion.workspace = true

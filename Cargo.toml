@@ -1,12 +1,10 @@
 [workspace]
-members = [
-    "lib/*",
-    "benchmarks"
-]
+members = ["lib/*", "benchmarks"]
 resolver = "2"
 
 [workspace.dependencies]
 tracing = { version = "*", features = ["release_max_level_debug"] }
+tracing-subscriber = { version = "*", features = ["json"] }
 
 ruse_object_graph = { path = "./lib/object_graph" }
 ruse_ts_interpreter = { path = "./lib/ts_interpreter" }
@@ -15,6 +13,44 @@ ruse_ts_synthesizer = { path = "./lib/ts_synthesizer" }
 ruse_task_parser = { path = "./lib/task_parser" }
 
 boa_engine = "*"
+
+itertools = "*"
+
+swc = "*"
+swc_common = { version = "*", features = ["tty-emitter"] }
+swc_ecma_codegen = "*"
+swc_ecma_parser = "*"
+swc_ecma_ast = "*"
+
+anyhow = "*"
+
+html_parser = "*"
+
+tokio = { version = "^1.43.0", features = [
+    "rt",
+    "rt-multi-thread",
+    "sync",
+    "time",
+    "macros",
+] }
+tokio-util = "*"
+futures = "*"
+
+bitcode = { version = "*", features = ["derive"] }
+serde = { version = "*", features = ["derive"] }
+serde_json = "*"
+serde_with = "*"
+
+wildmatch = "*"
+
+dashmap = { version = "*", features = ["raw-api"] }
+siphasher = { version = "*" }
+getrandom = { version = "*" }
+rand = "^0.8.5"
+
+downcast-rs = "*"
+
+criterion = { version = "*", features = ["async_tokio"] }
 
 [patch.crates-io]
 boa_engine = { git = "https://github.com/DaAnIV/boa.git" }

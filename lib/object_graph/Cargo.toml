@@ -6,14 +6,15 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rand = "^0.8.5"
-dashmap = { version = "*" }
-bitcode = { version = "*", features = ["derive"] }
+rand.workspace = true
+dashmap.workspace = true
+bitcode.workspace = true
+
 petgraph = { version = "^0.6.5", optional = true }
 petgraph-gen = { version = "0.1.3", optional = true }
 
 [dev-dependencies]
-criterion = "*"
+criterion = { workspace = true, features = ["async_tokio"] }
 
 [features]
 default = ["generators"]

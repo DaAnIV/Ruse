@@ -8,15 +8,15 @@ ruse_object_graph.workspace = true
 ruse_synthesizer.workspace = true
 ruse_ts_interpreter.workspace = true
 
-itertools = "*"
+itertools.workspace = true
 
-swc_ecma_ast = "*"
+swc_ecma_ast.workspace = true
 
-tokio-util = "*"
+tokio-util.workspace = true
 
 [dev-dependencies]
-criterion = { version = "*", features = ["async_tokio"] }
-tokio = { version = "*", features = ["macros", "rt-multi-thread"] }
+criterion.workspace = true
+tokio.workspace = true
 
 [[bench]]
 name = "benches"
