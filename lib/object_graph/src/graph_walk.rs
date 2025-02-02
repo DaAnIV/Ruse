@@ -39,11 +39,15 @@ impl<'a> ObjectGraphWalker<'a> {
     where
         I: IntoIterator<Item = (GraphIndex, NodeIndex)>,
     {
-        Self {
+        let mut instance = Self {
             graphs_map,
             nodes: nodes.into_iter().collect(),
             seen: Default::default(),
-        }
+        };
+
+        instance.seen.extend(instance.nodes.iter().map(|(_, node)| *node));
+
+        instance
     }
 
     fn push_node(&mut self, graph_id: GraphIndex, node_id: NodeIndex) {
