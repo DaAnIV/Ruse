@@ -17,7 +17,7 @@ use ruse_object_graph::{
 };
 use serde::ser::SerializeStruct;
 use std::{
-    fmt::Display, ops::Index, panic, sync::{atomic::*, Arc}
+    fmt::Display, ops::Index, panic, sync::{atomic::*, Arc}, time::Instant
 };
 use tokio::task::JoinSet;
 use tokio_util::sync::CancellationToken;
@@ -262,8 +262,9 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
         let prev_bank_size = self.statistics.get_value(StatisticsTypes::BankSize);
         let prev_evaluated = self.statistics.get_value(StatisticsTypes::Evaluated);
 
-        let self_clone = self.clone();
+        let started = Instant::now();
 
+        let self_clone = self.clone();
         let res = tokio::spawn(
             panic::AssertUnwindSafe(async move {
                 let mut current_iteration_map = self_clone.bank.new_type_map();
@@ -279,11 +280,14 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
         )
         .await;
 
+        let took = started.elapsed();
+
         let new_bank_size = self.statistics.get_value(StatisticsTypes::BankSize);
         let new_evaluated = self.statistics.get_value(StatisticsTypes::Evaluated);
 
-        debug!(target: "ruse::synthesizer", "Finished iteration {}, evaluated {}, found {} new programs", 
+        debug!(target: "ruse::synthesizer", "Finished iteration {} in {:.2?}, evaluated {}, found {} new programs",
             iteration, 
+            took,
             new_evaluated - prev_evaluated, 
             new_bank_size - prev_bank_size);
         res.unwrap().unwrap()
