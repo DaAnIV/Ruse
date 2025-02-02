@@ -124,7 +124,7 @@ pub(crate) fn set_var_refs(
                         graph.id,
                         node_id,
                         edge.0.clone(),
-                        graph.get_root_name(&node_id).cloned(),
+                        graph.node_root_names(&node_id).map(|x| x.cloned().collect_vec()),
                         VarRef::from(var_ref.as_str()),
                     ));
                 }
@@ -141,10 +141,12 @@ pub(crate) fn set_var_refs(
         } else {
             graph.set_chain_edge(&node_id, actual_obj.graph_id, actual_obj.node, field_name);
         }
-        if let Some(root_name) = root_name_opt {
-            graph.set_as_root(root_name.clone(), actual_obj.node);
-            if values.contains_key(&root_name) {
-                values.insert(root_name, Value::Object(actual_obj.clone()));
+        if let Some(root_names) = root_name_opt {
+            for r in root_names {
+                graph.set_as_root(r.clone(), actual_obj.node);
+                if values.contains_key(&r) {
+                    values.insert(r, Value::Object(actual_obj.clone()));
+                }
             }
         }
     }

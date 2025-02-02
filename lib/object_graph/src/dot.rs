@@ -1,4 +1,5 @@
 use core::fmt;
+use itertools::Itertools;
 use std::{collections::HashSet, fmt::Write};
 
 use crate::{
@@ -295,7 +296,7 @@ impl<'a> Dot<'a> {
         f: &mut fmt::Formatter,
         node_id: &str,
         label: &str,
-        root_name: Option<&str>,
+        root_name: Option<String>,
     ) -> fmt::Result {
         write!(f, "{} [ ", node_id)?;
         write!(f, "label = \"{}\" ", label)?;
@@ -316,6 +317,9 @@ impl<'a> Dot<'a> {
             ObjectGraphWalker::from_nodes(&self.graphs_map, self.nodes.iter().copied())
         {
             write!(f, "{}", INDENT)?;
+            let root_names = cur_graph
+                .node_root_names(&cur_node_id)
+                .map(|mut names| names.join(", "));
             Self::write_node(
                 f,
                 &Self::get_dot_id(&cur_node_id, &self.config),
@@ -325,7 +329,7 @@ impl<'a> Dot<'a> {
                     cur_node_id,
                     self.node_label(cur_node)
                 ),
-                cur_graph.get_root_name(&cur_node_id).map(|x| x.as_str()),
+                root_names,
             )?;
             edges.extend(
                 cur_node

@@ -357,11 +357,11 @@ impl ObjectGraph {
 
     pub fn set_as_root(&mut self, name: RootName, id: NodeIndex) {
         let node = self.get_mut_node(&id).unwrap();
-        assert!(node.root.replace(name.clone()).is_none_or(|x| x == name));
-        if let Some(old_id) = self.roots.insert(name, id) {
+        node.root_names.insert(name.clone());
+        if let Some(old_id) = self.roots.insert(name.clone(), id) {
             if old_id != id {
                 let old_node = self.get_mut_node(&old_id).unwrap();
-                old_node.root = None;
+                old_node.root_names.remove(&name);
             }
         }
     }
@@ -390,8 +390,19 @@ impl ObjectGraph {
         self.get_node(&node).map(|x| x.attributes.clone())
     }
 
-    pub fn get_root_name(&self, node_id: &NodeIndex) -> Option<&RootName> {
-        Some(self.get_node(node_id)?.root.as_ref()?)
+    pub fn is_root(&self, node_id: &NodeIndex) -> bool {
+        match self.get_node(node_id) {
+            Some(node) => !node.root_names.is_empty(),
+            None => false
+        }
+    }
+
+    pub fn node_root_names(&self, node_id: &NodeIndex) -> Option<impl Iterator<Item = &RootName>> {
+        let root_names = &self.get_node(node_id)?.root_names;
+        if root_names.is_empty() {
+            return None;
+        }
+        Some(root_names.iter())
     }
 }
 

@@ -8,7 +8,11 @@ use crate::{
     ObjectGraph, PrimitiveField, PrimitiveValue,
 };
 use core::fmt;
-use std::{fmt::{Debug, Display}, hash::Hash, sync::Arc};
+use std::{
+    fmt::{Debug, Display},
+    hash::Hash,
+    sync::Arc,
+};
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug, PartialOrd, Ord)]
 pub enum ValueType {
@@ -230,7 +234,11 @@ impl ObjectValue {
         }
     }
 
-    pub fn dot_display_with_config<'b>(&self, graphs_map: &'b GraphsMap, config: DotConfig) -> ObjectValueDotDispaly<'_, 'b> {
+    pub fn dot_display_with_config<'b>(
+        &self,
+        graphs_map: &'b GraphsMap,
+        config: DotConfig,
+    ) -> ObjectValueDotDispaly<'_, 'b> {
         ObjectValueDotDispaly {
             value: self,
             graphs_map,
@@ -279,12 +287,20 @@ impl GraphMapDisplay for ObjectValue {
 pub struct ObjectValueDotDispaly<'a, 'b> {
     value: &'a ObjectValue,
     graphs_map: &'b GraphsMap,
-    config: DotConfig
+    config: DotConfig,
 }
 
 impl<'a, 'b> Display for ObjectValueDotDispaly<'a, 'b> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", Dot::from_nodes_with_config(self.graphs_map, vec![(self.value.graph_id, self.value.node)], self.config.clone()))
+        write!(
+            f,
+            "{}",
+            Dot::from_nodes_with_config(
+                self.graphs_map,
+                vec![(self.value.graph_id, self.value.node)],
+                self.config.clone()
+            )
+        )
     }
 }
 
@@ -460,7 +476,7 @@ impl GraphMapDisplay for Value {
 pub struct ValueDotDispaly<'a, 'b> {
     value: &'a Value,
     graphs_map: &'b GraphsMap,
-    config: DotConfig
+    config: DotConfig,
 }
 
 impl<'a, 'b> Display for ValueDotDispaly<'a, 'b> {
@@ -468,19 +484,33 @@ impl<'a, 'b> Display for ValueDotDispaly<'a, 'b> {
         match self.value {
             Value::Primitive(p) => {
                 Dot::write_header_with_config(f, &self.config)?;
-                Dot::write_node(f, "p", &format!("{}", p), self.config.subgraph.as_ref().map(|s| s.name.as_str()))?;
+                Dot::write_node(
+                    f,
+                    "p",
+                    &format!("{}", p),
+                    self.config.subgraph.as_ref().map(|s| s.name.to_string()),
+                )?;
                 Dot::write_footer_with_config(f, &self.config)?;
 
                 Ok(())
-            },
-            Value::Object(o) => write!(f, "{}", o.dot_display_with_config(self.graphs_map, self.config.clone())),
+            }
+            Value::Object(o) => write!(
+                f,
+                "{}",
+                o.dot_display_with_config(self.graphs_map, self.config.clone())
+            ),
             Value::Null => {
                 Dot::write_header_with_config(f, &self.config)?;
-                Dot::write_node(f, "Null", "Null", self.config.subgraph.as_ref().map(|s| s.name.as_str()))?;
+                Dot::write_node(
+                    f,
+                    "Null",
+                    "Null",
+                    self.config.subgraph.as_ref().map(|s| s.name.to_string()),
+                )?;
                 Dot::write_footer_with_config(f, &self.config)?;
 
                 Ok(())
-            },
+            }
         }
     }
 }
@@ -494,7 +524,11 @@ impl Value {
         }
     }
 
-    pub fn dot_display_with_config<'b>(&self, graphs_map: &'b GraphsMap, config: DotConfig) -> ValueDotDispaly<'_, 'b> {
+    pub fn dot_display_with_config<'b>(
+        &self,
+        graphs_map: &'b GraphsMap,
+        config: DotConfig,
+    ) -> ValueDotDispaly<'_, 'b> {
         ValueDotDispaly {
             value: self,
             graphs_map,

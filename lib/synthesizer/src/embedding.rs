@@ -93,19 +93,21 @@ fn context_graph_roots(ctx: &Context) -> HashMap<RootName, ObjectValue> {
     for (g, node_id, node) in
         graph_walk::ObjectGraphWalker::from_nodes(&ctx.graphs_map, value_nodes)
     {
-        if let Some(root_name) = g.get_root_name(&node_id) {
-            if root_name.as_str() == Cache::OUTPUT_ROOT_NAME {
-                continue;
-            }
+        if let Some(root_name) = g.node_root_names(&node_id) {
+            for r in root_name {
+                if r.as_str() == Cache::OUTPUT_ROOT_NAME {
+                    continue;
+                }
 
-            roots.insert(
-                root_name.clone(),
-                ObjectValue {
-                    obj_type: node.obj_type().clone(),
-                    graph_id: g.id,
-                    node: node_id,
-                },
-            );
+                roots.insert(
+                    r.clone(),
+                    ObjectValue {
+                        obj_type: node.obj_type().clone(),
+                        graph_id: g.id,
+                        node: node_id,
+                    },
+                );
+            }
         }
     }
 
