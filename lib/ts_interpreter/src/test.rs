@@ -7,6 +7,7 @@ mod ts_simple_opcodes_tests {
     use ruse_object_graph::{value::*, *};
     use ruse_synthesizer::location::{Location, VarLoc};
     use ruse_synthesizer::opcode::ExprOpcode;
+    use ruse_synthesizer::test::helpers::generate_context_from_array;
     use swc_ecma_ast as ast;
 
     use crate::opcode::*;
@@ -185,21 +186,11 @@ mod ts_simple_opcodes_tests {
     #[test]
     fn array_push() {
         let cache = Arc::new(Cache::new());
-        let mut graphs_map = GraphsMap::default();
-        let id_gen = Arc::new(GraphIdGenerator::default());
-        let mut graph = ObjectGraph::new(id_gen.get_id_for_graph());
-        let arr = ObjectValue {
-            obj_type: ValueType::array_obj_cached_string(&ValueType::Number, &cache),
-            graph_id: graph.id,
-            node: graph.add_array_object(id_gen.get_id_for_node(), &ValueType::Number, [], &cache),
-        };
-        graphs_map.insert_graph(graph.into());
-        let ctx_arr = ContextArray::from(vec![Context::with_values(
-            [(str_cached!(cache; "x"), Value::Object(arr))].into(),
-            graphs_map.into(),
-            id_gen,
-        )]);
+        let ctx =
+            generate_context_from_array(str_cached!(cache; "x"), &ValueType::Number, [], &cache);
+        let ctx_arr = ContextArray::from(vec![ctx]);
         let syn_ctx = SynthesizerContext::from_context_array(ctx_arr, cache.clone());
+
         let ctx = &syn_ctx.start_context[0];
         let id = IdentOp::new(str_cached!(cache; "x"));
         let op = ArrayPushOp::new(&ValueType::Number, &syn_ctx.cache);
@@ -546,6 +537,7 @@ mod ts_class_tests {
                 &id_gen,
             )
         };
+        graph.set_as_root(str_cached!(cache; "u"), user.node);
         graphs_map.insert_graph(graph.into());
 
         let mut values = ValuesMap::default();
@@ -647,6 +639,7 @@ mod ts_class_tests {
                 &mut graph,
                 &id_gen,
             );
+        graph.set_as_root(str_cached!(cache; "user"), user.node);
         graphs_map.insert_graph(graph.into());
 
         let mut values = ValuesMap::default();
@@ -741,7 +734,7 @@ mod ts_class_tests {
         let js_user = user_class.call_constructor(
             &[vstr!(cache; "a"), vstr!(cache; "b")],
             &classes,
-            &mut engine_ctx
+            &mut engine_ctx,
         );
         let name_field = js_user.get_field_value(&str_cached!(cache; "name"), &graphs_map);
         let surname_field = js_user.get_field_value(&str_cached!(cache; "surname"), &graphs_map);
@@ -825,23 +818,41 @@ mod ts_class_tests {
     #[test]
     fn eval_func() {
         let mut boa_ctx = EngineContext::new_boa_ctx();
-        let res = boa_ctx.eval(boa_engine::Source::from_bytes("function func(a, b, c) { return a + b + c; }\nfunc")).unwrap();
+        let res = boa_ctx
+            .eval(boa_engine::Source::from_bytes(
+                "function func(a, b, c) { return a + b + c; }\nfunc",
+            ))
+            .unwrap();
         let a = res.as_callable().unwrap();
-        let func_res = a.call(&boa_engine::JsValue::null(), &[JsValue::new(1), JsValue::new(2), JsValue::new(3)], &mut boa_ctx).unwrap();
+        let func_res = a
+            .call(
+                &boa_engine::JsValue::null(),
+                &[JsValue::new(1), JsValue::new(2), JsValue::new(3)],
+                &mut boa_ctx,
+            )
+            .unwrap();
         let func_res_number = func_res.as_i32().unwrap();
         assert_eq!(func_res_number, 1 + 2 + 3);
-
     }
 
     #[test]
     fn eval_max() {
         let mut boa_ctx = EngineContext::new_boa_ctx();
-        let res = boa_ctx.eval(boa_engine::Source::from_bytes("function func(a, b) { return Math.max(a, b); }\nfunc")).unwrap();
+        let res = boa_ctx
+            .eval(boa_engine::Source::from_bytes(
+                "function func(a, b) { return Math.max(a, b); }\nfunc",
+            ))
+            .unwrap();
         let a = res.as_callable().unwrap();
-        let func_res = a.call(&boa_engine::JsValue::null(), &[JsValue::new(1), JsValue::new(5)], &mut boa_ctx).unwrap();
+        let func_res = a
+            .call(
+                &boa_engine::JsValue::null(),
+                &[JsValue::new(1), JsValue::new(5)],
+                &mut boa_ctx,
+            )
+            .unwrap();
         let func_res_number = func_res.as_i32().unwrap();
         assert_eq!(func_res_number, 5);
-
     }
 }
 
@@ -880,7 +891,6 @@ mod specific_bugs_tests {
         let id_op = Arc::new(IdentOp::new(syn_ctx.cached_string("names")));
         let mut names_prog = SubProgram::with_opcode(id_op, ctx_arr.clone(), ctx_arr.clone());
         assert!(evaluate_prog(&mut names_prog, &syn_ctx));
-        println!("{}", names_prog);
 
         let one_op = Arc::new(LitOp::Num(Number::from(1)));
         let one_ctx = ctx_arr
@@ -888,8 +898,6 @@ mod specific_bugs_tests {
             .unwrap();
         let mut one_prog = SubProgram::with_opcode(one_op, one_ctx.clone(), one_ctx.clone());
         assert!(evaluate_prog(&mut one_prog, &syn_ctx));
-        println!("{}", one_prog);
-        println!("");
 
         let splice_op = Arc::new(ArraySpliceOp::new(
             &ValueType::String,
@@ -903,8 +911,6 @@ mod specific_bugs_tests {
             ctx_arr.clone(),
         );
         assert!(evaluate_prog(&mut splice_prog, &syn_ctx));
-        println!("{}", splice_prog);
-        println!("");
 
         let len_op = Arc::new(ArrayLengthOp::new(&ValueType::String, &syn_ctx.cache));
         let mut len_prog = SubProgram::with_opcode_and_children(
@@ -914,10 +920,10 @@ mod specific_bugs_tests {
             ctx_arr.clone(),
         );
         assert!(evaluate_prog(&mut len_prog, &syn_ctx));
-        println!("{}", len_prog);
-        println!("");
 
-        println!("{}", one_prog);
+        println!("{}", splice_prog);
+        println!("");
+        println!("{}", len_prog);
 
         let res = merge_context_arrays(
             splice_prog.pre_ctx(),
@@ -999,6 +1005,12 @@ mod specific_bugs_tests {
         let expected_arr = expected_ctx
             .get_var_loc_value(&syn_ctx.cached_string("arr"), &syn_ctx)
             .unwrap();
+
+        println!(
+            "{}\n",
+            final_arr.val().wrap(&push_prog.post_ctx()[0].graphs_map)
+        );
+        println!("{}\n", expected_arr.val().wrap(&expected_ctx.graphs_map));
 
         assert_eq!(
             final_arr.wrap(&push_prog.post_ctx()[0].graphs_map),

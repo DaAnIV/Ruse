@@ -203,6 +203,8 @@ impl Context {
 
         instance.update_hash();
 
+        debug_assert!(instance.verify_values());
+
         instance
     }
 
@@ -213,6 +215,26 @@ impl Context {
     fn set_values(&mut self, values: ValuesMap) {
         self.values = values.into();
         self.update_hash();
+
+        debug_assert!(self.verify_values());
+    }
+
+    fn verify_values(&self) -> bool {
+        for (name, value) in self.values.iter() {
+            if let Some(obj_val) = value.obj() {
+                let Some(graph) = self.graphs_map.get(&obj_val.graph_id) else {
+                    return false;
+                };
+                if graph.get_root(name) != Some(&obj_val.node) {
+                    return false;
+                }
+                if graph.obj_type(&obj_val.node) != Some(&obj_val.obj_type) {
+                    return false;
+                }
+            }
+        }
+
+        true
     }
 
     pub fn temp_value(&self, val: Value) -> LocValue {

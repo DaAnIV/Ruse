@@ -317,6 +317,7 @@ pub mod helpers {
         let mut graph = ObjectGraph::new(graph_id);
         let node =
             graph.add_array_object(graph_id_gen.get_id_for_node(), elem_type, elements, cache);
+        graph.set_as_root(key.clone(), node);
         graphs_map.insert_graph(graph.into());
         values.insert(
             key,
@@ -1070,11 +1071,13 @@ mod embedding_tests {
             obj_type.clone(),
             [(field_name.clone(), vstr!(cache; "x"))],
         );
+        x_graph.set_as_root(str_cached!(cache; "x"), x_node_id);
         y_graph.add_object_from_map(
             y_node_id,
             obj_type.clone(),
             [(field_name.clone(), vstr!(cache; "y"))],
         );
+        y_graph.set_as_root(str_cached!(cache; "y"), y_node_id);
 
         graphs_map.insert_graph(x_graph.into());
         graphs_map.insert_graph(y_graph.into());

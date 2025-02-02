@@ -43,7 +43,7 @@ mod tests {
 
         let mut user1_graph = ObjectGraph::new(id_gen1.get_id_for_graph());
         let user1 = user_class.generate_rooted_object(
-            str_cached!(cache; "student"),
+            str_cached!(cache; "x"),
             HashMap::from([
                 (str_cached!(cache; "surname"), vstr!(cache; "Doe")),
                 (str_cached!(cache; "name"), vstr!(cache; "John")),
@@ -55,7 +55,7 @@ mod tests {
 
         let mut user2_graph = ObjectGraph::new(id_gen2.get_id_for_graph());
         let user2 = user_class.generate_rooted_object(
-            str_cached!(cache; "student"),
+            str_cached!(cache; "x"),
             HashMap::from([
                 (str_cached!(cache; "surname"), vstr!(cache; "Simon")),
                 (str_cached!(cache; "name"), vstr!(cache; "Paul")),
