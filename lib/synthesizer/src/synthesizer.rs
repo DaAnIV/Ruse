@@ -6,21 +6,18 @@ use crate::{
     opcode::*,
     prog::SubProgram,
     prog_triplet::ProgTriplet,
-    prog_triplet_iterator::{prog_triplet_iterator, ProgTripletIterator},
+    prog_triplet_iterator::{prog_triplet_iterator, ProgTripletIterator}
 };
 use dashmap::DashSet;
 use futures::FutureExt;
 use ruse_object_graph::{
-    graph_map_value::GraphMapWrap,
+    dot::DotConfig,
     value::{Value, ValueType},
     CachedString,
 };
 use serde::ser::SerializeStruct;
 use std::{
-    fmt::Display,
-    ops::Index,
-    panic,
-    sync::{atomic::*, Arc},
+    fmt::Display, ops::Index, panic, sync::{atomic::*, Arc}
 };
 use tokio::task::JoinSet;
 use tokio_util::sync::CancellationToken;
@@ -258,15 +255,22 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
     }
 
     async fn run_iteration_inner(self: Arc<Self>) -> (TypeMap<P::T>, Option<Arc<SubProgram>>) {
-        debug!(target: "ruse::synthesizer", "Starting iteration {}", self.bank.iteration_count());
+        let iteration = self.bank.iteration_count();
+
+        debug!(target: "ruse::synthesizer", "Starting iteration {}", iteration);
+
+        let prev_bank_size = self.statistics.get_value(StatisticsTypes::BankSize);
+        let prev_evaluated = self.statistics.get_value(StatisticsTypes::Evaluated);
+
+        let self_clone = self.clone();
 
         let res = tokio::spawn(
             panic::AssertUnwindSafe(async move {
                 let mut current_iteration_map = TypeMap::default();
-                let found = if self.bank.iteration_count() == 0 {
-                    self.run_init_iteration(&mut current_iteration_map)
+                let found = if self_clone.bank.iteration_count() == 0 {
+                    self_clone.run_init_iteration(&mut current_iteration_map)
                 } else {
-                    self.run_composite_iteration(&mut current_iteration_map)
+                    self_clone.run_composite_iteration(&mut current_iteration_map)
                         .await
                 };
                 (current_iteration_map, found)
@@ -275,6 +279,13 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
         )
         .await;
 
+        let new_bank_size = self.statistics.get_value(StatisticsTypes::BankSize);
+        let new_evaluated = self.statistics.get_value(StatisticsTypes::Evaluated);
+
+        debug!(target: "ruse::synthesizer", "Finished iteration {}, evaluated {}, found {} new programs", 
+            iteration, 
+            new_evaluated - prev_evaluated, 
+            new_bank_size - prev_bank_size);
         res.unwrap().unwrap()
     }
 
@@ -308,10 +319,21 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
                 && (self.predicate)(&p, &self.context)
             {
                 debug!(target: "ruse::synthesizer", "Found program \"{}\"", p.get_code());
-                for (name, value) in p.post_ctx()[0].variables() {
-                    debug!(target: "ruse::synthesizer", "post_ctx[0] {}:\n{}", name, value.wrap(&p.post_ctx()[0].graphs_map));
+                for (name, value) in p.pre_ctx()[0].variables() {
+                    debug!(target: "ruse::synthesizer", "pre_ctx[0] {}:\n{}", 
+                        name, 
+                        value.dot_display_with_config(&p.pre_ctx()[0].graphs_map, 
+                        DotConfig::subgraph_config(&format!("{}_{}", "pre", &name))));
                 }
-                debug!(target: "ruse::synthesizer", "output[0]: {}", p.out_value()[0].wrap(&p.post_ctx()[0].graphs_map));
+                for (name, value) in p.post_ctx()[0].variables() {
+                    debug!(target: "ruse::synthesizer", "post_ctx[0] {}:\n{}", 
+                        name, 
+                        value.dot_display_with_config(&p.post_ctx()[0].graphs_map, 
+                        DotConfig::subgraph_config(&format!("{}_{}", "post", &name))))
+                }
+                debug!(target: "ruse::synthesizer", "output[0]: {}", 
+                    p.out_value()[0].val().dot_display_with_config(&p.post_ctx()[0].graphs_map, 
+                    DotConfig::subgraph_config("output")));
                 return Some(p);
             }
         }

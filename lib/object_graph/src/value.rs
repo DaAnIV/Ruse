@@ -1,5 +1,5 @@
 use crate::{
-    dot::Dot,
+    dot::{Dot, DotConfig},
     graph_equality::equal_graphs_by_node,
     graph_map_value::*,
     graph_node::{EdgeEndPoint, FieldName, ObjectType},
@@ -8,7 +8,7 @@ use crate::{
     ObjectGraph, PrimitiveField, PrimitiveValue,
 };
 use core::fmt;
-use std::{fmt::Debug, hash::Hash, sync::Arc};
+use std::{fmt::{Debug, Display}, hash::Hash, sync::Arc};
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug, PartialOrd, Ord)]
 pub enum ValueType {
@@ -221,6 +221,22 @@ impl ObjectValue {
     ) -> impl Iterator<Item = (&'a FieldName, &'a EdgeEndPoint)> {
         graphs_map[&self.graph_id].neighbors(&self.node)
     }
+
+    pub fn dot_display<'b>(&self, graphs_map: &'b GraphsMap) -> ObjectValueDotDispaly<'_, 'b> {
+        ObjectValueDotDispaly {
+            value: self,
+            graphs_map,
+            config: DotConfig::default(),
+        }
+    }
+
+    pub fn dot_display_with_config<'b>(&self, graphs_map: &'b GraphsMap, config: DotConfig) -> ObjectValueDotDispaly<'_, 'b> {
+        ObjectValueDotDispaly {
+            value: self,
+            graphs_map,
+            config,
+        }
+    }
 }
 
 impl GraphMapDisplay for ObjectValue {
@@ -255,12 +271,20 @@ impl GraphMapDisplay for ObjectValue {
             write!(f, "}}")?;
             fmt::Result::Ok(())
         } else {
-            write!(
-                f,
-                "{}",
-                Dot::from_nodes(graphs_map, vec![(self.graph_id, self.node)])
-            )
+            self.graph(graphs_map).fmt_node(f, graphs_map, &self.node)
         }
+    }
+}
+
+pub struct ObjectValueDotDispaly<'a, 'b> {
+    value: &'a ObjectValue,
+    graphs_map: &'b GraphsMap,
+    config: DotConfig
+}
+
+impl<'a, 'b> Display for ObjectValueDotDispaly<'a, 'b> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", Dot::from_nodes_with_config(self.graphs_map, vec![(self.value.graph_id, self.value.node)], self.config.clone()))
     }
 }
 
@@ -429,6 +453,52 @@ impl GraphMapDisplay for Value {
             Value::Primitive(p) => write!(f, "{}", p),
             Value::Object(o) => GraphMapDisplay::fmt(o, f, graphs_map),
             Value::Null => write!(f, "Null"),
+        }
+    }
+}
+
+pub struct ValueDotDispaly<'a, 'b> {
+    value: &'a Value,
+    graphs_map: &'b GraphsMap,
+    config: DotConfig
+}
+
+impl<'a, 'b> Display for ValueDotDispaly<'a, 'b> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.value {
+            Value::Primitive(p) => {
+                Dot::write_header_with_config(f, &self.config)?;
+                Dot::write_node(f, "p", &format!("{}", p), self.config.subgraph.as_ref().map(|s| s.name.as_str()))?;
+                Dot::write_footer_with_config(f, &self.config)?;
+
+                Ok(())
+            },
+            Value::Object(o) => write!(f, "{}", o.dot_display_with_config(self.graphs_map, self.config.clone())),
+            Value::Null => {
+                Dot::write_header_with_config(f, &self.config)?;
+                Dot::write_node(f, "Null", "Null", self.config.subgraph.as_ref().map(|s| s.name.as_str()))?;
+                Dot::write_footer_with_config(f, &self.config)?;
+
+                Ok(())
+            },
+        }
+    }
+}
+
+impl Value {
+    pub fn dot_display<'b>(&self, graphs_map: &'b GraphsMap) -> ValueDotDispaly<'_, 'b> {
+        ValueDotDispaly {
+            value: self,
+            graphs_map,
+            config: DotConfig::default(),
+        }
+    }
+
+    pub fn dot_display_with_config<'b>(&self, graphs_map: &'b GraphsMap, config: DotConfig) -> ValueDotDispaly<'_, 'b> {
+        ValueDotDispaly {
+            value: self,
+            graphs_map,
+            config,
         }
     }
 }

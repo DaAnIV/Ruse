@@ -1,8 +1,9 @@
 use core::fmt;
-use std::{collections::HashSet, fmt::{Display, Write}};
+use std::{collections::HashSet, fmt::Write};
 
 use crate::{
-    graph_node::ObjectGraphNode, graph_walk::ObjectGraphWalker, FieldName, FieldsMap, GraphIndex, GraphsMap, NodeIndex, ObjectGraph, PrimitiveField, RootName
+    graph_node::ObjectGraphNode, graph_walk::ObjectGraphWalker, FieldName, FieldsMap, GraphIndex,
+    GraphsMap, NodeIndex, ObjectGraph, PrimitiveField,
 };
 
 static DOT_GRAPH_TYPE: &str = "digraph";
@@ -29,7 +30,31 @@ impl Default for DotConfig {
             prefix: None,
             subgraph: None,
             print_only_content: false,
-            exclude_fields: Default::default()
+            exclude_fields: Default::default(),
+        }
+    }
+}
+
+impl DotConfig {
+    pub fn subgraph_config(name: &str) -> Self {
+        Self {
+            prefix: Some(name.to_owned()),
+            subgraph: Some(SubgraphConfig {
+                name: name.to_owned(),
+            }),
+            print_only_content: false,
+            exclude_fields: Default::default(),
+        }
+    }
+
+    pub fn subgraph_config_with_prefix(name: &str, prefix: &str) -> Self {
+        Self {
+            prefix: Some(prefix.to_owned()),
+            subgraph: Some(SubgraphConfig {
+                name: name.to_owned(),
+            }),
+            print_only_content: false,
+            exclude_fields: Default::default(),
         }
     }
 }
@@ -117,12 +142,14 @@ where
 
 struct ObjectGraphNodeDotDisplay<'a> {
     node: &'a ObjectGraphNode,
-    dot_config: &'a DotConfig
+    dot_config: &'a DotConfig,
 }
 
 impl<'a> ObjectGraphNodeDotDisplay<'a> {
     fn fields_iter(&self) -> impl std::iter::Iterator<Item = (&FieldName, &PrimitiveField)> {
-        self.node.fields_iter().filter(|(n, _v)| !self.dot_config.exclude_fields.contains(n.as_str()))
+        self.node
+            .fields_iter()
+            .filter(|(n, _v)| !self.dot_config.exclude_fields.contains(n.as_str()))
     }
 }
 
@@ -138,9 +165,9 @@ impl<'a> fmt::Display for ObjectGraphNodeDotDisplay<'a> {
     }
 }
 
-impl<'a> fmt::Debug for ObjectGraphNodeDotDisplay<'a>  {
+impl<'a> fmt::Debug for ObjectGraphNodeDotDisplay<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let fields= FieldsMap::from_iter(self.fields_iter().map(|(k, v)| (k.clone(), v.clone())));
+        let fields = FieldsMap::from_iter(self.fields_iter().map(|(k, v)| (k.clone(), v.clone())));
         f.debug_struct("ObjectGraphNode")
             .field("obj_type", self.node.obj_type())
             .field("fields", &fields)
@@ -182,7 +209,10 @@ impl<'a> Dot<'a> {
         graphs: Vec<GraphIndex>,
         config: DotConfig,
     ) -> Self {
-        let nodes: Vec<(GraphIndex, NodeIndex)> = graphs.iter().flat_map(|g| graphs_map[g].roots.values().map(|r| (*g, *r))).collect();
+        let nodes: Vec<(GraphIndex, NodeIndex)> = graphs
+            .iter()
+            .flat_map(|g| graphs_map[g].roots.values().map(|r| (*g, *r)))
+            .collect();
         Self::from_nodes_with_config(graphs_map, nodes, config)
     }
 
@@ -215,8 +245,27 @@ impl<'a> Dot<'a> {
         writeln!(f, "{} {{", DOT_GRAPH_TYPE)
     }
 
+    pub fn write_header_with_config(f: &mut fmt::Formatter, config: &DotConfig) -> fmt::Result {
+        if !config.print_only_content {
+            match &config.subgraph {
+                Some(subgraph) => Self::write_subgraph_header(f, &subgraph.name),
+                None => Self::write_header(f),
+            }?;
+        }
+
+        Ok(())
+    }
+
     fn write_footer(f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "}}")
+    }
+
+    pub fn write_footer_with_config(f: &mut fmt::Formatter, config: &DotConfig) -> fmt::Result {
+        if !config.print_only_content {
+            Self::write_footer(f)?;
+        }
+
+        Ok(())
     }
 
     pub fn print_header() {
@@ -227,51 +276,66 @@ impl<'a> Dot<'a> {
         println!("}}");
     }
 
-    fn is_root(&self, graph: &ObjectGraph, id: &NodeIndex) -> Option<RootName> {
+    fn is_root<'o>(&self, graph: &'o ObjectGraph, id: &NodeIndex) -> Option<&'o str> {
         for (root_name, root_id) in &graph.roots {
             if id == root_id {
-                return Some(root_name.clone());
+                return Some(root_name.as_str());
             }
         }
         None
     }
 
-    fn get_dot_id(&self, id: &NodeIndex) -> String {
-        match &self.config.prefix {
+    fn get_dot_id(id: &NodeIndex, config: &DotConfig) -> String {
+        match &config.prefix {
             Some(prefix) => format!("{}{}", prefix, id),
             None => id.to_string(),
         }
     }
 
-    fn node_fmt(&self, node: &ObjectGraphNode, f: &mut fmt::Formatter) -> fmt::Result {
+    fn node_label(&self, node: &ObjectGraphNode) -> String {
         let node_dot_display = ObjectGraphNodeDotDisplay {
-            node, dot_config: &self.config
+            node,
+            dot_config: &self.config,
         };
-        Escaped(&node_dot_display).fmt(f)
+        Escaped(&node_dot_display).to_string()
     }
 
-    fn graph_fmt(&self, f: &mut fmt::Formatter) -> fmt::Result
-    {
-        if !self.config.print_only_content {
-            match &self.config.subgraph {
-                Some(subgraph) => Self::write_subgraph_header(f, &subgraph.name),
-                None => Self::write_header(f),
-            }?;
+    pub fn write_node(
+        f: &mut fmt::Formatter,
+        node_id: &str,
+        label: &str,
+        root_name: Option<&str>,
+    ) -> fmt::Result {
+        write!(f, "{} [ ", node_id)?;
+        write!(f, "label = \"{}\" ", label)?;
+        if let Some(root_name) = root_name {
+            write!(f, ", xlabel = \"{}:\"", root_name)?;
         }
+        writeln!(f, "]")?;
+
+        Ok(())
+    }
+
+    fn graph_fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        Self::write_header_with_config(f, &self.config)?;
 
         let mut edges = Vec::new();
 
         for (cur_graph, cur_node_id, cur_node) in
             ObjectGraphWalker::from_nodes(&self.graphs_map, self.nodes.iter().copied())
         {
-            write!(f, "{}{} [ ", INDENT, self.get_dot_id(&cur_node_id))?;
-            write!(f, "label = \"")?;
-            self.node_fmt(cur_node, f)?;
-            write!(f, "\"")?;
-            if let Some(root_name) = self.is_root(cur_graph, &cur_node_id) {
-                write!(f, ", xlabel = \"{}:\"", root_name)?;
-            }
-            writeln!(f, "]")?;
+            write!(f, "{}", INDENT)?;
+            Self::write_node(
+                f,
+                &Self::get_dot_id(&cur_node_id, &self.config),
+                &format!(
+                    "[{}{}] {}",
+                    cur_graph.id,
+                    cur_node_id,
+                    self.node_label(cur_node)
+                ),
+                self.is_root(cur_graph, &cur_node_id),
+            )?;
             edges.extend(
                 cur_node
                     .pointers_iter()
@@ -284,14 +348,14 @@ impl<'a> Dot<'a> {
             if self.config.exclude_fields.contains(edge_name.as_str()) {
                 continue;
             }
-            
+
             write!(
                 f,
                 "{}{} {} {} [ ",
                 INDENT,
-                self.get_dot_id(&node_id),
+                Self::get_dot_id(&node_id, &self.config),
                 EDGE,
-                self.get_dot_id(neig.index())
+                Self::get_dot_id(neig.index(), &self.config)
             )?;
             match neig {
                 crate::graph_node::EdgeEndPoint::Internal(_) => {
@@ -304,9 +368,7 @@ impl<'a> Dot<'a> {
             writeln!(f, "]")?;
         }
 
-        if !self.config.print_only_content {
-            Self::write_footer(f)?;
-        }
+        Self::write_footer_with_config(f, &self.config)?;
         Ok(())
     }
 }
@@ -316,4 +378,3 @@ impl<'a> fmt::Display for Dot<'a> {
         self.graph_fmt(f)
     }
 }
-

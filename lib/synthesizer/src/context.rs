@@ -3,6 +3,7 @@ use downcast_rs::{impl_downcast, DowncastSync};
 use graph_equality::equal_graphs_by_nodes;
 use itertools::Itertools;
 use ruse_object_graph::{
+    dot::DotConfig,
     graph_map_value::*,
     value::{ObjectValue, Value, ValueType},
     *,
@@ -706,7 +707,12 @@ impl Display for Context {
         let mut iter = self.values.iter();
         let mut value = iter.next();
         while let Some((k, v)) = value {
-            write!(f, "{} -> {}", k, v.wrap(&self.graphs_map))?;
+            write!(
+                f,
+                "{} -> {}",
+                k,
+                v.dot_display_with_config(&self.graphs_map, DotConfig::subgraph_config(&k))
+            )?;
             value = iter.next();
             if value.is_some() {
                 write!(f, ", ")?;
