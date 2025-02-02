@@ -7,6 +7,7 @@ use std::hash::{Hash, Hasher};
 
 pub type ObjectType = CachedString;
 pub type FieldName = CachedString;
+pub type RootName = CachedString;
 
 #[derive(Clone, Copy, Debug)]
 pub enum EdgeEndPoint {
@@ -70,6 +71,7 @@ pub struct ObjectGraphNode {
     obj_type: ObjectType,
     fields: FieldsMap,
     pointers: PointersMap,
+    pub root: Option<RootName>,
     pub attributes: Attributes
 }
 
@@ -79,6 +81,7 @@ impl ObjectGraphNode {
             obj_type,
             fields,
             pointers: pointers,
+            root: None,
             attributes: Attributes::default()
         }
     }
@@ -87,6 +90,7 @@ impl ObjectGraphNode {
             obj_type,
             fields,
             pointers: pointers,
+            root: None,
             attributes
         }
     }

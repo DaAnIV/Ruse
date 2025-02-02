@@ -3,7 +3,7 @@ use std::{collections::HashSet, fmt::Write};
 
 use crate::{
     graph_node::ObjectGraphNode, graph_walk::ObjectGraphWalker, FieldName, FieldsMap, GraphIndex,
-    GraphsMap, NodeIndex, ObjectGraph, PrimitiveField,
+    GraphsMap, NodeIndex, PrimitiveField,
 };
 
 static DOT_GRAPH_TYPE: &str = "digraph";
@@ -276,15 +276,6 @@ impl<'a> Dot<'a> {
         println!("}}");
     }
 
-    fn is_root<'o>(&self, graph: &'o ObjectGraph, id: &NodeIndex) -> Option<&'o str> {
-        for (root_name, root_id) in &graph.roots {
-            if id == root_id {
-                return Some(root_name.as_str());
-            }
-        }
-        None
-    }
-
     fn get_dot_id(id: &NodeIndex, config: &DotConfig) -> String {
         match &config.prefix {
             Some(prefix) => format!("{}{}", prefix, id),
@@ -334,7 +325,7 @@ impl<'a> Dot<'a> {
                     cur_node_id,
                     self.node_label(cur_node)
                 ),
-                self.is_root(cur_graph, &cur_node_id),
+                cur_graph.get_root_name(&cur_node_id).map(|x| x.as_str()),
             )?;
             edges.extend(
                 cur_node

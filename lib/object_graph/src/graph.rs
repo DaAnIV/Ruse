@@ -14,7 +14,7 @@ use crate::{
     node_index::{DefaultIx, NodeIndex},
     scached,
     value::{ObjectValue, Value, ValueType},
-    Cache, CachedString, FieldsMap, PrimitiveValue,
+    Cache, FieldsMap, PrimitiveValue,
 };
 pub type GraphIndex = DefaultIx;
 
@@ -119,7 +119,6 @@ impl fmt::Debug for GraphsMap {
 }
 
 type NodesMap = HashMap<NodeIndex, Arc<ObjectGraphNode>>;
-pub type RootName = CachedString;
 type RootsMap = BTreeMap<RootName, NodeIndex>;
 
 #[derive(Clone)]
@@ -357,8 +356,14 @@ impl ObjectGraph {
     }
 
     pub fn set_as_root(&mut self, name: RootName, id: NodeIndex) {
-        assert!(self.nodes.contains_key(&id));
-        self.roots.insert(name, id);
+        let node = self.get_mut_node(&id).unwrap();
+        assert!(node.root.replace(name.clone()).is_none_or(|x| x == name));
+        if let Some(old_id) = self.roots.insert(name, id) {
+            if old_id != id {
+                let old_node = self.get_mut_node(&old_id).unwrap();
+                old_node.root = None;
+            }
+        }
     }
 
     pub fn root_names(&self) -> impl std::iter::Iterator<Item = &RootName> {
@@ -385,14 +390,8 @@ impl ObjectGraph {
         self.get_node(&node).map(|x| x.attributes.clone())
     }
 
-    pub fn get_root_name(&self, node_id: NodeIndex) -> Option<Arc<String>> {
-        for (root_name, root_id) in &self.roots {
-            if *root_id == node_id {
-                return Some(root_name.clone());
-            }
-        }
-
-        None
+    pub fn get_root_name(&self, node_id: &NodeIndex) -> Option<&RootName> {
+        Some(self.get_node(node_id)?.root.as_ref()?)
     }
 }
 

@@ -124,7 +124,7 @@ pub(crate) fn set_var_refs(
                         graph.id,
                         node_id,
                         edge.0.clone(),
-                        graph.get_root_name(node_id),
+                        graph.get_root_name(&node_id).cloned(),
                         VarRef::from(var_ref.as_str()),
                     ));
                 }
