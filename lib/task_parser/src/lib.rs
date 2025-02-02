@@ -2,6 +2,7 @@ mod task;
 mod var_ref;
 mod task_type;
 mod bank_factory;
+pub mod predicate_builder;
 
 pub mod error;
 

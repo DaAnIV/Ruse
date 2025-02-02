@@ -6,8 +6,7 @@ use std::{
     sync::Arc,
 };
 
-use graph_map_value::GraphMapWrap;
-use itertools::{izip, Itertools};
+use itertools::Itertools;
 use ruse_object_graph::{
     value::{Value, ValueType},
     *,
@@ -16,14 +15,9 @@ use ruse_synthesizer::{
     bank::ProgBank,
     context::{Context, ContextArray, GraphIdGenerator, SynthesizerContext, ValuesMap},
     opcode::{ExprOpcode, OpcodesList},
-    prog::SubProgram,
     synthesizer::SynthesizerPredicate,
 };
-use ruse_ts_interpreter::{
-    js_object_wrapper::EngineContext,
-    js_value::value_to_js_value,
-    ts_class::{TsClasses, TsClassesBuilder},
-};
+use ruse_ts_interpreter::ts_class::{TsClasses, TsClassesBuilder};
 use ruse_ts_synthesizer::*;
 
 use serde::{Deserialize, Serialize};
@@ -31,7 +25,9 @@ use wildmatch::WildMatch;
 
 use crate::{
     error::SnythesisTaskError,
-    parse_err, skip_err,
+    parse_err,
+    predicate_builder::{PredicateBuilder, ValidPredicateBuilder},
+    skip_err,
     task_type::{JsonValuesMap, TaskType},
     var_ref::{set_var_refs, verify_no_var_ref_circle, REF_GRAPH_ID},
     verify_err, BankConfig,
@@ -500,82 +496,24 @@ impl SnythesisTask {
 
         let predicate_js: Option<Vec<String>> =
             examples.iter().map(|e| &e.predicate_js).cloned().collect();
-        let predicate_cache = cache.clone();
 
-        let predicate = Box::new(move |p: &SubProgram, syn_ctx: &SynthesizerContext| {
-            if let Some(array) = &output_array {
-                for (actual, actual_ctx, expected) in
-                    izip!(p.out_value().iter(), p.post_ctx().iter(), array)
-                {
-                    if actual.val().wrap(&actual_ctx.graphs_map)
-                        != expected.wrap(&predicate_graphs_map)
-                    {
-                        return false;
-                    }
-                }
-            }
+        let builder = PredicateBuilder {
+            output_array,
+            state_array,
+            predicate_js,
+            graphs_map: predicate_graphs_map,
+            cache: cache.clone(),
+        };
 
-            if let Some(array) = &state_array {
-                for (actual, expected) in p.post_ctx().iter().zip_eq(array) {
-                    for (var, value) in expected.iter() {
-                        let actual_value = match actual.get_var_value(var) {
-                            None => return false,
-                            Some(v) => v,
-                        };
-                        if actual_value.wrap(&actual.graphs_map)
-                            != value.wrap(&predicate_graphs_map)
-                        {
-                            return false;
-                        }
-                    }
-                }
-            }
-
-            if let Some(js_vec) = &predicate_js {
-                let classes = syn_ctx.data.downcast_ref::<TsClasses>().unwrap();
-                let mut boa_ctx = EngineContext::new_boa_ctx();
-                let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, classes);
-
-                for (ctx, js) in p.post_ctx().iter().zip_eq(js_vec) {
-                    engine_ctx.reset_with_context(ctx, classes, &predicate_cache);
-                    let mut arg_names = Vec::with_capacity(ctx.variable_count());
-                    let mut js_values = Vec::with_capacity(ctx.variable_count());
-                    for (var, value) in ctx.variables() {
-                        arg_names.push(var.as_str());
-                        js_values.push(value_to_js_value(classes, value, &mut engine_ctx));
-                    }
-                    let code = format!(
-                        "function func({}) {{return {}}}\nfunc",
-                        arg_names.join(", "),
-                        js
-                    );
-                    let js_func = engine_ctx
-                        .eval(boa_engine::Source::from_bytes(&code))
-                        .unwrap();
-                    let func = js_func.as_callable().unwrap();
-                    match func.call(&boa_engine::JsValue::null(), &js_values, &mut engine_ctx) {
-                        Ok(val) => {
-                            if let Some(b) = val.as_boolean() {
-                                return b;
-                            }
-                            return false;
-                        }
-                        Err(_) => return false,
-                    };
-                }
-            }
-
-            true
-        });
-
-        Ok(predicate)
+        Ok(builder.finalize())
     }
 
     fn get_valid_predicate(
         &self,
         _cache: &Cache,
     ) -> Result<SynthesizerPredicate, SnythesisTaskError> {
-        Ok(Box::new(move |_p, _syn_ctx| true))
+        let builder = ValidPredicateBuilder {};
+        Ok(builder.finalize())
     }
 
     fn get_opcodes(&self, cache: &Cache) -> OpcodesList {
