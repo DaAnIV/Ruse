@@ -292,6 +292,7 @@ fn run_benchmarks(cli: &RunArgs) -> ExitCode {
     let bench_config = construct_config(cli);
 
     let max_task_mem = bench_config.max_task_mem;
+    info!(target: "ruse::runner", "PID: {}", std::process::id());
     info!(target: "ruse::runner", "Timeout {:.3} seconds", bench_config.timeout.as_secs_f32());
     info!(target: "ruse::runner", "Max task mem {}", format!("{max_task_mem:#}"));
     info!(target: "ruse::runner", "Max iterations: {}", bench_config.max_iterations);
