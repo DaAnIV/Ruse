@@ -320,6 +320,13 @@ impl Value {
         }
     }
 
+    pub fn into_obj(self) -> Option<ObjectValue> {
+        match self {
+            Value::Object(v) => Some(v),
+            _ => None,
+        }
+    }
+
     pub fn mut_obj(&mut self) -> Option<&mut ObjectValue> {
         match self {
             Value::Object(v) => Some(v),
@@ -328,6 +335,13 @@ impl Value {
     }
 
     pub fn primitive(&self) -> Option<&PrimitiveValue> {
+        match self {
+            Value::Primitive(p) => Some(p),
+            _ => None,
+        }
+    }
+
+    pub fn into_primitive(self) -> Option<PrimitiveValue> {
         match self {
             Value::Primitive(p) => Some(p),
             _ => None,

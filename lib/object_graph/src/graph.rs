@@ -48,6 +48,15 @@ impl GraphsMap {
         self.0.get_mut(&index)
     }
 
+    pub fn get_or_create_mut(&mut self, graph_id: GraphIndex) -> &mut Arc<ObjectGraph> {
+        match self.0.entry(graph_id) {
+            std::collections::hash_map::Entry::Occupied(g) => g.into_mut(),
+            std::collections::hash_map::Entry::Vacant(vacant_entry) => {
+                vacant_entry.insert(ObjectGraph::new(graph_id).into())
+            }
+        }
+    }
+
     pub fn contains(&self, index: GraphIndex) -> bool {
         self.0.contains_key(&index)
     }
@@ -76,6 +85,13 @@ impl GraphsMap {
                 self.insert_graph_if_new(g.clone());
             }
         }
+    }
+
+    pub fn all_roots(
+        &self,
+    ) -> impl std::iter::Iterator<Item = (&Arc<ObjectGraph>, &RootName, NodeIndex)> {
+        self.graphs()
+            .flat_map(|g| g.roots().map(move |(r, n)| (g, r, *n)))
     }
 }
 
@@ -393,7 +409,7 @@ impl ObjectGraph {
     pub fn is_root(&self, node_id: &NodeIndex) -> bool {
         match self.get_node(node_id) {
             Some(node) => !node.root_names.is_empty(),
-            None => false
+            None => false,
         }
     }
 

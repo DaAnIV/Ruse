@@ -1,4 +1,7 @@
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::{
+    collections::{HashMap, HashSet, VecDeque},
+    sync::Arc,
+};
 
 use crate::context::{Context, ContextArray, VariableName};
 use itertools::{self, izip};
@@ -79,7 +82,7 @@ fn verify_matching_primitive_values(q_1: &Context, p_2: &Context) -> bool {
     return true;
 }
 
-fn context_graph_roots(ctx: &Context) -> HashMap<RootName, ObjectValue> {
+fn context_reachable_graph_roots(ctx: &Context) -> HashMap<RootName, ObjectValue> {
     let mut roots = HashMap::new();
 
     let value_nodes = ctx.values.iter().filter_map(|(_, value)| {
@@ -154,10 +157,10 @@ pub(crate) fn merge_context(
     let mut p1_hat_nodes_matches = HashMap::new();
     let mut q2_hat_nodes_matches = HashMap::new();
 
-    let p_1_roots = context_graph_roots(p_1);
-    let q_1_roots = context_graph_roots(q_1);
-    let p_2_roots = context_graph_roots(p_2);
-    let q_2_roots = context_graph_roots(q_2);
+    let p_1_roots = context_reachable_graph_roots(p_1);
+    let q_1_roots = context_reachable_graph_roots(q_1);
+    let p_2_roots = context_reachable_graph_roots(p_2);
+    let q_2_roots = context_reachable_graph_roots(q_2);
 
     embeddings_trace!("p_1_roots: {:#?}", p_1_roots);
     embeddings_trace!("q_1_roots: {:#?}", q_1_roots);
@@ -298,18 +301,15 @@ fn embed_object_value(
 ) -> bool {
     // trace!(target: "ruse::embedding", "Embedding {}", var);
 
-    let (mut graph, new_var_value) = match matches.get(&obj_val.node) {
+    let (graph, new_var_value) = match matches.get(&obj_val.node) {
         Some((graph_id, node_id)) => {
-            let graph = map_hat.get(graph_id).unwrap().as_ref().clone();
+            let graph = Arc::make_mut(map_hat.get_mut(graph_id).unwrap());
             (graph, &(*graph_id, *node_id))
         }
         None => {
-            let mut graph = match map_hat.get(&obj_val.graph_id) {
-                Some(old_graph) => old_graph.as_ref().clone(),
-                None => ObjectGraph::new(obj_val.graph_id),
-            };
+            let graph = Arc::make_mut(map_hat.get_or_create_mut(obj_val.graph_id));
             if !embed(
-                &mut graph,
+                graph,
                 &old_ctx.graphs_map,
                 obj_val.graph_id,
                 obj_val.node,
@@ -322,7 +322,6 @@ fn embed_object_value(
         }
     };
     graph.set_as_root(var.clone(), new_var_value.1);
-    map_hat.insert_graph(graph.into());
 
     true
 }
