@@ -296,6 +296,7 @@ fn run_benchmarks(cli: &RunArgs) -> ExitCode {
     info!(target: "ruse::runner", "Timeout {:.3} seconds", bench_config.timeout.as_secs_f32());
     info!(target: "ruse::runner", "Max task mem {}", format!("{max_task_mem:#}"));
     info!(target: "ruse::runner", "Max iterations: {}", bench_config.max_iterations);
+    info!(target: "ruse::runner", "Max context depth: {}", bench_config.max_context_depth);
     info!(target: "ruse::runner", "Workers count: {}", bench_config.iteration_workers_count);
     info!(target: "ruse::runner", "Bank hash keys: {}", bench_config.bank_hash_builder);
 
