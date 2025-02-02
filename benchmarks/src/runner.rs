@@ -8,7 +8,7 @@ use std::{
 use byte_unit::{Byte, Unit};
 use ruse_object_graph::Cache;
 use ruse_synthesizer::bank::ProgBank;
-use ruse_task_parser::task::SnythesisTask;
+use ruse_task_parser::{BankConfig, SnythesisTask};
 use ruse_ts_synthesizer::TsSynthesizer;
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
@@ -153,7 +153,10 @@ pub fn run_task(path: &Path, cache: Arc<Cache>, bench_config: &BenchmarkConfig) 
     let mut synthesizer = match task.get_synthesizer(
         bench_config.max_context_depth,
         bench_config.iteration_workers_count,
-        bench_config.bank_type.into(),
+        BankConfig {
+            bank_type: bench_config.bank_type.into(),
+            hash_builder: bench_config.bank_hash_builder,
+        },
         &cache,
     ) {
         Ok(v) => v,

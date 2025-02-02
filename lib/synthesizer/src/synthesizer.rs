@@ -266,7 +266,7 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
 
         let res = tokio::spawn(
             panic::AssertUnwindSafe(async move {
-                let mut current_iteration_map = TypeMap::default();
+                let mut current_iteration_map = self_clone.bank.new_type_map();
                 let found = if self_clone.bank.iteration_count() == 0 {
                     self_clone.run_init_iteration(&mut current_iteration_map)
                 } else {
@@ -368,7 +368,7 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
         self: Arc<Self>,
         i: usize,
     ) -> (TypeMap<P::T>, Option<Arc<SubProgram>>) {
-        let mut type_map = TypeMap::default();
+        let mut type_map = self.bank.new_type_map();
 
         for (arg_types, ops) in self.composite_opcodes() {
             for triple in self.worker_triple_iterator(i, arg_types) {
@@ -413,7 +413,7 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
 
         debug!(target: "ruse::synthesizer", "Initializing new contexts!");
 
-        let mut new_ctx = TypeMap::default();
+        let mut new_ctx = self.bank.new_type_map();
         for (_, programs_map) in current_iteration_map.iter() {
             for p in programs_map.iter() {
                 if self.cancel_token.is_cancelled() {

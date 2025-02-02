@@ -13,7 +13,7 @@ use ruse_object_graph::{
     *,
 };
 use ruse_synthesizer::{
-    bank::{ProgBank, SubsumptionProgBank},
+    bank::ProgBank,
     context::{Context, ContextArray, GraphIdGenerator, SynthesizerContext, ValuesMap},
     opcode::{ExprOpcode, OpcodesList},
     prog::SubProgram,
@@ -34,13 +34,8 @@ use crate::{
     parse_err, skip_err,
     task_type::{JsonValuesMap, TaskType},
     var_ref::{set_var_refs, verify_no_var_ref_circle, REF_GRAPH_ID},
-    verify_err,
+    verify_err, BankConfig,
 };
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum BankType {
-    SubsumptionBank,
-}
 
 fn upgrade_values_map(
     map: &mut JsonValuesMap,
@@ -408,7 +403,7 @@ impl SnythesisTask {
         self,
         mut max_context_depth: usize,
         iteration_workers_count: usize,
-        bank_type: BankType,
+        bank_config: BankConfig,
         cache: &Arc<Cache>,
     ) -> Result<TsSynthesizer<impl ProgBank>, SnythesisTaskError> {
         let variables = self.inner.variables.as_ref().unwrap();
@@ -423,9 +418,7 @@ impl SnythesisTask {
             }
         }
 
-        let bank = match bank_type {
-            BankType::SubsumptionBank => SubsumptionProgBank::default(),
-        };
+        let bank = bank_config.new_bank();
 
         let immutable_opt = self.inner.immutable;
         let syn_ctx = SynthesizerContext::from_context_array_with_data(

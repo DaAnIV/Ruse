@@ -403,7 +403,8 @@ pub mod helpers {
 #[cfg(test)]
 mod bank_iterator_tests {
     use crate::{
-        bank::{BankHasherBuilder, ProgramsMap, SubsumptionProgramsMap},
+        bank::{ProgramsMap, SubsumptionProgramsMap},
+        bank_hasher::BankHasherBuilder,
         bank_iterator::bank_iterator,
         context::GraphIdGenerator,
         multi_programs_map_product::{multi_programs_map_product, ProgramChildrenIterator},
@@ -420,7 +421,7 @@ mod bank_iterator_tests {
     };
 
     use crate::{
-        bank::{ProgBank, SubsumptionProgBank, TypeMap},
+        bank::{ProgBank, SubsumptionProgBank},
         context::{ContextArray, SynthesizerContext},
         location::{LocValue, Location},
         opcode::{EvalResult, ExprOpcode},
@@ -484,7 +485,7 @@ mod bank_iterator_tests {
 
     fn add_iteration(bank: &mut SubsumptionProgBank, n: usize, syn_ctx: &SynthesizerContext) {
         let iteration = bank.iteration_count();
-        let mut type_map = TypeMap::default();
+        let mut type_map = bank.new_type_map();
         for i in 0..n {
             let value = Number::from(iteration << 32 | i);
             let p = get_prog_for_bank(vnum!(value), syn_ctx);
@@ -498,7 +499,7 @@ mod bank_iterator_tests {
         n: u32,
         syn_ctx: &SynthesizerContext,
     ) -> SubsumptionProgramsMap {
-        let mut map = SubsumptionProgramsMap::default();
+        let mut map = SubsumptionProgramsMap::new_with_hasher(Default::default());
         for i in 0..n {
             let full_value = (prefix as u64) << 32 | i as u64;
             let value = Number::from(full_value);
@@ -1080,8 +1081,14 @@ mod embedding_tests {
 
         let start_ctx = ContextArray::from(vec![Context::with_values(
             [
-                (str_cached!(cache; "x"), vobj!(obj_type.clone(), x_graph_id, x_node_id)),
-                (str_cached!(cache; "y"), vobj!(obj_type.clone(), y_graph_id, y_node_id)),
+                (
+                    str_cached!(cache; "x"),
+                    vobj!(obj_type.clone(), x_graph_id, x_node_id),
+                ),
+                (
+                    str_cached!(cache; "y"),
+                    vobj!(obj_type.clone(), y_graph_id, y_node_id),
+                ),
             ]
             .into(),
             graphs_map.into(),
@@ -1178,7 +1185,10 @@ mod embedding_tests {
         graph.add_object_from_map(
             y_node_id,
             obj_type2.clone(),
-            [(field_name2.clone(), vobj!(obj_type2.clone(), graph_id, x_node_id))],
+            [(
+                field_name2.clone(),
+                vobj!(obj_type2.clone(), graph_id, x_node_id),
+            )],
         );
         graph.set_as_root(str_cached!(cache; "x"), x_node_id);
         graph.set_as_root(str_cached!(cache; "y"), y_node_id);
@@ -1187,8 +1197,14 @@ mod embedding_tests {
 
         let start_ctx = ContextArray::from(vec![Context::with_values(
             [
-                (str_cached!(cache; "x"), vobj!(obj_type.clone(), graph_id, x_node_id)),
-                (str_cached!(cache; "y"), vobj!(obj_type2.clone(), graph_id, y_node_id)),
+                (
+                    str_cached!(cache; "x"),
+                    vobj!(obj_type.clone(), graph_id, x_node_id),
+                ),
+                (
+                    str_cached!(cache; "y"),
+                    vobj!(obj_type2.clone(), graph_id, y_node_id),
+                ),
             ]
             .into(),
             graphs_map.into(),

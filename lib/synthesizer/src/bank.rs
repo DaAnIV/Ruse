@@ -2,14 +2,15 @@ use ruse_object_graph::value::ValueType;
 use std::{
     collections::{hash_map::Entry, HashMap, HashSet},
     fmt,
-    hash::{BuildHasherDefault, DefaultHasher, Hash},
+    hash::Hash,
     sync::Arc,
 };
 use tracing::info;
 
-use crate::{context::ContextArray, prog::SubProgram, value_array::ValueArray};
-
-pub type BankHasherBuilder = BuildHasherDefault<DefaultHasher>;
+use crate::{
+    bank_hasher::BankHasherBuilder, context::ContextArray, prog::SubProgram,
+    value_array::ValueArray,
+};
 
 #[derive(Debug, Clone)]
 pub(crate) struct ProgOutput(Arc<SubProgram>);
@@ -56,7 +57,9 @@ impl Hash for ProgOutput {
     }
 }
 
-pub trait ProgramsMap: Send + Sync + fmt::Debug + Default {
+pub trait ProgramsMap: Send + Sync + fmt::Debug {
+    fn new_with_hasher(hash_builder: BankHasherBuilder) -> Self;
+
     fn insert(&mut self, p: Arc<SubProgram>) -> bool;
     fn contains(&self, p: &Arc<SubProgram>) -> bool;
     fn iter(&self) -> impl Iterator<Item = &Arc<SubProgram>> + Send;
@@ -67,7 +70,7 @@ pub trait ProgramsMap: Send + Sync + fmt::Debug + Default {
 // The bank is hierarchical
 // iteration -> out_type -> sub_prog
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct SubsumptionProgramsMap {
     map: HashMap<ProgOutput, Vec<Arc<SubProgram>>, BankHasherBuilder>,
     set: HashSet<Arc<SubProgram>, BankHasherBuilder>,
@@ -100,6 +103,13 @@ impl SubsumptionProgramsMap {
 }
 
 impl ProgramsMap for SubsumptionProgramsMap {
+    fn new_with_hasher(hash_builder: BankHasherBuilder) -> Self {
+        Self {
+            map: HashMap::with_hasher(hash_builder),
+            set: HashSet::with_hasher(hash_builder),
+        }
+    }
+
     fn insert(&mut self, p: Arc<SubProgram>) -> bool {
         let output: ProgOutput = p.clone().into();
         match self.map.entry(output) {
@@ -169,14 +179,25 @@ impl ProgramsMap for SubsumptionProgramsMap {
     }
 }
 
-#[derive(Default, Debug)]
+#[derive(Debug)]
 pub struct TypeMap<T: ProgramsMap> {
+    hash_builder: BankHasherBuilder,
     maps: HashMap<ValueType, T, BankHasherBuilder>,
 }
 
 impl<T: ProgramsMap> TypeMap<T> {
+    pub fn new_with_hasher(hash_builder: BankHasherBuilder) -> Self {
+        Self {
+            hash_builder,
+            maps: HashMap::with_hasher(hash_builder),
+        }
+    }
+
     pub(crate) fn insert_program(&mut self, p: Arc<SubProgram>) -> bool {
-        let programs_map = self.maps.entry(p.out_type().clone()).or_default();
+        let programs_map = self
+            .maps
+            .entry(p.out_type().clone())
+            .or_insert(T::new_with_hasher(self.hash_builder));
         programs_map.insert(p)
     }
 
@@ -208,6 +229,9 @@ impl<T: ProgramsMap> TypeMap<T> {
 
 pub trait ProgBank: Default + Send + Sync {
     type T: ProgramsMap + 'static;
+
+    fn new_with_hasher(hash_builder: BankHasherBuilder) -> Self;
+    fn new_type_map(&self) -> TypeMap<Self::T>;
 
     fn iterations(&self) -> &Vec<TypeMap<Self::T>>;
     fn mut_iterations(&mut self) -> &mut Vec<TypeMap<Self::T>>;
@@ -253,16 +277,29 @@ pub trait ProgBank: Default + Send + Sync {
 }
 
 #[derive(Default)]
-pub struct SubsumptionProgBank(Vec<TypeMap<SubsumptionProgramsMap>>);
+pub struct SubsumptionProgBank {
+    hash_builder: BankHasherBuilder,
+    iterations: Vec<TypeMap<SubsumptionProgramsMap>>
+}
 
 impl ProgBank for SubsumptionProgBank {
     type T = SubsumptionProgramsMap;
 
+    fn new_with_hasher(hash_builder: BankHasherBuilder) -> Self {
+        Self {
+            hash_builder: hash_builder,
+            iterations: Default::default()
+        }
+    }
+    fn new_type_map(&self) -> TypeMap<Self::T> {
+        TypeMap::new_with_hasher(self.hash_builder)
+    }
+
     fn iterations(&self) -> &Vec<TypeMap<Self::T>> {
-        &self.0
+        &self.iterations
     }
 
     fn mut_iterations(&mut self) -> &mut Vec<TypeMap<Self::T>> {
-        &mut self.0
+        &mut self.iterations
     }
 }

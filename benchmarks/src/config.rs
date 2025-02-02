@@ -2,7 +2,7 @@ use core::fmt;
 use std::{path::PathBuf, time::Duration};
 
 use byte_unit::Byte;
-use ruse_task_parser::task;
+use ruse_synthesizer::bank_hasher::BankHasherBuilder;
 use serde_with::{serde_as, DurationSeconds};
 
 #[derive(
@@ -21,10 +21,10 @@ impl fmt::Display for BankType {
     }
 }
 
-impl Into<task::BankType> for BankType {
-    fn into(self) -> task::BankType {
+impl Into<ruse_task_parser::BankType> for BankType {
+    fn into(self) -> ruse_task_parser::BankType {
         match self {
-            BankType::SubsumptionBank => task::BankType::SubsumptionBank,
+            BankType::SubsumptionBank => ruse_task_parser::BankType::SubsumptionBank,
         }
     }
 }
@@ -41,4 +41,5 @@ pub struct BenchmarkConfig {
     pub benchmarks: Vec<PathBuf>,
     pub max_task_mem: Byte,
     pub bank_type: BankType,
+    pub bank_hash_builder: BankHasherBuilder,
 }
