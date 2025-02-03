@@ -118,12 +118,11 @@ impl SubProgram {
             
             // Evaluate and verify the output type is consistent
             let out_val = match self.opcode.eval(&args, out_ctx, context) {
-                EvalResult::DirtyContext(out_val) => {
-                    dirty = true;
-                    out_val
-                }
-                EvalResult::NoModification(out_val) => out_val,
-                EvalResult::None => return false,
+                Ok(result) => {
+                    dirty |= result.dirty;
+                    result.output
+                },
+                Err(_) => return false,
             };
             evaluate_trace!("post_ctx[{}] (after) graphs: {:?}", i, out_ctx);
 

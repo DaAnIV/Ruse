@@ -42,7 +42,7 @@ impl ExprOpcode for LitOp {
             LitOp::Num(n) => vnum!(*n),
         };
 
-        EvalResult::NoModification(post_ctx.temp_value(val))
+        pure!(post_ctx.temp_value(val))
     }
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
@@ -104,7 +104,7 @@ impl ExprOpcode for ArrayLitOp {
 
         let arr = post_ctx.create_output_array_object(&self.elem_type, values, &syn_ctx);
 
-        EvalResult::NoModification(post_ctx.temp_value(Value::Object(arr)))
+        pure!(post_ctx.temp_value(Value::Object(arr)))
     }
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {

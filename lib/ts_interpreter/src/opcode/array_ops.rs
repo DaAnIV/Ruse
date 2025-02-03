@@ -2,9 +2,9 @@ use std::cmp::min;
 
 use ruse_object_graph::value::{Value, ValueType};
 use ruse_object_graph::{vnum, vobj, Cache, Number};
-use ruse_synthesizer::context::*;
 use ruse_synthesizer::location::*;
 use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};
+use ruse_synthesizer::{context::*, dirty, pure};
 
 use swc_common::DUMMY_SP;
 use swc_ecma_ast as ast;
@@ -45,9 +45,11 @@ impl ExprOpcode for ArrayIndexOp {
         let num = args[1].val().number_value().unwrap();
         let field_name = syn_ctx.cached_string(&(num.0 as usize).to_string());
 
-        args[0]
+        let field_value = args[0]
             .get_obj_field_loc_value(&post_ctx.graphs_map, &field_name)
-            .into()
+            .ok_or(())?;
+
+        pure!(field_value)
     }
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
@@ -101,7 +103,7 @@ impl ExprOpcode for ArrayLengthOp {
         let arr = args[0].val().obj().unwrap();
         let len = arr.total_field_count(&post_ctx.graphs_map);
 
-        EvalResult::NoModification(post_ctx.temp_value(vnum!(len.into())))
+        pure!(post_ctx.temp_value(vnum!(len.into())))
     }
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
@@ -152,7 +154,7 @@ impl ExprOpcode for ArrayPushOp {
             arr.total_field_count(&post_ctx.graphs_map)
         )));
 
-        EvalResult::DirtyContext(result)
+        dirty!(result)
     }
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
@@ -194,13 +196,13 @@ impl ExprOpcode for ArrayPopOp {
         let arr = args[0].val().obj().unwrap();
         let arr_len = arr.total_field_count(&post_ctx.graphs_map);
         if arr_len == 0 {
-            return EvalResult::None;
+            return Err(());
         }
         let idx_field_name = syn_ctx.cached_string(&(arr_len - 1).to_string());
         if let Some(result) = post_ctx.delete_field(arr.graph_id, arr.node, &idx_field_name) {
-            EvalResult::DirtyContext(post_ctx.temp_value(result))
+            dirty!(post_ctx.temp_value(result))
         } else {
-            EvalResult::None
+            Err(())
         }
     }
 
@@ -258,7 +260,7 @@ impl ExprOpcode for ArraySliceOp {
 
         if start >= end {
             let empty_arr = post_ctx.create_output_array_object(&self.elem_type, [], &syn_ctx);
-            return EvalResult::NoModification(post_ctx.temp_value(Value::Object(empty_arr)));
+            return pure!(post_ctx.temp_value(Value::Object(empty_arr)));
         }
 
         let new_arr = if self.elem_type.is_primitive() {
@@ -284,7 +286,7 @@ impl ExprOpcode for ArraySliceOp {
                 });
             post_ctx.create_output_array_object(&self.elem_type, fields, &syn_ctx)
         };
-        EvalResult::NoModification(post_ctx.temp_value(Value::Object(new_arr)))
+        pure!(post_ctx.temp_value(Value::Object(new_arr)))
     }
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
@@ -330,11 +332,14 @@ impl ExprOpcode for ArrayConcatOp {
         let graph = arr.graph(&post_ctx.graphs_map);
 
         let new_arr = if self.elem_type.is_primitive() {
-            let values = graph.primitive_fields(&arr.node).map(|x| x.1.clone()).chain(
-                args.iter()
-                    .skip(1)
-                    .map(|x| x.val().primitive().unwrap().clone().into() ),
-            );
+            let values = graph
+                .primitive_fields(&arr.node)
+                .map(|x| x.1.clone())
+                .chain(
+                    args.iter()
+                        .skip(1)
+                        .map(|x| x.val().primitive().unwrap().clone().into()),
+                );
             post_ctx.create_output_primitive_array_from_fields(&self.elem_type, values, &syn_ctx)
         } else {
             let field_obj_type = self.elem_type.obj_type().unwrap();
@@ -352,7 +357,7 @@ impl ExprOpcode for ArrayConcatOp {
             post_ctx.create_output_array_object(&self.elem_type, values, &syn_ctx)
         };
 
-        EvalResult::NoModification(post_ctx.temp_value(Value::Object(new_arr)))
+        pure!(post_ctx.temp_value(Value::Object(new_arr)))
     }
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
@@ -408,7 +413,7 @@ impl ExprOpcode for ArraySpliceOp {
             Some(v) => {
                 let ivalue = v.val().number_value().unwrap().0 as isize;
                 if ivalue <= 0 {
-                    return EvalResult::None;
+                    return Err(());
                 }
                 min(ivalue as usize, arr_len - start)
             }
@@ -462,8 +467,8 @@ impl ExprOpcode for ArraySpliceOp {
         for i in new_arr_len..arr_len {
             post_ctx.delete_field(graph.id, arr.node, &syn_ctx.cached_string(&(i.to_string())));
         }
-        
-        EvalResult::DirtyContext(post_ctx.temp_value(Value::Object(deleted_items_arr)))
+
+        dirty!(post_ctx.temp_value(Value::Object(deleted_items_arr)))
     }
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
@@ -514,7 +519,11 @@ impl ExprOpcode for ArrayConcatArrayOp {
             let values = graph
                 .primitive_fields(&arr.node)
                 .map(|x| x.1.value.clone())
-                .chain(graph_to_add.primitive_fields(&arr_to_add.node).map(|x| x.1.value.clone()));
+                .chain(
+                    graph_to_add
+                        .primitive_fields(&arr_to_add.node)
+                        .map(|x| x.1.value.clone()),
+                );
             post_ctx.create_output_primitive_array(&self.elem_type, values, &syn_ctx)
         } else {
             let field_obj_type = self.elem_type.obj_type().unwrap();
@@ -543,7 +552,7 @@ impl ExprOpcode for ArrayConcatArrayOp {
             post_ctx.create_output_array_object(&self.elem_type, values, &syn_ctx)
         };
 
-        EvalResult::NoModification(post_ctx.temp_value(Value::Object(new_arr)))
+        pure!(post_ctx.temp_value(Value::Object(new_arr)))
     }
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {

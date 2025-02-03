@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::ops::Deref;
 use std::sync::Arc;
 use std::{any::Any, fmt::Debug};
 
@@ -13,33 +14,38 @@ pub trait ExprAst: Any {
 }
 
 #[derive(Debug, Clone)]
-pub enum EvalResult {
-    None,
-    DirtyContext(LocValue),
-    NoModification(LocValue),
+pub struct EvalOutput {
+    pub output: LocValue,
+    pub dirty: bool
 }
 
-impl EvalResult {
-    const fn unwrap_failed() -> ! {
-        panic!("called `EvalResult::unwrap()` on a `None` value")
-    }
+impl Deref for EvalOutput {
+    type Target = LocValue;
 
-    pub fn unwrap(self) -> LocValue {
-        match self {
-            EvalResult::None => EvalResult::unwrap_failed(),
-            EvalResult::DirtyContext(val) => val,
-            EvalResult::NoModification(val) => val,
-        }
+    fn deref(&self) -> &Self::Target {
+        &self.output
     }
 }
 
-impl From<Option<LocValue>> for EvalResult {
-    fn from(value: Option<LocValue>) -> Self {
-        match value {
-            Some(v) => Self::NoModification(v),
-            None => Self::None,
-        }
-    }
+pub type EvalResult = Result<EvalOutput, ()>;
+
+#[macro_export]
+macro_rules! dirty {
+    ($out:expr) => {
+        Ok($crate::opcode::EvalOutput {
+            output: $out,
+            dirty: true
+        })
+    };
+}
+#[macro_export]
+macro_rules! pure {
+    ($out:expr) => {
+        Ok($crate::opcode::EvalOutput {
+            output: $out,
+            dirty: false
+        })
+    };
 }
 
 const NO_REQUIRED_VARIABLES: [CachedString; 0] = [];

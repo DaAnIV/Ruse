@@ -2,6 +2,7 @@ use ruse_object_graph::{value::*, *};
 use ruse_synthesizer::context::*;
 use ruse_synthesizer::location::*;
 use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};
+use ruse_synthesizer::pure;
 
 use crate::dom;
 use crate::opcode::member_call_ast;
@@ -47,7 +48,6 @@ impl ExprOpcode for GetElementByIdOp {
 
         let obj = args[0].val().obj().unwrap();
         let id = args[1].val().string_value().unwrap();
-        let mut found = EvalResult::None;
 
         for (graph, node_id, node) in
             graph_walk::ObjectGraphWalker::from_node(&post_ctx.graphs_map, obj.graph_id, obj.node)
@@ -71,16 +71,16 @@ impl ExprOpcode for GetElementByIdOp {
                         graph: graph.id,
                         node: node_id,
                         field: field.clone(),
-                        attrs: Attributes::default()
+                        attrs: Attributes::default(),
                     };
-                    found = EvalResult::NoModification(
-                        post_ctx.get_loc_value(Value::Object(val), Location::ObjectField(loc)),
+                    return pure!(
+                        post_ctx.get_loc_value(Value::Object(val), Location::ObjectField(loc))
                     );
                 }
             }
         }
 
-        found
+        Err(())
     }
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {

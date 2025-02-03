@@ -1,8 +1,8 @@
 use ruse_object_graph::value::*;
 use ruse_object_graph::{vbool, vcstring, vnum, Number, PrimitiveValue};
-use ruse_synthesizer::context::*;
 use ruse_synthesizer::location::*;
 use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};
+use ruse_synthesizer::{context::*, pure};
 
 use swc_common::DUMMY_SP;
 use swc_ecma_ast as ast;
@@ -21,7 +21,7 @@ impl BinOp {
         Self {
             op,
             op_name: Self::get_op_name(&op, &lh_type, &rh_type),
-            arg_types: [lh_type, rh_type]
+            arg_types: [lh_type, rh_type],
         }
     }
 
@@ -113,7 +113,9 @@ impl BinOp {
             ast::BinaryOp::GtEq => format!("Binary GtEq [{}, {}]", lh_type, rh_type),
             ast::BinaryOp::LShift => format!("Binary LShift [{}, {}]", lh_type, rh_type),
             ast::BinaryOp::RShift => format!("Binary RShift [{}, {}]", lh_type, rh_type),
-            ast::BinaryOp::ZeroFillRShift => format!("Binary ZeroFillRShift [{}, {}]", lh_type, rh_type),
+            ast::BinaryOp::ZeroFillRShift => {
+                format!("Binary ZeroFillRShift [{}, {}]", lh_type, rh_type)
+            }
             ast::BinaryOp::Add => format!("Binary Add [{}, {}]", lh_type, rh_type),
             ast::BinaryOp::Sub => format!("Binary Sub [{}, {}]", lh_type, rh_type),
             ast::BinaryOp::Mul => format!("Binary Mul [{}, {}]", lh_type, rh_type),
@@ -127,7 +129,9 @@ impl BinOp {
             ast::BinaryOp::In => format!("Binary In [{}, {}]", lh_type, rh_type),
             ast::BinaryOp::InstanceOf => format!("Binary InstanceOf [{}, {}]", lh_type, rh_type),
             ast::BinaryOp::Exp => format!("Binary Exp [{}, {}]", lh_type, rh_type),
-            ast::BinaryOp::NullishCoalescing => format!("Binary NullishCoalescing [{}, {}]", lh_type, rh_type),
+            ast::BinaryOp::NullishCoalescing => {
+                format!("Binary NullishCoalescing [{}, {}]", lh_type, rh_type)
+            }
         }
     }
 }
@@ -144,14 +148,8 @@ impl ExprOpcode for BinOp {
         syn_ctx: &SynthesizerContext,
     ) -> EvalResult {
         debug_assert_eq!(args.len(), 2);
-        debug_assert_eq!(
-            args[0].val().val_type(),
-            self.arg_types[0]
-        );
-        debug_assert_eq!(
-            args[1].val().val_type(),
-            self.arg_types[1]
-        );
+        debug_assert_eq!(args[0].val().val_type(), self.arg_types[0]);
+        debug_assert_eq!(args[1].val().val_type(), self.arg_types[1]);
 
         let val = match (&args[0].val(), &args[1].val()) {
             (Value::Primitive(p1), Value::Primitive(p2)) => match (p1, p2) {
@@ -168,10 +166,10 @@ impl ExprOpcode for BinOp {
             },
             (Value::Object(_), Value::Primitive(_)) => todo!(),
             (Value::Object(_), Value::Object(_)) => todo!(),
-            _ => return EvalResult::None,
+            _ => return Err(()),
         };
 
-        EvalResult::NoModification(post_ctx.temp_value(val))
+        pure!(post_ctx.temp_value(val))
     }
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {

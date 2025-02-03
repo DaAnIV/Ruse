@@ -4,6 +4,7 @@ use ruse_synthesizer::context::*;
 use ruse_synthesizer::location::*;
 use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};
 
+use ruse_synthesizer::pure;
 use swc_common::DUMMY_SP;
 use swc_ecma_ast as ast;
 
@@ -37,7 +38,9 @@ impl ExprOpcode for IdentOp {
     ) -> EvalResult {
         debug_assert_eq!(args.len(), 0);
 
-        post_ctx.get_var_loc_value(&self.name, syn_ctx).into()
+        let value = post_ctx.get_var_loc_value(&self.name, syn_ctx).ok_or(())?;
+
+        pure!(value)
     }
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {

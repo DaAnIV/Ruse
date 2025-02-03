@@ -1,8 +1,8 @@
 use ruse_object_graph::Number;
 use ruse_object_graph::{value::*, *};
-use ruse_synthesizer::context::*;
 use ruse_synthesizer::location::*;
 use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};
+use ruse_synthesizer::{context::*, pure};
 
 use crate::opcode::{get_end_index, get_start_index, member_call_ast, member_field_ast};
 
@@ -48,7 +48,7 @@ impl ExprOpcode for StringSplitOp {
             &syn_ctx,
         );
 
-        EvalResult::NoModification(post_ctx.temp_value(Value::Object(array)))
+        pure!(post_ctx.temp_value(Value::Object(array)))
     }
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
@@ -100,9 +100,7 @@ impl ExprOpcode for StringConcatOp {
         new_string.push_str(&string1);
         new_string.push_str(&string2);
 
-        EvalResult::NoModification(
-            post_ctx.temp_value(vcstring!(syn_ctx.cached_string(&new_string))),
-        )
+        pure!(post_ctx.temp_value(vcstring!(syn_ctx.cached_string(&new_string))))
     }
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
@@ -152,14 +150,12 @@ impl ExprOpcode for StringSliceOp {
             None => string.len(),
         };
         if start >= end {
-            return EvalResult::NoModification(
-                post_ctx.temp_value(vcstring!(syn_ctx.cached_string(""))),
-            );
+            return pure!(post_ctx.temp_value(vcstring!(syn_ctx.cached_string(""))));
         }
 
         let substring = &string[start..end];
 
-        EvalResult::NoModification(post_ctx.temp_value(vcstring!(syn_ctx.cached_string(substring))))
+        pure!(post_ctx.temp_value(vcstring!(syn_ctx.cached_string(substring))))
     }
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
@@ -204,7 +200,7 @@ impl ExprOpcode for StringLengthOp {
 
         let string = args[0].val().string_value().unwrap();
 
-        EvalResult::NoModification(post_ctx.temp_value(vnum!(string.len().into())))
+        pure!(post_ctx.temp_value(vnum!(string.len().into())))
     }
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
@@ -256,7 +252,7 @@ impl ExprOpcode for StringLastIndexOfOp {
             None => Number::from(-1),
         };
 
-        EvalResult::NoModification(post_ctx.temp_value(vnum!(index)))
+        pure!(post_ctx.temp_value(vnum!(index)))
     }
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
@@ -308,7 +304,7 @@ impl ExprOpcode for StringIndexOfOp {
             None => Number::from(-1),
         };
 
-        EvalResult::NoModification(post_ctx.temp_value(vnum!(index)))
+        pure!(post_ctx.temp_value(vnum!(index)))
     }
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
@@ -352,7 +348,7 @@ impl ExprOpcode for StringReplaceAllOp {
 
         let new_string = string.replace(pat.as_str(), replacement.as_str());
 
-        EvalResult::NoModification(post_ctx.temp_value(vstring!(syn_ctx.cache; new_string)))
+        pure!(post_ctx.temp_value(vstring!(syn_ctx.cache; new_string)))
     }
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {

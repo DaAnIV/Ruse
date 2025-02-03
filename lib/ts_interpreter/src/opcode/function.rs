@@ -1,8 +1,10 @@
 use ruse_object_graph::{value::*, *};
 use ruse_synthesizer::{
     context::{Context, SynthesizerContext},
+    dirty,
     location::*,
     opcode::{EvalResult, ExprAst, ExprOpcode},
+    pure,
 };
 use tracing::trace;
 
@@ -20,8 +22,7 @@ pub struct ClassMethodOp {
 }
 
 impl ClassMethodOp {
-    pub fn new(obj_type: CachedString, method_desc: &MethodDescription) -> Self
-    {
+    pub fn new(obj_type: CachedString, method_desc: &MethodDescription) -> Self {
         let full_method_name = format!("{}.{}", &obj_type, &method_desc.name);
         let mut arg_types = vec![];
         if !method_desc.is_static {
@@ -83,17 +84,18 @@ impl ExprOpcode for ClassMethodOp {
             Ok(res) => {
                 let output = post_ctx.temp_value(res);
                 if engine_ctx.is_dirty() {
-                    EvalResult::DirtyContext(output)
+                    dirty!(output)
                 } else {
-                    EvalResult::NoModification(output)
+                    pure!(output)
                 }
             }
             Err(err) => {
                 trace!(
                     "Failed to evaluate {}. error: {}",
-                    self.full_method_name, err
+                    self.full_method_name,
+                    err
                 );
-                EvalResult::None
+                Err(())
             }
         }
     }
@@ -102,6 +104,8 @@ impl ExprOpcode for ClassMethodOp {
         debug_assert_eq!(children.len(), self.arg_types.len());
         if self.desc.kind == MethodKind::Getter {
             member_field_ast(&children[0], &self.desc.name)
+        } else if self.desc.kind == MethodKind::Setter {
+            todo!()
         } else if self.desc.is_static {
             static_member_call_ast(self.obj_type.as_str(), self.desc.name.as_str(), children)
         } else {

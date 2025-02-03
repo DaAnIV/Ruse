@@ -1,9 +1,9 @@
 use ruse_object_graph::graph_map_value::GraphMapWrap;
 use ruse_object_graph::value::ValueType;
 use ruse_object_graph::{vbool, vnum, Cache};
-use ruse_synthesizer::context::*;
 use ruse_synthesizer::location::*;
 use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};
+use ruse_synthesizer::{context::*, dirty, pure};
 
 use crate::opcode::{member_call_ast, member_field_ast};
 
@@ -36,7 +36,7 @@ impl ExprOpcode for SetSizeOp {
         let set = args[0].val().obj().unwrap();
         let len = set.total_field_count(&post_ctx.graphs_map);
 
-        EvalResult::NoModification(post_ctx.temp_value(vnum!(len.into())))
+        pure!(post_ctx.temp_value(vnum!(len.into())))
     }
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
@@ -81,11 +81,14 @@ impl ExprOpcode for SetHasOp {
         let set = args[0].val().obj().unwrap();
         let value = args[1].val();
         let value_key = syn_ctx.cached_string(&value.wrap(&post_ctx.graphs_map).to_string());
-        
-        if set.get_field_value(&value_key, &post_ctx.graphs_map).is_some() {
-            return EvalResult::NoModification(post_ctx.temp_value(vbool!(true)))
+
+        if set
+            .get_field_value(&value_key, &post_ctx.graphs_map)
+            .is_some()
+        {
+            return pure!(post_ctx.temp_value(vbool!(true)));
         }
-        EvalResult::DirtyContext(post_ctx.temp_value(vbool!(false)))
+        dirty!(post_ctx.temp_value(vbool!(false)))
     }
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
@@ -130,13 +133,16 @@ impl ExprOpcode for SetAddOp {
         let set = args[0].val().obj().unwrap();
         let value = args[1].val();
         let value_key = syn_ctx.cached_string(&value.wrap(&post_ctx.graphs_map).to_string());
-        
-        if set.get_field_value(&value_key, &post_ctx.graphs_map).is_some() {
-            return EvalResult::NoModification(args[0].clone())
+
+        if set
+            .get_field_value(&value_key, &post_ctx.graphs_map)
+            .is_some()
+        {
+            return pure!(args[0].clone());
         }
         post_ctx.set_field(set.graph_id, set.node, value_key, args[1].val());
 
-        EvalResult::DirtyContext(args[0].clone())
+        dirty!(args[0].clone())
     }
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
@@ -181,13 +187,16 @@ impl ExprOpcode for SetDeleteOp {
         let set = args[0].val().obj().unwrap();
         let value = args[1].val();
         let value_key = syn_ctx.cached_string(&value.wrap(&post_ctx.graphs_map).to_string());
-        
-        if set.get_field_value(&value_key, &post_ctx.graphs_map).is_none() {
-            return EvalResult::NoModification(post_ctx.temp_value(vbool!(false)))
+
+        if set
+            .get_field_value(&value_key, &post_ctx.graphs_map)
+            .is_none()
+        {
+            return pure!(post_ctx.temp_value(vbool!(false)));
         }
         post_ctx.delete_field(set.graph_id, set.node, &value_key);
 
-        EvalResult::DirtyContext(post_ctx.temp_value(vbool!(true)))
+        dirty!(post_ctx.temp_value(vbool!(true)))
     }
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {

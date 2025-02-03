@@ -1,8 +1,8 @@
 use ruse_object_graph::{value::*, *};
 use ruse_object_graph::{Number, PrimitiveValue};
-use ruse_synthesizer::context::*;
-use ruse_synthesizer::location::*;
 use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};
+use ruse_synthesizer::{context::*, pure};
+use ruse_synthesizer::{dirty, location::*};
 
 use swc_common::DUMMY_SP;
 use swc_ecma_ast as ast;
@@ -80,10 +80,10 @@ impl ExprOpcode for UnaryOp {
                 _ => unreachable!(),
             },
             Value::Object(_) => todo!(),
-            Value::Null => return EvalResult::None
+            Value::Null => return Err(()),
         };
 
-        EvalResult::NoModification(post_ctx.temp_value(res))
+        pure!(post_ctx.temp_value(res))
     }
 
     fn arg_types(&self) -> &[ValueType] {
@@ -106,7 +106,11 @@ impl ExprOpcode for UnaryOp {
 impl UpdateOp {
     pub fn new(op: ast::UpdateOp, prefix: bool) -> Self {
         let value_type = ValueType::Number;
-        Self { op, op_name: Self::get_op_name(&op, prefix, &value_type), prefix }
+        Self {
+            op,
+            op_name: Self::get_op_name(&op, prefix, &value_type),
+            prefix,
+        }
     }
 
     fn get_op_name(op: &ast::UpdateOp, prefix: bool, value_type: &ValueType) -> String {
@@ -133,7 +137,7 @@ impl ExprOpcode for UpdateOp {
         debug_assert_eq!(args.len(), 1);
 
         if args[0].loc().is_temp() {
-            return EvalResult::None;
+            return Err(());
         }
         let n = args[0].val().primitive().unwrap().number().unwrap();
 
@@ -144,10 +148,10 @@ impl ExprOpcode for UpdateOp {
 
         let mut loc = args[0].loc().clone();
         if !post_ctx.update_value(&res.clone(), &mut loc, syn_ctx) {
-            return EvalResult::None;
+            return Err(());
         }
 
-        EvalResult::DirtyContext(match self.prefix {
+        dirty!(match self.prefix {
             true => post_ctx.temp_value(res),
             false => post_ctx.temp_value(args[0].val().clone()),
         })

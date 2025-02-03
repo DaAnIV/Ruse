@@ -18,10 +18,12 @@ pub mod helpers {
 
     use crate::{
         context::{Context, ContextArray, GraphIdGenerator, SynthesizerContext, ValuesMap},
+        dirty,
         embedding::merge_context_arrays,
         location::{LocValue, Location, VarLoc},
         opcode::{EvalResult, ExprAst, ExprOpcode},
         prog::SubProgram,
+        pure,
     };
     use tracing::level_filters::LevelFilter;
     use tracing_subscriber::{filter::Targets, prelude::*};
@@ -97,9 +99,9 @@ pub mod helpers {
             syn_ctx: &SynthesizerContext,
         ) -> EvalResult {
             if let Some(var) = post_ctx.get_var_loc_value(&self.id, syn_ctx) {
-                EvalResult::NoModification(var)
+                pure!(var)
             } else {
-                EvalResult::None
+                Err(())
             }
         }
 
@@ -149,7 +151,7 @@ pub mod helpers {
             let obj = args[0].val().obj().unwrap();
             let new_value = Value::Primitive(self.field_new_value.clone());
             let res = post_ctx.set_field(obj.graph_id, obj.node, self.field.clone(), &new_value);
-            EvalResult::DirtyContext(post_ctx.temp_value(vbool!(res)))
+            dirty!(post_ctx.temp_value(vbool!(res)))
         }
 
         fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
@@ -466,6 +468,7 @@ mod bank_iterator_tests {
         context::GraphIdGenerator,
         multi_programs_map_product::{multi_programs_map_product, ProgramChildrenIterator},
         prog_triplet_iterator::prog_triplet_iterator,
+        pure,
         test::helpers::*,
     };
     use std::sync::Arc;
@@ -481,7 +484,7 @@ mod bank_iterator_tests {
         bank::{ProgBank, SubsumptionProgBank},
         context::{ContextArray, SynthesizerContext},
         location::{LocValue, Location},
-        opcode::{EvalResult, ExprOpcode},
+        opcode::ExprOpcode,
         prog::SubProgram,
     };
 
@@ -511,7 +514,7 @@ mod bank_iterator_tests {
     fn get_prog_for_bank(value: Value, syn_ctx: &SynthesizerContext) -> Arc<SubProgram> {
         let init_op: Arc<dyn ExprOpcode> = Arc::new(TestOpcode {
             arg_types: vec![],
-            returns: EvalResult::NoModification(LocValue {
+            returns: pure!(LocValue {
                 loc: Location::Temp,
                 val: value,
             }),
@@ -727,7 +730,7 @@ mod bank_iterator_tests {
         let mut bank = SubsumptionProgBank::default();
         let bin_op: Arc<dyn ExprOpcode> = Arc::new(TestOpcode {
             arg_types: vec![ValueType::Number, ValueType::Number],
-            returns: EvalResult::NoModification(LocValue {
+            returns: pure!(LocValue {
                 loc: Location::Temp,
                 val: vnum!(Number::from(5)),
             }),
@@ -748,7 +751,7 @@ mod bank_iterator_tests {
         let mut bank = SubsumptionProgBank::default();
         let bin_op: Arc<dyn ExprOpcode> = Arc::new(TestOpcode {
             arg_types: vec![ValueType::Number, ValueType::Number],
-            returns: EvalResult::NoModification(LocValue {
+            returns: pure!(LocValue {
                 loc: Location::Temp,
                 val: vnum!(Number::from(5)),
             }),
@@ -777,7 +780,7 @@ mod bank_iterator_tests {
         let mut bank = SubsumptionProgBank::default();
         let bin_op: Arc<dyn ExprOpcode> = Arc::new(TestOpcode {
             arg_types: vec![ValueType::Number, ValueType::Number],
-            returns: EvalResult::NoModification(LocValue {
+            returns: pure!(LocValue {
                 loc: Location::Temp,
                 val: vnum!(Number::from(5)),
             }),
@@ -807,7 +810,7 @@ mod bank_iterator_tests {
         let mut bank = SubsumptionProgBank::default();
         let tri_op: Arc<dyn ExprOpcode> = Arc::new(TestOpcode {
             arg_types: vec![ValueType::Number, ValueType::Number, ValueType::Number],
-            returns: EvalResult::NoModification(LocValue {
+            returns: pure!(LocValue {
                 loc: Location::Temp,
                 val: vnum!(Number::from(5)),
             }),
@@ -837,7 +840,7 @@ mod bank_iterator_tests {
         let mut bank = SubsumptionProgBank::default();
         let bin_op: Arc<dyn ExprOpcode> = Arc::new(TestOpcode {
             arg_types: vec![ValueType::Number, ValueType::Number],
-            returns: EvalResult::NoModification(LocValue {
+            returns: pure!(LocValue {
                 loc: Location::Temp,
                 val: vnum!(Number::from(5)),
             }),
@@ -871,7 +874,7 @@ mod bank_iterator_tests {
         let mut bank = SubsumptionProgBank::default();
         let bin_op: Arc<dyn ExprOpcode> = Arc::new(TestOpcode {
             arg_types: vec![ValueType::Number, ValueType::Number],
-            returns: EvalResult::NoModification(LocValue {
+            returns: pure!(LocValue {
                 loc: Location::Temp,
                 val: vnum!(Number::from(5)),
             }),
@@ -904,7 +907,7 @@ mod bank_iterator_tests {
         let mut bank = SubsumptionProgBank::default();
         let bin_op: Arc<dyn ExprOpcode> = Arc::new(TestOpcode {
             arg_types: vec![ValueType::Number, ValueType::Number],
-            returns: EvalResult::NoModification(LocValue {
+            returns: pure!(LocValue {
                 loc: Location::Temp,
                 val: vnum!(Number::from(5)),
             }),
@@ -935,7 +938,7 @@ mod bank_iterator_tests {
         let mut bank = SubsumptionProgBank::default();
         let bin_op: Arc<dyn ExprOpcode> = Arc::new(TestOpcode {
             arg_types: vec![ValueType::Number, ValueType::Number],
-            returns: EvalResult::NoModification(LocValue {
+            returns: pure!(LocValue {
                 loc: Location::Temp,
                 val: vnum!(Number::from(5)),
             }),
@@ -1346,6 +1349,7 @@ mod prog_tests {
 
     use crate::{
         context::{Context, ContextArray, GraphIdGenerator, SynthesizerContext},
+        dirty,
         prog::SubProgram,
         test::helpers::*,
     };
@@ -1369,9 +1373,7 @@ mod prog_tests {
             arg_types: vec![],
             id: syn_ctx.cached_string("x"),
             new_value: vnum!(Number::from(5)),
-            returns: crate::opcode::EvalResult::DirtyContext(
-                post_ctx[0].temp_value(vnum!(Number::from(0))),
-            ),
+            returns: dirty!(post_ctx[0].temp_value(vnum!(Number::from(0)))),
         });
 
         let mut p = SubProgram::with_opcode(opcode, pre_ctx, post_ctx);

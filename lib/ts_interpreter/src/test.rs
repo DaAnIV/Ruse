@@ -127,7 +127,9 @@ mod ts_simple_opcodes_tests {
         let x_val = id.eval(&[], &mut id_out_ctx, &syn_ctx).unwrap();
 
         let mut update_out_ctx = id_out_ctx.clone();
-        let out = op.eval(&[&x_val], &mut update_out_ctx, &syn_ctx).unwrap();
+        let out = op
+            .eval(&[&x_val.output], &mut update_out_ctx, &syn_ctx)
+            .unwrap();
         assert_eq!(
             ctx.get_var_loc_value(&id.name, &syn_ctx)
                 .expect("Didn't find var")
@@ -231,7 +233,11 @@ mod ts_simple_opcodes_tests {
         let mut update_out_ctx = id_out_ctx.clone();
         let num_to_push = update_out_ctx.temp_value(vnum!(Number::from(1)));
         let out = op
-            .eval(&[&x_val, &num_to_push], &mut update_out_ctx, &syn_ctx)
+            .eval(
+                &[&x_val.output, &num_to_push],
+                &mut update_out_ctx,
+                &syn_ctx,
+            )
             .unwrap();
 
         let orig_array = ctx

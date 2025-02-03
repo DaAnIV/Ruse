@@ -7,6 +7,7 @@ use ruse_synthesizer::context::*;
 use ruse_synthesizer::location::*;
 use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};
 
+use ruse_synthesizer::pure;
 use swc_common::DUMMY_SP;
 use swc_ecma_ast as ast;
 
@@ -41,13 +42,12 @@ impl ExprOpcode for MemberOp {
         &self,
         args: &[&LocValue],
         post_ctx: &mut Context,
-        _: &SynthesizerContext,
+        _syn_ctx: &SynthesizerContext,
     ) -> EvalResult {
         debug_assert_eq!(args.len(), 1);
 
-        args[0]
-            .get_obj_field_loc_value(&post_ctx.graphs_map, &self.field_name)
-            .into()
+        let member = args[0].get_obj_field_loc_value(&post_ctx.graphs_map, &self.field_name).ok_or(())?;
+        pure!(member)
     }
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
@@ -109,7 +109,7 @@ impl ExprOpcode for StaticMemberOp {
         _: &SynthesizerContext,
     ) -> EvalResult {
         post_ctx.insert_if_new(self.initial_graph.clone());
-        EvalResult::NoModification(self.value.clone())
+        pure!(self.value.clone())
     }
 
     fn to_ast(&self, _children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {

@@ -4,6 +4,7 @@ use ruse_synthesizer::context::*;
 use ruse_synthesizer::location::*;
 use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};
 
+use ruse_synthesizer::pure;
 use swc_common::DUMMY_SP;
 use swc_ecma_ast as ast;
 
@@ -36,11 +37,8 @@ impl ExprOpcode for SequenceOp {
         _post_ctx: &mut Context,
         _syn_ctx: &SynthesizerContext,
     ) -> EvalResult {
-        if let Some(out) = args.last() {
-            EvalResult::NoModification((*out).clone())
-        } else {
-            EvalResult::None
-        }
+        let out = args.last().ok_or(())?;
+        pure!((*out).clone())
     }
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
