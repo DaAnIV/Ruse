@@ -303,7 +303,7 @@ impl TaskType {
                 let class_name = str_cached!(cache; s);
                 let class = classes
                     .get_class(&class_name)
-                    .ok_or(verify_err!(format!("object type {} is not defined", s)))?;
+                    .ok_or(verify_err!("object type {} is not defined", s))?;
                 let fields = value
                     .as_object()
                     .ok_or(parse_err!(value, "Value is not an object value"))?;
@@ -409,15 +409,15 @@ impl TaskType {
                 .description
                 .methods
                 .get(method_name)
-                .ok_or(verify_err!(format!(
+                .ok_or(verify_err!(
                     "object {} has no method {}",
                     &class.description.class_name, method_name
-                )))?;
+                ))?;
             if !desc.is_static {
-                return Err(verify_err!(format!(
+                return Err(verify_err!(
                     "{}.{} is not static",
                     &class.description.class_name, method_name
-                )));
+                ));
             } else {
                 desc
             }

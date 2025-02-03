@@ -40,12 +40,12 @@ fn upgrade_values_map(
     for (k, v) in map.iter_mut() {
         let value_type = &match types.get(k) {
             Some(value_type) => value_type,
-            None => return Err(verify_err!(format!("{} type is unknown", k))),
+            None => return Err(verify_err!("{} type is unknown", k)),
         };
 
-        let value_str = v.as_str().ok_or(verify_err!(format!(
+        let value_str = v.as_str().ok_or(verify_err!(
             "All values must be given as string in version 1"
-        )))?;
+        ))?;
         *v = value_type.json_value_from_string(value_str)?;
     }
 
@@ -69,7 +69,7 @@ where
         let key = str_cached!(cache; k);
         let value_type = &match types.get(k) {
             Some(value_type) => value_type,
-            None => return Err(verify_err!(format!("{} type is unknown", k))),
+            None => return Err(verify_err!("{} type is unknown", k)),
         };
         let mut value = value_type.create_value(
             v,
@@ -109,7 +109,7 @@ where
         let key = str_cached!(cache; k);
         let value_type = &match types.get(k) {
             Some(value_type) => value_type,
-            None => return Err(verify_err!(format!("{} type is unknown", k))),
+            None => return Err(verify_err!("{} type is unknown", k)),
         };
         let value = value_type.create_value(
             v,
@@ -265,11 +265,14 @@ impl SnythesisTaskInner {
         let variables = self.variables.as_ref().unwrap();
         let examples = self.examples.as_ref().unwrap();
 
-        if let Some(immutable) = &self.immutable {
-            if !immutable.iter().all(|x| variables.contains_key(x)) {
-                return Err(verify_err!(
-                    "Immutable contains a key which is not a variable"
-                ));
+        if let Some(immutable_set) = &self.immutable {
+            for imm in immutable_set {
+                if !variables.contains_key(imm) {
+                    return Err(verify_err!(
+                        "Immutable contains a key {} which is not a variable",
+                        imm
+                    ));
+                }
             }
         }
 
@@ -684,10 +687,11 @@ impl SnythesisTask {
         for (var, var_type) in variables {
             if let TaskType::Object(obj_type) = var_type {
                 if classes.get_class(&str_cached!(cache; obj_type)).is_none() {
-                    return Err(verify_err!(format!(
+                    return Err(verify_err!(
                         "Variable {} has an unknown object type {}",
-                        var, obj_type
-                    )));
+                        var,
+                        obj_type
+                    ));
                 }
             }
         }

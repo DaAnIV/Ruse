@@ -101,6 +101,11 @@ macro_rules! verify_err {
             msg: $msg.to_owned(),
         })
     };
+    ($($arg:tt)*) => {
+        $crate::error::SnythesisTaskError::Verify($crate::error::VerifyError {
+            msg: format!($($arg)*),
+        })
+    };
 }
 
 #[macro_export]
@@ -108,6 +113,11 @@ macro_rules! skip_err {
     ($reason:expr) => {
         $crate::error::SnythesisTaskError::Skip($crate::error::SkipError {
             reason: $reason.to_owned(),
+        })
+    };
+    ($($arg:tt)*) => {
+        $crate::error::SnythesisTaskError::Skip($crate::error::SkipError {
+            reason: format!($($arg)*),
         })
     };
 }
