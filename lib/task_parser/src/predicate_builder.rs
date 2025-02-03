@@ -123,7 +123,9 @@ impl PredicateBuilder {
             match func.call(&boa_engine::JsValue::null(), &js_values, &mut engine_ctx) {
                 Ok(val) => {
                     if let Some(b) = val.as_boolean() {
-                        return b;
+                        if b {
+                            continue;
+                        }
                     }
                     return false;
                 }
