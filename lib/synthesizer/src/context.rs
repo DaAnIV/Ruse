@@ -290,7 +290,12 @@ impl Context {
 
                 true
             }
-            Location::ObjectField(l) => self.set_field(l.graph, l.node, l.field.clone(), new_val),
+            Location::ObjectField(l) => {
+                if l.attrs.readonly {
+                    return false;
+                }
+                self.set_field(l.graph, l.node, l.field.clone(), new_val)
+            },
             Location::Temp => true,
         }
     }
