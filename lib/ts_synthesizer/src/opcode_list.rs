@@ -146,6 +146,7 @@ pub fn add_str_opcodes(opcodes: &mut OpcodesList, str_bool_opcodes: &[ast::Binar
     opcodes.push(Arc::new(opcode::StringIndexOfOp::new()));
     opcodes.push(Arc::new(opcode::StringLastIndexOfOp::new()));
     opcodes.push(Arc::new(opcode::StringReplaceAllOp::new()));
+    opcodes.push(Arc::new(opcode::StringAtOp::new()));
 }
 
 pub fn add_array_opcodes(opcodes: &mut OpcodesList, array_types: &[ValueType], cache: &Cache) {
