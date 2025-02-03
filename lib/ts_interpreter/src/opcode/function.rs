@@ -69,7 +69,7 @@ impl ExprOpcode for ClassMethodOp {
             )
         } else {
             class.call_method(
-                &self.desc.name,
+                &self.desc,
                 args[0].val(),
                 args.iter().skip(1).map(|x| x.val()),
                 classes,

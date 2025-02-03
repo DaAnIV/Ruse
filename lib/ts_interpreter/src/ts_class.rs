@@ -533,7 +533,7 @@ impl TsClass {
 
     pub fn call_method<'a, I>(
         &self,
-        method_name: &str,
+        method_desc: &MethodDescription,
         this: &Value,
         param_values: I,
         classes: &TsClasses,
@@ -543,7 +543,7 @@ impl TsClass {
     where
         I: IntoIterator<Item = &'a Value>,
     {
-        debug_assert!(!self.description.methods[method_name].is_static);
+        debug_assert!(!method_desc.is_static);
         if this.is_null() {
             return Err(error_null_this());
         }
@@ -553,6 +553,12 @@ impl TsClass {
             .into_iter()
             .map(|x| value_to_js_value(classes, x, engine_ctx))
             .collect_vec();
+
+        let method_name = match method_desc.kind {
+            MethodKind::Method => &method_desc.name,
+            MethodKind::Getter => &JsObjectWrapper::getter_name(&method_desc.name),
+            MethodKind::Setter => &JsObjectWrapper::setter_name(&method_desc.name),
+        };
 
         let result = self
             .wrapper

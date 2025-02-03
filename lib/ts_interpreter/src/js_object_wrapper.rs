@@ -4,7 +4,7 @@ use std::{
     sync::Arc,
 };
 
-use boa_engine::{js_str, js_string, JsError, JsResult, JsValue, NativeFunction};
+use boa_engine::{js_str, js_string, JsError, JsResult, JsValue};
 use itertools::Itertools;
 use ruse_object_graph::{
     value::{ObjectValue, Value},
@@ -39,12 +39,6 @@ fn error_no_static_graph(class_name: &str) -> JsError {
 fn error_immutable_context() -> JsError {
     boa_engine::JsNativeError::typ()
         .with_message(format!("Context is not mutable"))
-        .into()
-}
-
-fn error_not_callable() -> JsError {
-    boa_engine::JsNativeError::typ()
-        .with_message(format!("Expected result to be callable"))
         .into()
 }
 
@@ -520,17 +514,11 @@ impl<'a> EngineContext<'a> {
 #[derive(Debug, Clone)]
 pub struct JsObjectWrapper {
     desc: Arc<TsClassDescription>,
-    methods_funcs: HashMap<String, boa_engine::NativeFunction>,
-    constructor_func: boa_engine::NativeFunction,
 }
 
 impl JsObjectWrapper {
     pub fn new(desc: Arc<TsClassDescription>) -> Self {
-        JsObjectWrapper {
-            constructor_func: Self::method_js_function(&desc.constructor),
-            methods_funcs: Self::method_js_functions(&desc.methods),
-            desc,
-        }
+        JsObjectWrapper { desc }
     }
 
     fn getter_for_field(field: &JsFieldDescription) -> Option<boa_engine::NativeFunction> {
@@ -609,7 +597,10 @@ impl JsObjectWrapper {
         })
     }
 
-    fn method_js_function(method: &MethodDescription) -> boa_engine::NativeFunction {
+    fn method_js_function(
+        method: &MethodDescription,
+        boa_ctx: &mut boa_engine::Context,
+    ) -> boa_engine::NativeFunction {
         let arg_names = method
             .params
             .iter()
@@ -621,12 +612,14 @@ impl JsObjectWrapper {
             arg_names,
             method.body.as_ref().unwrap()
         );
+        let js_source = boa_engine::Source::from_bytes(code.as_str());
+        let js_func = boa_ctx.eval(js_source).unwrap();
+
+        let func = js_func.into_object().unwrap();
+        assert!(func.is_callable());
 
         unsafe {
             boa_engine::native_function::NativeFunction::from_closure(move |this, args, boa_ctx| {
-                let js_souce = boa_engine::Source::from_bytes(code.as_str());
-                let js_func = boa_ctx.eval(js_souce)?;
-                let func = js_func.as_callable().ok_or(error_not_callable())?;
                 func.call(this, args, boa_ctx)
             })
         }
@@ -712,13 +705,26 @@ impl JsObjectWrapper {
         }))
     }
 
+    pub fn constructor_name() -> &'static str {
+        "__constructor__"
+    }
+
+    pub fn getter_name(accessor_name: &str) -> String {
+        format!("__get_{}", accessor_name)
+    }
+
+    pub fn setter_name(accessor_name: &str) -> String {
+        format!("__set_{}", accessor_name)
+    }
+
     fn call_constructor_body(
         &self,
         instance: &boa_engine::JsObject,
         args: &[boa_engine::JsValue],
         engine_ctx: &mut EngineContext<'_>,
     ) -> boa_engine::JsResult<()> {
-        self.constructor_func.call(
+        self.call_method_body(
+            Self::constructor_name(),
             &boa_engine::JsValue::new(instance.clone()),
             args,
             engine_ctx,
@@ -734,18 +740,13 @@ impl JsObjectWrapper {
         args: &[boa_engine::JsValue],
         engine_ctx: &mut EngineContext<'_>,
     ) -> boa_engine::JsResult<JsValue> {
-        self.methods_funcs[method_name].call(this, args, engine_ctx)
-    }
+        let func = engine_ctx
+            .get_global_dynamic_class(self)
+            .unwrap()
+            .prototype()
+            .get(js_string!(method_name), engine_ctx)?;
 
-    fn method_js_functions(
-        methods: &HashMap<String, MethodDescription>,
-    ) -> HashMap<String, NativeFunction> {
-        let mut functions = HashMap::default();
-        for (key, method) in methods {
-            functions.insert(key.clone(), Self::method_js_function(method));
-        }
-
-        functions
+        func.as_callable().unwrap().call(this, args, engine_ctx)
     }
 }
 
@@ -790,9 +791,16 @@ impl boa_engine::class::DynamicClassBuilder<JsWrapped<ObjectValue>> for JsObject
 
         let mut getter_setters = HashMap::new();
 
+        let constructor_func = Self::method_js_function(&self.desc.constructor, builder.context());
+        builder.method(
+            js_string!(Self::constructor_name()),
+            self.desc.constructor.params.len(),
+            constructor_func,
+        );
+
         for method in self.desc.methods.values() {
             let func_name = js_string!(method.name.as_str());
-            let func = self.methods_funcs[method.name.as_str()].clone();
+            let func = Self::method_js_function(method, builder.context());
             if method.kind == MethodKind::Method {
                 if method.is_static {
                     builder.static_method(func_name, method.params.len(), func);
@@ -811,9 +819,19 @@ impl boa_engine::class::DynamicClassBuilder<JsWrapped<ObjectValue>> for JsObject
 
                 match method.kind {
                     MethodKind::Getter => {
+                        builder.method(
+                            js_string!(Self::getter_name(method.name.as_str())),
+                            method.params.len(),
+                            func.clone(),
+                        );
                         val.0 = Some(func.to_js_function(builder.context().realm()))
                     }
                     MethodKind::Setter => {
+                        builder.method(
+                            js_string!(Self::setter_name(method.name.as_str())),
+                            method.params.len(),
+                            func.clone(),
+                        );
                         val.1 = Some(func.to_js_function(builder.context().realm()))
                     }
                     MethodKind::Method => unreachable!(),
