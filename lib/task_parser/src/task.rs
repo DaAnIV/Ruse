@@ -780,7 +780,9 @@ impl SnythesisTask {
                 return_type.load_value(dir.as_path(), example.output.as_mut().unwrap())?;
             }
             for (var, var_type) in variables {
-                var_type.load_value(dir.as_path(), example.input.get_mut(var).unwrap())?;
+                if example.input.contains_key(var) {
+                    var_type.load_value(dir.as_path(), example.input.get_mut(var).unwrap())?;
+                }
             }
         }
 
