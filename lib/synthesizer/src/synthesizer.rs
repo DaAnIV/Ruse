@@ -269,7 +269,7 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
             panic::AssertUnwindSafe(async move {
                 let mut current_iteration_map = self_clone.bank.new_type_map();
                 let found = if self_clone.bank.iteration_count() == 0 {
-                    self_clone.run_init_iteration(&mut current_iteration_map)
+                    tokio::task::block_in_place(|| self_clone.run_init_iteration(&mut current_iteration_map))
                 } else {
                     self_clone.run_composite_iteration(&mut current_iteration_map)
                         .await
@@ -390,7 +390,7 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
                 if self.should_end_worker().await {
                     return (type_map, None);
                 }
-                let found = self.composite_iter_batch(&triple, &ops, &mut type_map);
+                let found = tokio::task::block_in_place(|| self.composite_iter_batch(&triple, &ops, &mut type_map));
                 if found.is_some() {
                     self.found_token.cancel();
                     return (type_map, found);
@@ -399,6 +399,22 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
         }
 
         (type_map, None)
+    }
+
+    fn init_new_found_ctx(self: Arc<Self>, current_iteration_map: &mut TypeMap<P::T>) {
+        let mut new_ctx = self.bank.new_type_map();
+        for (_, programs_map) in current_iteration_map.iter() {
+            for p in programs_map.iter() {
+                if self.cancel_token.is_cancelled() {
+                    return;
+                }
+                if self.found_contexts.insert(p.post_ctx().clone()) {
+                    trace!(target: "ruse::synthesizer", "New post context found by program \"{}\"", p.get_code());
+                    self.init_context::<false>(&mut new_ctx, p.post_ctx());
+                }
+            }
+        }
+        current_iteration_map.take_minimal_prog(new_ctx);
     }
 
     async fn run_composite_iteration(
@@ -423,25 +439,12 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
                 while workers.join_next().await.is_some() {}
                 return found;
             }
-            current_iteration_map.take_minimal_prog(worker_type_map);
+            tokio::task::block_in_place(|| current_iteration_map.take_minimal_prog(worker_type_map));
         }
 
         debug!(target: "ruse::synthesizer", "Initializing new contexts!");
 
-        let mut new_ctx = self.bank.new_type_map();
-        for (_, programs_map) in current_iteration_map.iter() {
-            for p in programs_map.iter() {
-                if self.cancel_token.is_cancelled() {
-                    return None;
-                }
-                if self.found_contexts.insert(p.post_ctx().clone()) {
-                    trace!(target: "ruse::synthesizer", "New post context found by program \"{}\"", p.get_code());
-                    self.init_context::<false>(&mut new_ctx, p.post_ctx());
-                }
-            }
-        }
-        current_iteration_map.take_minimal_prog(new_ctx);
-
+        tokio::task::block_in_place(|| self.init_new_found_ctx(current_iteration_map));
         None
     }
 
