@@ -269,12 +269,12 @@ impl<'a> Dot<'a> {
         Ok(())
     }
 
-    pub fn print_header() {
-        println!("{} {{", DOT_GRAPH_TYPE);
+    pub fn graph_header_string() -> String {
+        format!("{} {{", DOT_GRAPH_TYPE)
     }
 
-    pub fn print_footer() {
-        println!("}}");
+    pub fn graph_footer_string() -> String {
+        format!("}}")
     }
 
     fn get_dot_id(id: &NodeIndex, config: &DotConfig) -> String {
@@ -324,7 +324,7 @@ impl<'a> Dot<'a> {
                 f,
                 &Self::get_dot_id(&cur_node_id, &self.config),
                 &format!(
-                    "[{}{}] {}",
+                    "[{},{}] {}",
                     cur_graph.id,
                     cur_node_id,
                     self.node_label(cur_node)
