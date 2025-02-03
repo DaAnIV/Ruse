@@ -90,11 +90,27 @@ impl PredicateBuilder {
             engine_ctx.reset_with_context(ctx, classes, &self.cache);
             let mut arg_names = Vec::with_capacity(ctx.variable_count());
             let mut js_values = Vec::with_capacity(ctx.variable_count());
-            for (var, value) in ctx.variables() {
+            for (var, value) in ctx
+                .variables()
+                .filter(|(_, v)| v.is_primitive() || v.is_null())
+            {
                 arg_names.push(var.as_str());
                 js_values.push(value_to_js_value(classes, value, &mut engine_ctx));
             }
-
+            // Best effort for partial contexts, take all of the roots of all graphs
+            for (g, root_name, node) in ctx.graphs_map.all_roots() {
+                if root_name.as_str() == Cache::OUTPUT_ROOT_NAME {
+                    continue;
+                }
+                arg_names.push(root_name.as_str());
+                let value = ObjectValue {
+                    obj_type: g.obj_type(&node).unwrap().clone(),
+                    graph_id: g.id,
+                    node: node,
+                }
+                .into();
+                js_values.push(value_to_js_value(classes, &value, &mut engine_ctx));
+            }
             let code = format!(
                 "function func({}) {{return {}}}\nfunc",
                 arg_names.join(", "),
