@@ -101,6 +101,34 @@ impl From<Number> for u64 {
     }
 }
 
+impl num_traits::FromPrimitive for Number {
+    fn from_i64(n: i64) -> Option<Self> {
+        Some(Number(n as f64))
+    }
+
+    fn from_u64(n: u64) -> Option<Self> {
+        Some(Number(n as f64))        
+    }
+
+    fn from_f64(n: f64) -> Option<Self> {
+        Some(Number(n))
+    }
+}
+
+impl num_traits::ToPrimitive for Number {
+    fn to_i64(&self) -> Option<i64> {
+        num_traits::cast(self.0)
+    }
+
+    fn to_u64(&self) -> Option<u64> {
+        num_traits::cast(self.0)
+    }
+
+    fn to_f64(&self) -> Option<f64> {
+        Some(self.0)
+    }
+}
+
 impl Default for Number {
     fn default() -> Self {
         Number::from(0u64)

@@ -1,10 +1,10 @@
-use std::cmp::min;
-
+use num_traits::ToPrimitive;
 use ruse_object_graph::value::{Value, ValueType};
 use ruse_object_graph::{vnum, vobj, Cache, Number};
 use ruse_synthesizer::location::*;
 use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};
 use ruse_synthesizer::{context::*, dirty, pure};
+use std::cmp::min;
 
 use swc_common::DUMMY_SP;
 use swc_ecma_ast as ast;
@@ -43,7 +43,8 @@ impl ExprOpcode for ArrayIndexOp {
         debug_assert_eq!(args.len(), 2);
 
         let num = args[1].val().number_value().unwrap();
-        let field_name = syn_ctx.cached_string(&(num.0 as usize).to_string());
+        let index = num.to_usize().ok_or(())?;
+        let field_name = syn_ctx.cached_string(&index.to_string());
 
         let field_value = args[0]
             .get_obj_field_loc_value(&post_ctx.graphs_map, &field_name)
@@ -252,9 +253,9 @@ impl ExprOpcode for ArraySliceOp {
         let arr = args[0].val().obj().unwrap();
         let graph = arr.graph(&post_ctx.graphs_map);
         let arr_len = arr.total_field_count(&post_ctx.graphs_map);
-        let start = get_start_index(args[1].val().number_value().unwrap().0 as isize, arr_len);
+        let start = get_start_index(&args[1].val().number_value().unwrap(), arr_len)?;
         let end = match args.get(2) {
-            Some(v) => get_end_index(v.val().number_value().unwrap().0 as isize, arr_len),
+            Some(v) => get_end_index(&v.val().number_value().unwrap(), arr_len)?,
             None => arr_len,
         };
 
@@ -408,7 +409,7 @@ impl ExprOpcode for ArraySpliceOp {
         let arr = args[0].val().obj().unwrap();
         let graph = arr.graph(&post_ctx.graphs_map);
         let arr_len = arr.total_field_count(&post_ctx.graphs_map);
-        let start = get_start_index(args[1].val().number_value().unwrap().0 as isize, arr_len);
+        let start = get_start_index(&args[1].val().number_value().unwrap(), arr_len)?;
         let delete_count = match args.get(2) {
             Some(v) => {
                 let ivalue = v.val().number_value().unwrap().0 as isize;

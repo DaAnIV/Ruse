@@ -141,12 +141,9 @@ impl ExprOpcode for StringSliceOp {
     ) -> EvalResult {
         let string = args[0].val().string_value().unwrap();
 
-        let start = get_start_index(
-            args[1].val().number_value().unwrap().0 as isize,
-            string.len(),
-        );
+        let start = get_start_index(&args[1].val().number_value().unwrap(), string.len())?;
         let end = match args.get(2) {
-            Some(v) => get_end_index(v.val().number_value().unwrap().0 as isize, string.len()),
+            Some(v) => get_end_index(&v.val().number_value().unwrap(), string.len())?,
             None => string.len(),
         };
         if start >= end {

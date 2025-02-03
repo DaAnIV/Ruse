@@ -12,6 +12,8 @@ ruse_synthesizer = { path = "./lib/synthesizer" }
 ruse_ts_synthesizer = { path = "./lib/ts_synthesizer" }
 ruse_task_parser = { path = "./lib/task_parser" }
 
+num-traits = "*"
+
 boa_engine = "*"
 
 itertools = "*"

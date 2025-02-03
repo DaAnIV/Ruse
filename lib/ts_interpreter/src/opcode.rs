@@ -1,5 +1,7 @@
 use std::{any::Any, sync::Arc};
 
+use num_traits::ToPrimitive;
+use ruse_object_graph::Number;
 use ruse_synthesizer::opcode::ExprAst;
 use swc::PrintArgs;
 use swc_common::{SourceMap, DUMMY_SP};
@@ -153,31 +155,33 @@ fn static_member_call_ast(
     TsExprAst::create(ast::Expr::Call(expr))
 }
 
-fn get_start_index(value: isize, len: usize) -> usize {
+fn get_start_index(value: &Number, len: usize) -> Result<usize, ()> {
     let ilen = len as isize;
+    let ivalue = value.to_isize().ok_or(())?;
 
-    if value >= ilen {
-        len
-    } else if value < -(ilen) {
-        0
-    } else if value < 0 {
-        (value + ilen) as usize
+    if ivalue >= ilen {
+        Ok(len)
+    } else if ivalue < -(ilen) {
+        Ok(0)
+    } else if ivalue < 0 {
+        Ok((ivalue + ilen) as usize)
     } else {
-        value as usize
+        Ok(ivalue as usize)
     }
 }
 
-fn get_end_index(value: isize, len: usize) -> usize {
+fn get_end_index(value: &Number, len: usize) -> Result<usize, ()> {
     let ilen = len as isize;
+    let ivalue = value.to_isize().ok_or(())?;
 
-    if value >= ilen {
-        len
-    } else if value < -(ilen) {
-        0
-    } else if value < 0 {
-        (value + ilen) as usize
+    if ivalue >= ilen {
+        Ok(len)
+    } else if ivalue < -(ilen) {
+        Ok(0)
+    } else if ivalue < 0 {
+        Ok((ivalue + ilen) as usize)
     } else {
-        value as usize
+        Ok(ivalue as usize)
     }
 }
 
