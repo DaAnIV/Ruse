@@ -1,10 +1,13 @@
+use num_traits::cast::ToPrimitive;
 use ruse_object_graph::Number;
 use ruse_object_graph::{value::*, *};
 use ruse_synthesizer::location::*;
 use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};
 use ruse_synthesizer::{context::*, pure};
+use swc_common::DUMMY_SP;
+use swc_ecma_ast as ast;
 
-use crate::opcode::{get_end_index, get_start_index, member_call_ast, member_field_ast};
+use crate::opcode::{get_end_index, get_start_index, member_call_ast, member_field_ast, TsExprAst};
 
 #[derive(Debug)]
 pub struct StringSplitOp {
@@ -350,6 +353,70 @@ impl ExprOpcode for StringReplaceAllOp {
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
         member_call_ast("replaceAll", children)
+    }
+
+    fn arg_types(&self) -> &[ValueType] {
+        &self.arg_types
+    }
+}
+
+#[derive(Debug)]
+pub struct StringAtOp {
+    arg_types: [ValueType; 2],
+}
+
+impl StringAtOp {
+    pub fn new() -> Self {
+        Self {
+            arg_types: [ValueType::String, ValueType::Number],
+        }
+    }
+}
+
+impl ExprOpcode for StringAtOp {
+    fn op_name(&self) -> &str {
+        "String.prototype.at"
+    }
+
+    fn eval(
+        &self,
+        args: &[&LocValue],
+        post_ctx: &mut Context,
+        syn_ctx: &SynthesizerContext,
+    ) -> EvalResult {
+        debug_assert_eq!(args.len(), 2);
+
+        let str_val = args[0].val().string_value().unwrap();
+        let index = args[1].val().number_value().unwrap();
+        let index_isize = index.to_isize().ok_or(())?;
+
+        let index_usize = if index_isize >= 0 {
+            index_isize as usize
+        } else {
+            if (-index_isize) as usize > str_val.len() {
+                return Err(());
+            }
+            (str_val.len() as isize + index_isize) as usize
+        };
+
+        pure!(post_ctx.temp_value(vstr!(syn_ctx.cache; &str_val[index_usize..=index_usize])))
+    }
+
+    fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
+        debug_assert_eq!(children.len(), 2);
+
+        let field = TsExprAst::from(children[1].as_ref());
+
+        let expr = ast::MemberExpr {
+            span: DUMMY_SP,
+            obj: TsExprAst::from(children[0].as_ref()).get_paren_expr(),
+            prop: ast::MemberProp::Computed(ast::ComputedPropName {
+                span: DUMMY_SP,
+                expr: field.node.to_owned(),
+            }),
+        };
+
+        TsExprAst::create(ast::Expr::Member(expr))
     }
 
     fn arg_types(&self) -> &[ValueType] {
