@@ -295,16 +295,20 @@ impl Context {
         }
     }
 
+    fn get_mut_graph(&mut self, graph: GraphIndex) -> &mut ObjectGraph {
+        let graphs_map = Arc::make_mut(&mut self.graphs_map);
+        Arc::make_mut(graphs_map.get_mut(&graph).unwrap())
+    }
+
     pub fn set_field(
         &mut self,
-        graph: GraphIndex,
+        graph_id: GraphIndex,
         node: NodeIndex,
         field_name: FieldName,
         value: &Value,
     ) -> bool {
-        let mut new_graph = self.graphs_map[graph].as_ref().clone();
-        new_graph.set_field(&node, field_name.clone(), value);
-        self.update_graph(new_graph.into());
+        let graph = self.get_mut_graph(graph_id);
+        graph.set_field(&node, field_name.clone(), value);
         self.update_hash();
         true
     }
@@ -358,9 +362,8 @@ impl Context {
     }
 
     pub fn update_graph(&mut self, new_graph: Arc<ObjectGraph>) {
-        let mut new_map = self.graphs_map.as_ref().clone();
-        new_map.insert_graph(new_graph);
-        self.graphs_map = new_map.into();
+        let graphs_map = Arc::make_mut(&mut self.graphs_map);
+        graphs_map.insert_graph(new_graph);
     }
 
     pub fn insert_if_new(&mut self, new_graph: Arc<ObjectGraph>) {
@@ -386,9 +389,8 @@ impl Context {
     }
 
     fn extend_graphs_map(&mut self, other: &Context) {
-        let mut new_map = self.graphs_map.as_ref().clone();
-        new_map.extend(&other.graphs_map);
-        self.graphs_map = new_map.into();
+        let graphs_map = Arc::make_mut(&mut self.graphs_map);
+        graphs_map.extend(&other.graphs_map);
     }
 
     pub(crate) fn get_partial_context<'a, I>(&self, required_variables: I) -> Option<Box<Self>>
