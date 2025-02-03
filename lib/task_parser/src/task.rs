@@ -212,6 +212,25 @@ impl SnythesisTaskExamples {
         graphs_map.remove(REF_GRAPH_ID);
         Ok(Context::with_values(values, graphs_map.into(), id_gen))
     }
+
+    fn extend(&mut self, other: &Self) {
+        if other.output.is_some() {
+            debug_assert!(self.output.is_none());
+            self.output = other.output.clone()
+        }
+        if other.state.is_some() {
+            debug_assert!(self.state.is_none());
+            self.state = other.state.clone()
+        }
+        if other.predicate_js.is_some() {
+            debug_assert!(self.predicate_js.is_none());
+            self.predicate_js = other.predicate_js.clone()
+        }
+        for (name, value) in &other.input {
+            debug_assert!(!self.input.contains_key(name));
+            self.input.insert(name.clone(), value.clone());
+        }
+    }
 }
 
 fn default_version() -> u32 {
@@ -246,9 +265,19 @@ struct SnythesisTaskInner {
     solution: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     opcodes: Option<HashSet<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    common: Option<SnythesisTaskExamples>,
 }
 
 impl SnythesisTaskInner {
+    fn extend_examples(&mut self) {
+        if let Some(common) = &self.common {
+            for example in self.examples.as_mut().unwrap().iter_mut() {
+                example.extend(common);
+            }
+        }
+    }
+
     fn verify(&self) -> Result<(), SnythesisTaskError> {
         if let Some(reason) = &self.skip {
             return Err(skip_err!(reason));
@@ -265,6 +294,14 @@ impl SnythesisTaskInner {
         let variables = self.variables.as_ref().unwrap();
         let examples = self.examples.as_ref().unwrap();
 
+        let has_common_output = self.common.as_ref().is_some_and(|x| x.output.is_some());
+        let has_common_state = self.common.as_ref().is_some_and(|x| x.state.is_some());
+        let has_common_js = self
+            .common
+            .as_ref()
+            .is_some_and(|x| x.predicate_js.is_some());
+        let has_common_predicate = has_common_output | has_common_state | has_common_js;
+
         if let Some(immutable_set) = &self.immutable {
             for imm in immutable_set {
                 if !variables.contains_key(imm) {
@@ -280,24 +317,53 @@ impl SnythesisTaskInner {
             return Err(verify_err!("No examples were given"));
         }
 
-        if self.return_type.is_some() && examples.iter().any(|x| x.output.is_none()) {
+        if examples.iter().any(|x| x.input.is_empty()) {
+            return Err(verify_err!(
+                "All examples must define at least one input"
+            ));
+        }
+
+        if has_common_output && examples.iter().any(|x| x.output.is_some()) {
+            return Err(verify_err!(
+                "Can either have common output or output per example, not both"
+            ));
+        }
+
+        if has_common_state && examples.iter().any(|x| x.state.is_some()) {
+            return Err(verify_err!(
+                "Can either have common state predicate or state predicate per example, not both"
+            ));
+        }
+
+        if has_common_js && examples.iter().any(|x| x.predicate_js.is_some()) {
+            return Err(verify_err!(
+                "Can either have common js predicate or js predicate per example, not both"
+            ));
+        }
+
+        if self.return_type.is_some()
+            && (has_common_output || examples.iter().any(|x| x.output.is_none()))
+        {
             return Err(verify_err!(
                 "All examples should have an output if the return type is given"
             ));
         }
 
-        if examples.iter().any(|x| x.output.is_some()) && self.return_type.is_none() {
+        if (has_common_output || examples.iter().any(|x| x.output.is_some()))
+            && self.return_type.is_none()
+        {
             return Err(verify_err!(
                 "Can't give example outputs without a return type"
             ));
         }
 
-        if examples
-            .iter()
-            .any(|x| x.output.is_none() && x.state.is_none() && x.predicate_js.is_none())
+        if !has_common_predicate
+            && examples
+                .iter()
+                .any(|x| x.output.is_none() && x.state.is_none() && x.predicate_js.is_none())
         {
             return Err(verify_err!(
-                "All examples must have at least one form of predicate for success (output, state, predicate_js)"
+                "There must be at least one form of predicate for success (output, state, predicate_js), either common or per example"
             ));
         }
 
@@ -362,15 +428,27 @@ impl SnythesisTaskInner {
             }
         }
 
-        if !(examples.iter().all(|x| {
-            variables
-                .iter()
-                .filter(|(_, t)| !t.is_var_ref())
-                .all(|(k, _)| x.input.contains_key(k))
-        })) {
-            return Err(verify_err!(
-                "All examples should contain values for all non-var-ref variables"
-            ));
+        for (var_name, var_type) in variables {
+            let var_is_common = self
+                .common
+                .as_ref()
+                .is_some_and(|x| x.input.contains_key(var_name));
+
+            if var_type.is_var_ref() {
+                if var_is_common || examples.iter().any(|x| x.input.contains_key(var_name)) {
+                    return Err(verify_err!(
+                        "Var-ref variable {} value should not be defined",
+                        var_name
+                    ));
+                }
+            } else {
+                if !var_is_common && examples.iter().any(|x| !x.input.contains_key(var_name)) {
+                    return Err(verify_err!(
+                        "Variable {} value is not defined everywhere",
+                        var_name
+                    ));
+                }
+            }
         }
 
         Ok(())
@@ -635,6 +713,7 @@ impl SnythesisTask {
             }
         };
         inner.verify()?;
+        inner.extend_examples();
 
         let variables = inner.variables.as_ref().unwrap();
 
