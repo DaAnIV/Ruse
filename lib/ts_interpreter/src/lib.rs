@@ -4,4 +4,4 @@ pub mod opcode;
 pub mod ts_class;
 pub mod js_object_wrapper;
 
-mod test;
+pub mod test;

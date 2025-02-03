@@ -2,6 +2,7 @@
 #[allow(dead_code)]
 pub mod helpers {
     use std::{
+        collections::HashMap,
         hash::{DefaultHasher, Hash, Hasher},
         sync::Arc,
     };
@@ -384,6 +385,61 @@ pub mod helpers {
         let mut prog = SubProgram::with_opcode_and_children(op, children, pre, post);
         assert!(evaluate_prog(&mut prog, &syn_ctx));
         prog
+    }
+
+    pub struct OpChain {
+        pub name: String,
+        pub op: Arc<dyn ExprOpcode>,
+        pub children_ops: Vec<OpChain>,
+    }
+
+    #[macro_export]
+    macro_rules! op_chain {
+        ($name:expr, $op:expr) => {
+            $crate::test::helpers::OpChain {
+                name: $name.to_owned(),
+                op: $op.clone(),
+                children_ops: vec![]
+            }
+        };
+        ($name:expr, $op:expr; $($children:expr),*) => {
+            $crate::test::helpers::OpChain {
+                name: $name.to_owned(),
+                op: $op.clone(),
+                children_ops: vec![$($children),*]
+            }
+        };
+    }
+
+    fn evaluate_chain_inner(
+        chain: &OpChain,
+        ctx: &ContextArray,
+        syn_ctx: &SynthesizerContext,
+        results: &mut HashMap<String, Arc<SubProgram>>,
+    ) -> Arc<SubProgram> {
+        let prog = if chain.children_ops.is_empty() {
+            get_init_prog(chain.op.clone(), ctx, syn_ctx)
+        } else {
+            let children = chain
+                .children_ops
+                .iter()
+                .map(|child_op| evaluate_chain_inner(child_op, ctx, syn_ctx, results));
+            get_composite_prog(chain.op.clone(), children.collect(), syn_ctx)
+        };
+
+        results.insert(chain.name.clone(), prog.clone());
+        prog
+    }
+
+    pub fn evaluate_chain(
+        chain: OpChain,
+        ctx: &ContextArray,
+        syn_ctx: &SynthesizerContext,
+    ) -> HashMap<String, Arc<SubProgram>> {
+        let mut results = HashMap::default();
+        evaluate_chain_inner(&chain, ctx, syn_ctx, &mut results);
+
+        results
     }
 
     pub fn init_log() {

@@ -1,3 +1,32 @@
+#[cfg(feature = "test_helpers")]
+#[allow(dead_code)]
+pub mod ts_op_helpers {
+    use std::sync::Arc;
+
+    use ruse_object_graph::{str_cached, Cache, Number};
+
+    use crate::{opcode, ts_class::TsClass};
+
+    pub fn id_op(id: &str, cache: &Cache) -> Arc<opcode::IdentOp> {
+        Arc::new(opcode::IdentOp::new(str_cached!(cache; id)))
+    }
+
+    pub fn class_method_op(class: &TsClass, method_name: &str) -> Arc<opcode::ClassMethodOp> {
+        Arc::new(opcode::ClassMethodOp::new(
+            class.description.class_name.clone(),
+            &class.description.methods[method_name],
+        ))
+    }
+
+    pub fn lit_number_op(val: usize) -> Arc<opcode::LitOp> {
+        Arc::new(opcode::LitOp::Num(Number::from(val)))
+    }
+
+    pub fn lit_str_op(val: &str, cache: &Cache) -> Arc<opcode::LitOp> {
+        Arc::new(opcode::LitOp::Str(str_cached!(cache; val)))
+    }
+}
+
 #[cfg(test)]
 mod ts_simple_opcodes_tests {
     use std::sync::Arc;
@@ -11,6 +40,7 @@ mod ts_simple_opcodes_tests {
     use swc_ecma_ast as ast;
 
     use crate::opcode::*;
+    use crate::test::ts_op_helpers::*;
     use ruse_object_graph::Number;
     use ruse_object_graph::{str_cached, Cache};
     use ruse_synthesizer::*;
@@ -71,7 +101,7 @@ mod ts_simple_opcodes_tests {
         let syn_ctx = SynthesizerContext::from_context_array(ctx_arr, cache.clone());
         let ctx = &syn_ctx.start_context[0];
         let mut out_ctx = ctx.clone();
-        let evaluator = IdentOp::new(str_cached!(cache; "x"));
+        let evaluator = id_op("x", &cache);
         let out = evaluator.eval(&[], &mut out_ctx, &syn_ctx).unwrap();
         assert_eq!(
             out.val().wrap(&out_ctx.graphs_map),
@@ -91,7 +121,7 @@ mod ts_simple_opcodes_tests {
         )]);
         let syn_ctx = SynthesizerContext::from_context_array(ctx_arr, cache.clone());
         let ctx = &syn_ctx.start_context[0];
-        let id = IdentOp::new(str_cached!(cache; "x"));
+        let id = id_op("x", &cache);
         let op = UpdateOp::new(ast::UpdateOp::PlusPlus, true);
         let mut id_out_ctx = ctx.clone();
         let x_val = id.eval(&[], &mut id_out_ctx, &syn_ctx).unwrap();
@@ -143,7 +173,7 @@ mod ts_simple_opcodes_tests {
         )]);
         let syn_ctx = SynthesizerContext::from_context_array(ctx_arr, cache.clone());
         let ctx = &syn_ctx.start_context[0];
-        let id = IdentOp::new(str_cached!(cache; "x"));
+        let id = id_op("x", &cache);
         let op = UpdateOp::new(ast::UpdateOp::PlusPlus, false);
         let mut id_out_ctx = ctx.clone();
         let x_val = id.eval(&[], &mut id_out_ctx, &syn_ctx).unwrap();
@@ -192,7 +222,7 @@ mod ts_simple_opcodes_tests {
         let syn_ctx = SynthesizerContext::from_context_array(ctx_arr, cache.clone());
 
         let ctx = &syn_ctx.start_context[0];
-        let id = IdentOp::new(str_cached!(cache; "x"));
+        let id = id_op("x", &cache);
         let op = ArrayPushOp::new(&ValueType::Number, &syn_ctx.cache);
 
         let mut id_out_ctx = ctx.clone();
@@ -244,7 +274,7 @@ mod ts_simple_opcodes_tests {
 mod ts_class_tests {
     use std::{collections::HashMap, sync::Arc};
 
-    use boa_engine::JsValue;
+    use boa_engine::{js_str, JsValue};
     use boa_engine::{js_string, property::Attribute};
     use graph_map_value::GraphMapWrap;
     use ruse_object_graph::{str_cached, Cache};
@@ -256,7 +286,7 @@ mod ts_class_tests {
 
     use crate::js_object_wrapper::{EngineContext, JsWrapped};
     use crate::js_value::value_to_js_value;
-    use crate::opcode::{IdentOp, LitOp};
+    use crate::test::ts_op_helpers::*;
     use crate::ts_class::{TsClasses, TsClassesBuilder};
 
     #[test]
@@ -653,11 +683,11 @@ mod ts_class_tests {
         let classes_ref = syn_ctx.data.downcast_ref::<TsClasses>().unwrap();
         let user_class = classes_ref.get_class(&user_class_name).unwrap();
 
-        let user_op = Arc::new(IdentOp::new(syn_ctx.cached_string("user")));
+        let user_op = id_op("user", &syn_ctx.cache);
         let user_prog = get_init_prog(user_op, &ctx_arr, &syn_ctx);
         println!("{}\n", user_prog);
 
-        let str_lit_op = Arc::new(LitOp::Str(syn_ctx.cached_string("Lit")));
+        let str_lit_op = lit_str_op("Lit", &syn_ctx.cache);
         let str_lit_prog = get_init_prog(str_lit_op, &ctx_arr, &syn_ctx);
         println!("{}\n", str_lit_prog);
 
@@ -868,12 +898,14 @@ mod specific_bugs_tests {
     use ruse_synthesizer::{
         context::{Context, ContextArray, GraphIdGenerator, SynthesizerContext, ValuesMap},
         embedding::merge_context_arrays,
-        opcode::ExprOpcode,
-        prog::SubProgram,
-        test::helpers::{evaluate_prog, get_composite_prog, get_init_prog},
+        op_chain,
+        test::helpers::{evaluate_chain, get_composite_prog, get_init_prog},
     };
 
-    use crate::opcode::{ArrayIndexOp, ArrayLengthOp, ArrayPushOp, ArraySpliceOp, IdentOp, LitOp};
+    use crate::{
+        opcode::{ArrayIndexOp, ArrayLengthOp, ArrayPushOp, ArraySpliceOp},
+        test::ts_op_helpers::*,
+    };
 
     #[test]
     fn bug_1() {
@@ -888,38 +920,23 @@ mod specific_bugs_tests {
         let ctx_arr = ContextArray::from(vec![ctx]);
         let syn_ctx = SynthesizerContext::from_context_array(ctx_arr.clone(), cache);
 
-        let id_op = Arc::new(IdentOp::new(syn_ctx.cached_string("names")));
-        let mut names_prog = SubProgram::with_opcode(id_op, ctx_arr.clone(), ctx_arr.clone());
-        assert!(evaluate_prog(&mut names_prog, &syn_ctx));
-
-        let one_op = Arc::new(LitOp::Num(Number::from(1)));
-        let one_ctx = ctx_arr
-            .get_partial_context(one_op.required_variables())
-            .unwrap();
-        let mut one_prog = SubProgram::with_opcode(one_op, one_ctx.clone(), one_ctx.clone());
-        assert!(evaluate_prog(&mut one_prog, &syn_ctx));
-
+        let id_op = id_op("names", &syn_ctx.cache);
+        let one_op = lit_number_op(1);
         let splice_op = Arc::new(ArraySpliceOp::new(
             &ValueType::String,
             false,
             &syn_ctx.cache,
         ));
-        let mut splice_prog = SubProgram::with_opcode_and_children(
+        let len_op = Arc::new(ArrayLengthOp::new(&ValueType::String, &syn_ctx.cache));
+
+        let names_prog = get_init_prog(id_op, &ctx_arr, &syn_ctx);
+        let one_prog = get_init_prog(one_op, &ctx_arr, &syn_ctx);
+        let splice_prog = get_composite_prog(
             splice_op,
             vec![names_prog.clone(), one_prog.clone()],
-            ctx_arr.clone(),
-            ctx_arr.clone(),
+            &syn_ctx,
         );
-        assert!(evaluate_prog(&mut splice_prog, &syn_ctx));
-
-        let len_op = Arc::new(ArrayLengthOp::new(&ValueType::String, &syn_ctx.cache));
-        let mut len_prog = SubProgram::with_opcode_and_children(
-            len_op,
-            vec![names_prog.clone()],
-            ctx_arr.clone(),
-            ctx_arr.clone(),
-        );
-        assert!(evaluate_prog(&mut len_prog, &syn_ctx));
+        let len_prog = get_composite_prog(len_op, vec![names_prog.clone()], &syn_ctx);
 
         println!("{}", splice_prog);
         println!("");
@@ -957,41 +974,29 @@ mod specific_bugs_tests {
         let ctx_arr = ContextArray::from(vec![ctx]);
         let syn_ctx = SynthesizerContext::from_context_array(ctx_arr.clone(), cache);
 
-        let arr_op = Arc::new(IdentOp::new(syn_ctx.cached_string("arr")));
-        let arr_prog = get_init_prog(arr_op, &ctx_arr, &syn_ctx);
-        println!("{}\n", arr_prog);
-
-        let zero_op = Arc::new(LitOp::Num(Number::from(0)));
-        let zero_prog = get_init_prog(zero_op, &ctx_arr, &syn_ctx);
-        println!("{}\n", zero_prog);
-
-        let one_op = Arc::new(LitOp::Num(Number::from(1)));
-        let one_prog = get_init_prog(one_op, &ctx_arr, &syn_ctx);
-        println!("{}\n", one_prog);
-
-        let splice_op = Arc::new(ArraySpliceOp::new(&ValueType::Number, true, &syn_ctx.cache));
-        let splice_prog = get_composite_prog(
-            splice_op,
-            vec![arr_prog.clone(), one_prog.clone(), one_prog.clone()],
-            &syn_ctx,
-        );
-        println!("{}\n", splice_prog);
-
-        let first_item_op = Arc::new(ArrayIndexOp::new(&ValueType::Number, &syn_ctx.cache));
-        let splice_first_prog = get_composite_prog(
-            first_item_op,
-            vec![splice_prog.clone(), zero_prog.clone()],
-            &syn_ctx,
-        );
-        println!("{}\n", splice_first_prog);
-
+        let arr_op = id_op("arr", &syn_ctx.cache);
+        let zero_op = lit_number_op(0);
+        let one_op = lit_number_op(1);
         let push_op = Arc::new(ArrayPushOp::new(&ValueType::Number, &syn_ctx.cache));
-        let push_prog = get_composite_prog(
-            push_op,
-            vec![arr_prog.clone(), splice_first_prog.clone()],
+        let splice_op = Arc::new(ArraySpliceOp::new(&ValueType::Number, true, &syn_ctx.cache));
+        let array_index_op = Arc::new(ArrayIndexOp::new(&ValueType::Number, &syn_ctx.cache));
+
+        // In arr.push(x) x is evaluated first,
+        let progs = evaluate_chain(
+            op_chain!("final", &push_op;
+                op_chain!("arr2", &arr_op),
+                op_chain!("spliced[0]", &array_index_op;
+                    op_chain!("spliced", &splice_op;
+                        op_chain!("arr1", &arr_op),
+                        op_chain!("1", &one_op),
+                        op_chain!("1", &one_op)
+                    ),
+                    op_chain!("zero", &zero_op)
+                )
+            ),
+            &ctx_arr,
             &syn_ctx,
         );
-        println!("{}\n", push_prog);
 
         let expected_ctx = ruse_synthesizer::test::helpers::generate_context_from_array(
             syn_ctx.cached_string("arr"),
@@ -999,7 +1004,7 @@ mod specific_bugs_tests {
             [8, 7, 9].iter().map(|s| vnum!(Number::from(*s))),
             &syn_ctx.cache,
         );
-        let final_arr = push_prog.post_ctx()[0]
+        let final_arr = progs["final"].post_ctx()[0]
             .get_var_loc_value(&syn_ctx.cached_string("arr"), &syn_ctx)
             .unwrap();
         let expected_arr = expected_ctx
@@ -1008,12 +1013,14 @@ mod specific_bugs_tests {
 
         println!(
             "{}\n",
-            final_arr.val().wrap(&push_prog.post_ctx()[0].graphs_map)
+            final_arr
+                .val()
+                .wrap(&progs["final"].post_ctx()[0].graphs_map)
         );
         println!("{}\n", expected_arr.val().wrap(&expected_ctx.graphs_map));
 
         assert_eq!(
-            final_arr.wrap(&push_prog.post_ctx()[0].graphs_map),
+            final_arr.wrap(&progs["final"].post_ctx()[0].graphs_map),
             expected_arr.wrap(&expected_ctx.graphs_map)
         );
     }
@@ -1040,45 +1047,29 @@ mod specific_bugs_tests {
         let ctx_arr = ContextArray::from(vec![ctx]);
         let syn_ctx = SynthesizerContext::from_context_array(ctx_arr.clone(), cache);
 
-        let arr_op = Arc::new(IdentOp::new(syn_ctx.cached_string("arr")));
-        let arr_prog = get_init_prog(arr_op, &ctx_arr, &syn_ctx);
-        println!("{}\n", arr_prog);
-
-        let i_op = Arc::new(IdentOp::new(syn_ctx.cached_string("i")));
-        let i_prog = get_init_prog(i_op, &ctx_arr, &syn_ctx);
-        println!("{}\n", i_prog);
-
-        let zero_op = Arc::new(LitOp::Num(Number::from(0)));
-        let zero_prog = get_init_prog(zero_op, &ctx_arr, &syn_ctx);
-        println!("{}\n", zero_prog);
-
-        let one_op = Arc::new(LitOp::Num(Number::from(1)));
-        let one_prog = get_init_prog(one_op, &ctx_arr, &syn_ctx);
-        println!("{}\n", one_prog);
-
+        let arr_op = id_op("arr", &syn_ctx.cache);
+        let i_op = id_op("i", &syn_ctx.cache);
+        let zero_op = lit_number_op(0);
+        let one_op = lit_number_op(1);
         let splice_op = Arc::new(ArraySpliceOp::new(&ValueType::Number, true, &syn_ctx.cache));
-        let splice_prog = get_composite_prog(
-            splice_op,
-            vec![arr_prog.clone(), i_prog.clone(), one_prog.clone()],
-            &syn_ctx,
-        );
-        println!("{}\n", splice_prog);
-
-        let first_item_op = Arc::new(ArrayIndexOp::new(&ValueType::Number, &syn_ctx.cache));
-        let splice_first_prog = get_composite_prog(
-            first_item_op,
-            vec![splice_prog.clone(), zero_prog.clone()],
-            &syn_ctx,
-        );
-        println!("{}\n", splice_first_prog);
-
+        let array_index_op = Arc::new(ArrayIndexOp::new(&ValueType::Number, &syn_ctx.cache));
         let push_op = Arc::new(ArrayPushOp::new(&ValueType::Number, &syn_ctx.cache));
-        let push_prog = get_composite_prog(
-            push_op,
-            vec![arr_prog.clone(), splice_first_prog.clone()],
+
+        let progs = evaluate_chain(
+            op_chain!("final", &push_op;
+                op_chain!("arr2", &arr_op),
+                op_chain!("spliced(i, 1)[0]", &array_index_op;
+                    op_chain!("spliced", &splice_op;
+                        op_chain!("arr1", &arr_op),
+                        op_chain!("i", &i_op),
+                        op_chain!("1", &one_op)
+                    ),
+                    op_chain!("zero", &zero_op)
+                )
+            ),
+            &ctx_arr,
             &syn_ctx,
         );
-        println!("{}\n", push_prog);
 
         let expected_ctx = ruse_synthesizer::test::helpers::generate_context_from_array(
             syn_ctx.cached_string("arr"),
@@ -1086,7 +1077,7 @@ mod specific_bugs_tests {
             [8, 7, 9].iter().map(|s| vnum!(Number::from(*s))),
             &syn_ctx.cache,
         );
-        let final_arr = push_prog.post_ctx()[0]
+        let final_arr = progs["final"].post_ctx()[0]
             .get_var_loc_value(&syn_ctx.cached_string("arr"), &syn_ctx)
             .unwrap();
         let expected_arr = expected_ctx
@@ -1094,7 +1085,7 @@ mod specific_bugs_tests {
             .unwrap();
 
         assert_eq!(
-            final_arr.wrap(&push_prog.post_ctx()[0].graphs_map),
+            final_arr.wrap(&progs["final"].post_ctx()[0].graphs_map),
             expected_arr.wrap(&expected_ctx.graphs_map)
         );
     }
