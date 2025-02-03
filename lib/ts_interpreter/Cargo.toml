@@ -26,6 +26,7 @@ tracing.workspace = true
 
 [dev-dependencies]
 criterion.workspace = true
+ruse_task_parser.workspace = true
 
 [features]
 default = ["test_helpers"]

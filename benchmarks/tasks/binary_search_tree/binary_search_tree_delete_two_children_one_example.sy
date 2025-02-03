@@ -1,0 +1,80 @@
+{
+  "version": 2,
+  "import": [
+    "../classes/binary_search_tree.ts"
+  ],
+  "variables": {
+    "tree": "BinarySearchTreeNode",
+    "node_to_delete": "BinarySearchTreeNode"
+  },
+  "intLiterals": [],
+  "stringLiterals": [],
+  "examples": [
+    {
+      "input": {
+        "tree": {
+          "@": "constructor",
+          "args": [
+            5,
+            {
+              "@": "constructor",
+              "args": [
+                2,
+                {
+                  "@": "constructor",
+                  "args": [
+                    1,
+                    "Null",
+                    "Null"
+                  ]
+                },
+                {
+                  "@": "constructor",
+                  "args": [
+                    3,
+                    "Null",
+                    "Null"
+                  ]
+                }
+              ]
+            },
+            {
+              "@": "constructor",
+              "args": [
+                10,
+                {
+                  "@": "constructor",
+                  "args": [
+                    6,
+                    "Null",
+                    "Null"
+                  ]
+                },
+                {
+                  "@": "constructor",
+                  "args": [
+                    11,
+                    "Null",
+                    "Null"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "node_to_delete": "*tree._right"
+      },
+      "predicate_js": "!node_to_delete.contains(10) && node_to_delete.size == 2 && node_to_delete.valid()"
+    }
+  ],
+  "opcodes": [
+    "BinarySearchTreeNode.right",
+    "BinarySearchTreeNode.min_node",
+    "BinarySearchTreeNode.swap",
+    "BinarySearchTreeNode.unlink_leaf",
+    "Sequence*"
+  ],
+  "solution": [
+    "node_to_delete.right.min_node().swap(node_to_delete).unlink_leaf()"
+  ]
+}

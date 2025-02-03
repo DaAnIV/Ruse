@@ -1,0 +1,56 @@
+{
+  "version": 2,
+  "import": [
+    "../classes/binary_search_tree.ts"
+  ],
+  "variables": {
+    "tree": "BinarySearchTreeNode"
+  },
+  "intLiterals": [],
+  "stringLiterals": [],
+  "examples": [
+    {
+      "input": {
+        "tree": {
+          "@": "constructor",
+          "args": [
+            1,
+            "Null",
+            {
+              "@": "constructor",
+              "args": [
+                28,
+                "Null",
+                "Null"
+              ]
+            }
+          ]
+        }
+      },
+      "predicate_js": "tree.size == 1"
+    },
+    {
+      "input": {
+        "tree": {
+          "@": "constructor",
+          "args": [
+            3,
+            "Null",
+            {
+              "@": "constructor",
+              "args": [
+                59,
+                "Null",
+                "Null"
+              ]
+            }
+          ]
+        }
+      },
+      "predicate_js": "tree.size == 1"
+    }
+  ],
+  "solution": [
+    "tree.right.unlink_leaf()"
+  ]
+}

@@ -12,7 +12,7 @@ use ruse_ts_interpreter::ts_class::TsClasses;
 
 pub type SynthesizerPredicate = Box<dyn Fn(&SubProgram, &SynthesizerContext) -> bool + Send + Sync>;
 
-pub(crate) struct PredicateBuilder {
+pub struct PredicateBuilder {
     pub output_array: Option<Vec<Value>>,
     pub state_array: Option<Vec<ValuesMap>>,
     pub predicate_js: Option<Vec<String>>,
@@ -163,7 +163,7 @@ impl PredicateBuilder {
     }
 }
 
-pub(crate) struct ValidPredicateBuilder {}
+pub struct ValidPredicateBuilder {}
 
 impl ValidPredicateBuilder {
     fn predicate(&self, _p: &SubProgram, _syn_ctx: &SynthesizerContext) -> bool {
