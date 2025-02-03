@@ -108,7 +108,9 @@ async fn run_synthesizer<P: ProgBank + 'static>(
         }
     }
     let took = start.elapsed();
-    if found.is_none() {
+    if let Some(found) = &found {
+        info!(target: "ruse::runner", "Found \"{}\"", found.get_code());
+    } else {
         error!(target: "ruse::runner", "Reached max iterations");
         let err = ReachedMaxIterationError {};
         result.error(&err);

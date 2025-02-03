@@ -105,7 +105,7 @@ where
 
     fn write_char(&mut self, c: char) -> fmt::Result {
         match c {
-            '.' | '(' | ')' | ' ' => return self.0.write_str("_"),
+            '.' | '(' | ')' | '[' | ']' | '{' | '}' | ' ' => return self.0.write_str("_"),
             _ => {}
         }
         self.0.write_char(c)
@@ -279,7 +279,7 @@ impl<'a> Dot<'a> {
 
     fn get_dot_id(id: &NodeIndex, config: &DotConfig) -> String {
         match &config.prefix {
-            Some(prefix) => format!("{}{}", prefix, id),
+            Some(prefix) => format!("{}{}", EscapedName(prefix), id),
             None => id.to_string(),
         }
     }

@@ -300,6 +300,31 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
         self.init_context::<true>(current_iteration_map, &self.context.start_context)
     }
 
+    fn trace_program(p: &SubProgram) {
+        debug!(target: "ruse::synthesizer", "Program \"{}\"", p.get_code());
+
+        for i in 0..p.post_ctx().len() {
+            let pre_ctx = &p.pre_ctx()[i];
+            let post_ctx = &p.post_ctx()[i];
+            let out_value = &p.out_value()[i];
+            for (name, value) in pre_ctx.variables() {
+                debug!(target: "ruse::synthesizer", "pre_ctx[{}] {}:\n{}", i,
+                    name, 
+                    value.dot_display_with_config(&pre_ctx.graphs_map, 
+                    DotConfig::subgraph_config(&format!("{}[{}]_{}", "pre", i, name))));
+            }
+            for (name, value) in post_ctx.variables() {
+                debug!(target: "ruse::synthesizer", "post_ctx[{}] {}:\n{}", i,
+                    name, 
+                    value.dot_display_with_config(&post_ctx.graphs_map, 
+                    DotConfig::subgraph_config(&format!("{}[{}]_{}", "post", i, name))))
+            }
+            debug!(target: "ruse::synthesizer", "output[{}]: {}", i ,
+                out_value.val().dot_display_with_config(&post_ctx.graphs_map, 
+                DotConfig::subgraph_config(&format!("output[{}]", i))));
+        }
+    }
+
     fn composite_iter_batch(
         &self,
         triplet: &ProgTriplet,
@@ -322,22 +347,8 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
             if p.pre_ctx().subset(&self.context.start_context)
                 && (self.predicate)(&p, &self.context)
             {
-                debug!(target: "ruse::synthesizer", "Found program \"{}\"", p.get_code());
-                for (name, value) in p.pre_ctx()[0].variables() {
-                    debug!(target: "ruse::synthesizer", "pre_ctx[0] {}:\n{}", 
-                        name, 
-                        value.dot_display_with_config(&p.pre_ctx()[0].graphs_map, 
-                        DotConfig::subgraph_config(&format!("{}_{}", "pre", &name))));
-                }
-                for (name, value) in p.post_ctx()[0].variables() {
-                    debug!(target: "ruse::synthesizer", "post_ctx[0] {}:\n{}", 
-                        name, 
-                        value.dot_display_with_config(&p.post_ctx()[0].graphs_map, 
-                        DotConfig::subgraph_config(&format!("{}_{}", "post", &name))))
-                }
-                debug!(target: "ruse::synthesizer", "output[0]: {}", 
-                    p.out_value()[0].val().dot_display_with_config(&p.post_ctx()[0].graphs_map, 
-                    DotConfig::subgraph_config("output")));
+                debug!(target: "ruse::synthesizer", "Found!");
+                Self::trace_program(&p);
                 return Some(p);
             }
         }
