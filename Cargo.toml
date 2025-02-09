@@ -3,6 +3,8 @@ members = ["lib/*", "benchmarks"]
 resolver = "2"
 
 [workspace.dependencies]
+byteview = "*"
+
 tracing = { version = "*", features = ["release_max_level_debug"] }
 tracing-subscriber = { version = "*", features = ["json"] }
 
@@ -38,7 +40,6 @@ tokio = { version = "^1.43.0", features = [
 tokio-util = "*"
 futures = "*"
 
-bitcode = { version = "*", features = ["derive"] }
 serde = { version = "*", features = ["derive"] }
 serde_json = "*"
 serde_with = "*"

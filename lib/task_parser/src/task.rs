@@ -13,7 +13,9 @@ use ruse_object_graph::{
 };
 use ruse_synthesizer::{
     bank::ProgBank,
-    context::{Context, ContextArray, GraphIdGenerator, SynthesizerContext, ValuesMap},
+    context::{
+        Context, ContextArray, GraphIdGenerator, SynthesizerContext, ValuesMap, VariableName,
+    },
     opcode::{ExprOpcode, OpcodesList},
     synthesizer::SynthesizerPredicate,
 };
@@ -594,7 +596,7 @@ impl SnythesisTask {
     }
 
     fn get_opcodes(&self, cache: &Cache) -> OpcodesList {
-        let var_names: Vec<Arc<String>> = self
+        let var_names: Vec<VariableName> = self
             .inner
             .variables
             .as_ref()

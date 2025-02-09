@@ -1,14 +1,17 @@
-use std::{collections::{HashMap, VecDeque}, sync::Arc};
+use std::{
+    collections::{HashMap, VecDeque},
+    sync::Arc,
+};
 
 use crate::{error::SnythesisTaskError, parse_err, task_type::TaskType, verify_err};
 use itertools::Itertools;
-use ruse_object_graph::{graph_walk, str_cached, value::Value, Cache, EdgeEndPoint, FieldName, GraphsMap};
+use ruse_object_graph::{graph_walk, str_cached, value::Value, Cache, EdgeEndPoint, GraphsMap};
 use ruse_synthesizer::context::ValuesMap;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct VarRef {
     var: String,
-    fields: Vec<FieldName>,
+    fields: Vec<String>,
 }
 
 impl VarRef {
@@ -16,18 +19,20 @@ impl VarRef {
         &self,
         values: &ValuesMap,
         graphs_map: &GraphsMap,
+        cache: &Cache,
     ) -> Result<Value, SnythesisTaskError> {
-        let value = values.get(&self.var).ok_or(parse_err!(
+        let value = values.get(self.var.as_str()).ok_or(parse_err!(
             format!("{}", self),
             "Pointing to an uninitialized value"
         ))?;
-        self.walk_fields(value, graphs_map)
+        self.walk_fields(value, graphs_map, cache)
     }
 
     fn walk_fields(
         &self,
         value: &Value,
         graphs_map: &GraphsMap,
+        cache: &Cache,
     ) -> Result<Value, SnythesisTaskError> {
         if self.fields.is_empty() {
             Ok(value.clone())
@@ -35,10 +40,12 @@ impl VarRef {
             let mut cur_value = value.clone();
             for field in &self.fields {
                 if let Value::Object(obj) = cur_value {
-                    cur_value = obj.get_field_value(field, graphs_map).ok_or(parse_err!(
-                        format!("{}", self),
-                        format!("Couldn't find field {}", field)
-                    ))?;
+                    cur_value = obj
+                        .get_field_value(&str_cached!(cache; field), graphs_map)
+                        .ok_or(parse_err!(
+                            format!("{}", self),
+                            format!("Couldn't find field {}", field)
+                        ))?;
                 } else {
                     return Err(parse_err!(
                         format!("{}", self),
@@ -56,7 +63,7 @@ impl From<&str> for VarRef {
     fn from(value: &str) -> Self {
         let mut iter = value.split(".");
         let var = iter.next().unwrap().to_string();
-        let fields = iter.map(|x| FieldName::from(x.to_string())).collect();
+        let fields = iter.map(|x| x.to_string()).collect();
         VarRef { var, fields }
     }
 }
@@ -121,7 +128,9 @@ pub(crate) fn set_var_refs(
                         graph.id,
                         node_id,
                         edge.0.clone(),
-                        graphs_map.node_root_names(&node_id).map(|x| x.cloned().collect_vec()),
+                        graphs_map
+                            .node_root_names(&node_id)
+                            .map(|x| x.cloned().collect_vec()),
                         VarRef::from(var_ref.as_str()),
                     ));
                 }
@@ -129,7 +138,7 @@ pub(crate) fn set_var_refs(
         }
     }
     for (graph_id, node_id, field_name, root_name_opt, var_ref) in refs {
-        let actual_value = var_ref.create_value(values, graphs_map)?;
+        let actual_value = var_ref.create_value(values, graphs_map, cache)?;
         let graph = Arc::make_mut(graphs_map.get_mut(&graph_id).unwrap());
         let actual_obj = actual_value.obj().unwrap();
 
@@ -181,11 +190,11 @@ pub(crate) fn set_var_refs(
     }
 
     while let Some((key, var_ref)) = var_refs.pop_front() {
-        if !values.contains_key(&var_ref.var) {
+        if !values.contains_key(var_ref.var.as_str()) {
             var_refs.push_back((key, var_ref));
             continue;
         }
-        let value = var_ref.create_value(&values, graphs_map)?;
+        let value = var_ref.create_value(&values, graphs_map, cache)?;
         if let Value::Object(obj_val) = &value {
             graphs_map.set_as_root(key.clone(), obj_val.graph_id, obj_val.node);
         }

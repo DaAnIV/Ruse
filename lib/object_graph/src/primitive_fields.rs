@@ -4,7 +4,7 @@ use std::hash::{Hash, Hasher};
 
 use crate::CachedString;
 
-#[derive(bitcode::Encode, Clone, Copy, Debug, PartialOrd)]
+#[derive(Clone, Copy, Debug, PartialOrd)]
 pub struct Number(pub f64);
 
 const NUMBER_TOLL: f64 = 0.000_1;
@@ -135,7 +135,7 @@ impl Default for Number {
     }
 }
 
-#[derive(Hash, Clone, PartialEq, Eq, Debug, bitcode::Encode)]
+#[derive(Hash, Clone, PartialEq, Eq, Debug)]
 pub enum PrimitiveValue {
     Number(Number),
     Bool(bool),

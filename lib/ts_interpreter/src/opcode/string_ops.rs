@@ -153,9 +153,9 @@ impl ExprOpcode for StringSliceOp {
             return pure!(post_ctx.temp_value(vcstring!(syn_ctx.cached_string(""))));
         }
 
-        let substring = &string[start..end];
+        let substring = string.slice(start..end);
 
-        pure!(post_ctx.temp_value(vcstring!(syn_ctx.cached_string(substring))))
+        pure!(post_ctx.temp_value(Value::Primitive(PrimitiveValue::String(substring))))
     }
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
@@ -382,7 +382,7 @@ impl ExprOpcode for StringAtOp {
         &self,
         args: &[&LocValue],
         post_ctx: &mut Context,
-        syn_ctx: &SynthesizerContext,
+        _syn_ctx: &SynthesizerContext,
     ) -> EvalResult {
         debug_assert_eq!(args.len(), 2);
 
@@ -403,7 +403,9 @@ impl ExprOpcode for StringAtOp {
             (str_val.len() as isize + index_isize) as usize
         };
 
-        pure!(post_ctx.temp_value(vstr!(syn_ctx.cache; &str_val[index_usize..=index_usize])))
+        let char_slice = str_val.slice(index_usize..=index_usize);
+
+        pure!(post_ctx.temp_value(Value::Primitive(PrimitiveValue::String(char_slice))))
     }
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {

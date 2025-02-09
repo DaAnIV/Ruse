@@ -539,7 +539,7 @@ impl TsClass {
             .collect_vec();
 
         let method_name = match method_desc.kind {
-            MethodKind::Method => &method_desc.name,
+            MethodKind::Method => method_desc.name.as_str(),
             MethodKind::Getter => &JsObjectWrapper::getter_name(&method_desc.name),
             MethodKind::Setter => &JsObjectWrapper::setter_name(&method_desc.name),
         };

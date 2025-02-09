@@ -81,7 +81,7 @@ impl BinOp {
         }
     }
 
-    fn eval_bin_str(&self, s1: &String, s2: &String, syn_ctx: &SynthesizerContext) -> Value {
+    fn eval_bin_str(&self, s1: &str, s2: &str, syn_ctx: &SynthesizerContext) -> Value {
         match self.op {
             ast::BinaryOp::EqEq => vbool!(s1 == s2),
             ast::BinaryOp::NotEq => vbool!(s1 != s2),
