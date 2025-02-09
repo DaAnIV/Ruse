@@ -391,7 +391,11 @@ impl ExprOpcode for StringAtOp {
         let index_isize = index.to_isize().ok_or(())?;
 
         let index_usize = if index_isize >= 0 {
-            index_isize as usize
+            let index_usize = index_isize as usize;
+            if index_usize >= str_val.len() {
+                return Err(());
+            }
+            index_usize
         } else {
             if (-index_isize) as usize > str_val.len() {
                 return Err(());
