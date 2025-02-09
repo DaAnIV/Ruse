@@ -1,16 +1,17 @@
 use std::{
-    collections::{BTreeMap, HashMap, HashSet},
+    collections::{hash_map, BTreeMap, HashMap, HashSet},
     fmt,
-    hash::{BuildHasherDefault, DefaultHasher, Hash, Hasher},
+    hash::{BuildHasherDefault, DefaultHasher},
     ops::{self, AddAssign, SubAssign},
     sync::Arc,
 };
 
+use itertools::Itertools;
+
 use crate::{
     graph_equality,
-    graph_map_value::{GraphMapDisplay, GraphMapEq, GraphMapHash, GraphMapValue, GraphMapWrap},
+    graph_map_value::{GraphMapValue, GraphMapWrap},
     graph_node::*,
-    graph_walk::ObjectGraphWalker,
     node_index::{DefaultIx, NodeIndex},
     scached,
     value::{ObjectValue, Value, ValueType},
@@ -18,20 +19,41 @@ use crate::{
 };
 pub type GraphIndex = DefaultIx;
 
-#[derive(Clone, Default)]
-pub struct GraphsMap(HashMap<GraphIndex, Arc<ObjectGraph>, BuildHasherDefault<DefaultHasher>>);
+#[derive(Debug, Clone, Copy)]
+pub struct GraphRoot {
+    pub graph: GraphIndex,
+    pub node: NodeIndex,
+}
+
+type RootsMap = BTreeMap<RootName, GraphRoot>;
+type NodeRootNamesMap = HashMap<NodeIndex, HashSet<RootName>>;
+
+#[derive(Clone)]
+pub struct GraphsMap {
+    graphs: HashMap<GraphIndex, Arc<ObjectGraph>, BuildHasherDefault<DefaultHasher>>,
+    roots: RootsMap,
+    node_roots_names: NodeRootNamesMap,
+}
 
 impl GraphsMap {
+    pub fn new() -> Self {
+        return Self {
+            graphs: Default::default(),
+            roots: Default::default(),
+            node_roots_names: Default::default(),
+        };
+    }
+
     pub fn insert_graph(&mut self, graph: Arc<ObjectGraph>) -> Option<Arc<ObjectGraph>> {
-        self.0.insert(graph.id, graph)
+        self.graphs.insert(graph.id, graph)
     }
 
     pub fn remove(&mut self, id: GraphIndex) -> Option<Arc<ObjectGraph>> {
-        self.0.remove(&id)
+        self.graphs.remove(&id)
     }
 
     pub fn insert_graph_if_new(&mut self, graph: Arc<ObjectGraph>) -> bool {
-        match self.0.entry(graph.id) {
+        match self.graphs.entry(graph.id) {
             std::collections::hash_map::Entry::Occupied(_) => false,
             std::collections::hash_map::Entry::Vacant(vacant_entry) => {
                 vacant_entry.insert(graph);
@@ -41,15 +63,15 @@ impl GraphsMap {
     }
 
     pub fn get(&self, index: &GraphIndex) -> Option<&Arc<ObjectGraph>> {
-        self.0.get(&index)
+        self.graphs.get(&index)
     }
 
     pub fn get_mut(&mut self, index: &GraphIndex) -> Option<&mut Arc<ObjectGraph>> {
-        self.0.get_mut(&index)
+        self.graphs.get_mut(&index)
     }
 
     pub fn get_or_create_mut(&mut self, graph_id: GraphIndex) -> &mut Arc<ObjectGraph> {
-        match self.0.entry(graph_id) {
+        match self.graphs.entry(graph_id) {
             std::collections::hash_map::Entry::Occupied(g) => g.into_mut(),
             std::collections::hash_map::Entry::Vacant(vacant_entry) => {
                 vacant_entry.insert(ObjectGraph::new(graph_id).into())
@@ -58,40 +80,90 @@ impl GraphsMap {
     }
 
     pub fn contains(&self, index: GraphIndex) -> bool {
-        self.0.contains_key(&index)
+        self.graphs.contains_key(&index)
     }
 
     pub fn graph_indices(&self) -> impl std::iter::Iterator<Item = &GraphIndex> {
-        self.0.keys()
+        self.graphs.keys()
     }
 
     pub fn graphs(&self) -> impl std::iter::Iterator<Item = &Arc<ObjectGraph>> {
-        self.0.values()
+        self.graphs.values()
     }
 
     pub fn extend(&mut self, other: &GraphsMap) {
-        for (key, value) in &other.0 {
-            self.0.entry(*key).or_insert(value.clone());
+        for (key, value) in &other.graphs {
+            self.graphs.entry(*key).or_insert(value.clone());
         }
     }
 
     pub fn keys(&self) -> impl std::iter::Iterator<Item = &usize> {
-        self.0.keys()
+        self.graphs.keys()
     }
 
     pub fn add_static_graphs(&mut self, from: &GraphsMap) {
-        for g in from.0.values() {
+        for g in from.graphs.values() {
             if g.is_static() {
                 self.insert_graph_if_new(g.clone());
             }
         }
     }
 
-    pub fn all_roots(
-        &self,
-    ) -> impl std::iter::Iterator<Item = (&Arc<ObjectGraph>, &RootName, NodeIndex)> {
-        self.graphs()
-            .flat_map(|g| g.roots().map(move |(r, n)| (g, r, *n)))
+    pub fn node_count(&self) -> usize {
+        self.graphs().fold(0, |acc, g| acc + g.node_count())
+    }
+}
+
+impl GraphsMap {
+    pub fn get_root(&self, name: &RootName) -> Option<&GraphRoot> {
+        self.roots.get(name)
+    }
+
+    pub fn set_as_root(&mut self, name: RootName, graph: GraphIndex, node: NodeIndex) {
+        let graph_root = GraphRoot { graph, node };
+        match self.node_roots_names.entry(node) {
+            hash_map::Entry::Vacant(vacant_entry) => {
+                vacant_entry.insert(HashSet::from_iter([name.clone()]));
+            }
+            hash_map::Entry::Occupied(mut occupied_entry) => {
+                occupied_entry.get_mut().insert(name.clone());
+            }
+        };
+        if let Some(old_root) = self.roots.insert(name.clone(), graph_root) {
+            if old_root.node != node {
+                let remove_entry = {
+                    let names = self.node_roots_names.get_mut(&old_root.node).unwrap();
+                    names.remove(&name);
+                    names.is_empty()
+                };
+                if remove_entry {
+                    self.node_roots_names.remove(&old_root.node);
+                }
+            }
+        }
+    }
+
+    pub fn root_names(&self) -> impl std::iter::Iterator<Item = &RootName> {
+        self.roots.keys()
+    }
+
+    pub fn roots(&self) -> impl std::iter::Iterator<Item = (&RootName, &GraphRoot)> {
+        self.roots.iter()
+    }
+
+    pub fn is_root(&self, node_id: &NodeIndex) -> bool {
+        self.node_roots_names.contains_key(node_id)
+    }
+
+    pub fn node_root_names(&self, node_id: &NodeIndex) -> Option<impl Iterator<Item = &RootName>> {
+        let root_names = self.node_roots_names.get(node_id)?;
+        Some(root_names.iter())
+    }
+}
+
+impl Default for GraphsMap {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -115,9 +187,20 @@ impl ops::Index<GraphIndex> for GraphsMap {
 
 impl fmt::Display for GraphsMap {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for (graph_id, g) in self.0.iter() {
-            write!(f, "[{}]: {}", graph_id, g.wrap(self))?;
+        let mut seen = HashSet::new();
+        write!(f, "{{")?;
+        for (_, names) in self.node_roots_names.iter() {
+            let root = &self.roots[names.iter().next().unwrap()];
+            self.graphs[&root.graph].fmt_node_with_indentation_and_name(
+                f,
+                self,
+                &root.node,
+                &names.iter().join(","),
+                1,
+                &mut seen,
+            )?;
         }
+        write!(f, "}}")?;
 
         Ok(())
     }
@@ -125,7 +208,7 @@ impl fmt::Display for GraphsMap {
 
 impl fmt::Debug for GraphsMap {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for (graph_id, g) in self.0.iter() {
+        for (graph_id, g) in self.graphs.iter() {
             write!(f, "[{}]: ", graph_id)?;
             fmt::Debug::fmt(g, f)?;
         }
@@ -134,15 +217,23 @@ impl fmt::Debug for GraphsMap {
     }
 }
 
+impl Eq for GraphsMap {}
+impl PartialEq for GraphsMap {
+    fn eq(&self, other: &Self) -> bool {
+        if !self.roots.keys().eq(other.roots.keys()) {
+            return false;
+        }
+        graph_equality::equal_graphs_by_root_names(self, other, self.roots.keys())
+    }
+}
+
 type NodesMap = HashMap<NodeIndex, Arc<ObjectGraphNode>>;
-type RootsMap = BTreeMap<RootName, NodeIndex>;
 
 #[derive(Clone)]
 pub struct ObjectGraph {
     pub id: GraphIndex,
     is_static: bool,
     pub(crate) nodes: NodesMap,
-    pub(crate) roots: RootsMap,
     pub(crate) chained_graphs: HashMap<GraphIndex, usize>,
 }
 
@@ -151,7 +242,6 @@ impl ObjectGraph {
         Self {
             id,
             nodes: Default::default(),
-            roots: Default::default(),
             chained_graphs: Default::default(),
             is_static: false,
         }
@@ -161,7 +251,6 @@ impl ObjectGraph {
         Self {
             id,
             nodes: Default::default(),
-            roots: Default::default(),
             chained_graphs: Default::default(),
             is_static: true,
         }
@@ -367,29 +456,6 @@ impl ObjectGraph {
         node.pointers_iter()
     }
 
-    pub fn get_root(&self, name: &RootName) -> Option<&NodeIndex> {
-        self.roots.get(name)
-    }
-
-    pub fn set_as_root(&mut self, name: RootName, id: NodeIndex) {
-        let node = self.get_mut_node(&id).unwrap();
-        node.root_names.insert(name.clone());
-        if let Some(old_id) = self.roots.insert(name.clone(), id) {
-            if old_id != id {
-                let old_node = self.get_mut_node(&old_id).unwrap();
-                old_node.root_names.remove(&name);
-            }
-        }
-    }
-
-    pub fn root_names(&self) -> impl std::iter::Iterator<Item = &RootName> {
-        self.roots.keys()
-    }
-
-    pub fn roots(&self) -> impl std::iter::Iterator<Item = (&RootName, &NodeIndex)> {
-        self.roots.iter()
-    }
-
     pub fn node_ids(&self) -> impl std::iter::Iterator<Item = &NodeIndex> {
         self.nodes.keys()
     }
@@ -404,21 +470,6 @@ impl ObjectGraph {
 
     pub(crate) fn node_attributes(&self, node: NodeIndex) -> Option<Attributes> {
         self.get_node(&node).map(|x| x.attributes.clone())
-    }
-
-    pub fn is_root(&self, node_id: &NodeIndex) -> bool {
-        match self.get_node(node_id) {
-            Some(node) => !node.root_names.is_empty(),
-            None => false,
-        }
-    }
-
-    pub fn node_root_names(&self, node_id: &NodeIndex) -> Option<impl Iterator<Item = &RootName>> {
-        let root_names = &self.get_node(node_id)?.root_names;
-        if root_names.is_empty() {
-            return None;
-        }
-        Some(root_names.iter())
     }
 }
 
@@ -446,17 +497,6 @@ impl ObjectGraph {
     ) -> fmt::Result {
         let mut seen = HashSet::new();
         self.fmt_node_with_indentation(f, graphs_map, node, 0, &mut seen)
-    }
-
-    pub fn fmt_graph(&self, f: &mut fmt::Formatter<'_>, graphs_map: &GraphsMap) -> fmt::Result {
-        let mut seen = HashSet::new();
-        writeln!(f, "{{")?;
-        for (name, node) in self.roots.iter() {
-            self.fmt_node_with_indentation_and_name(f, graphs_map, node, name, 1, &mut seen)?;
-        }
-        writeln!(f, "}}")?;
-
-        Ok(())
     }
 
     fn fmt_node_with_indentation(
@@ -765,7 +805,6 @@ impl fmt::Debug for ObjectGraph {
             .field("id", &self.id)
             .field("is_static", &self.is_static)
             .field("nodes", &self.nodes)
-            .field("roots", &self.roots)
             .finish()
     }
 }
@@ -773,29 +812,5 @@ impl fmt::Debug for ObjectGraph {
 impl GraphMapWrap<Self> for ObjectGraph {
     fn wrap<'a>(&'a self, graphs_map: &'a GraphsMap) -> GraphMapValue<'a, Self> {
         GraphMapValue::from(&self, graphs_map)
-    }
-}
-
-impl GraphMapEq for ObjectGraph {
-    fn eq(&self, self_graphs_map: &GraphsMap, other: &Self, other_graphs_map: &GraphsMap) -> bool {
-        graph_equality::equal_graphs(self_graphs_map, other_graphs_map, self, other)
-    }
-}
-
-impl GraphMapHash for ObjectGraph {
-    fn calculate_hash<H: Hasher>(&self, state: &mut H, graphs_map: &GraphsMap) {
-        for (root_name, _) in &self.roots {
-            root_name.hash(state);
-        }
-
-        for (_, _, node) in ObjectGraphWalker::from_graph(graphs_map, self.id) {
-            node.hash(state);
-        }
-    }
-}
-
-impl GraphMapDisplay for ObjectGraph {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>, graphs_map: &GraphsMap) -> core::fmt::Result {
-        self.fmt_graph(f, graphs_map)
     }
 }

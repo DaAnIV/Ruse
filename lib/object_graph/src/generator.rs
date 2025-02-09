@@ -26,7 +26,7 @@ pub mod object_graph_generator {
         graph_id: GraphIndex,
         rng: &mut R,
         base: DiGraph<(), ()>,
-    ) -> ObjectGraph {
+    ) -> GraphsMap {
         let mut id = NodeIndex(0);
         let n = base.node_count();
         let mut discovered = base.visit_map();
@@ -36,6 +36,7 @@ pub mod object_graph_generator {
         let mut graph = ObjectGraph::new(graph_id);
         let root_field_string = str_cached!(cache; "r");
         let data_field_string = str_cached!(cache; "a");
+        let mut roots = Vec::new();
         while let Some(r) = get_unseen_index(n.try_into().unwrap(), &mut discovered) {
             let root_fields = fields!((
                 root_field_string.clone(),
@@ -44,7 +45,7 @@ pub mod object_graph_generator {
             let root_name = scached!(cache; generate_random_str(5, rng).to_ascii_uppercase());
             let obj_name = scached!(cache; generate_random_str(5, rng).to_ascii_uppercase());
             graph.add_simple_object(id, obj_name, root_fields);
-            graph.set_as_root(root_name, id);
+            roots.push((root_name, id));
             map.insert(r.into(), id);
             id += 1;
 
@@ -71,7 +72,13 @@ pub mod object_graph_generator {
             graph.set_edge(object, *field, edge_name);
         }
 
-        graph
+        let mut graphs_map = GraphsMap::new();
+        graphs_map.insert_graph(graph.into());
+        for (root_name, node) in roots {
+            graphs_map.set_as_root(root_name, graph_id, node);
+        }
+
+        graphs_map
     }
 
     pub fn random_gnp_object_graph<R: Rng + ?Sized>(
@@ -80,7 +87,7 @@ pub mod object_graph_generator {
         rng: &mut R,
         n: usize,
         p: f64,
-    ) -> ObjectGraph {
+    ) -> GraphsMap {
         let base: DiGraph<(), ()> = random_gnp_graph(rng, n, p);
         graph_to_random_object_graph(cache, graph_id, rng, base)
     }
@@ -91,7 +98,7 @@ pub mod object_graph_generator {
         rng: &mut R,
         n: usize,
         m: usize,
-    ) -> ObjectGraph {
+    ) -> GraphsMap {
         let base: DiGraph<(), ()> = random_gnm_graph(rng, n, m);
         graph_to_random_object_graph(cache, graph_id, rng, base)
     }

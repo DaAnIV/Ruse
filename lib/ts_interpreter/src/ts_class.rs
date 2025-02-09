@@ -4,7 +4,7 @@ use boa_engine::{class::DynamicClassBuilder, JsValue};
 use itertools::Itertools;
 use ruse_object_graph::{
     fields, scached, str_cached, vbool, vnull, vnum, vstring, Attributes, Cache, CachedString,
-    FieldName, GraphIndex, GraphsMap, NodeIndex, ObjectGraph, ObjectType, PrimitiveValue, RootName,
+    FieldName, GraphIndex, GraphsMap, NodeIndex, ObjectGraph, ObjectType, PrimitiveValue,
 };
 use ruse_synthesizer::{
     context::{GraphIdGenerator, SynthesizerContextData},
@@ -431,22 +431,6 @@ impl TsClass {
             graph_id: graph.id,
             node: obj_id,
         }
-    }
-
-    pub fn generate_rooted_object<I>(
-        &self,
-        root_name: RootName,
-        map: I,
-        graph: &mut ObjectGraph,
-        graph_id_gen: &GraphIdGenerator,
-    ) -> ObjectValue
-    where
-        I: IntoIterator<Item = (CachedString, Value)>,
-    {
-        let val = self.generate_object(map, graph, graph_id_gen);
-        graph.set_as_root(root_name, val.node);
-
-        val
     }
 
     pub fn wrap_as_js_object(
@@ -878,6 +862,7 @@ impl TsClassBuilder {
         let mut graph = ObjectGraph::new_static(graph_id);
         self.add_root_node(&mut graph, root_node, cache);
         graphs_map.insert_graph(graph.into());
+        graphs_map.set_as_root(static_graph_root_name(&self.class_name, cache), graph_id, root_node);
 
         for field in self.fields.values().filter(|field| field.is_static) {
             self.add_static_field(field, graph_id, graphs_map, root_node, classes, cache);
@@ -892,7 +877,6 @@ impl TsClassBuilder {
             static_graph_obj_type(&self.class_name, cache),
             fields!(),
         );
-        graph.set_as_root(static_graph_root_name(&self.class_name, cache), root_node);
     }
 
     fn add_static_field(

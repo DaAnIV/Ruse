@@ -1,5 +1,5 @@
 use core::fmt;
-use std::collections::{BTreeMap, HashSet};
+use std::collections::BTreeMap;
 
 use crate::{node_index::NodeIndex, CachedString, GraphIndex, PrimitiveValue};
 
@@ -71,7 +71,6 @@ pub struct ObjectGraphNode {
     obj_type: ObjectType,
     fields: FieldsMap,
     pointers: PointersMap,
-    pub root_names: HashSet<RootName>,
     pub attributes: Attributes
 }
 
@@ -81,7 +80,6 @@ impl ObjectGraphNode {
             obj_type,
             fields,
             pointers: pointers,
-            root_names: Default::default(),
             attributes: Attributes::default()
         }
     }
@@ -90,7 +88,6 @@ impl ObjectGraphNode {
             obj_type,
             fields,
             pointers: pointers,
-            root_names: Default::default(),
             attributes
         }
     }

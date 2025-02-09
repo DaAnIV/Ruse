@@ -254,7 +254,6 @@ pub mod helpers {
         let fields = generate_fields(4, rng, cache);
         let obj_type = scached!(cache; generate_random_str(4, rng));
         graph.construct_node(root_id, obj_type.clone(), fields);
-        graph.set_as_root(root_name, root_id);
 
         for _ in 0..4 {
             let neig_id = graph_id_gen.get_id_for_node();
@@ -267,6 +266,7 @@ pub mod helpers {
         }
 
         graphs_map.insert_graph(graph.into());
+        graphs_map.set_as_root(root_name, graph_id, root_id);
 
         ObjectValue {
             obj_type: obj_type,
@@ -320,8 +320,8 @@ pub mod helpers {
         let mut graph = ObjectGraph::new(graph_id);
         let node =
             graph.add_array_object(graph_id_gen.get_id_for_node(), elem_type, elements, cache);
-        graph.set_as_root(key.clone(), node);
         graphs_map.insert_graph(graph.into());
+        graphs_map.set_as_root(key.clone(), graph_id, node);
         values.insert(
             key,
             Value::Object(ObjectValue {
@@ -1130,16 +1130,16 @@ mod embedding_tests {
             obj_type.clone(),
             [(field_name.clone(), vstr!(cache; "x"))],
         );
-        x_graph.set_as_root(str_cached!(cache; "x"), x_node_id);
         y_graph.add_object_from_map(
             y_node_id,
             obj_type.clone(),
             [(field_name.clone(), vstr!(cache; "y"))],
         );
-        y_graph.set_as_root(str_cached!(cache; "y"), y_node_id);
 
         graphs_map.insert_graph(x_graph.into());
         graphs_map.insert_graph(y_graph.into());
+        graphs_map.set_as_root(str_cached!(cache; "x"), x_graph_id, x_node_id);
+        graphs_map.set_as_root(str_cached!(cache; "y"), y_graph_id, y_node_id);
 
         let start_ctx = ContextArray::from(vec![Context::with_values(
             [
@@ -1252,10 +1252,10 @@ mod embedding_tests {
                 vobj!(obj_type2.clone(), graph_id, x_node_id),
             )],
         );
-        graph.set_as_root(str_cached!(cache; "x"), x_node_id);
-        graph.set_as_root(str_cached!(cache; "y"), y_node_id);
 
         graphs_map.insert_graph(graph.into());
+        graphs_map.set_as_root(str_cached!(cache; "x"), graph_id, x_node_id);
+        graphs_map.set_as_root(str_cached!(cache; "y"), graph_id, y_node_id);
 
         let start_ctx = ContextArray::from(vec![Context::with_values(
             [

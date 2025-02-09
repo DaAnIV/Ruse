@@ -99,13 +99,10 @@ pub(crate) fn set_var_refs(
     cache: &Cache,
 ) -> Result<(), SnythesisTaskError> {
     let mut refs = Vec::new();
-    for (graph, node_id, node) in graph_walk::ObjectGraphWalker::from_graphs(
-        graphs_map,
-        graphs_map
-            .graph_indices()
-            .map(|g_id| *g_id)
-            .filter(|g_id| *g_id != REF_GRAPH_ID),
-    ) {
+    for (graph, node_id, node) in graph_walk::ObjectGraphWalker::from_graphs_map(graphs_map) {
+        if graph.id == REF_GRAPH_ID {
+            continue;
+        }
         for edge in node.pointers_iter() {
             if let EdgeEndPoint::Chain(edge_graph_id, edge_node_id) = edge.1 {
                 if *edge_graph_id == REF_GRAPH_ID {
@@ -124,7 +121,7 @@ pub(crate) fn set_var_refs(
                         graph.id,
                         node_id,
                         edge.0.clone(),
-                        graph.node_root_names(&node_id).map(|x| x.cloned().collect_vec()),
+                        graphs_map.node_root_names(&node_id).map(|x| x.cloned().collect_vec()),
                         VarRef::from(var_ref.as_str()),
                     ));
                 }
@@ -143,7 +140,7 @@ pub(crate) fn set_var_refs(
         }
         if let Some(root_names) = root_name_opt {
             for r in root_names {
-                graph.set_as_root(r.clone(), actual_obj.node);
+                graphs_map.set_as_root(r.clone(), actual_obj.graph_id, actual_obj.node);
                 if values.contains_key(&r) {
                     values.insert(r, Value::Object(actual_obj.clone()));
                 }
@@ -190,8 +187,7 @@ pub(crate) fn set_var_refs(
         }
         let value = var_ref.create_value(&values, graphs_map)?;
         if let Value::Object(obj_val) = &value {
-            let graph = Arc::make_mut(graphs_map.get_mut(&obj_val.graph_id).unwrap());
-            graph.set_as_root(key.clone(), obj_val.node);
+            graphs_map.set_as_root(key.clone(), obj_val.graph_id, obj_val.node);
         }
         values.insert(key, value);
     }

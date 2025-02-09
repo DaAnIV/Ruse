@@ -94,7 +94,6 @@ impl DomLoader {
             Self::document_obj_type(cache),
             fields!(),
         );
-        graph.set_as_root(Self::document_root_name(cache), root);
 
         let parsed = Dom::parse(html)?;
         if parsed.tree_type == html_parser::DomVariant::Empty {

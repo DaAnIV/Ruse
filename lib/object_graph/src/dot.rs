@@ -177,42 +177,14 @@ impl<'a> fmt::Debug for ObjectGraphNodeDotDisplay<'a> {
 }
 
 impl<'a> Dot<'a> {
-    pub fn from_graph(graphs_map: &'a GraphsMap, graph: GraphIndex) -> Self {
-        Self::from_graph_with_config(graphs_map, graph, DotConfig::default())
-    }
-
-    pub fn from_graph_with_config(
-        graphs_map: &'a GraphsMap,
-        graph: GraphIndex,
-        config: DotConfig,
-    ) -> Self {
-        Self::from_graphs_with_config(graphs_map, vec![graph], config)
-    }
-
     pub fn from_graphs_map(graphs_map: &'a GraphsMap) -> Self {
         Self::from_graphs_map_with_config(graphs_map, DotConfig::default())
     }
 
     pub fn from_graphs_map_with_config(graphs_map: &'a GraphsMap, config: DotConfig) -> Self {
-        Self::from_graphs_with_config(
-            graphs_map,
-            Vec::from_iter(graphs_map.graph_indices().map(|x| *x)),
-            config,
-        )
-    }
-
-    pub fn from_graphs(graphs_map: &'a GraphsMap, graphs: Vec<GraphIndex>) -> Self {
-        Self::from_graphs_with_config(graphs_map, graphs, DotConfig::default())
-    }
-
-    pub fn from_graphs_with_config(
-        graphs_map: &'a GraphsMap,
-        graphs: Vec<GraphIndex>,
-        config: DotConfig,
-    ) -> Self {
-        let nodes: Vec<(GraphIndex, NodeIndex)> = graphs
-            .iter()
-            .flat_map(|g| graphs_map[g].roots.values().map(|r| (*g, *r)))
+        let nodes: Vec<(GraphIndex, NodeIndex)> = graphs_map
+            .roots()
+            .map(|(_, r)| (r.graph, r.node))
             .collect();
         Self::from_nodes_with_config(graphs_map, nodes, config)
     }
@@ -317,7 +289,7 @@ impl<'a> Dot<'a> {
             ObjectGraphWalker::from_nodes(&self.graphs_map, self.nodes.iter().copied())
         {
             write!(f, "{}", INDENT)?;
-            let root_names = cur_graph
+            let root_names = self.graphs_map
                 .node_root_names(&cur_node_id)
                 .map(|mut names| names.join(", "));
             Self::write_node(

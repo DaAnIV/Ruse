@@ -490,8 +490,7 @@ mod ts_class_tests {
         let user_class_pair = classes.get_class(&user_pair_class_name).unwrap();
 
         let mut user1_graph = ObjectGraph::new(id_gen.get_id_for_graph());
-        let user1 = user_class.generate_rooted_object(
-            str_cached!(cache; "student1"),
+        let user1 = user_class.generate_object(
             HashMap::from([
                 (str_cached!(cache; "surname"), vstr!(cache; "Doe")),
                 (str_cached!(cache; "name"), vstr!(cache; "John")),
@@ -500,10 +499,10 @@ mod ts_class_tests {
             &id_gen,
         );
         graphs_map.insert_graph(user1_graph.into());
+        graphs_map.set_as_root(str_cached!(cache; "student1"), user1.graph_id, user1.node);
 
         let mut user2_graph = ObjectGraph::new(id_gen.get_id_for_graph());
-        let user2 = user_class.generate_rooted_object(
-            str_cached!(cache; "student2"),
+        let user2 = user_class.generate_object(
             HashMap::from([
                 (str_cached!(cache; "name"), vstr!(cache; "Paul")),
                 (str_cached!(cache; "surname"), vstr!(cache; "Simon")),
@@ -512,10 +511,10 @@ mod ts_class_tests {
             &id_gen,
         );
         graphs_map.insert_graph(user2_graph.into());
+        graphs_map.set_as_root(str_cached!(cache; "student2"), user2.graph_id, user2.node);
 
         let mut complex_user_graph = ObjectGraph::new(id_gen.get_id_for_graph());
-        let complex_user = user_class_pair.generate_rooted_object(
-            str_cached!(cache; "student_pair"),
+        let complex_user = user_class_pair.generate_object(
             HashMap::from([
                 (str_cached!(cache; "user1"), Value::Object(user1)),
                 (str_cached!(cache; "user2"), Value::Object(user2)),
@@ -524,6 +523,7 @@ mod ts_class_tests {
             &id_gen,
         );
         graphs_map.insert_graph(complex_user_graph.into());
+        graphs_map.set_as_root(str_cached!(cache; "student_pair"), complex_user.graph_id, complex_user.node);
 
         let mut ctx = Context::with_values([].into(), graphs_map.into(), id_gen);
         let mut boa_ctx = EngineContext::new_boa_ctx();
@@ -573,8 +573,8 @@ mod ts_class_tests {
                 &id_gen,
             )
         };
-        graph.set_as_root(str_cached!(cache; "u"), user.node);
         graphs_map.insert_graph(graph.into());
+        graphs_map.set_as_root(str_cached!(cache; "u"), user.graph_id, user.node);
 
         let mut values = ValuesMap::default();
         values.insert(str_cached!(cache; "u"), Value::Object(user.clone()));
@@ -675,8 +675,8 @@ mod ts_class_tests {
                 &mut graph,
                 &id_gen,
             );
-        graph.set_as_root(str_cached!(cache; "user"), user.node);
         graphs_map.insert_graph(graph.into());
+        graphs_map.set_as_root(str_cached!(cache; "user"), user.graph_id, user.node);
 
         let mut values = ValuesMap::default();
         values.insert(str_cached!(cache; "user"), Value::Object(user));
@@ -889,6 +889,39 @@ mod ts_class_tests {
             .unwrap();
         let func_res_number = func_res.as_i32().unwrap();
         assert_eq!(func_res_number, 5);
+    }
+
+    #[test]
+    fn eval_class() {
+        let mut boa_ctx = EngineContext::new_boa_ctx();
+        let res = boa_ctx
+            .eval(boa_engine::Source::from_bytes(
+                "class BinarySearchTreeNode {
+                    
+                right() {
+                    return this + 5;
+                }
+                min_node() {
+                    let node = this;
+                    while (node.left !== null) {
+                        node = node.left;
+                    }
+
+                    return node;
+                }   
+            }
+            BinarySearchTreeNode.prototype",
+            ))
+            .unwrap();
+        let p = res.into_object().unwrap();
+        let b = p.get(js_str!("right"), &mut boa_ctx).unwrap();
+        let test = b
+            .as_callable()
+            .unwrap()
+            .call(&JsValue::new(5), &[], &mut boa_ctx)
+            .unwrap();
+        println!("{:?}", b);
+        println!("{:?}", test);
     }
 }
 

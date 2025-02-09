@@ -19,19 +19,10 @@ impl<'a> ObjectGraphWalker<'a> {
         Self::from_nodes(graphs_map, [(start_graph, start_node)])
     }
 
-    pub fn from_graph(graphs_map: &'a GraphsMap, graph: GraphIndex) -> Self {
-        Self::from_graphs(graphs_map, [graph])
-    }
-
-    pub fn from_graphs<I>(graphs_map: &'a GraphsMap, graphs: I) -> Self
-    where
-        I: IntoIterator<Item = GraphIndex>,
-    {
+    pub fn from_graphs_map(graphs_map: &'a GraphsMap) -> Self {
         Self::from_nodes(
-            graphs_map,
-            graphs
-                .into_iter()
-                .flat_map(|g| graphs_map[&g].roots.values().map(move |r| (g, *r))),
+            &graphs_map,
+            graphs_map.roots().map(|(_, r)| (r.graph, r.node)),
         )
     }
 
@@ -45,7 +36,9 @@ impl<'a> ObjectGraphWalker<'a> {
             seen: Default::default(),
         };
 
-        instance.seen.extend(instance.nodes.iter().map(|(_, node)| *node));
+        instance
+            .seen
+            .extend(instance.nodes.iter().map(|(_, node)| *node));
 
         instance
     }

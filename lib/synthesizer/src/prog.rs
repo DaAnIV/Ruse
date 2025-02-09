@@ -100,7 +100,7 @@ impl SubProgram {
         })
     }
 
-    pub fn evaluate(&mut self, context: &SynthesizerContext) -> bool {
+    pub fn evaluate(&mut self, syn_ctx: &SynthesizerContext) -> bool {
         let mut out_type: Option<ValueType> = None;
         let examples_count = self.pre_ctx().len();
         let mut out_value = Vec::with_capacity(examples_count);
@@ -117,7 +117,7 @@ impl SubProgram {
             evaluate_trace!("post_ctx[{}] (before) {:?}", i, out_ctx);
             
             // Evaluate and verify the output type is consistent
-            let out_val = match self.opcode.eval(&args, out_ctx, context) {
+            let out_val = match self.opcode.eval(&args, out_ctx, syn_ctx) {
                 Ok(result) => {
                     dirty |= result.dirty;
                     result.output

@@ -1,50 +1,29 @@
 use std::collections::HashMap;
 
 use crate::{
-    graph_walk::ObjectGraphWalker, GraphIndex, GraphsMap, NodeIndex, ObjectGraph, RootName,
+    graph_walk::ObjectGraphWalker, GraphIndex, GraphsMap, NodeIndex, RootName,
 };
 
-pub fn equal_graphs(
+pub fn equal_graphs_by_root_names<'a, I>(
     graphs_map_a: &GraphsMap,
     graphs_map_b: &GraphsMap,
-    graph_a: &ObjectGraph,
-    graph_b: &ObjectGraph,
-) -> bool {
-    if graph_a.root_names().ne(graph_b.root_names()) {
-        return false;
-    }
-
-    equal_graphs_by_roots(
-        graphs_map_a,
-        graphs_map_b,
-        graph_a,
-        graph_b,
-        graph_a.root_names(),
-    )
-}
-
-pub fn equal_graphs_by_roots<'a, I>(
-    graphs_map_a: &GraphsMap,
-    graphs_map_b: &GraphsMap,
-    graph_a: &ObjectGraph,
-    graph_b: &ObjectGraph,
     roots: I,
 ) -> bool
 where
     I: IntoIterator<Item = &'a RootName>,
 {
     let mut equal_nodes: HashMap<(GraphIndex, NodeIndex), (GraphIndex, NodeIndex)> =
-        HashMap::with_capacity(graph_a.node_count());
+        HashMap::new();
 
     for r in roots {
-        if let (Some(root_a), Some(root_b)) = (graph_a.get_root(&r), graph_b.get_root(&r)) {
+        if let (Some(root_a), Some(root_b)) = (graphs_map_a.get_root(&r), graphs_map_b.get_root(&r)) {
             if !sim_walk_equal(
                 graphs_map_a,
-                graph_a.id,
-                *root_a,
+                root_a.graph,
+                root_a.node,
                 graphs_map_b,
-                graph_b.id,
-                *root_b,
+                root_b.graph,
+                root_b.node,
                 &mut equal_nodes,
             ) {
                 return false;

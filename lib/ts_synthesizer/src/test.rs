@@ -42,8 +42,7 @@ mod tests {
         let user_class = classes.get_class(&user_class_name).unwrap();
 
         let mut user1_graph = ObjectGraph::new(id_gen1.get_id_for_graph());
-        let user1 = user_class.generate_rooted_object(
-            str_cached!(cache; "x"),
+        let user1 = user_class.generate_object(
             HashMap::from([
                 (str_cached!(cache; "surname"), vstr!(cache; "Doe")),
                 (str_cached!(cache; "name"), vstr!(cache; "John")),
@@ -52,10 +51,10 @@ mod tests {
             &id_gen1,
         );
         graphs_map1.insert_graph(user1_graph.into());
+        graphs_map1.set_as_root(str_cached!(cache; "x"), user1.graph_id, user1.node);
 
         let mut user2_graph = ObjectGraph::new(id_gen2.get_id_for_graph());
-        let user2 = user_class.generate_rooted_object(
-            str_cached!(cache; "x"),
+        let user2 = user_class.generate_object(
             HashMap::from([
                 (str_cached!(cache; "surname"), vstr!(cache; "Simon")),
                 (str_cached!(cache; "name"), vstr!(cache; "Paul")),
@@ -64,6 +63,7 @@ mod tests {
             &id_gen2,
         );
         graphs_map2.insert_graph(user2_graph.into());
+        graphs_map2.set_as_root(str_cached!(cache; "x"), user2.graph_id, user2.node);
 
         let mut opcodes = construct_opcode_list(
             &[str_cached!(cache; "x")],
@@ -148,8 +148,7 @@ mod tests {
         let point_class = classes.get_class(&point_class_name).unwrap();
 
         let mut point1_graph = ObjectGraph::new(id_gen1.get_id_for_graph());
-        let point1 = point_class.generate_rooted_object(
-            str_cached!(cache; "p"),
+        let point1 = point_class.generate_object(            
             HashMap::from([
                 (str_cached!(cache; "x"), vnum!(Number::from(4))),
                 (str_cached!(cache; "y"), vnum!(Number::from(17))),
@@ -158,10 +157,10 @@ mod tests {
             &id_gen1,
         );
         graphs_map1.insert_graph(point1_graph.into());
+        graphs_map1.set_as_root(str_cached!(cache; "p"), point1.graph_id, point1.node);
 
         let mut point2_graph = ObjectGraph::new(id_gen2.get_id_for_graph());
-        let point2 = point_class.generate_rooted_object(
-            str_cached!(cache; "p"),
+        let point2 = point_class.generate_object(
             HashMap::from([
                 (str_cached!(cache; "x"), vnum!(Number::from(5))),
                 (str_cached!(cache; "y"), vnum!(Number::from(3))),
@@ -170,6 +169,7 @@ mod tests {
             &id_gen2,
         );
         graphs_map2.insert_graph(point2_graph.into());
+        graphs_map2.set_as_root(str_cached!(cache; "p"), point2.graph_id, point2.node);
 
         let mut opcodes = construct_opcode_list(&[str_cached!(cache; "p")], &[], &[], false);
         add_num_opcodes(

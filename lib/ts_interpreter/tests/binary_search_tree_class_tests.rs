@@ -449,10 +449,7 @@ fn get_ctx(
         create_binary_tree(tree_values, classes, binary_tree_class, &mut engine_ctx)
     };
     let tree_obj = tree_value.obj().unwrap().clone();
-    {
-        let mut_graph = Arc::make_mut(graphs_map.get_mut(&graph_id).unwrap());
-        mut_graph.set_as_root(str_cached!(cache; "tree"), tree_obj.node);
-    }
+    graphs_map.set_as_root(str_cached!(cache; "tree"), tree_obj.graph_id, tree_obj.node);
 
     let node_to_delete = {
         let initial_tree = TreeHelper {
@@ -462,10 +459,7 @@ fn get_ctx(
         };
         initial_tree.find_value(node_to_delete_value).unwrap().tree
     };
-    {
-        let mut_graph = Arc::make_mut(graphs_map.get_mut(&graph_id).unwrap());
-        mut_graph.set_as_root(str_cached!(cache; "node_to_delete"), node_to_delete.node);
-    }
+    graphs_map.set_as_root(str_cached!(cache; "node_to_delete"), node_to_delete.graph_id, node_to_delete.node);
 
     Context::with_values(
         [

@@ -5,7 +5,7 @@ use std::{
 
 pub type DefaultIx = usize;
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, PartialOrd, Ord)]
 pub struct NodeIndex<Ix: Copy = DefaultIx>(pub Ix);
 
 impl<Ix: Copy> NodeIndex<Ix> {

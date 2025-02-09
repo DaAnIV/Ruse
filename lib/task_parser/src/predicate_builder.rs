@@ -98,15 +98,16 @@ impl PredicateBuilder {
                 js_values.push(value_to_js_value(classes, value, &mut engine_ctx));
             }
             // Best effort for partial contexts, take all of the roots of all graphs
-            for (g, root_name, node) in ctx.graphs_map.all_roots() {
+            for (root_name, root) in ctx.graphs_map.roots() {
                 if root_name.as_str() == Cache::OUTPUT_ROOT_NAME {
                     continue;
                 }
+                let g = &ctx.graphs_map[&root.graph];
                 arg_names.push(root_name.as_str());
                 let value = ObjectValue {
-                    obj_type: g.obj_type(&node).unwrap().clone(),
-                    graph_id: g.id,
-                    node: node,
+                    obj_type: g.obj_type(&root.node).unwrap().clone(),
+                    graph_id: root.graph,
+                    node: root.node,
                 }
                 .into();
                 js_values.push(value_to_js_value(classes, &value, &mut engine_ctx));

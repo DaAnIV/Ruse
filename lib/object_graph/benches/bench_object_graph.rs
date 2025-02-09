@@ -1,17 +1,16 @@
 use criterion::*;
-use graph_equality::equal_graphs;
-use graph_map_value::GraphMapWrap;
 use rand::seq::IteratorRandom;
 
 use rand::{rngs::StdRng, SeedableRng};
 use ruse_object_graph::generator::object_graph_generator::*;
 use ruse_object_graph::*;
 use std::iter::zip;
+use std::sync::Arc;
 
 const SEED: u64 = 100;
 const RANGE: [usize; 8] = [5, 10, 20, 50, 100, 200, 500, 1000];
 
-fn get_graphs_from_range(initial_id: GraphIndex, cache: &Cache) -> Vec<ObjectGraph> {
+fn get_graphs_from_range(initial_id: GraphIndex, cache: &Cache) -> Vec<GraphsMap> {
     let mut graphs = Vec::with_capacity(RANGE.len());
     for (i, &n) in RANGE.iter().enumerate() {
         let mut rng = StdRng::seed_from_u64(SEED);
@@ -26,12 +25,8 @@ fn get_graphs_from_range(initial_id: GraphIndex, cache: &Cache) -> Vec<ObjectGra
     return graphs;
 }
 
-fn get_serialized_graphs_from_range(initial_id: GraphIndex, cache: &Cache) -> Vec<ObjectGraph> {
-    let mut graphs = get_graphs_from_range(initial_id, cache);
-    // for g in &mut graphs {
-    //     g.generate_serialized_data();
-    // }
-    return graphs;
+fn get_serialized_graphs_from_range(initial_id: GraphIndex, cache: &Cache) -> Vec<GraphsMap> {
+    return get_graphs_from_range(initial_id, cache);
 }
 
 // fn graph_serialize(c: &mut Criterion) {
@@ -53,11 +48,12 @@ fn get_serialized_graphs_from_range(initial_id: GraphIndex, cache: &Cache) -> Ve
 
 fn graph_clone(c: &mut Criterion) {
     let cache = Cache::new();
-    let mut graphs = get_graphs_from_range(0, &cache);
+    let graphs = get_graphs_from_range(0, &cache);
 
     let mut group = c.benchmark_group("clone_graph");
 
-    for g in graphs.iter_mut() {
+    for map in graphs.iter() {
+        let g = map.graphs().next().unwrap();
         group.throughput(Throughput::Elements(g.node_count() as u64));
         group.bench_function(format!("Clone {}", g.node_count()), |b| {
             b.iter(|| {
@@ -88,12 +84,8 @@ fn graph_clone(c: &mut Criterion) {
 
 fn graph_eq(c: &mut Criterion) {
     let cache = Cache::new();
-    let graphs_map = GraphsMap::default();
     let mut graphs1 = get_serialized_graphs_from_range(0, &cache);
     let mut graphs2 = graphs1.clone();
-    for g2 in graphs2.iter_mut() {
-        g2.id += 0x100000;
-    }
 
     let mut group = c.benchmark_group("graph_eq");
 
@@ -101,11 +93,7 @@ fn graph_eq(c: &mut Criterion) {
         group.throughput(Throughput::Elements(g1.node_count() as u64));
         group.bench_function(format!("Eq {}", g1.node_count()), |b| {
             b.iter(|| {
-                assert_eq!(
-                    g1.wrap(&graphs_map),
-                    g2.wrap(&graphs_map),
-                    "Graphs are not equal"
-                );
+                assert_eq!(g1, g2, "Graphs are not equal");
             })
         });
     }
@@ -115,10 +103,9 @@ fn graph_eq(c: &mut Criterion) {
 fn graph_almost_eq(c: &mut Criterion) {
     let cache = Cache::new();
     let mut rng = StdRng::seed_from_u64(SEED);
-    let graphs_map = GraphsMap::default();
-    let g1 = random_gnp_object_graph(&cache, 0, &mut rng, 1000, 1f64 / f64::sqrt(1000f64));
-    let mut g2 = g1.clone();
-    g2.id = 1;
+    let map1 = random_gnp_object_graph(&cache, 0, &mut rng, 1000, 1f64 / f64::sqrt(1000f64));
+    let mut map2 = map1.clone();
+    let g2 = Arc::make_mut(map2.get_mut(&0).unwrap());
 
     let mut edges = Vec::new();
     for (node_id, node) in g2.nodes() {
@@ -152,11 +139,7 @@ fn graph_almost_eq(c: &mut Criterion) {
 
     c.bench_function("graph_almost_eq", |b| {
         b.iter(|| {
-            assert_ne!(
-                g1.wrap(&graphs_map),
-                g2.wrap(&graphs_map),
-                "Graphs are equal"
-            );
+            assert_ne!(map1, map2, "Graphs are equal");
         })
     });
 }
@@ -165,17 +148,12 @@ fn graph_ne(c: &mut Criterion) {
     let cache = Cache::new();
     let mut rng = StdRng::seed_from_u64(SEED);
 
-    let graphs_map = GraphsMap::default();
     let g1 = random_gnp_object_graph(&cache, 0, &mut rng, 1000, 1f64 / f64::sqrt(1000f64));
     let g2 = random_gnp_object_graph(&cache, 1, &mut rng, 1000, 1f64 / f64::sqrt(1000f64));
 
     c.bench_function("graph_ne", |b| {
         b.iter(|| {
-            assert_ne!(
-                g1.wrap(&graphs_map),
-                g2.wrap(&graphs_map),
-                "Graphs are equal"
-            );
+            assert_ne!(g1, g2, "Graphs are equal");
         })
     });
 }

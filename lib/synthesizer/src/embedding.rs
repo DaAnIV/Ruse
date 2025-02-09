@@ -96,7 +96,7 @@ fn context_reachable_graph_roots(ctx: &Context) -> HashMap<RootName, ObjectValue
     for (g, node_id, node) in
         graph_walk::ObjectGraphWalker::from_nodes(&ctx.graphs_map, value_nodes)
     {
-        if let Some(root_name) = g.node_root_names(&node_id) {
+        if let Some(root_name) = ctx.graphs_map.node_root_names(&node_id) {
             for r in root_name {
                 if r.as_str() == Cache::OUTPUT_ROOT_NAME {
                     continue;
@@ -301,10 +301,9 @@ fn embed_object_value(
 ) -> bool {
     // trace!(target: "ruse::embedding", "Embedding {}", var);
 
-    let (graph, new_var_value) = match matches.get(&obj_val.node) {
+    let new_var_value = match matches.get(&obj_val.node) {
         Some((graph_id, node_id)) => {
-            let graph = Arc::make_mut(map_hat.get_mut(graph_id).unwrap());
-            (graph, &(*graph_id, *node_id))
+            &(*graph_id, *node_id)
         }
         None => {
             let graph = Arc::make_mut(map_hat.get_or_create_mut(obj_val.graph_id));
@@ -318,10 +317,10 @@ fn embed_object_value(
             ) {
                 return false;
             }
-            (graph, matches.get(&obj_val.node).unwrap())
+            matches.get(&obj_val.node).unwrap()
         }
     };
-    graph.set_as_root(var.clone(), new_var_value.1);
+    map_hat.set_as_root(var.clone(), new_var_value.0, new_var_value.1);
 
     true
 }

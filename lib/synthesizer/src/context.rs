@@ -222,12 +222,18 @@ impl Context {
     fn verify_values(&self) -> bool {
         for (name, value) in self.values.iter() {
             if let Some(obj_val) = value.obj() {
+                let Some(root) = self.graphs_map.get_root(name) else {
+                    return false;
+                };
+
+                if root.graph != obj_val.graph_id || root.node != obj_val.node {
+                    return false;
+                }
+
                 let Some(graph) = self.graphs_map.get(&obj_val.graph_id) else {
                     return false;
                 };
-                if graph.get_root(name) != Some(&obj_val.node) {
-                    return false;
-                }
+
                 if graph.obj_type(&obj_val.node) != Some(&obj_val.obj_type) {
                     return false;
                 }
@@ -295,7 +301,7 @@ impl Context {
                     return false;
                 }
                 self.set_field(l.graph, l.node, l.field.clone(), new_val)
-            },
+            }
             Location::Temp => true,
         }
     }
@@ -441,8 +447,6 @@ impl Context {
 
         out_graph.add_primitive_array_object(out_node_id, elem_type, values, &syn_ctx.cache);
 
-        out_graph.set_as_root(syn_ctx.output_root_name().clone(), out_node_id);
-
         self.update_graph(out_graph.into());
         ObjectValue {
             obj_type: ValueType::array_obj_cached_string(elem_type, &syn_ctx.cache),
@@ -473,8 +477,6 @@ impl Context {
             &syn_ctx.cache,
         );
 
-        out_graph.set_as_root(syn_ctx.output_root_name().clone(), out_node_id);
-
         self.update_graph(out_graph.into());
         ObjectValue {
             obj_type: ValueType::array_obj_cached_string(elem_type, &syn_ctx.cache),
@@ -498,8 +500,6 @@ impl Context {
         let mut out_graph = ObjectGraph::new(out_graph_id);
 
         out_graph.add_array_object(out_node_id, elem_type, values, &syn_ctx.cache);
-
-        out_graph.set_as_root(syn_ctx.output_root_name().clone(), out_node_id);
 
         self.update_graph(out_graph.into());
         ObjectValue {
@@ -526,8 +526,6 @@ impl Context {
 
         out_graph.add_primitive_set_object(out_node_id, elem_type, values, &syn_ctx.cache);
 
-        out_graph.set_as_root(syn_ctx.output_root_name().clone(), out_node_id);
-
         self.update_graph(out_graph.into());
         ObjectValue {
             obj_type: ValueType::set_obj_cached_string(elem_type, &syn_ctx.cache),
@@ -540,7 +538,6 @@ impl Context {
         &mut self,
         obj_type: ObjectType,
         map: I,
-        syn_ctx: &SynthesizerContext,
     ) -> ObjectValue
     where
         I: IntoIterator<Item = (FieldName, T)>,
@@ -553,8 +550,6 @@ impl Context {
 
         out_graph.add_simple_object_from_map(out_node_id, obj_type.clone(), map);
 
-        out_graph.set_as_root(syn_ctx.output_root_name().clone(), out_node_id);
-
         self.update_graph(out_graph.into());
         ObjectValue {
             obj_type: obj_type,
@@ -563,12 +558,7 @@ impl Context {
         }
     }
 
-    pub fn create_output_object_from_map<I>(
-        &mut self,
-        obj_type: ObjectType,
-        map: I,
-        syn_ctx: &SynthesizerContext,
-    ) -> ObjectValue
+    pub fn create_output_object_from_map<I>(&mut self, obj_type: ObjectType, map: I) -> ObjectValue
     where
         I: IntoIterator<Item = (FieldName, Value)>,
     {
@@ -578,8 +568,6 @@ impl Context {
         let mut out_graph = ObjectGraph::new(out_graph_id);
 
         out_graph.add_object_from_map(out_node_id, obj_type.clone(), map);
-
-        out_graph.set_as_root(syn_ctx.output_root_name().clone(), out_node_id);
 
         self.update_graph(out_graph.into());
         ObjectValue {

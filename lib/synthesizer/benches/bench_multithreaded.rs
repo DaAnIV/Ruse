@@ -33,46 +33,46 @@ const SEED: u64 = 100;
 //     return graphs;
 // }
 
-fn hash_insertion(c: &mut Criterion) {
-    let cache = Cache::new();
-    let mut rng = StdRng::seed_from_u64(SEED);
-    let mut map = GraphsMap::default();
+// fn hash_insertion(c: &mut Criterion) {
+//     let cache = Cache::new();
+//     let mut rng = StdRng::seed_from_u64(SEED);
+//     let mut map = GraphsMap::default();
 
-    let graphs: Vec<Arc<ObjectGraph>> = (0..10000usize)
-        .map(|i| {
-            let g = Arc::new(object_graph_generator::random_gnm_object_graph(&cache, i, &mut rng, 20, 40));
-            map.insert_graph(g.clone());
-            g
-        })
-        .collect();
+//     let graphs: Vec<Arc<ObjectGraph>> = (0..10000usize)
+//         .map(|i| {
+//             let g = Arc::new(object_graph_generator::random_gnm_object_graph(&cache, i, &mut rng, 20, 40));
+//             map.insert_graph(g.clone());
+//             g
+//         })
+//         .collect();
 
-    let mut group = c.benchmark_group("hash_insertion_graph");
+//     let mut group = c.benchmark_group("hash_insertion_graph");
 
-    group.bench_function("iterative std::HashSet", |b| {
-        b.iter_batched(
-            || HashSet::<GraphMapValue<'_, ObjectGraph>>::new(),
-            |mut std_hashset| {
-                graphs.iter().for_each(|g| {
-                    // sleep(time::Duration::from_nanos(1));
-                    std_hashset.insert(g.wrap(&map));
-                });
-                std_hashset
-            },
-            BatchSize::LargeInput,
-        )
-    });
+//     group.bench_function("iterative std::HashSet", |b| {
+//         b.iter_batched(
+//             || HashSet::<GraphMapValue<'_, ObjectGraph>>::new(),
+//             |mut std_hashset| {
+//                 graphs.iter().for_each(|g| {
+//                     // sleep(time::Duration::from_nanos(1));
+//                     std_hashset.insert(g.wrap(&map));
+//                 });
+//                 std_hashset
+//             },
+//             BatchSize::LargeInput,
+//         )
+//     });
 
-    // group.bench_function("parallel dashmap", |b| {
-    //     b.iter_batched(|| dashmap::DashSet::<Arc<ObjectGraph>>::new(), |dash_map| {
-    //         graphs.par_iter().for_each(|g| {
-    //             // sleep(time::Duration::from_nanos(1));
-    //             dash_map.insert(g.clone());
-    //         });
-    //         dash_map
-    //     }, BatchSize::LargeInput)
-    // });
+//     // group.bench_function("parallel dashmap", |b| {
+//     //     b.iter_batched(|| dashmap::DashSet::<Arc<ObjectGraph>>::new(), |dash_map| {
+//     //         graphs.par_iter().for_each(|g| {
+//     //             // sleep(time::Duration::from_nanos(1));
+//     //             dash_map.insert(g.clone());
+//     //         });
+//     //         dash_map
+//     //     }, BatchSize::LargeInput)
+//     // });
 
-    group.finish();
-}
+//     group.finish();
+// }
 
-criterion_group!(multithreading_benches, hash_insertion);
+// criterion_group!(multithreading_benches);

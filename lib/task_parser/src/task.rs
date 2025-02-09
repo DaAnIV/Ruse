@@ -82,8 +82,7 @@ where
         )?;
 
         if let Some(obj) = value.mut_obj() {
-            let graph = graphs_map.get_mut(&obj.graph_id).unwrap();
-            Arc::make_mut(graph).set_as_root(key.clone(), obj.node);
+            graphs_map.set_as_root(key.clone(), obj.graph_id, obj.node);
         }
         values.insert(key, value);
     }
@@ -318,9 +317,7 @@ impl SnythesisTaskInner {
         }
 
         if examples.iter().any(|x| x.input.is_empty()) {
-            return Err(verify_err!(
-                "All examples must define at least one input"
-            ));
+            return Err(verify_err!("All examples must define at least one input"));
         }
 
         if has_common_output && examples.iter().any(|x| x.output.is_some()) {
@@ -546,8 +543,7 @@ impl SnythesisTask {
                         cache,
                     )?;
                     if let Some(obj) = output.mut_obj() {
-                        let graph = predicate_graphs_map.get_mut(&obj.graph_id).unwrap();
-                        Arc::make_mut(graph).set_as_root(root_name.clone(), obj.node);
+                        predicate_graphs_map.set_as_root(root_name.clone(), obj.graph_id, obj.node);
                     }
                     array.push(output);
                 }
