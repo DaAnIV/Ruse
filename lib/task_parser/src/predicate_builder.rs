@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use itertools::{izip, Itertools};
 use ruse_object_graph::graph_map_value::GraphMapWrap;
-use ruse_object_graph::value::{ObjectValue, Value};
+use ruse_object_graph::value::{ObjectValue, Value, ValueType};
 use ruse_object_graph::{Cache, GraphsMap};
 use ruse_synthesizer::context::ValuesMap;
 use ruse_synthesizer::{context::SynthesizerContext, prog::SubProgram};
@@ -161,10 +161,20 @@ impl PredicateBuilder {
     }
 }
 
-pub struct ValidPredicateBuilder {}
+pub struct ValidPredicateBuilder {
+    pub max_string_size: usize,
+}
 
 impl ValidPredicateBuilder {
-    fn predicate(&self, _p: &SubProgram, _syn_ctx: &SynthesizerContext) -> bool {
+    fn predicate(&self, p: &SubProgram, _syn_ctx: &SynthesizerContext) -> bool {
+        if p.out_type() == &ValueType::String {
+            if p.out_value().iter().any(|x| {
+                let str_val = unsafe { x.val().string_value().unwrap_unchecked() };
+                str_val.len() > self.max_string_size
+            }) {
+                return false;
+            }
+        }
         true
     }
 

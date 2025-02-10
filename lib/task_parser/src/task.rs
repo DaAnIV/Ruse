@@ -268,6 +268,8 @@ struct SnythesisTaskInner {
     opcodes: Option<HashSet<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     common: Option<SnythesisTaskExamples>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    max_string_size: Option<usize>,
 }
 
 impl SnythesisTaskInner {
@@ -587,7 +589,9 @@ impl SnythesisTask {
         &self,
         _cache: &Cache,
     ) -> Result<SynthesizerPredicate, SnythesisTaskError> {
-        let builder = ValidPredicateBuilder {};
+        let builder = ValidPredicateBuilder {
+            max_string_size: self.inner.max_string_size.unwrap_or(30),
+        };
         Ok(builder.finalize())
     }
 
