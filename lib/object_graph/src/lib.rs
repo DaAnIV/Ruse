@@ -2,6 +2,7 @@ mod cache;
 pub mod dot;
 pub mod generator;
 mod graph;
+mod connected_components;
 pub mod graph_equality;
 pub mod graph_map_value;
 mod graph_node;

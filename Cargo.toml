@@ -5,6 +5,8 @@ resolver = "2"
 [workspace.dependencies]
 byteview = "*"
 
+union-find = "*"
+
 tracing = { version = "*", features = ["release_max_level_debug"] }
 tracing-subscriber = { version = "*", features = ["json"] }
 
@@ -57,6 +59,7 @@ criterion = { version = "*", features = ["async_tokio"] }
 
 [patch.crates-io]
 boa_engine = { git = "https://github.com/DaAnIV/boa.git" }
+union-find = { git = "https://github.com/DaAnIV/union-find-rs.git" }
 
 [profile.release]
 lto = "thin"

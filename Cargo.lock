@@ -2650,6 +2650,7 @@ dependencies = [
  "petgraph",
  "petgraph-gen",
  "rand",
+ "union-find",
 ]
 
 [[package]]
@@ -4541,6 +4542,14 @@ name = "unicode-width"
 version = "0.1.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7dd6e30e90baa6f72411720665d41d89b9a3d039dc45b8faea1ddd07f617f6af"
+
+[[package]]
+name = "union-find"
+version = "0.4.3"
+source = "git+https://github.com/DaAnIV/union-find-rs.git#f9e304d62ac0c90009f05c9b2606be9daf338882"
+dependencies = [
+ "dashmap 5.5.3",
+]
 
 [[package]]
 name = "url"

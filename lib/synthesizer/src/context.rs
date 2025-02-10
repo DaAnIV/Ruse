@@ -369,11 +369,31 @@ impl Context {
 
     pub(crate) fn get_partial_context<'a, I>(&self, required_variables: I) -> Option<Box<Self>>
     where
-        I: IntoIterator<Item = &'a CachedString> + Copy,
+        I: IntoIterator<Item = &'a CachedString>,
     {
         let mut values = ValuesMap::default();
         let mut hashes = ValuesHashMap::default();
+
+        let mut connected_variables = HashSet::new();
         for var in required_variables {
+            connected_variables.insert(var);
+            if let Value::Object(obj_val) = self.values.get(var)? {
+                for (name, other_obj_val) in self
+                    .values
+                    .iter()
+                    .filter_map(|(name, val)| Some((name, val.obj()?)))
+                {
+                    if self
+                        .graphs_map
+                        .nodes_connected(obj_val.node, other_obj_val.node)
+                    {
+                        connected_variables.insert(name);
+                    }
+                }
+            }
+        }
+
+        for var in connected_variables {
             let var_value = self.values.get(var)?.clone();
             let var_hash = unsafe { *self.hashes.get(var).unwrap_unchecked() };
             values.insert((*var).clone(), var_value);
