@@ -352,7 +352,7 @@ fn embed(
 
         matches.insert(cur_node_id, (graph_id, cur_node_id));
         for (field_name, old_neig) in node.pointers_iter() {
-            if let Some((new_neig_graph, new_neig_id)) = matches.get(old_neig.index()) {
+            if let Some((new_neig_graph, new_neig_id)) = matches.get(&old_neig.node) {
                 if new_nodes.contains(new_neig_id) {
                     return false;
                 }
@@ -369,16 +369,9 @@ fn embed(
                     graph_id,
                     cur_node_id,
                     graph_id,
-                    *old_neig.index(),
+                    old_neig.node,
                 ));
-                match old_neig {
-                    ruse_object_graph::EdgeEndPoint::Internal(old_neig_node) => {
-                        q.push_back((cur_graph_id, *old_neig_node))
-                    }
-                    ruse_object_graph::EdgeEndPoint::Chain(old_neig_graph, old_neig_node) => {
-                        q.push_back((*old_neig_graph, *old_neig_node))
-                    }
-                }
+                q.push_back((old_neig.graph.unwrap_or(cur_graph_id), old_neig.node));
             }
         }
     }

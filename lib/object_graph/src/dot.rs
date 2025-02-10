@@ -322,15 +322,12 @@ impl<'a> Dot<'a> {
                 INDENT,
                 Self::get_dot_id(&node_id, &self.config),
                 EDGE,
-                Self::get_dot_id(neig.index(), &self.config)
+                Self::get_dot_id(&neig.node, &self.config)
             )?;
-            match neig {
-                crate::graph_node::EdgeEndPoint::Internal(_) => {
-                    write!(f, "label = \"{}\"", edge_name)
-                }
-                crate::graph_node::EdgeEndPoint::Chain(next_graph_id, _) => {
-                    write!(f, "label = \"{} (chain -> {})\"", edge_name, next_graph_id)
-                }
+            if let Some(neig_graph) = &neig.graph {
+                write!(f, "label = \"{} (chain -> {})\"", edge_name, neig_graph)
+            } else {
+                write!(f, "label = \"{}\"", edge_name)
             }?;
             writeln!(f, "]")?;
         }

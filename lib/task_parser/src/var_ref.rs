@@ -2,7 +2,7 @@ use std::collections::{HashMap, VecDeque};
 
 use crate::{error::SnythesisTaskError, parse_err, task_type::TaskType, verify_err};
 use itertools::Itertools;
-use ruse_object_graph::{graph_walk, str_cached, value::Value, Cache, EdgeEndPoint, GraphsMap};
+use ruse_object_graph::{graph_walk, str_cached, value::Value, Cache, GraphsMap};
 use ruse_synthesizer::context::ValuesMap;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -108,12 +108,12 @@ pub(crate) fn set_var_refs(
             continue;
         }
         for edge in node.pointers_iter() {
-            if let EdgeEndPoint::Chain(edge_graph_id, edge_node_id) = edge.1 {
+            if let Some(edge_graph_id) = &edge.1.graph {
                 if *edge_graph_id == REF_GRAPH_ID {
                     let ref_graph = graphs_map.get(&REF_GRAPH_ID).unwrap();
                     let var_ref = ref_graph
                         .get_primitive_field(
-                            edge_node_id,
+                            &edge.1.node,
                             &str_cached!(cache; REF_GRAPH_FIELD_NAME),
                         )
                         .unwrap()

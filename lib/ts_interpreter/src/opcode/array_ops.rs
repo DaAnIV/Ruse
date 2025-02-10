@@ -277,13 +277,12 @@ impl ExprOpcode for ArraySliceOp {
                 .neighbors(&arr.node)
                 .skip(start)
                 .take(end - start)
-                .map(|(_, n)| match n {
-                    ruse_object_graph::EdgeEndPoint::Internal(node_index) => {
-                        vobj!(field_obj_type.clone(), arr.graph_id, *node_index)
-                    }
-                    ruse_object_graph::EdgeEndPoint::Chain(graph_id, node_index) => {
-                        vobj!(field_obj_type.clone(), *graph_id, *node_index)
-                    }
+                .map(|(_, n)| {
+                    vobj!(
+                        field_obj_type.clone(),
+                        n.graph.unwrap_or(arr.graph_id),
+                        n.node
+                    )
                 });
             post_ctx.create_output_array_object(&self.elem_type, fields, &syn_ctx)
         };
@@ -346,13 +345,12 @@ impl ExprOpcode for ArrayConcatOp {
             let field_obj_type = self.elem_type.obj_type().unwrap();
             let values = graph
                 .neighbors(&arr.node)
-                .map(|(_, n)| match n {
-                    ruse_object_graph::EdgeEndPoint::Internal(node_index) => {
-                        vobj!(field_obj_type.clone(), arr.graph_id, *node_index)
-                    }
-                    ruse_object_graph::EdgeEndPoint::Chain(graph_id, node_index) => {
-                        vobj!(field_obj_type.clone(), *graph_id, *node_index)
-                    }
+                .map(|(_, n)| {
+                    vobj!(
+                        field_obj_type.clone(),
+                        n.graph.unwrap_or(arr.graph_id),
+                        n.node
+                    )
                 })
                 .chain(args.iter().skip(1).map(|x| x.val().clone()));
             post_ctx.create_output_array_object(&self.elem_type, values, &syn_ctx)
@@ -445,13 +443,12 @@ impl ExprOpcode for ArraySpliceOp {
                 .neighbors(&arr.node)
                 .skip(start)
                 .take(delete_count)
-                .map(|(_, n)| match n {
-                    ruse_object_graph::EdgeEndPoint::Internal(node_index) => {
-                        vobj!(field_obj_type.clone(), arr.graph_id, *node_index)
-                    }
-                    ruse_object_graph::EdgeEndPoint::Chain(graph_id, node_index) => {
-                        vobj!(field_obj_type.clone(), *graph_id, *node_index)
-                    }
+                .map(|(_, n)| {
+                    vobj!(
+                        field_obj_type.clone(),
+                        n.graph.unwrap_or(arr.graph_id),
+                        n.node
+                    )
                 });
             post_ctx.create_output_array_object(&self.elem_type, fields, &syn_ctx)
         };
@@ -530,26 +527,20 @@ impl ExprOpcode for ArrayConcatArrayOp {
             let field_obj_type = self.elem_type.obj_type().unwrap();
             let values = graph
                 .neighbors(&arr.node)
-                .map(|(_, n)| match n {
-                    ruse_object_graph::EdgeEndPoint::Internal(node_index) => {
-                        vobj!(field_obj_type.clone(), arr.graph_id, *node_index)
-                    }
-                    ruse_object_graph::EdgeEndPoint::Chain(graph_id, node_index) => {
-                        vobj!(field_obj_type.clone(), *graph_id, *node_index)
-                    }
+                .map(|(_, n)| {
+                    vobj!(
+                        field_obj_type.clone(),
+                        n.graph.unwrap_or(arr.graph_id),
+                        n.node
+                    )
                 })
-                .chain(
-                    graph_to_add
-                        .neighbors(&arr_to_add.node)
-                        .map(|(_, n)| match n {
-                            ruse_object_graph::EdgeEndPoint::Internal(node_index) => {
-                                vobj!(field_obj_type.clone(), arr_to_add.graph_id, *node_index)
-                            }
-                            ruse_object_graph::EdgeEndPoint::Chain(graph_id, node_index) => {
-                                vobj!(field_obj_type.clone(), *graph_id, *node_index)
-                            }
-                        }),
-                );
+                .chain(graph_to_add.neighbors(&arr_to_add.node).map(|(_, n)| {
+                    vobj!(
+                        field_obj_type.clone(),
+                        n.graph.unwrap_or(arr_to_add.graph_id),
+                        n.node
+                    )
+                }));
             post_ctx.create_output_array_object(&self.elem_type, values, &syn_ctx)
         };
 

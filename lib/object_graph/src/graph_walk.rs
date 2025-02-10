@@ -1,7 +1,7 @@
 use std::collections::{HashSet, VecDeque};
 
 use crate::{
-    graph_node::ObjectGraphNode, EdgeEndPoint, GraphIndex, GraphsMap, NodeIndex, ObjectGraph,
+    graph_node::ObjectGraphNode, GraphIndex, GraphsMap, NodeIndex, ObjectGraph,
 };
 
 pub struct ObjectGraphWalker<'a> {
@@ -62,12 +62,7 @@ impl<'a> std::iter::Iterator for ObjectGraphWalker<'a> {
             let node = graph.get_node(&node_id).unwrap();
 
             for (_, neig) in node.pointers_iter() {
-                match neig {
-                    EdgeEndPoint::Internal(neig_node) => self.push_node(graph_id, *neig_node),
-                    EdgeEndPoint::Chain(neig_graph, neig_node) => {
-                        self.push_node(*neig_graph, *neig_node)
-                    }
-                }
+                self.push_node(neig.graph.unwrap_or(graph_id), neig.node);
             }
             Some((graph.as_ref(), node_id, node.as_ref()))
         } else {

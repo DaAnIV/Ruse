@@ -28,7 +28,7 @@ impl GraphsMapWeakComponents {
         let mut uf = union_find::QuickUnionUf::<union_find::UnionByRank>::new(node_to_key.len());
         for (_, id, n) in ObjectGraphWalker::from_graphs_map(graphs_map) {
             for (_, edge) in n.pointers_iter() {
-                uf.union(node_to_key[&id], node_to_key[edge.index()]);
+                uf.union(node_to_key[&id], node_to_key[&edge.node]);
             }
         }
 

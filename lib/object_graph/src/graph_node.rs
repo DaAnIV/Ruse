@@ -9,22 +9,7 @@ pub type ObjectType = CachedString;
 pub type FieldName = CachedString;
 pub type RootName = CachedString;
 
-#[derive(Clone, Copy, Debug)]
-pub enum EdgeEndPoint {
-    Internal(NodeIndex),
-    Chain(GraphIndex, NodeIndex),
-}
-
-impl EdgeEndPoint {
-    pub fn index(&self) -> &NodeIndex {
-        match self {
-            EdgeEndPoint::Internal(index) => index,
-            EdgeEndPoint::Chain(_, index) => index,
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct Attributes {
     pub readonly: bool,
 }
@@ -32,6 +17,30 @@ pub struct Attributes {
 impl Default for Attributes {
     fn default() -> Self {
         Self { readonly: false }
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct EdgeEndPoint {
+    pub node: NodeIndex,
+    pub graph: Option<GraphIndex>,
+    pub attrs: Attributes,
+}
+
+impl EdgeEndPoint {
+    pub fn internal(node: NodeIndex, attrs: Attributes) -> Self {
+        Self {
+            node,
+            graph: None,
+            attrs,
+        }
+    }
+    pub fn chain(graph: GraphIndex, node: NodeIndex, attrs: Attributes) -> Self {
+        Self {
+            node,
+            graph: Some(graph),
+            attrs,
+        }
     }
 }
 
@@ -115,7 +124,7 @@ impl ObjectGraphNode {
 
     pub(crate) fn insert_internal_edge(&mut self, field_name: FieldName, neig: NodeIndex) {
         self.pointers
-            .insert(field_name, EdgeEndPoint::Internal(neig));
+            .insert(field_name, EdgeEndPoint::internal(neig, Default::default()));
     }
 
     pub(crate) fn insert_chain_edge(
@@ -124,8 +133,10 @@ impl ObjectGraphNode {
         neig_graph: GraphIndex,
         neig_node: NodeIndex,
     ) {
-        self.pointers
-            .insert(field_name, EdgeEndPoint::Chain(neig_graph, neig_node));
+        self.pointers.insert(
+            field_name,
+            EdgeEndPoint::chain(neig_graph, neig_node, Default::default()),
+        );
     }
 
     pub(crate) fn pointers_remove(&mut self, field_name: &FieldName) -> Option<EdgeEndPoint> {

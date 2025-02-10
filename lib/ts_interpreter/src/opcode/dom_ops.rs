@@ -55,17 +55,10 @@ impl ExprOpcode for GetElementByIdOp {
             for (field, neig) in node.pointers_iter() {
                 let neig_node = graph.get_node_from_edge_end_point(&neig, &post_ctx.graphs_map);
                 if self.node_id_equal(neig_node, &id) {
-                    let val = match neig {
-                        EdgeEndPoint::Internal(node_index) => ObjectValue {
-                            obj_type: neig_node.obj_type().clone(),
-                            graph_id: graph.id,
-                            node: *node_index,
-                        },
-                        EdgeEndPoint::Chain(graph_id, node_index) => ObjectValue {
-                            obj_type: neig_node.obj_type().clone(),
-                            graph_id: *graph_id,
-                            node: *node_index,
-                        },
+                    let val = ObjectValue {
+                        obj_type: neig_node.obj_type().clone(),
+                        graph_id: neig.graph.unwrap_or(graph.id),
+                        node: neig.node,
                     };
                     let loc = ObjectFieldLoc {
                         graph: graph.id,

@@ -201,7 +201,10 @@ impl GraphsMap {
         let graph = Arc::make_mut(self.get_mut(&graph).unwrap());
         let node = ObjectGraphNode::new(obj_type, fields, pointers);
         graph.add_node(id, node);
-        let edges = graph.neighbors(&id).map(|(_, edge)| *edge.index()).collect_vec();
+        let edges = graph
+            .neighbors(&id)
+            .map(|(_, edge)| edge.node)
+            .collect_vec();
         self.weak_components.add_new_node(id);
         for b in edges {
             self.weak_components.add_edge(id, b);
@@ -294,17 +297,18 @@ impl GraphsMap {
         node: NodeIndex,
     ) -> Option<(GraphIndex, NodeIndex)> {
         let graph = Arc::make_mut(self.get_mut(&graph_id).unwrap());
-        let old = match graph.remove_edge(node, field)? {
-            EdgeEndPoint::Internal(node_index) => Some((graph_id, node_index)),
-            EdgeEndPoint::Chain(graph_id, node_index) => Some((graph_id, node_index)),
-        };
+        let old = graph.remove_edge(node, field)?;
+
         self.weak_components = GraphsMapWeakComponents::from_graphs_map(self);
 
-        old
+        Some((old.graph.unwrap_or(graph_id), old.node))
     }
 
     pub fn roots_connected(&self, root_a: &RootName, root_b: &RootName) -> bool {
-        self.nodes_connected(self.get_root(root_a).unwrap().node, self.get_root(root_b).unwrap().node)
+        self.nodes_connected(
+            self.get_root(root_a).unwrap().node,
+            self.get_root(root_b).unwrap().node,
+        )
     }
 
     pub fn nodes_connected(&self, node_a: NodeIndex, node_b: NodeIndex) -> bool {
@@ -529,9 +533,12 @@ impl GraphsMap {
         let graph = Arc::make_mut(self.get_mut(&graph_id).unwrap());
         let pointers = PointersMap::from_iter(obj_keys.into_iter().map(|(key, neig)| {
             if graph.contains_node(&neig.node) {
-                (key, EdgeEndPoint::Internal(neig.node))
+                (key, EdgeEndPoint::internal(neig.node, Default::default()))
             } else {
-                (key, EdgeEndPoint::Chain(neig.graph_id, neig.node))
+                (
+                    key,
+                    EdgeEndPoint::chain(neig.graph_id, neig.node, Default::default()),
+                )
             }
         }));
 

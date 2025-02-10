@@ -64,10 +64,8 @@ impl ObjectGraph {
 
     pub fn contains_internal_edge(&self, a: &NodeIndex, b: &NodeIndex) -> bool {
         for (_, neig) in self.neighbors(a) {
-            if let EdgeEndPoint::Internal(neig_id) = neig {
-                if neig_id == b {
-                    return true;
-                }
+            if neig.graph.is_none() && neig.node == *b {
+                return true;
             }
         }
         false
@@ -188,7 +186,7 @@ impl ObjectGraph {
     pub(crate) fn remove_edge(&mut self, a: NodeIndex, name: &FieldName) -> Option<EdgeEndPoint> {
         let node_a = self.get_mut_node(&a).unwrap();
         let edge = node_a.pointers_remove(name)?;
-        if let EdgeEndPoint::Chain(graph, _) = &edge {
+        if let Some(graph) = &edge.graph {
             self.dec_chained_graph_ref(*graph);
         }
 
@@ -235,11 +233,10 @@ impl ObjectGraph {
         end_point: &EdgeEndPoint,
         graphs_map: &'a GraphsMap,
     ) -> &'a ObjectGraphNode {
-        match end_point {
-            EdgeEndPoint::Internal(node_index) => &self.nodes[node_index],
-            EdgeEndPoint::Chain(graph_index, node_index) => {
-                &graphs_map[graph_index].nodes[node_index]
-            }
+        if let Some(graph) = end_point.graph {
+            &graphs_map[graph].nodes[&end_point.node]
+        } else {
+            &self.nodes[&end_point.node]
         }
     }
 }
@@ -291,29 +288,15 @@ impl ObjectGraph {
             writeln!(f, " {}{}: {},", indent_str, field_name, field.value)?;
         }
         for (field_name, val) in weight.pointers_iter() {
-            match val {
-                EdgeEndPoint::Internal(index) => {
-                    self.fmt_node_with_indentation_and_name(
-                        f,
-                        graphs_map,
-                        index,
-                        field_name.as_str(),
-                        indentation + 1,
-                        seen,
-                    )?;
-                }
-                EdgeEndPoint::Chain(graph_id, index) => {
-                    let graph = &graphs_map[graph_id];
-                    graph.fmt_node_with_indentation_and_name(
-                        f,
-                        graphs_map,
-                        index,
-                        field_name.as_str(),
-                        indentation + 1,
-                        seen,
-                    )?;
-                }
-            }
+            let graph = &graphs_map[val.graph.unwrap_or(self.id)];
+            graph.fmt_node_with_indentation_and_name(
+                f,
+                graphs_map,
+                &val.node,
+                field_name.as_str(),
+                indentation + 1,
+                seen,
+            )?;
         }
 
         writeln!(f, "{}}}", indent_str)

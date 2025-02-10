@@ -158,9 +158,7 @@ impl ObjectValue {
         field_name: &FieldName,
         graphs_map: &GraphsMap,
     ) -> Option<Attributes> {
-        Option::map(self.get_object_field(field_name, graphs_map), |x| {
-            x.attrs(graphs_map)
-        })
+        self.graph(graphs_map).get_neighbor(&self.node, field_name).map(|x| x.attrs)
     }
 
     pub fn get_object_field(
@@ -170,24 +168,16 @@ impl ObjectValue {
     ) -> Option<ObjectValue> {
         Option::map(
             self.graph(graphs_map).get_neighbor(&self.node, field_name),
-            |x| match x {
-                EdgeEndPoint::Internal(field_node_index) => ObjectValue {
-                    obj_type: self
-                        .graph(graphs_map)
-                        .obj_type(field_node_index)
-                        .unwrap()
-                        .clone(),
-                    graph_id: self.graph_id,
-                    node: *field_node_index,
-                },
-                EdgeEndPoint::Chain(field_graph_index, field_node_index) => ObjectValue {
+            |x| {
+                let field_graph_index = x.graph.unwrap_or(self.graph_id);
+                ObjectValue {
                     obj_type: graphs_map[field_graph_index]
-                        .obj_type(field_node_index)
+                        .obj_type(&x.node)
                         .unwrap()
                         .clone(),
-                    graph_id: *field_graph_index,
-                    node: *field_node_index,
-                },
+                    graph_id: field_graph_index,
+                    node: x.node,
+                }
             },
         )
     }
