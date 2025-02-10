@@ -530,12 +530,11 @@ impl SnythesisTask {
 
         let mut predicate_graphs_map = GraphsMap::default();
         let predicate_gen_id = Arc::new(GraphIdGenerator::default());
-        let root_name = cache.output_root_name();
         let output_array = match &self.inner.return_type {
             Some(return_type) => {
                 let mut array = Vec::with_capacity(examples.len());
                 for example in examples {
-                    let mut output = return_type.create_value(
+                    let output = return_type.create_value(
                         example.output.as_ref().unwrap(),
                         &self.classes,
                         predicate_gen_id.get_id_for_graph(),
@@ -544,9 +543,6 @@ impl SnythesisTask {
                         None,
                         cache,
                     )?;
-                    if let Some(obj) = output.mut_obj() {
-                        predicate_graphs_map.set_as_root(root_name.clone(), obj.graph_id, obj.node);
-                    }
                     array.push(output);
                 }
                 Some(array)

@@ -73,28 +73,17 @@ impl AsRef<str> for CachedString {
 
 pub struct Cache {
     strings: DashSet<CachedString>,
-    output_root_name: CachedString,
 }
 
 impl Cache {
-    pub const OUTPUT_ROOT_NAME: &str = "____output_root_name";
-
     pub fn new() -> Self {
         let strings = DashSet::default();
-        let output_root_name = CachedString::new(Self::OUTPUT_ROOT_NAME);
-
-        strings.insert(output_root_name.clone());
-
+        
         let instance = Self {
             strings,
-            output_root_name,
         };
 
         instance
-    }
-
-    pub fn output_root_name(&self) -> &CachedString {
-        &self.output_root_name
     }
 
     pub fn get_or_insert_string(&self, val: String) -> CachedString {

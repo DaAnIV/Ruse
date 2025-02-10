@@ -99,9 +99,6 @@ impl PredicateBuilder {
             }
             // Best effort for partial contexts, take all of the roots of all graphs
             for (root_name, root) in ctx.graphs_map.roots() {
-                if root_name.as_str() == Cache::OUTPUT_ROOT_NAME {
-                    continue;
-                }
                 let g = &ctx.graphs_map[&root.graph];
                 arg_names.push(root_name.as_str());
                 let value = ObjectValue {
