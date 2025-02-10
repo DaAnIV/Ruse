@@ -12,8 +12,8 @@ pub mod helpers {
         generator::object_graph_generator::generate_random_str,
         scached,
         value::{ObjectValue, Value, ValueType},
-        vbool, Cache, CachedString, FieldName, FieldsMap, GraphsMap, Number, ObjectGraph,
-        ObjectType, PrimitiveValue,
+        vbool, Cache, CachedString, FieldName, FieldsMap, GraphsMap, Number, ObjectType,
+        PrimitiveValue,
     };
 
     use crate::{
@@ -249,23 +249,22 @@ pub mod helpers {
     ) -> ObjectValue {
         let graph_id = graph_id_gen.get_id_for_graph();
         let root_id = graph_id_gen.get_id_for_node();
-        let mut graph = ObjectGraph::new(graph_id);
+        graphs_map.ensure_graph(graph_id);
 
         let fields = generate_fields(4, rng, cache);
         let obj_type = scached!(cache; generate_random_str(4, rng));
-        graph.construct_node(root_id, obj_type.clone(), fields);
+        graphs_map.construct_node(graph_id, root_id, obj_type.clone(), fields);
 
         for _ in 0..4 {
             let neig_id = graph_id_gen.get_id_for_node();
             let fields = generate_fields(4, rng, cache);
             let obj_type = scached!(cache; generate_random_str(4, rng));
-            graph.construct_node(neig_id, obj_type, fields);
+            graphs_map.construct_node(graph_id, neig_id, obj_type, fields);
 
             let edge_name = scached!(cache; generate_random_str(4, rng));
-            graph.set_edge(&root_id, neig_id, edge_name);
+            graphs_map.set_edge(edge_name, graph_id, root_id, graph_id, neig_id);
         }
 
-        graphs_map.insert_graph(graph.into());
         graphs_map.set_as_root(root_name, graph_id, root_id);
 
         ObjectValue {
@@ -317,10 +316,10 @@ pub mod helpers {
         I: IntoIterator<Item = Value>,
     {
         let graph_id = graph_id_gen.get_id_for_graph();
-        let mut graph = ObjectGraph::new(graph_id);
-        let node =
-            graph.add_array_object(graph_id_gen.get_id_for_node(), elem_type, elements, cache);
-        graphs_map.insert_graph(graph.into());
+        let node_id = graph_id_gen.get_id_for_node();
+        graphs_map.ensure_graph(graph_id);
+        let node = graphs_map.add_array_object(graph_id, node_id, elem_type, elements, cache);
+
         graphs_map.set_as_root(key.clone(), graph_id, node);
         values.insert(
             key,
@@ -1101,7 +1100,7 @@ mod embedding_tests {
 
     use itertools::Itertools;
     use ruse_object_graph::{
-        graph_map_value::GraphMapWrap, str_cached, vobj, vstr, Cache, GraphsMap, ObjectGraph,
+        graph_map_value::GraphMapWrap, str_cached, vobj, vstr, Cache, GraphsMap,
     };
 
     use crate::{
@@ -1122,22 +1121,22 @@ mod embedding_tests {
         let x_node_id = id_gen.get_id_for_node();
         let y_node_id = id_gen.get_id_for_node();
 
-        let mut x_graph = ObjectGraph::new(x_graph_id);
-        let mut y_graph = ObjectGraph::new(y_graph_id);
+        graphs_map.ensure_graph(x_graph_id);
+        graphs_map.ensure_graph(y_graph_id);
 
-        x_graph.add_object_from_map(
+        graphs_map.add_object_from_map(
+            x_graph_id,
             x_node_id,
             obj_type.clone(),
             [(field_name.clone(), vstr!(cache; "x"))],
         );
-        y_graph.add_object_from_map(
+        graphs_map.add_object_from_map(
+            y_graph_id,
             y_node_id,
             obj_type.clone(),
             [(field_name.clone(), vstr!(cache; "y"))],
         );
 
-        graphs_map.insert_graph(x_graph.into());
-        graphs_map.insert_graph(y_graph.into());
         graphs_map.set_as_root(str_cached!(cache; "x"), x_graph_id, x_node_id);
         graphs_map.set_as_root(str_cached!(cache; "y"), y_graph_id, y_node_id);
 
@@ -1237,14 +1236,16 @@ mod embedding_tests {
         let x_node_id = id_gen.get_id_for_node();
         let y_node_id = id_gen.get_id_for_node();
 
-        let mut graph = ObjectGraph::new(graph_id);
+        graphs_map.ensure_graph(graph_id);
 
-        graph.add_object_from_map(
+        graphs_map.add_object_from_map(
+            graph_id,
             x_node_id,
             obj_type.clone(),
             [(field_name.clone(), vstr!(cache; "x"))],
         );
-        graph.add_object_from_map(
+        graphs_map.add_object_from_map(
+            graph_id,
             y_node_id,
             obj_type2.clone(),
             [(
@@ -1253,7 +1254,6 @@ mod embedding_tests {
             )],
         );
 
-        graphs_map.insert_graph(graph.into());
         graphs_map.set_as_root(str_cached!(cache; "x"), graph_id, x_node_id);
         graphs_map.set_as_root(str_cached!(cache; "y"), graph_id, y_node_id);
 

@@ -26,7 +26,7 @@ impl EdgeEndPoint {
 
 #[derive(Debug, Clone)]
 pub struct Attributes {
-    pub readonly: bool
+    pub readonly: bool,
 }
 
 impl Default for Attributes {
@@ -38,7 +38,7 @@ impl Default for Attributes {
 #[derive(Debug, Clone)]
 pub struct PrimitiveField {
     pub value: PrimitiveValue,
-    pub attributes: Attributes
+    pub attributes: Attributes,
 }
 
 impl From<PrimitiveValue> for PrimitiveField {
@@ -71,33 +71,30 @@ pub struct ObjectGraphNode {
     obj_type: ObjectType,
     fields: FieldsMap,
     pointers: PointersMap,
-    pub attributes: Attributes
+    pub attributes: Attributes,
 }
 
 impl ObjectGraphNode {
-    pub fn new(obj_type: ObjectType, fields: FieldsMap, pointers: PointersMap) -> Self {
+    pub(crate) fn new(obj_type: ObjectType, fields: FieldsMap, pointers: PointersMap) -> Self {
         Self {
             obj_type,
             fields,
             pointers: pointers,
-            attributes: Attributes::default()
+            attributes: Attributes::default(),
         }
     }
-    pub fn new_with_attrs(obj_type: ObjectType, fields: FieldsMap, pointers: PointersMap, attributes: Attributes) -> Self {
+    pub(crate) fn new_with_attrs(
+        obj_type: ObjectType,
+        fields: FieldsMap,
+        pointers: PointersMap,
+        attributes: Attributes,
+    ) -> Self {
         Self {
             obj_type,
             fields,
             pointers: pointers,
-            attributes
+            attributes,
         }
-    }
-
-    pub fn clone_without_pointers(&self) -> Self {
-        Self::new(
-            self.obj_type.clone(),
-            self.fields.clone(),
-            Default::default(),
-        )
     }
 
     pub fn obj_type(&self) -> &ObjectType {
@@ -116,12 +113,12 @@ impl ObjectGraphNode {
         self.pointers.iter()
     }
 
-    pub fn insert_internal_edge(&mut self, field_name: FieldName, neig: NodeIndex) {
+    pub(crate) fn insert_internal_edge(&mut self, field_name: FieldName, neig: NodeIndex) {
         self.pointers
             .insert(field_name, EdgeEndPoint::Internal(neig));
     }
 
-    pub fn insert_chain_edge(
+    pub(crate) fn insert_chain_edge(
         &mut self,
         field_name: FieldName,
         neig_graph: GraphIndex,
@@ -131,8 +128,12 @@ impl ObjectGraphNode {
             .insert(field_name, EdgeEndPoint::Chain(neig_graph, neig_node));
     }
 
-    pub fn pointers_remove(&mut self, field_name: &FieldName) -> Option<EdgeEndPoint> {
+    pub(crate) fn pointers_remove(&mut self, field_name: &FieldName) -> Option<EdgeEndPoint> {
         self.pointers.remove(field_name)
+    }
+
+    pub fn fields(&self) -> &FieldsMap {
+        &self.fields
     }
 
     pub fn fields_len(&self) -> usize {
@@ -147,24 +148,25 @@ impl ObjectGraphNode {
         self.fields.get(field_name)
     }
 
-    pub fn insert_field(
+    pub fn insert_primitive_field(
         &mut self,
         field_name: FieldName,
         value: PrimitiveValue,
     ) -> Option<PrimitiveField> {
-        self.insert_field_with_attributes(field_name, value, Attributes::default())
+        self.insert_primitive_field_with_attributes(field_name, value, Attributes::default())
     }
 
-    pub fn insert_field_with_attributes(
+    pub fn insert_primitive_field_with_attributes(
         &mut self,
         field_name: FieldName,
         value: PrimitiveValue,
-        attributes: Attributes
+        attributes: Attributes,
     ) -> Option<PrimitiveField> {
-        self.fields.insert(field_name, PrimitiveField { value, attributes })
+        self.fields
+            .insert(field_name, PrimitiveField { value, attributes })
     }
 
-    pub fn remove_field(&mut self, field_name: &FieldName) -> Option<PrimitiveField> {
+    pub fn remove_primitive_field(&mut self, field_name: &FieldName) -> Option<PrimitiveField> {
         self.fields.remove(field_name)
     }
 }

@@ -6,7 +6,7 @@ use ruse_object_graph::{
     graph_map_value::GraphMapWrap,
     str_cached,
     value::{ObjectValue, Value},
-    vnull, vnum, Cache, GraphsMap, Number, ObjectGraph,
+    vnull, vnum, Cache, GraphsMap, Number,
 };
 use ruse_synthesizer::{
     context::{Context, ContextArray, GraphIdGenerator, SynthesizerContext},
@@ -106,7 +106,7 @@ fn tests_construct_binary_tree() {
 
     let graph_id = id_gen.get_id_for_graph();
     let mut graphs_map = GraphsMap::default();
-    graphs_map.insert_graph(ObjectGraph::new(graph_id).into());
+    graphs_map.ensure_graph(graph_id);
 
     let mut boa_ctx = EngineContext::new_boa_ctx();
     let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, &classes);
@@ -153,7 +153,7 @@ fn tests_binary_tree_contains() {
 
     let graph_id = id_gen.get_id_for_graph();
     let mut graphs_map = GraphsMap::default();
-    graphs_map.insert_graph(ObjectGraph::new(graph_id).into());
+    graphs_map.ensure_graph(graph_id);
 
     let mut boa_ctx = EngineContext::new_boa_ctx();
     let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, &classes);
@@ -392,7 +392,7 @@ fn auto_constructor() {
 
     let graph_id = id_gen.get_id_for_graph();
     let mut graphs_map = GraphsMap::default();
-    graphs_map.insert_graph(ObjectGraph::new(graph_id).into());
+    graphs_map.ensure_graph(graph_id);
     let tree_value: Value = {
         let mut boa_ctx = EngineContext::new_boa_ctx();
         let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, &classes);
@@ -439,7 +439,7 @@ fn get_ctx(
     let id_gen = Arc::new(GraphIdGenerator::default());
     let graph_id = id_gen.get_id_for_graph();
     let mut graphs_map = GraphsMap::default();
-    graphs_map.insert_graph(ObjectGraph::new(graph_id).into());
+    graphs_map.ensure_graph(graph_id);
 
     let tree_value: Value = {
         let mut boa_ctx = EngineContext::new_boa_ctx();
@@ -459,7 +459,11 @@ fn get_ctx(
         };
         initial_tree.find_value(node_to_delete_value).unwrap().tree
     };
-    graphs_map.set_as_root(str_cached!(cache; "node_to_delete"), node_to_delete.graph_id, node_to_delete.node);
+    graphs_map.set_as_root(
+        str_cached!(cache; "node_to_delete"),
+        node_to_delete.graph_id,
+        node_to_delete.node,
+    );
 
     Context::with_values(
         [

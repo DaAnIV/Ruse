@@ -306,11 +306,6 @@ impl Context {
         }
     }
 
-    fn get_mut_graph(&mut self, graph: GraphIndex) -> &mut ObjectGraph {
-        let graphs_map = Arc::make_mut(&mut self.graphs_map);
-        Arc::make_mut(graphs_map.get_mut(&graph).unwrap())
-    }
-
     pub fn set_field(
         &mut self,
         graph_id: GraphIndex,
@@ -318,8 +313,8 @@ impl Context {
         field_name: FieldName,
         value: &Value,
     ) -> bool {
-        let graph = self.get_mut_graph(graph_id);
-        graph.set_field(&node, field_name.clone(), value);
+        let graphs_map = Arc::make_mut(&mut self.graphs_map);
+        graphs_map.set_field(field_name.clone(), graph_id, node, value);
         self.update_hash();
         true
     }
@@ -330,56 +325,24 @@ impl Context {
         node: NodeIndex,
         field_name: &FieldName,
     ) -> Option<Value> {
-        let mut new_graph = self.graphs_map[graph].as_ref().clone();
-        let result =
-            if let Some(primitive_field) = new_graph.delete_primitive_field(&node, field_name) {
-                Value::Primitive(primitive_field.value)
-            } else {
-                let neig = new_graph.get_neighbor(&node, field_name)?;
-                let obj_val = match neig {
-                    EdgeEndPoint::Internal(neig_node) => ObjectValue {
-                        obj_type: new_graph.obj_type(neig_node).unwrap().clone(),
-                        graph_id: graph,
-                        node: *neig_node,
-                    },
-                    EdgeEndPoint::Chain(chained_graph, neig_node) => ObjectValue {
-                        obj_type: self.graphs_map[chained_graph]
-                            .obj_type(neig_node)
-                            .unwrap()
-                            .clone(),
-                        graph_id: *chained_graph,
-                        node: *neig_node,
-                    },
-                };
-
-                new_graph.remove_edge(&node, field_name.clone());
-
-                Value::Object(obj_val)
-            };
-        self.update_graph(new_graph.into());
-        self.update_hash();
-        Some(result)
-    }
-
-    pub fn create_graph(&self) -> ObjectGraph {
-        ObjectGraph::new(self.graph_id_gen.get_id_for_graph())
-    }
-
-    pub fn create_graph_in_map(&mut self) -> &mut ObjectGraph {
-        let id = self.graph_id_gen.get_id_for_graph();
-        let new_map = Arc::make_mut(&mut self.graphs_map);
-        new_map.insert_graph(ObjectGraph::new(id).into());
-        Arc::make_mut(new_map.get_mut(&id).unwrap())
-    }
-
-    pub fn update_graph(&mut self, new_graph: Arc<ObjectGraph>) {
         let graphs_map = Arc::make_mut(&mut self.graphs_map);
-        graphs_map.insert_graph(new_graph);
+        let result = graphs_map.delete_field(field_name, graph, node);
+        self.update_hash();
+        result
+    }
+
+    pub fn create_graph_in_map(&mut self) -> GraphIndex {
+        let id = self.graph_id_gen.get_id_for_graph();
+        let graphs_map = Arc::make_mut(&mut self.graphs_map);
+        graphs_map.ensure_graph(id);
+
+        id
     }
 
     pub fn insert_if_new(&mut self, new_graph: Arc<ObjectGraph>) {
         if !self.graphs_map.contains(new_graph.id) {
-            self.update_graph(new_graph);
+            let graphs_map = Arc::make_mut(&mut self.graphs_map);
+            graphs_map.insert_graph_if_new(new_graph);
         }
     }
 
@@ -443,11 +406,16 @@ impl Context {
         let out_graph_id = self.graph_id_gen.get_id_for_graph();
         let out_node_id = self.graph_id_gen.get_id_for_node();
 
-        let mut out_graph = ObjectGraph::new(out_graph_id);
+        let graphs_map = Arc::make_mut(&mut self.graphs_map);
+        graphs_map.ensure_graph(out_graph_id);
+        graphs_map.add_primitive_array_object(
+            out_graph_id,
+            out_node_id,
+            elem_type,
+            values,
+            &syn_ctx.cache,
+        );
 
-        out_graph.add_primitive_array_object(out_node_id, elem_type, values, &syn_ctx.cache);
-
-        self.update_graph(out_graph.into());
         ObjectValue {
             obj_type: ValueType::array_obj_cached_string(elem_type, &syn_ctx.cache),
             graph_id: out_graph_id,
@@ -468,16 +436,16 @@ impl Context {
         let out_graph_id = self.graph_id_gen.get_id_for_graph();
         let out_node_id = self.graph_id_gen.get_id_for_node();
 
-        let mut out_graph = ObjectGraph::new(out_graph_id);
-
-        out_graph.add_primitive_array_object_from_fields(
+        let graphs_map = Arc::make_mut(&mut self.graphs_map);
+        graphs_map.ensure_graph(out_graph_id);
+        graphs_map.add_primitive_array_object_from_fields(
+            out_graph_id,
             out_node_id,
             elem_type,
             values,
             &syn_ctx.cache,
         );
 
-        self.update_graph(out_graph.into());
         ObjectValue {
             obj_type: ValueType::array_obj_cached_string(elem_type, &syn_ctx.cache),
             graph_id: out_graph_id,
@@ -497,11 +465,10 @@ impl Context {
         let out_graph_id = self.graph_id_gen.get_id_for_graph();
         let out_node_id = self.graph_id_gen.get_id_for_node();
 
-        let mut out_graph = ObjectGraph::new(out_graph_id);
+        let graphs_map = Arc::make_mut(&mut self.graphs_map);
+        graphs_map.ensure_graph(out_graph_id);
+        graphs_map.add_array_object(out_graph_id, out_node_id, elem_type, values, &syn_ctx.cache);
 
-        out_graph.add_array_object(out_node_id, elem_type, values, &syn_ctx.cache);
-
-        self.update_graph(out_graph.into());
         ObjectValue {
             obj_type: ValueType::array_obj_cached_string(elem_type, &syn_ctx.cache),
             graph_id: out_graph_id,
@@ -522,11 +489,16 @@ impl Context {
         let out_graph_id = self.graph_id_gen.get_id_for_graph();
         let out_node_id = self.graph_id_gen.get_id_for_node();
 
-        let mut out_graph = ObjectGraph::new(out_graph_id);
+        let graphs_map = Arc::make_mut(&mut self.graphs_map);
+        graphs_map.ensure_graph(out_graph_id);
+        graphs_map.add_primitive_set_object(
+            out_graph_id,
+            out_node_id,
+            elem_type,
+            values,
+            &syn_ctx.cache,
+        );
 
-        out_graph.add_primitive_set_object(out_node_id, elem_type, values, &syn_ctx.cache);
-
-        self.update_graph(out_graph.into());
         ObjectValue {
             obj_type: ValueType::set_obj_cached_string(elem_type, &syn_ctx.cache),
             graph_id: out_graph_id,
@@ -546,11 +518,10 @@ impl Context {
         let out_graph_id = self.graph_id_gen.get_id_for_graph();
         let out_node_id = self.graph_id_gen.get_id_for_node();
 
-        let mut out_graph = ObjectGraph::new(out_graph_id);
+        let graphs_map = Arc::make_mut(&mut self.graphs_map);
+        graphs_map.ensure_graph(out_graph_id);
+        graphs_map.add_simple_object_from_map(out_graph_id, out_node_id, obj_type.clone(), map);
 
-        out_graph.add_simple_object_from_map(out_node_id, obj_type.clone(), map);
-
-        self.update_graph(out_graph.into());
         ObjectValue {
             obj_type: obj_type,
             graph_id: out_graph_id,
@@ -565,11 +536,10 @@ impl Context {
         let out_graph_id = self.graph_id_gen.get_id_for_graph();
         let out_node_id = self.graph_id_gen.get_id_for_node();
 
-        let mut out_graph = ObjectGraph::new(out_graph_id);
+        let graphs_map = Arc::make_mut(&mut self.graphs_map);
+        graphs_map.ensure_graph(out_graph_id);
+        graphs_map.add_object_from_map(out_graph_id, out_node_id, obj_type.clone(), map);
 
-        out_graph.add_object_from_map(out_node_id, obj_type.clone(), map);
-
-        self.update_graph(out_graph.into());
         ObjectValue {
             obj_type: obj_type,
             graph_id: out_graph_id,

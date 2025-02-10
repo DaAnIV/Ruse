@@ -412,7 +412,8 @@ impl TsClass {
     pub fn generate_object<I>(
         &self,
         map: I,
-        graph: &mut ObjectGraph,
+        graphs_map: &mut GraphsMap,
+        graph_id: GraphIndex,
         graph_id_gen: &GraphIdGenerator,
     ) -> ObjectValue
     where
@@ -420,7 +421,8 @@ impl TsClass {
     {
         // TODO: Check map set attributes etc...
 
-        let obj_id = graph.add_object_from_map(
+        let obj_id = graphs_map.add_object_from_map(
+            graph_id,
             graph_id_gen.get_id_for_node(),
             self.description.class_name.clone(),
             map,
@@ -428,7 +430,7 @@ impl TsClass {
 
         ObjectValue {
             obj_type: self.description.class_name.clone(),
-            graph_id: graph.id,
+            graph_id: graph_id,
             node: obj_id,
         }
     }
@@ -859,10 +861,8 @@ impl TsClassBuilder {
         cache: &Arc<Cache>,
     ) -> Arc<ObjectGraph> {
         let graph_id = self.id as GraphIndex;
-        let mut graph = ObjectGraph::new_static(graph_id);
-        self.add_root_node(&mut graph, root_node, cache);
-        graphs_map.insert_graph(graph.into());
-        graphs_map.set_as_root(static_graph_root_name(&self.class_name, cache), graph_id, root_node);
+        graphs_map.new_static_graph(graph_id);
+        self.add_root_node(graphs_map, graph_id, root_node, cache);
 
         for field in self.fields.values().filter(|field| field.is_static) {
             self.add_static_field(field, graph_id, graphs_map, root_node, classes, cache);
@@ -871,11 +871,23 @@ impl TsClassBuilder {
         graphs_map.get(&graph_id).unwrap().clone()
     }
 
-    fn add_root_node(&self, graph: &mut ObjectGraph, root_node: NodeIndex, cache: &Cache) {
-        graph.construct_node(
+    fn add_root_node(
+        &self,
+        graphs_map: &mut GraphsMap,
+        graph_id: GraphIndex,
+        root_node: NodeIndex,
+        cache: &Cache,
+    ) {
+        graphs_map.construct_node(
+            graph_id,
             root_node,
             static_graph_obj_type(&self.class_name, cache),
             fields!(),
+        );
+        graphs_map.set_as_root(
+            static_graph_root_name(&self.class_name, cache),
+            graph_id,
+            root_node,
         );
     }
 
@@ -898,8 +910,12 @@ impl TsClassBuilder {
             cache,
         );
 
-        let graph = Arc::make_mut(graphs_map.get_mut(&graph_id).unwrap());
-        graph.set_field(&root_node, str_cached!(cache; &field.name), &init_val);
+        graphs_map.set_field(
+            str_cached!(cache; &field.name),
+            graph_id,
+            root_node,
+            &init_val,
+        );
 
         let class = classes.get_class_mut(&self.class_name).unwrap();
         class.static_fields.insert(

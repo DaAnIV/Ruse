@@ -5,7 +5,6 @@ use rand::{rngs::StdRng, SeedableRng};
 use ruse_object_graph::generator::object_graph_generator::*;
 use ruse_object_graph::*;
 use std::iter::zip;
-use std::sync::Arc;
 
 const SEED: u64 = 100;
 const RANGE: [usize; 8] = [5, 10, 20, 50, 100, 200, 500, 1000];
@@ -105,10 +104,10 @@ fn graph_almost_eq(c: &mut Criterion) {
     let mut rng = StdRng::seed_from_u64(SEED);
     let map1 = random_gnp_object_graph(&cache, 0, &mut rng, 1000, 1f64 / f64::sqrt(1000f64));
     let mut map2 = map1.clone();
-    let g2 = Arc::make_mut(map2.get_mut(&0).unwrap());
+    map2.ensure_graph(0);
 
     let mut edges = Vec::new();
-    for (node_id, node) in g2.nodes() {
+    for (node_id, node) in map2[0].nodes() {
         for (field, _) in node.pointers_iter() {
             edges.push((*node_id, field.clone()));
         }
@@ -117,21 +116,23 @@ fn graph_almost_eq(c: &mut Criterion) {
     let remove_amount = 10;
     let remove = edges.into_iter().choose_multiple(&mut rng, remove_amount);
     for (id, field) in remove {
-        g2.remove_edge(&id, field);
+        map2.remove_edge(&field, 0, id);
     }
 
     let mut remaining = remove_amount;
     while remaining > 0 {
-        let chosen = zip(g2.node_ids(), g2.node_ids()).choose_multiple(&mut rng, remaining);
-        let add = Vec::from_iter(chosen.into_iter().map(|(s, t)| (*s, *t)));
-        for (s, t) in add {
-            if g2.contains_internal_edge(&s, &t) {
+        let chosen = zip(map2[0].node_ids().copied(), map2[0].node_ids().copied())
+            .choose_multiple(&mut rng, remaining);
+        for (s, t) in chosen {
+            if map2[0].contains_internal_edge(&s, &t) {
                 continue;
             }
-            g2.set_edge(
-                &s,
-                t,
+            map2.set_edge(
                 scached!(cache; format!("{}_{}", s.index(), t.index())),
+                0,
+                s,
+                0,
+                t,
             );
             remaining -= 1;
         }

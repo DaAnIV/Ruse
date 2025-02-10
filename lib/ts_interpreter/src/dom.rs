@@ -1,6 +1,6 @@
 use html_parser::{self, Dom};
 use ruse_object_graph::{
-    fields, scached, str_cached, Cache, CachedString, FieldsMap, NodeIndex, ObjectGraph,
+    fields, scached, str_cached, Cache, CachedString, FieldsMap, GraphIndex, GraphsMap, NodeIndex,
     PrimitiveValue,
 };
 use ruse_synthesizer::context::GraphIdGenerator;
@@ -26,7 +26,8 @@ impl DomLoader {
 
     fn add_node(
         id_gen: &GraphIdGenerator,
-        graph: &mut ObjectGraph,
+        graph_id: GraphIndex,
+        graphs_map: &mut GraphsMap,
         element: &html_parser::Element,
         cache: &Cache,
     ) -> NodeIndex {
@@ -57,39 +58,49 @@ impl DomLoader {
             );
         }
 
-        let node = graph.add_simple_object(
+        let node = graphs_map.add_simple_object(
+            graph_id,
             id_gen.get_id_for_node(),
             Self::element_obj_type(cache),
             fields.into(),
         );
 
-        Self::add_children(id_gen, graph, &node, &element.children, cache);
+        Self::add_children(id_gen, graph_id, graphs_map, node, &element.children, cache);
 
         node
     }
 
     fn add_children(
         id_gen: &GraphIdGenerator,
-        graph: &mut ObjectGraph,
-        parent: &NodeIndex,
+        graph_id: GraphIndex,
+        graphs_map: &mut GraphsMap,
+        parent: NodeIndex,
         children: &[html_parser::Node],
         cache: &Cache,
     ) {
         for (i, child) in children.iter().enumerate() {
             if let html_parser::Node::Element(element) = child {
-                let child_node = Self::add_node(id_gen, graph, element, cache);
-                graph.set_edge(parent, child_node, scached!(cache; i.to_string()));
+                let child_node = Self::add_node(id_gen, graph_id, graphs_map, element, cache);
+                graphs_map.set_edge(
+                    scached!(cache; i.to_string()),
+                    graph_id,
+                    parent,
+                    graph_id,
+                    child_node,
+                );
             }
         }
     }
 
     pub fn load_dom(
         id_gen: &GraphIdGenerator,
-        graph: &mut ObjectGraph,
+        graph_id: GraphIndex,
+        graphs_map: &mut GraphsMap,
         html: &str,
         cache: &Cache,
     ) -> Result<NodeIndex, html_parser::Error> {
-        let root = graph.add_simple_object(
+        let root = graphs_map.add_simple_object(
+            graph_id,
             id_gen.get_id_for_node(),
             Self::document_obj_type(cache),
             fields!(),
@@ -99,14 +110,15 @@ impl DomLoader {
         if parsed.tree_type == html_parser::DomVariant::Empty {
             return Err(html_parser::Error::Parsing("html string is empty".into()));
         }
-        Self::add_children(id_gen, graph, &root, &parsed.children, cache);
+        Self::add_children(id_gen, graph_id, graphs_map, root, &parsed.children, cache);
 
         Ok(root)
     }
 
     pub fn load_element(
         id_gen: &GraphIdGenerator,
-        graph: &mut ObjectGraph,
+        graph_id: GraphIndex,
+        graphs_map: &mut GraphsMap,
         html: &str,
         cache: &Cache,
     ) -> Result<NodeIndex, html_parser::Error> {
@@ -122,7 +134,7 @@ impl DomLoader {
             ));
         }
         let root = if let html_parser::Node::Element(element) = &parsed.children[0] {
-            Self::add_node(id_gen, graph, element, cache)
+            Self::add_node(id_gen, graph_id, graphs_map, element, cache)
         } else {
             return Err(html_parser::Error::Parsing("html is not an element".into()));
         };

@@ -9,7 +9,7 @@ use itertools::Itertools;
 use ruse_object_graph::{
     value::{ObjectValue, Value},
     vnull, Attributes, Cache, CachedString, FieldName, FieldsMap, GraphIndex, GraphsMap,
-    ObjectGraph, PrimitiveField,
+    PrimitiveField,
 };
 use ruse_synthesizer::context::{Context, GraphIdGenerator};
 
@@ -134,7 +134,8 @@ trait GlobalObjectInner {
     fn classes(&self) -> &TsClasses;
     fn cache(&self) -> &Cache;
     fn graphs_map(&self) -> &GraphsMap;
-    fn get_graph(&self) -> boa_engine::JsResult<&mut ObjectGraph>;
+    fn mut_graphs_map(&self) -> boa_engine::JsResult<&mut GraphsMap>;
+    fn get_graph_id_for_new_object(&self) -> boa_engine::JsResult<GraphIndex>;
     fn id_gen(&self) -> &GraphIdGenerator;
     fn dirty(&self) -> bool;
     fn set_dirty(&mut self);
@@ -164,15 +165,6 @@ struct GraphGlobalObjectInner {
     dirty: bool,
 }
 
-impl GraphGlobalObjectInner {
-    fn graph(&self) -> &mut ObjectGraph {
-        Arc::make_mut(self.graphs_map_mut().get_mut(&self.graph_id).unwrap())
-    }
-    fn graphs_map_mut(&self) -> &mut GraphsMap {
-        unsafe { self.graphs_map.as_mut().unwrap() }
-    }
-}
-
 impl GlobalObjectInner for GraphGlobalObjectInner {
     fn set_field(
         &mut self,
@@ -180,8 +172,12 @@ impl GlobalObjectInner for GraphGlobalObjectInner {
         field_name: &CachedString,
         new_value: &Value,
     ) -> boa_engine::JsResult<()> {
-        let graph = Arc::make_mut(self.graphs_map_mut().get_mut(&obj_val.graph_id).unwrap());
-        graph.set_field(&obj_val.node, field_name.clone(), new_value);
+        self.mut_graphs_map()?.set_field(
+            field_name.clone(),
+            obj_val.graph_id,
+            obj_val.node,
+            new_value,
+        );
 
         Ok(())
     }
@@ -195,8 +191,11 @@ impl GlobalObjectInner for GraphGlobalObjectInner {
     fn graphs_map(&self) -> &GraphsMap {
         unsafe { self.graphs_map.as_ref().unwrap() }
     }
-    fn get_graph(&self) -> boa_engine::JsResult<&mut ObjectGraph> {
-        Ok(self.graph())
+    fn mut_graphs_map(&self) -> boa_engine::JsResult<&mut GraphsMap> {
+        Ok(unsafe { self.graphs_map.as_mut().unwrap() })
+    }
+    fn get_graph_id_for_new_object(&self) -> boa_engine::JsResult<GraphIndex> {
+        Ok(self.graph_id)
     }
     fn id_gen(&self) -> &GraphIdGenerator {
         self.id_gen.as_ref()
@@ -249,7 +248,10 @@ impl GlobalObjectInner for MutContextGlobalObjectInner {
     fn graphs_map(&self) -> &GraphsMap {
         &self.context().graphs_map
     }
-    fn get_graph(&self) -> boa_engine::JsResult<&mut ObjectGraph> {
+    fn mut_graphs_map(&self) -> boa_engine::JsResult<&mut GraphsMap> {
+        Ok(Arc::make_mut(&mut self.context().graphs_map))
+    }
+    fn get_graph_id_for_new_object(&self) -> boa_engine::JsResult<GraphIndex> {
         Ok(self.context().create_graph_in_map())
     }
     fn id_gen(&self) -> &GraphIdGenerator {
@@ -295,7 +297,10 @@ impl GlobalObjectInner for ContextGlobalObjectInner {
     fn graphs_map(&self) -> &GraphsMap {
         &self.context().graphs_map
     }
-    fn get_graph(&self) -> boa_engine::JsResult<&mut ObjectGraph> {
+    fn mut_graphs_map(&self) -> boa_engine::JsResult<&mut GraphsMap> {
+        Err(error_immutable_context())
+    }
+    fn get_graph_id_for_new_object(&self) -> boa_engine::JsResult<GraphIndex> {
         Err(error_immutable_context())
     }
     fn id_gen(&self) -> &GraphIdGenerator {
@@ -672,12 +677,13 @@ impl JsObjectWrapper {
                     },
                 ));
 
-        let graph = inner.get_graph()?;
-
+        let graph_id = inner.get_graph_id_for_new_object()?;
         let node_id = id_gen.get_id_for_node();
-        let graph_id = graph.id;
 
-        graph.construct_node(
+        let graphs_map = inner.mut_graphs_map()?;
+
+        graphs_map.construct_node(
+            graph_id,
             node_id,
             self.desc.class_name.clone(),
             FieldsMap::from_iter(primitive_fields),
@@ -690,9 +696,10 @@ impl JsObjectWrapper {
 
             if !arg.is_null_or_undefined() {
                 let obj_val = JsWrapped::<ObjectValue>::get_from_js_val(arg)?;
-                graph.set_field(
-                    &node_id,
+                graphs_map.set_field(
                     param.name.clone(),
+                    graph_id,
+                    node_id,
                     &Value::Object(obj_val.0.clone()),
                 );
             }

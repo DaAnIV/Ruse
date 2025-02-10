@@ -311,7 +311,8 @@ mod ts_class_tests {
             .expect("Failed to add User class");
         let classes = builder.finalize(&cache);
 
-        let mut graph = ObjectGraph::new(id_gen.get_id_for_graph());
+        let graph_id = id_gen.get_id_for_graph();
+        graphs_map.ensure_graph(graph_id);
         let user = classes
             .get_class(&user_class_name)
             .unwrap()
@@ -320,10 +321,10 @@ mod ts_class_tests {
                     (str_cached!(cache; "surname"), vstr!(cache; "Doe")),
                     (str_cached!(cache; "name"), vstr!(cache; "John")),
                 ]),
-                &mut graph,
+                &mut graphs_map,
+                graph_id,
                 &id_gen,
             );
-        graphs_map.insert_graph(graph.into());
 
         let name_field = user
             .get_field_value(&str_cached!(cache; "name"), &graphs_map)
@@ -435,16 +436,17 @@ mod ts_class_tests {
         let classes = builder.finalize(&cache);
 
         let user_class = classes.get_class(&user_class_name).unwrap();
-        let mut graph = ObjectGraph::new(id_gen.get_id_for_graph());
+        let graph_id = id_gen.get_id_for_graph();
+        graphs_map.ensure_graph(graph_id);
         let user = user_class.generate_object(
             HashMap::from([
                 (str_cached!(cache; "surname"), vstr!(cache; "Doe")),
                 (str_cached!(cache; "name"), vstr!(cache; "John")),
             ]),
-            &mut graph,
+            &mut graphs_map,
+            graph_id,
             &id_gen,
         );
-        graphs_map.insert_graph(graph.into());
 
         let mut ctx = Context::with_values([].into(), graphs_map.into(), id_gen);
         let mut boa_ctx = EngineContext::new_boa_ctx();
@@ -489,40 +491,43 @@ mod ts_class_tests {
         let user_class = classes.get_class(&user_class_name).unwrap();
         let user_class_pair = classes.get_class(&user_pair_class_name).unwrap();
 
-        let mut user1_graph = ObjectGraph::new(id_gen.get_id_for_graph());
+        let user1_graph_id = id_gen.get_id_for_graph();
+        graphs_map.ensure_graph(user1_graph_id);
         let user1 = user_class.generate_object(
             HashMap::from([
                 (str_cached!(cache; "surname"), vstr!(cache; "Doe")),
                 (str_cached!(cache; "name"), vstr!(cache; "John")),
             ]),
-            &mut user1_graph,
+            &mut graphs_map,
+            user1_graph_id,
             &id_gen,
         );
-        graphs_map.insert_graph(user1_graph.into());
         graphs_map.set_as_root(str_cached!(cache; "student1"), user1.graph_id, user1.node);
 
-        let mut user2_graph = ObjectGraph::new(id_gen.get_id_for_graph());
+        let user2_graph_id = id_gen.get_id_for_graph();
+        graphs_map.ensure_graph(user2_graph_id);
         let user2 = user_class.generate_object(
             HashMap::from([
                 (str_cached!(cache; "name"), vstr!(cache; "Paul")),
                 (str_cached!(cache; "surname"), vstr!(cache; "Simon")),
             ]),
-            &mut user2_graph,
+            &mut graphs_map,
+            user1_graph_id,
             &id_gen,
         );
-        graphs_map.insert_graph(user2_graph.into());
         graphs_map.set_as_root(str_cached!(cache; "student2"), user2.graph_id, user2.node);
 
-        let mut complex_user_graph = ObjectGraph::new(id_gen.get_id_for_graph());
+        let complex_user_graph_id = id_gen.get_id_for_graph();
+        graphs_map.ensure_graph(complex_user_graph_id);
         let complex_user = user_class_pair.generate_object(
             HashMap::from([
                 (str_cached!(cache; "user1"), Value::Object(user1)),
                 (str_cached!(cache; "user2"), Value::Object(user2)),
             ]),
-            &mut complex_user_graph,
+            &mut graphs_map,
+            complex_user_graph_id,
             &id_gen,
         );
-        graphs_map.insert_graph(complex_user_graph.into());
         graphs_map.set_as_root(str_cached!(cache; "student_pair"), complex_user.graph_id, complex_user.node);
 
         let mut ctx = Context::with_values([].into(), graphs_map.into(), id_gen);
@@ -561,7 +566,8 @@ mod ts_class_tests {
 
         let classes = builder.finalize(&cache);
 
-        let mut graph = ObjectGraph::new(id_gen.get_id_for_graph());
+        let graph_id = id_gen.get_id_for_graph();
+        graphs_map.ensure_graph(graph_id);
         let user = {
             let user_class = classes.get_class(&user_class_name).unwrap();
             user_class.generate_object(
@@ -569,11 +575,11 @@ mod ts_class_tests {
                     (str_cached!(cache; "surname"), vstr!(cache; "Doe")),
                     (str_cached!(cache; "name"), vstr!(cache; "John")),
                 ]),
-                &mut graph,
+                &mut graphs_map,
+                graph_id,
                 &id_gen,
             )
         };
-        graphs_map.insert_graph(graph.into());
         graphs_map.set_as_root(str_cached!(cache; "u"), user.graph_id, user.node);
 
         let mut values = ValuesMap::default();
@@ -663,7 +669,8 @@ mod ts_class_tests {
             println!("");
         }
 
-        let mut graph = ObjectGraph::new(id_gen.get_id_for_graph());
+        let graph_id = id_gen.get_id_for_graph();
+        graphs_map.ensure_graph(graph_id);
         let user = classes
             .get_class(&user_class_name)
             .unwrap()
@@ -672,10 +679,10 @@ mod ts_class_tests {
                     (str_cached!(cache; "surname"), vstr!(cache; "Doe")),
                     (str_cached!(cache; "name"), vstr!(cache; "John")),
                 ]),
-                &mut graph,
+                &mut graphs_map,
+                graph_id,
                 &id_gen,
             );
-        graphs_map.insert_graph(graph.into());
         graphs_map.set_as_root(str_cached!(cache; "user"), user.graph_id, user.node);
 
         let mut values = ValuesMap::default();
@@ -760,7 +767,7 @@ mod ts_class_tests {
         let classes = builder.finalize(&cache);
 
         let graph_id = id_gen.get_id_for_graph();
-        graphs_map.insert_graph(ObjectGraph::new(graph_id).into());
+        graphs_map.ensure_graph(graph_id);
 
         let mut boa_ctx = EngineContext::new_boa_ctx();
         let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, &classes);
@@ -818,7 +825,7 @@ mod ts_class_tests {
         let classes = builder.finalize(&cache);
 
         let graph_id = id_gen.get_id_for_graph();
-        graphs_map.insert_graph(ObjectGraph::new(graph_id).into());
+        graphs_map.ensure_graph(graph_id);
         let mut boa_ctx = EngineContext::new_boa_ctx();
         let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, &classes);
         engine_ctx.reset_with_graph(graph_id, &mut graphs_map, &classes, &id_gen, &cache);

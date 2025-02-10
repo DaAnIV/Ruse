@@ -1,7 +1,4 @@
-use std::{
-    collections::{HashMap, VecDeque},
-    sync::Arc,
-};
+use std::collections::{HashMap, VecDeque};
 
 use crate::{error::SnythesisTaskError, parse_err, task_type::TaskType, verify_err};
 use itertools::Itertools;
@@ -139,14 +136,15 @@ pub(crate) fn set_var_refs(
     }
     for (graph_id, node_id, field_name, root_name_opt, var_ref) in refs {
         let actual_value = var_ref.create_value(values, graphs_map, cache)?;
-        let graph = Arc::make_mut(graphs_map.get_mut(&graph_id).unwrap());
         let actual_obj = actual_value.obj().unwrap();
 
-        if actual_obj.graph_id == graph_id {
-            graph.set_edge(&node_id, actual_obj.node, field_name);
-        } else {
-            graph.set_chain_edge(&node_id, actual_obj.graph_id, actual_obj.node, field_name);
-        }
+        graphs_map.set_edge(
+            field_name,
+            graph_id,
+            node_id,
+            actual_obj.graph_id,
+            actual_obj.node,
+        );
         if let Some(root_names) = root_name_opt {
             for r in root_names {
                 graphs_map.set_as_root(r.clone(), actual_obj.graph_id, actual_obj.node);

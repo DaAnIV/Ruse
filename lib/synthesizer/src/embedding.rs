@@ -1,14 +1,11 @@
-use std::{
-    collections::{HashMap, HashSet, VecDeque},
-    sync::Arc,
-};
+use std::collections::{HashMap, HashSet, VecDeque};
 
 use crate::context::{Context, ContextArray, VariableName};
 use itertools::{self, izip};
 use ruse_object_graph::{
     graph_equality, graph_walk,
     value::{ObjectValue, Value},
-    Cache, GraphIndex, GraphsMap, NodeIndex, ObjectGraph, RootName,
+    Cache, GraphIndex, GraphsMap, NodeIndex, RootName,
 };
 
 #[cfg(feature = "trace_embeddings")]
@@ -302,15 +299,13 @@ fn embed_object_value(
     // trace!(target: "ruse::embedding", "Embedding {}", var);
 
     let new_var_value = match matches.get(&obj_val.node) {
-        Some((graph_id, node_id)) => {
-            &(*graph_id, *node_id)
-        }
+        Some((graph_id, node_id)) => &(*graph_id, *node_id),
         None => {
-            let graph = Arc::make_mut(map_hat.get_or_create_mut(obj_val.graph_id));
+            map_hat.ensure_graph(obj_val.graph_id);
             if !embed(
-                graph,
-                &old_ctx.graphs_map,
+                map_hat,
                 obj_val.graph_id,
+                &old_ctx.graphs_map,
                 obj_val.node,
                 new_nodes,
                 matches,
@@ -326,9 +321,9 @@ fn embed_object_value(
 }
 
 fn embed(
-    new_graph: &mut ObjectGraph,
-    graphs_map: &GraphsMap,
+    map_hat: &mut GraphsMap,
     graph_id: GraphIndex,
+    graphs_map: &GraphsMap,
     node_id: NodeIndex,
     new_nodes: &HashSet<NodeIndex>,
     matches: &mut HashMap<NodeIndex, (GraphIndex, NodeIndex)>,
@@ -337,8 +332,8 @@ fn embed(
         return true;
     }
 
+    let mut edges = Vec::new();
     let mut q = VecDeque::new();
-    let new_graph_id = new_graph.id;
 
     q.push_back((graph_id, node_id));
     while let Some((cur_graph_id, cur_node_id)) = q.pop_front() {
@@ -348,20 +343,34 @@ fn embed(
             continue;
         }
         let node = graph.get_node(&cur_node_id).unwrap();
-        let new_node = new_graph.add_node(cur_node_id, node.clone_without_pointers());
-        matches.insert(cur_node_id, (new_graph_id, cur_node_id));
+        map_hat.construct_node(
+            graph_id,
+            cur_node_id,
+            node.obj_type().clone(),
+            node.fields().clone(),
+        );
+
+        matches.insert(cur_node_id, (graph_id, cur_node_id));
         for (field_name, old_neig) in node.pointers_iter() {
             if let Some((new_neig_graph, new_neig_id)) = matches.get(old_neig.index()) {
                 if new_nodes.contains(new_neig_id) {
                     return false;
                 }
-                if *new_neig_graph == new_graph_id {
-                    new_node.insert_internal_edge(field_name.clone(), *new_neig_id);
-                } else {
-                    new_node.insert_chain_edge(field_name.clone(), *new_neig_graph, *new_neig_id);
-                }
+                edges.push((
+                    field_name.clone(),
+                    graph_id,
+                    cur_node_id,
+                    *new_neig_graph,
+                    *new_neig_id,
+                ));
             } else {
-                new_node.insert_internal_edge(field_name.clone(), *old_neig.index());
+                edges.push((
+                    field_name.clone(),
+                    graph_id,
+                    cur_node_id,
+                    graph_id,
+                    *old_neig.index(),
+                ));
                 match old_neig {
                     ruse_object_graph::EdgeEndPoint::Internal(old_neig_node) => {
                         q.push_back((cur_graph_id, *old_neig_node))
@@ -372,6 +381,10 @@ fn embed(
                 }
             }
         }
+    }
+
+    for (field, graph_a, node_a, graph_b, node_b) in edges {
+        map_hat.set_edge(field, graph_a, node_a, graph_b, node_b);
     }
 
     true

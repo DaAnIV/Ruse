@@ -33,10 +33,10 @@ pub mod object_graph_generator {
 
         let mut map =
             HashMap::<petgraph::graph::NodeIndex, node_index::NodeIndex>::with_capacity(n);
-        let mut graph = ObjectGraph::new(graph_id);
+        let mut graphs_map = GraphsMap::new();
+        graphs_map.ensure_graph(graph_id);
         let root_field_string = str_cached!(cache; "r");
         let data_field_string = str_cached!(cache; "a");
-        let mut roots = Vec::new();
         while let Some(r) = get_unseen_index(n.try_into().unwrap(), &mut discovered) {
             let root_fields = fields!((
                 root_field_string.clone(),
@@ -44,8 +44,8 @@ pub mod object_graph_generator {
             ));
             let root_name = scached!(cache; generate_random_str(5, rng).to_ascii_uppercase());
             let obj_name = scached!(cache; generate_random_str(5, rng).to_ascii_uppercase());
-            graph.add_simple_object(id, obj_name, root_fields);
-            roots.push((root_name, id));
+            graphs_map.add_simple_object(graph_id, id, obj_name, root_fields);
+            graphs_map.set_as_root(root_name, graph_id, id);
             map.insert(r.into(), id);
             id += 1;
 
@@ -58,7 +58,7 @@ pub mod object_graph_generator {
                     ));
                     let obj_name =
                         scached!(cache; generate_random_str(5, rng).to_ascii_uppercase());
-                    graph.add_simple_object(id, obj_name, data_fields);
+                    graphs_map.add_simple_object(graph_id, id, obj_name, data_fields);
                     map.insert(nx, id);
                     id += 1
                 }
@@ -69,13 +69,7 @@ pub mod object_graph_generator {
             let object = map.get(&edge.source()).unwrap();
             let field = map.get(&edge.target()).unwrap();
             let edge_name = scached!(cache; format!("{}_{}", object.index(), field.index()));
-            graph.set_edge(object, *field, edge_name);
-        }
-
-        let mut graphs_map = GraphsMap::new();
-        graphs_map.insert_graph(graph.into());
-        for (root_name, node) in roots {
-            graphs_map.set_as_root(root_name, graph_id, node);
+            graphs_map.set_edge(edge_name, graph_id, *object, graph_id, *field);
         }
 
         graphs_map

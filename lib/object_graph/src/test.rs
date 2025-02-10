@@ -1,14 +1,11 @@
 #[cfg(test)]
 mod tests {
-    use std::hash::{DefaultHasher, Hash, Hasher};
-
     use rand::{rngs::StdRng, SeedableRng};
 
-    use crate::dot;
     use crate::generator::object_graph_generator::*;
-    use crate::graph_map_value::GraphMapWrap;
     use crate::GraphsMap;
-    use crate::{fields, str_cached, Cache, NodeIndex, ObjectGraph, PrimitiveValue};
+    use crate::dot;
+    use crate::{fields, str_cached, Cache, NodeIndex, PrimitiveValue};
 
     const SEED: u64 = 10;
 
@@ -36,49 +33,56 @@ mod tests {
         let field_name_b = str_cached!(&cache; "b");
         let field_name_c = str_cached!(&cache; "c");
 
-        let mut g1 = ObjectGraph::new(0);
-        let n11 = g1.add_simple_object(
+        let g1 = 0;
+        let g2 = 1;
+
+        graphs_map_1.ensure_graph(0);
+        let n11 = graphs_map_1.add_simple_object(
+            g1,
             NodeIndex(0),
             obj_name_a.clone(),
             fields!((field_name_a.clone(), PrimitiveValue::Number(3u64.into()))),
         );
 
-        let n12 = g1.add_simple_object(
+        let n12 = graphs_map_1.add_simple_object(
+            g1,
             NodeIndex(1),
             obj_name_b.clone(),
             fields!((field_name_b.clone(), PrimitiveValue::Number(6u64.into()))),
         );
-        let n13 = g1.add_simple_object(
+        let n13 = graphs_map_1.add_simple_object(
+            g1,
             NodeIndex(2),
             obj_name_c.clone(),
             fields!((field_name_c.clone(), PrimitiveValue::Number(6u64.into()))),
         );
-        g1.set_edge(&n11, n12, str_cached!(&cache; "12"));
-        g1.set_edge(&n11, n13, str_cached!(&cache; "13"));
+        graphs_map_1.set_edge(str_cached!(&cache; "12"), g1, n11, g1, n12);
+        graphs_map_1.set_edge(str_cached!(&cache; "13"), g1, n11, g1, n13);
 
-        let mut g2 = ObjectGraph::new(1);
-        let n22: NodeIndex = g2.add_simple_object(
+        graphs_map_2.ensure_graph(g2);
+        let n22: NodeIndex = graphs_map_2.add_simple_object(
+            g2,
             NodeIndex(0),
             obj_name_b,
             fields!((field_name_b.clone(), PrimitiveValue::Number(5u64.into()))),
         );
-        let n21 = g2.add_simple_object(
+        let n21 = graphs_map_2.add_simple_object(
+            g2,
             NodeIndex(1),
             obj_name_a,
             fields!((field_name_a.clone(), PrimitiveValue::Number(3u64.into()))),
         );
-        g2.set_edge(&n21, n22, str_cached!(&cache; "12"));
-        let n23 = g2.add_simple_object(
+        graphs_map_2.set_edge(str_cached!(&cache; "12"), g2, n21, g2, n22);
+        let n23 = graphs_map_2.add_simple_object(
+            g2,
             NodeIndex(2),
             obj_name_c,
             fields!((field_name_c.clone(), PrimitiveValue::Number(6u64.into()))),
         );
-        g2.set_edge(&n21, n23, str_cached!(&cache; "13"));
+        graphs_map_2.set_edge(str_cached!(&cache; "13"), g2, n21, g2, n23);
 
-        graphs_map_1.insert_graph(g1.into());
-        graphs_map_2.insert_graph(g2.into());
-        graphs_map_1.set_as_root(root_name.clone(), 0, n11);
-        graphs_map_2.set_as_root(root_name, 1, n21);
+        graphs_map_1.set_as_root(root_name.clone(), g1, n11);
+        graphs_map_2.set_as_root(root_name, g2, n21);
         assert_ne!(&graphs_map_1, &graphs_map_2, "Graphs are equal");
     }
 
@@ -97,48 +101,55 @@ mod tests {
         let field_name_b2 = str_cached!(&cache; "b2");
         let field_name_c = str_cached!(&cache; "c");
 
-        let mut g1 = ObjectGraph::new(0);
-        let n11 = g1.add_simple_object(
+        let g1 = 0;
+        let g2 = 0;
+
+        map1.ensure_graph(g1);
+        let n11 = map1.add_simple_object(
+            g1,
             NodeIndex(0),
             obj_name_a.clone(),
             fields!((field_name_a.clone(), PrimitiveValue::Number(3u64.into()))),
         );
-        let n12 = g1.add_simple_object(
+        let n12 = map1.add_simple_object(
+            g1,
             NodeIndex(1),
             obj_name_b.clone(),
             fields!((field_name_b.clone(), PrimitiveValue::Number(5u64.into()))),
         );
-        let n13 = g1.add_simple_object(
+        let n13 = map1.add_simple_object(
+            g1,
             NodeIndex(2),
             obj_name_c.clone(),
             fields!((field_name_c.clone(), PrimitiveValue::Number(6u64.into()))),
         );
-        g1.set_edge(&n11, n12, str_cached!(&cache; "12"));
-        g1.set_edge(&n11, n13, str_cached!(&cache; "13"));
+        map1.set_edge(str_cached!(&cache; "12"), g1, n11, g1, n12);
+        map1.set_edge(str_cached!(&cache; "13"), g1, n11, g1, n13);
 
-        let mut g2 = ObjectGraph::new(1);
-        let n22: NodeIndex = g2.add_simple_object(
+        map2.ensure_graph(g2);
+        let n22: NodeIndex = map2.add_simple_object(
+            g2,
             NodeIndex(0),
             obj_name_b,
             fields!((field_name_b2.clone(), PrimitiveValue::Number(5u64.into()))),
         );
-        let n21 = g2.add_simple_object(
+        let n21 = map2.add_simple_object(
+            g2,
             NodeIndex(1),
             obj_name_a,
             fields!((field_name_a.clone(), PrimitiveValue::Number(3u64.into()))),
         );
-        g2.set_edge(&n21, n22, str_cached!(&cache; "12"));
-        let n23 = g2.add_simple_object(
+        map2.set_edge(str_cached!(&cache; "12"), g2, n21, g2, n22);
+        let n23 = map2.add_simple_object(
+            g2,
             NodeIndex(2),
             obj_name_c,
             fields!((field_name_c.clone(), PrimitiveValue::Number(6u64.into()))),
         );
-        g2.set_edge(&n21, n23, str_cached!(&cache; "13"));
+        map2.set_edge(str_cached!(&cache; "13"), g2, n21, g2, n23);
 
-        map1.insert_graph(g1.into());
-        map1.set_as_root(root_name.clone(), 0, n11);
-        map2.insert_graph(g2.into());
-        map2.set_as_root(root_name, 1, n21);
+        map1.set_as_root(root_name.clone(), g1, n11);
+        map2.set_as_root(root_name, g2, n21);
         assert_ne!(map1, map2, "Graphs are equal");
     }
 
@@ -157,48 +168,55 @@ mod tests {
         let field_name_b = str_cached!(&cache; "b");
         let field_name_c = str_cached!(&cache; "c");
 
-        let mut g1 = ObjectGraph::new(0);
-        let n11 = g1.add_simple_object(
+        let g1 = 0;
+        let g2 = 1;
+
+        map1.ensure_graph(g1);
+        let n11 = map1.add_simple_object(
+            g1,
             NodeIndex(0),
             obj_name_a.clone(),
             fields!((field_name_a.clone(), PrimitiveValue::Number(3u64.into()))),
         );
-        let n12 = g1.add_simple_object(
+        let n12 = map1.add_simple_object(
+            g1,
             NodeIndex(1),
             obj_name_b.clone(),
             fields!((field_name_b.clone(), PrimitiveValue::Number(5u64.into()))),
         );
-        let n13 = g1.add_simple_object(
+        let n13 = map1.add_simple_object(
+            g1,
             NodeIndex(2),
             obj_name_c.clone(),
             fields!((field_name_c.clone(), PrimitiveValue::Number(6u64.into()))),
         );
-        g1.set_edge(&n11, n12, str_cached!(&cache; "12"));
-        g1.set_edge(&n11, n13, str_cached!(&cache; "13"));
+        map1.set_edge(str_cached!(&cache; "12"), g1, n11, g1, n12);
+        map1.set_edge(str_cached!(&cache; "13"), g1, n11, g1, n13);
 
-        let mut g2 = ObjectGraph::new(1);
-        let n22: NodeIndex = g2.add_simple_object(
+        map2.ensure_graph(g2);
+        let n22: NodeIndex = map2.add_simple_object(
+            g2,
             NodeIndex(0),
             obj_name_b2,
             fields!((field_name_b.clone(), PrimitiveValue::Number(5u64.into()))),
         );
-        let n21 = g2.add_simple_object(
+        let n21 = map2.add_simple_object(
+            g2,
             NodeIndex(1),
             obj_name_a,
             fields!((field_name_a.clone(), PrimitiveValue::Number(3u64.into()))),
         );
-        g2.set_edge(&n21, n22, str_cached!(&cache; "12"));
-        let n23 = g2.add_simple_object(
+        map2.set_edge(str_cached!(&cache; "12"), g2, n21, g2, n22);
+        let n23 = map2.add_simple_object(
+            g2,
             NodeIndex(2),
             obj_name_c,
             fields!((field_name_c.clone(), PrimitiveValue::Number(6u64.into()))),
         );
-        g2.set_edge(&n21, n23, str_cached!(&cache; "13"));
+        map2.set_edge(str_cached!(&cache; "12"), g2, n21, g2, n23);
 
-        map1.insert_graph(g1.into());
-        map1.set_as_root(root_name.clone(), 0, n11);
-        map2.insert_graph(g2.into());
-        map2.set_as_root(root_name.clone(), 1, n21);
+        map1.set_as_root(root_name.clone(), g1, n11);
+        map2.set_as_root(root_name.clone(), g2, n21);
         assert_ne!(map1, map2, "Graphs are equal");
     }
 
@@ -216,47 +234,54 @@ mod tests {
         let field_name_b = str_cached!(&cache; "b");
         let field_name_c = str_cached!(&cache; "c");
 
-        let mut g1 = ObjectGraph::new(0);
-        let n11 = g1.add_simple_object(
+        let g1 = 0;
+        let g2 = 1;
+
+        map1.ensure_graph(g1);
+        let n11 = map1.add_simple_object(
+            g1,
             NodeIndex(0),
             obj_name_a.clone(),
             fields!((field_name_a.clone(), PrimitiveValue::Number(3u64.into()))),
         );
-        let n12 = g1.add_simple_object(
+        let n12 = map1.add_simple_object(
+            g1,
             NodeIndex(1),
             obj_name_b.clone(),
             fields!((field_name_b.clone(), PrimitiveValue::Number(5u64.into()))),
         );
-        let n13 = g1.add_simple_object(
+        let n13 = map1.add_simple_object(
+            g1,
             NodeIndex(2),
             obj_name_c.clone(),
             fields!((field_name_c.clone(), PrimitiveValue::Number(6u64.into()))),
         );
-        g1.set_edge(&n11, n12, str_cached!(&cache; "12"));
-        g1.set_edge(&n11, n13, str_cached!(&cache; "13"));
+        map1.set_edge(str_cached!(&cache; "12"), g1, n11, g1, n12);
+        map1.set_edge(str_cached!(&cache; "13"), g1, n11, g1, n13);
 
-        let mut g2 = ObjectGraph::new(1);
-        let n22: NodeIndex = g2.add_simple_object(
+        map2.ensure_graph(g2);
+        let n22: NodeIndex = map2.add_simple_object(
+            g2,
             NodeIndex(0),
             obj_name_b,
             fields!((field_name_b.clone(), PrimitiveValue::Number(5u64.into()))),
         );
-        let n21 = g2.add_simple_object(
+        let n21 = map2.add_simple_object(
+            g2,
             NodeIndex(1),
             obj_name_a,
             fields!((field_name_a.clone(), PrimitiveValue::Number(3u64.into()))),
         );
-        g2.set_edge(&n21, n22, str_cached!(&cache; "12"));
-        let n23 = g2.add_simple_object(
+        map2.set_edge(str_cached!(&cache; "12"), g2, n21, g2, n22);
+        let n23 = map2.add_simple_object(
+            g2,
             NodeIndex(2),
             obj_name_c,
             fields!((field_name_c.clone(), PrimitiveValue::Number(6u64.into()))),
         );
-        g2.set_edge(&n21, n23, str_cached!(&cache; "13"));
+        map2.set_edge(str_cached!(&cache; "13"), g2, n21, g2, n23);
 
-        map1.insert_graph(g1.into());
         map1.set_as_root(root_name.clone(), 0, n11);
-        map2.insert_graph(g2.into());
         map2.set_as_root(root_name, 1, n21);
         assert_eq!(map1, map2, "Graphs are not equal");
     }
@@ -282,9 +307,7 @@ mod tests {
         let mut rng2 = StdRng::seed_from_u64(SEED);
         let map2 = random_gnp_object_graph(&cache, 1, &mut rng2, 10, 0.5);
 
-        assert_eq!(map1, map2,
-            "Graphs are not equal"
-        );
+        assert_eq!(map1, map2, "Graphs are not equal");
     }
 
     // #[test]
@@ -332,24 +355,26 @@ mod tests {
     fn print_graph() {
         let cache = Cache::new();
         let mut graphs_map = GraphsMap::default();
+        let graph_id = 0;
 
-        let mut graph = ObjectGraph::new(0);
+        graphs_map.ensure_graph(graph_id);
+
         let obj_name = str_cached!(&cache; "A");
         let field_name = str_cached!(&cache; "a");
-        let n1 = graph.add_simple_object(
+        let n1 = graphs_map.add_simple_object(
+            graph_id,
             NodeIndex(0),
             obj_name.clone(),
             fields!((field_name.clone(), PrimitiveValue::Number(3u64.into()))),
         );
-        let n2 = graph.add_simple_object(
+        let n2 = graphs_map.add_simple_object(
+            graph_id,
             NodeIndex(1),
             obj_name,
             fields!((field_name.clone(), PrimitiveValue::Number(4u64.into()))),
         );
-        graph.set_edge(&n1, n2, str_cached!(&cache; "c"));
-        graphs_map.insert_graph(graph.into());
+        graphs_map.set_edge(str_cached!(&cache; "c"), graph_id, n1, graph_id, n2);
         graphs_map.set_as_root(str_cached!(&cache; "Root"), 0, n1);
-
 
         // ObjectGraph::set_graphs_map(graphs_map.into());
         println!("{}", dot::Dot::from_graphs_map(&graphs_map));
@@ -373,19 +398,20 @@ mod tests {
         let cache = Cache::new();
 
         let mut rng1 = StdRng::seed_from_u64(SEED);
-        let mut map1 = random_gnp_object_graph(&cache, 0, &mut rng1, 5, 0.2);
+        let g1 = 0;
+        let mut map1 = random_gnp_object_graph(&cache, g1, &mut rng1, 5, 0.2);
 
         let obj_name_a = str_cached!(&cache; "A");
         let root_name = str_cached!(&cache; "root");
         let field_name_a = str_cached!(&cache; "a");
 
-        let mut g2 = ObjectGraph::new(1);
-        let n1 = g2.add_simple_object(NodeIndex(map1.node_count()), obj_name_a.clone(), fields!());
+        let g2 = 1;
+        map1.ensure_graph(g2);
+        let n1 = map1.add_simple_object(g2, NodeIndex(map1.node_count()), obj_name_a.clone(), fields!());
 
         let chained_index = NodeIndex(0);
-        g2.set_chain_edge(&n1, 0, chained_index, field_name_a);
+        map1.set_edge(field_name_a, g2, n1, g1, chained_index);
 
-        map1.insert_graph(g2.into());
         map1.set_as_root(root_name.clone(), 0, n1);
 
         println!("{}", dot::Dot::from_graphs_map(&map1));

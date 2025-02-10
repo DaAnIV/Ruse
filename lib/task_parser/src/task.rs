@@ -198,7 +198,7 @@ impl SnythesisTaskExamples {
             classes.static_classes_gen_id.max_graph_id(),
         ));
         let mut graphs_map = GraphsMap::default();
-        graphs_map.insert_graph(ObjectGraph::new(REF_GRAPH_ID).into());
+        graphs_map.ensure_graph(REF_GRAPH_ID);
 
         let mut values = parse_json_values_map_roots(
             &self.input,

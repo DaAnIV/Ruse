@@ -9,8 +9,7 @@ use itertools::Itertools;
 use ruse_object_graph::{
     fields, str_cached,
     value::{Value, ValueType},
-    vbool, vnull, vnum, vobj, vstr, Cache, GraphIndex, GraphsMap, Number, ObjectGraph,
-    PrimitiveValue,
+    vbool, vnull, vnum, vobj, vstr, Cache, GraphIndex, GraphsMap, Number, PrimitiveValue,
 };
 use ruse_synthesizer::context::GraphIdGenerator;
 use ruse_ts_interpreter::{
@@ -30,13 +29,6 @@ use crate::{
 };
 
 pub(crate) type JsonValuesMap = serde_json::Map<String, serde_json::Value>;
-
-fn get_or_create_graph(graphs_map: &mut GraphsMap, graph_id: GraphIndex) -> &mut ObjectGraph {
-    if !graphs_map.contains(graph_id) {
-        graphs_map.insert_graph(ObjectGraph::new(graph_id).into());
-    }
-    Arc::make_mut(graphs_map.get_mut(&graph_id).unwrap())
-}
 
 #[derive(Debug, Clone, Copy)]
 enum ExprPrefix {
@@ -148,8 +140,9 @@ impl TaskType {
                     }
                     None => return Err(parse_err!(value, "Value is not an array")),
                 };
-                let graph = get_or_create_graph(graphs_map, graph_id);
-                let node = graph.add_primitive_array_object(
+                graphs_map.ensure_graph(graph_id);
+                let node = graphs_map.add_primitive_array_object(
+                    graph_id,
                     id_gen.get_id_for_node(),
                     &ValueType::Number,
                     numbers,
@@ -158,7 +151,7 @@ impl TaskType {
 
                 Ok(vobj!(
                     ValueType::array_obj_cached_string(&ValueType::Number, cache),
-                    graph.id,
+                    graph_id,
                     node
                 ))
             }
@@ -181,8 +174,9 @@ impl TaskType {
                     }
                     None => return Err(parse_err!(value, "Value is not an array")),
                 };
-                let graph = get_or_create_graph(graphs_map, graph_id);
-                let node = graph.add_primitive_array_object(
+                graphs_map.ensure_graph(graph_id);
+                let node = graphs_map.add_primitive_array_object(
+                    graph_id,
                     id_gen.get_id_for_node(),
                     &ValueType::Number,
                     numbers,
@@ -191,7 +185,7 @@ impl TaskType {
 
                 Ok(vobj!(
                     ValueType::array_obj_cached_string(&ValueType::Number, cache),
-                    graph.id,
+                    graph_id,
                     node
                 ))
             }
@@ -223,8 +217,9 @@ impl TaskType {
                     }
                     None => return Err(parse_err!(value, "Value is not an array")),
                 };
-                let graph = get_or_create_graph(graphs_map, graph_id);
-                let node = graph.add_primitive_array_object(
+                graphs_map.ensure_graph(graph_id);
+                let node = graphs_map.add_primitive_array_object(
+                    graph_id,
                     id_gen.get_id_for_node(),
                     &ValueType::String,
                     strings?,
@@ -233,7 +228,7 @@ impl TaskType {
 
                 Ok(vobj!(
                     ValueType::array_obj_cached_string(&ValueType::String, cache),
-                    graph.id,
+                    graph_id,
                     node
                 ))
             }
@@ -252,8 +247,9 @@ impl TaskType {
                     }
                     None => return Err(parse_err!(value, "Value is not an array")),
                 };
-                let graph = get_or_create_graph(graphs_map, graph_id);
-                let node = graph.add_primitive_set_object(
+                graphs_map.ensure_graph(graph_id);
+                let node = graphs_map.add_primitive_set_object(
+                    graph_id,
                     id_gen.get_id_for_node(),
                     &ValueType::Number,
                     numbers.unique(),
@@ -262,7 +258,7 @@ impl TaskType {
 
                 Ok(vobj!(
                     ValueType::set_obj_cached_string(&ValueType::Number, cache),
-                    graph.id,
+                    graph_id,
                     node
                 ))
             }
@@ -285,8 +281,9 @@ impl TaskType {
                     }
                     None => return Err(parse_err!(value, "Value is not an array")),
                 };
-                let graph = get_or_create_graph(graphs_map, graph_id);
-                let node = graph.add_primitive_set_object(
+                graphs_map.ensure_graph(graph_id);
+                let node = graphs_map.add_primitive_set_object(
+                    graph_id,
                     id_gen.get_id_for_node(),
                     &ValueType::String,
                     strings?.into_iter().unique(),
@@ -295,7 +292,7 @@ impl TaskType {
 
                 Ok(vobj!(
                     ValueType::set_obj_cached_string(&ValueType::String, cache),
-                    graph.id,
+                    graph_id,
                     node
                 ))
             }
@@ -348,8 +345,8 @@ impl TaskType {
                     Some(str) => Self::strip_string(str),
                     None => return Err(parse_err!(value, "Value for html is not an string value")),
                 }?;
-                let graph = get_or_create_graph(graphs_map, graph_id);
-                self.parse_dom(html, graph, id_gen, cache)
+                graphs_map.ensure_graph(graph_id);
+                self.parse_dom(html, graph_id, graphs_map, id_gen, cache)
             }
             TaskType::VarRef(_) => Err(parse_err!(value, "Var ref is a delayed type")),
         }
@@ -385,8 +382,8 @@ impl TaskType {
             cache,
         )?;
 
-        let graph = get_or_create_graph(graphs_map, graph_id);
-        let obj = class.generate_object(values, graph, id_gen);
+        graphs_map.ensure_graph(graph_id);
+        let obj = class.generate_object(values, graphs_map, graph_id, id_gen);
 
         Ok(Value::Object(obj))
     }
@@ -411,12 +408,14 @@ impl TaskType {
                 .get(method_name)
                 .ok_or(verify_err!(
                     "object {} has no method {}",
-                    &class.description.class_name, method_name
+                    &class.description.class_name,
+                    method_name
                 ))?;
             if !desc.is_static {
                 return Err(verify_err!(
                     "{}.{} is not static",
-                    &class.description.class_name, method_name
+                    &class.description.class_name,
+                    method_name
                 ));
             } else {
                 desc
@@ -429,7 +428,7 @@ impl TaskType {
 
         let mut boa_ctx = EngineContext::new_boa_ctx();
         let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, classes);
-        get_or_create_graph(graphs_map, graph_id); // Make sure graph exists
+        graphs_map.ensure_graph(graph_id); // Make sure graph exists
         engine_ctx.reset_with_graph(graph_id, graphs_map, classes, id_gen, cache);
 
         if method_name == "constructor" {
@@ -445,32 +444,35 @@ impl TaskType {
     pub fn parse_dom(
         &self,
         html: &str,
-        graph: &mut ObjectGraph,
+        graph_id: GraphIndex,
+        graphs_map: &mut GraphsMap,
         id_gen: &GraphIdGenerator,
         cache: &Cache,
     ) -> Result<Value, SnythesisTaskError> {
         match self {
             TaskType::Dom => {
-                let dom_value = match dom::DomLoader::load_dom(id_gen, graph, html, cache) {
-                    Ok(v) => v,
-                    Err(e) => return Err(parse_err!(html, e)),
-                };
+                let dom_value =
+                    match dom::DomLoader::load_dom(id_gen, graph_id, graphs_map, html, cache) {
+                        Ok(v) => v,
+                        Err(e) => return Err(parse_err!(html, e)),
+                    };
 
                 Ok(vobj!(
                     dom::DomLoader::document_obj_type(cache),
-                    graph.id,
+                    graph_id,
                     dom_value
                 ))
             }
             TaskType::DOMElement => {
-                let dom_value = match dom::DomLoader::load_element(id_gen, graph, html, cache) {
-                    Ok(v) => v,
-                    Err(e) => return Err(parse_err!(html, e)),
-                };
+                let dom_value =
+                    match dom::DomLoader::load_element(id_gen, graph_id, graphs_map, html, cache) {
+                        Ok(v) => v,
+                        Err(e) => return Err(parse_err!(html, e)),
+                    };
 
                 Ok(vobj!(
                     dom::DomLoader::element_obj_type(cache),
-                    graph.id,
+                    graph_id,
                     dom_value
                 ))
             }
@@ -593,9 +595,10 @@ impl TaskType {
             ));
         }
 
-        let refs_graph = Arc::make_mut(graphs_map.get_mut(&refs_graph_id).unwrap());
+        graphs_map.ensure_graph(refs_graph_id);
         let obj_type = str_cached!(cache; REF_GRAPH_OBJ_TYPE);
-        let ref_id = refs_graph.add_simple_object_from_fields_map(
+        let ref_id = graphs_map.add_simple_object_from_fields_map(
+            refs_graph_id,
             id_gen.get_id_for_node(),
             obj_type.clone(),
             fields!((
