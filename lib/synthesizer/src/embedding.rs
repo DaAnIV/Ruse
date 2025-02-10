@@ -5,7 +5,7 @@ use itertools::{self, izip};
 use ruse_object_graph::{
     graph_equality, graph_walk,
     value::{ObjectValue, Value},
-    Cache, GraphIndex, GraphsMap, NodeIndex, RootName,
+    GraphIndex, GraphsMap, NodeIndex, RootName,
 };
 
 #[cfg(feature = "trace_embeddings")]
@@ -95,10 +95,6 @@ fn context_reachable_graph_roots(ctx: &Context) -> HashMap<RootName, ObjectValue
     {
         if let Some(root_name) = ctx.graphs_map.node_root_names(&node_id) {
             for r in root_name {
-                if r.as_str() == Cache::OUTPUT_ROOT_NAME {
-                    continue;
-                }
-
                 roots.insert(
                     r.clone(),
                     ObjectValue {
