@@ -424,6 +424,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "boa_interop"
+version = "0.20.0"
+source = "git+https://github.com/DaAnIV/boa.git#fabb2d5d1df828932844965404f46c3184740191"
+dependencies = [
+ "boa_engine",
+ "boa_gc",
+ "boa_macros",
+ "rustc-hash 2.1.0",
+]
+
+[[package]]
 name = "boa_macros"
 version = "0.20.0"
 source = "git+https://github.com/DaAnIV/boa.git#fabb2d5d1df828932844965404f46c3184740191"
@@ -457,6 +468,18 @@ dependencies = [
 name = "boa_profiler"
 version = "0.20.0"
 source = "git+https://github.com/DaAnIV/boa.git#fabb2d5d1df828932844965404f46c3184740191"
+
+[[package]]
+name = "boa_runtime"
+version = "0.20.0"
+source = "git+https://github.com/DaAnIV/boa.git#fabb2d5d1df828932844965404f46c3184740191"
+dependencies = [
+ "boa_engine",
+ "boa_gc",
+ "boa_interop",
+ "rustc-hash 2.1.0",
+ "url",
+]
 
 [[package]]
 name = "boa_string"
@@ -2370,7 +2393,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "157c5a9d7ea5c2ed2d9fb8f495b64759f7816c7eaea54ba3978f0d63000162e3"
 dependencies = [
  "anyhow",
- "itertools 0.13.0",
+ "itertools 0.10.5",
  "proc-macro2",
  "quote",
  "syn 2.0.96",
@@ -2644,7 +2667,7 @@ version = "0.1.0"
 dependencies = [
  "byteview",
  "criterion",
- "dashmap 6.1.0",
+ "dashmap 5.5.3",
  "itertools 0.14.0",
  "num-traits",
  "petgraph",
@@ -2658,7 +2681,7 @@ name = "ruse_synthesizer"
 version = "0.1.0"
 dependencies = [
  "criterion",
- "dashmap 6.1.0",
+ "dashmap 5.5.3",
  "downcast-rs",
  "futures",
  "getrandom 0.3.1",
@@ -2666,7 +2689,7 @@ dependencies = [
  "rand",
  "ruse_object_graph",
  "serde",
- "siphasher 1.0.1",
+ "siphasher 0.3.11",
  "tokio",
  "tokio-util",
  "tracing",
@@ -2695,8 +2718,10 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "boa_engine",
+ "boa_gc",
+ "boa_runtime",
  "criterion",
- "dashmap 6.1.0",
+ "dashmap 5.5.3",
  "html_parser",
  "itertools 0.14.0",
  "num-traits",
@@ -2709,6 +2734,7 @@ dependencies = [
  "swc_ecma_codegen",
  "swc_ecma_parser",
  "tracing",
+ "walkdir",
 ]
 
 [[package]]

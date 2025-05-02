@@ -14,8 +14,8 @@ use ruse_object_graph::{
 use ruse_synthesizer::context::GraphIdGenerator;
 use ruse_ts_interpreter::{
     dom::{self, DomLoader},
-    js_object_wrapper::EngineContext,
-    ts_class::{TsClass, TsClasses},
+    engine_context::EngineContext,
+    ts_class::{TsUserClass, TsClasses},
 };
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::json;
@@ -299,7 +299,7 @@ impl TaskType {
             TaskType::Object(s) => {
                 let class_name = str_cached!(cache; s);
                 let class = classes
-                    .get_class(&class_name)
+                    .get_user_class(&class_name)
                     .ok_or(verify_err!("object type {} is not defined", s))?;
                 let fields = value
                     .as_object()
@@ -355,7 +355,7 @@ impl TaskType {
     fn create_object_from_fields(
         &self,
         fields: &JsonValuesMap,
-        class: &TsClass,
+        class: &TsUserClass,
         graph_id: GraphIndex,
         classes: &TsClasses,
         graphs_map: &mut GraphsMap,
@@ -390,7 +390,7 @@ impl TaskType {
 
     fn create_object_from_method(
         &self,
-        class: &TsClass,
+        class: &TsUserClass,
         method_name: &str,
         json_args: &Vec<serde_json::Value>,
         graph_id: GraphIndex,
@@ -432,7 +432,9 @@ impl TaskType {
         engine_ctx.reset_with_graph(graph_id, graphs_map, classes, id_gen, cache);
 
         if method_name == "constructor" {
-            let new_obj = class.call_constructor(&args, classes, &mut engine_ctx);
+            let new_obj = class
+                .call_constructor(&args, classes, &mut engine_ctx)
+                .map_err(|x| SnythesisTaskError::Eval(x))?;
             Ok(Value::Object(new_obj))
         } else {
             class
@@ -532,7 +534,7 @@ impl TaskType {
             format!("The static ref expr contains no '.'")
         ))?;
         let class = classes
-            .get_class(&str_cached!(cache; class_name))
+            .get_user_class(&str_cached!(cache; class_name))
             .ok_or(parse_err!(
                 value_string,
                 format!(

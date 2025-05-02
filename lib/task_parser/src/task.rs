@@ -679,9 +679,10 @@ impl SnythesisTask {
         let mut composite_opcodes = OpcodesList::new();
 
         for class_name in class_names {
-            let class = classes.get_class(class_name).unwrap();
+            let class = classes.get_user_class(class_name).unwrap();
             composite_opcodes.extend_from_slice(&class.member_opcodes);
             composite_opcodes.extend_from_slice(&class.method_opcodes);
+            composite_opcodes.extend_from_slice(&class.constructor_opcodes);
         }
 
         composite_opcodes
@@ -735,8 +736,8 @@ impl SnythesisTask {
         let mut class_names = vec![];
         if let Some(classes_code) = &inner.classes {
             for code in classes_code {
-                match builder.add_class(code, cache) {
-                    Ok(class_name) => class_names.push(class_name),
+                match builder.add_classes(code, cache) {
+                    Ok(classes_name) => class_names.extend(classes_name),
                     Err(e) => {
                         return Err(parse_err!(code, e));
                     }
@@ -750,7 +751,7 @@ impl SnythesisTask {
                     true => path.parent().unwrap().join(ts_file),
                     false => ts_file.clone(),
                 };
-                match builder.add_ts_file(&full_path, cache) {
+                match builder.add_ts_files(&full_path, cache) {
                     Ok(names) => class_names.extend(names),
                     Err(e) => {
                         return Err(parse_err!(String::from(full_path.to_string_lossy()), e));
@@ -763,7 +764,7 @@ impl SnythesisTask {
 
         for (var, var_type) in variables {
             if let TaskType::Object(obj_type) = var_type {
-                if classes.get_class(&str_cached!(cache; obj_type)).is_none() {
+                if classes.get_user_class(&str_cached!(cache; obj_type)).is_none() {
                     return Err(verify_err!(
                         "Variable {} has an unknown object type {}",
                         var,

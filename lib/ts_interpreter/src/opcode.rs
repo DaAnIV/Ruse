@@ -4,7 +4,7 @@ use num_traits::ToPrimitive;
 use ruse_object_graph::Number;
 use ruse_synthesizer::opcode::ExprAst;
 use swc::PrintArgs;
-use swc_common::{SourceMap, DUMMY_SP};
+use swc_common::{SourceMap, SyntaxContext, DUMMY_SP};
 use swc_ecma_ast as ast;
 
 pub struct TsExprAst {
@@ -37,7 +37,11 @@ impl TsExprAst {
             ast::Expr::Assign(_) => todo!(),
             ast::Expr::SuperProp(_) => todo!(),
             ast::Expr::Cond(_) => todo!(),
-            ast::Expr::New(_) => todo!(),
+            ast::Expr::New(_) => ast::ParenExpr {
+                expr: owned_node,
+                span: DUMMY_SP,
+            }
+            .into(),
             ast::Expr::Seq(_) => ast::ParenExpr {
                 expr: owned_node,
                 span: DUMMY_SP,
@@ -83,6 +87,36 @@ fn member_field_ast(obj: &Box<dyn ExprAst>, field_name: &str) -> Box<dyn ExprAst
     };
 
     TsExprAst::create(ast::Expr::Member(field_expr))
+}
+
+fn new_obj_ast(obj_type: &str, args: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
+    let obj_ident = ast::Ident {
+        span: DUMMY_SP,
+        sym: obj_type.into(),
+        optional: false,
+        ctxt: Default::default(),
+    };
+
+    let args = args
+        .iter()
+        .map(|x| {
+            let arg_ast = TsExprAst::from(x.as_ref());
+            ast::ExprOrSpread {
+                spread: None,
+                expr: arg_ast.node.to_owned(),
+            }
+        })
+        .collect();
+
+    let new_expr = ast::NewExpr {
+        span: DUMMY_SP,
+        ctxt: SyntaxContext::default(),
+        callee: obj_ident.into(),
+        args: Some(args),
+        type_args: None,
+    };
+
+    TsExprAst::create(ast::Expr::New(new_expr))
 }
 
 fn member_call_ast(callee_name: &str, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {

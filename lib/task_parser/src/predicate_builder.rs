@@ -2,11 +2,11 @@ use std::sync::Arc;
 
 use itertools::{izip, Itertools};
 use ruse_object_graph::graph_map_value::GraphMapWrap;
-use ruse_object_graph::value::{ObjectValue, Value, ValueType};
+use ruse_object_graph::value::{Value, ValueType};
 use ruse_object_graph::{Cache, GraphsMap};
 use ruse_synthesizer::context::ValuesMap;
 use ruse_synthesizer::{context::SynthesizerContext, prog::SubProgram};
-use ruse_ts_interpreter::js_object_wrapper::EngineContext;
+use ruse_ts_interpreter::engine_context::EngineContext;
 use ruse_ts_interpreter::js_value::value_to_js_value;
 use ruse_ts_interpreter::ts_class::TsClasses;
 

@@ -1,4 +1,4 @@
-use std::{collections::HashMap, io::Read, path::Path, sync::Arc};
+use std::{collections::HashMap, fmt::Debug, io::Read, path::Path, sync::Arc};
 
 use boa_engine::{class::DynamicClassBuilder, JsValue};
 use itertools::Itertools;
@@ -15,41 +15,77 @@ use swc_common::{
     errors::{ColorConfig, Handler},
     FileName, SourceMap,
 };
-use swc_ecma_ast::{self as ast, BlockStmt, ClassDecl};
+use swc_ecma_ast::{self as ast, BlockStmt, ClassDecl, FnDecl, VarDecl};
 
 use anyhow::Error;
 use ruse_object_graph::value::*;
 use swc_ecma_parser::{Syntax, TsSyntax};
 
 use crate::{
-    js_object_wrapper::{error_null_this, EngineContext, JsObjectWrapper, JsWrapped},
+    engine_context::EngineContext,
+    js_errors::js_error_null_this,
+    js_object_wrapper::{JsArrayWrapper, JsObjectWrapper},
     js_value::{js_value_to_value, value_to_js_value},
-    opcode::{ClassMethodOp, MemberOp, StaticMemberOp},
+    js_wrapped::JsWrapped,
+    opcode::{ClassConstructorOp, ClassMethodOp, MemberOp, StaticMemberOp},
 };
 
 #[derive(Debug)]
 pub struct TsClasses {
     pub static_classes_gen_id: Arc<GraphIdGenerator>,
-    classes: HashMap<CachedString, TsClass>,
+    builtin_classes: HashMap<String, Box<dyn TsBuiltinClass>>,
+    user_classes: HashMap<String, TsUserClass>,
 }
 
 impl SynthesizerContextData for TsClasses {}
 
 impl TsClasses {
-    pub fn get_class(&self, class: &CachedString) -> Option<&TsClass> {
-        self.classes.get(class)
+    const GLOBAL_CLASS_NAME: &'static str = "__GLOBAL_CLASS__";
+
+    pub fn get_class(&self, class: &str) -> Option<&dyn TsClass> {
+        let base_class_name = class.split("<").next().unwrap();
+        self.user_classes
+            .get(base_class_name)
+            .map(|user_class| user_class as &dyn TsClass)
+            .or(self
+                .builtin_classes
+                .get(base_class_name)
+                .map(|class| class.as_ref() as &dyn TsClass))
     }
 
-    pub fn get_class_mut(&mut self, class: &CachedString) -> Option<&mut TsClass> {
-        self.classes.get_mut(class)
+    pub fn get_builtin_class(&self, class: &str) -> Option<&dyn TsBuiltinClass> {
+        let base_class_name = class.split("<").next().unwrap();
+        self.builtin_classes
+            .get(base_class_name)
+            .map(|class| class.as_ref() as &dyn TsBuiltinClass)
+    }
+
+    pub fn get_user_class(&self, class: &str) -> Option<&TsUserClass> {
+        let base_class_name = class.split("<").next().unwrap();
+        self.user_classes.get(base_class_name)
+    }
+
+    pub fn get_user_class_mut(&mut self, class: &str) -> Option<&mut TsUserClass> {
+        let base_class_name = class.split("<").next().unwrap();
+        self.user_classes.get_mut(base_class_name)
     }
 
     pub(crate) fn init_engine_ctx(&self, engine_ctx: &mut EngineContext<'_>) {
-        for class in self.classes.values() {
+        for (name, class) in &self.user_classes {
+            if name == &Self::GLOBAL_CLASS_NAME {
+                engine_ctx
+                    .register_global_class(class)
+                    .expect("Failed to register global class");
+                continue;
+            }
             engine_ctx
                 .register_global_dynamic_class(&class.wrapper)
                 .expect("Failed to register dynamic class");
         }
+    }
+
+    pub(crate) fn builtin_classes(&self) -> impl Iterator<Item = &dyn TsBuiltinClass> {
+        self.builtin_classes.values().map(|class| class.as_ref())
     }
 }
 
@@ -106,6 +142,28 @@ impl FromWithCache<&ast::ClassProp> for JsFieldDescription {
             is_static: value.is_static,
             is_constructor_prop: false,
             init_expr: value.value.clone(),
+        }
+    }
+}
+impl FromWithCache<&ast::VarDeclarator> for JsFieldDescription {
+    fn from_with_cache(value: &ast::VarDeclarator, cache: &Cache) -> Self {
+        let ident = value.name.as_ident().unwrap();
+        let field_name = ident.sym.as_str();
+        let access = ast::Accessibility::Public;
+        let value_type = if let Some(type_ann) = &ident.type_ann {
+            get_value_type_from_ts_type(&type_ann.type_ann, cache)
+        } else {
+            get_value_type_from_expr(&value.init.as_ref().unwrap(), cache)
+        };
+
+        JsFieldDescription {
+            name: str_cached!(cache; field_name),
+            value_type,
+            is_private: access != ast::Accessibility::Public,
+            is_readonly: false,
+            is_static: true,
+            is_constructor_prop: false,
+            init_expr: value.init.clone(),
         }
     }
 }
@@ -187,6 +245,7 @@ impl FromWithCache<&ast::ParamOrTsParamProp> for ParamDescription {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MethodKind {
+    GlobalFunction,
     Method,
     Getter,
     Setter,
@@ -229,6 +288,28 @@ impl FromWithCache<&ast::ClassMethod> for MethodDescription {
             is_static: value.is_static,
             is_private: access != ast::Accessibility::Public,
             kind: value.kind.into(),
+            body: body,
+        }
+    }
+}
+
+impl FromWithCache<&ast::FnDecl> for MethodDescription {
+    fn from_with_cache(value: &ast::FnDecl, cache: &Cache) -> Self {
+        let name = str_cached!(cache; value.ident.sym.as_str());
+        let mut params = vec![];
+        let access = ast::Accessibility::Public;
+        let body = value.function.body.as_ref().map(|body| get_code(body));
+
+        for param in &value.function.params {
+            params.push(ParamDescription::from_with_cache(param, cache))
+        }
+
+        MethodDescription {
+            name,
+            params,
+            is_static: true,
+            is_private: access != ast::Accessibility::Public,
+            kind: MethodKind::GlobalFunction,
             body: body,
         }
     }
@@ -368,8 +449,12 @@ pub fn get_value_from_expr(
 
             engine_ctx.reset_with_graph(graph_id, graphs_map, classes, id_gen, cache);
 
-            let class = classes.get_class(&str_cached!(cache; name)).unwrap();
-            Value::Object(class.call_constructor(&params, classes, &mut engine_ctx))
+            let class = classes.get_user_class(&str_cached!(cache; name)).unwrap();
+            Value::Object(
+                class
+                    .call_constructor(&params, classes, &mut engine_ctx)
+                    .unwrap(),
+            )
         }
         _ => todo!("Can't parse static prop value {:#?}", expr),
     }
@@ -382,6 +467,8 @@ pub struct TsClassDescription {
     pub fields: HashMap<String, JsFieldDescription>,
     pub methods: HashMap<String, MethodDescription>,
     pub constructor: MethodDescription,
+    pub extends: Option<CachedString>,
+    pub is_abstract: bool,
 }
 
 fn static_graph_obj_type(class_name: &str, cache: &Cache) -> ObjectType {
@@ -392,11 +479,113 @@ fn static_graph_root_name(class_name: &str, cache: &Cache) -> CachedString {
     scached!(cache; format!("{}_{}", class_name, &"Static"))
 }
 
+pub trait TsClass: Send + Sync + Debug {
+    fn obj_type(&self, template_types: Option<Vec<ValueType>>, cache: &Cache) -> ValueType;
+    fn is_parametrized(&self) -> bool;
+    fn get_class_name(&self) -> &CachedString;
+    fn get_class_id(&self) -> u64;
+    fn wrap_as_js_object(
+        &self,
+        obj: ObjectValue,
+        engine_ctx: &mut EngineContext<'_>,
+    ) -> boa_engine::JsObject;
+}
+
+pub trait TsBuiltinClass: TsClass {
+    fn is_builtin_object(&self, value: &boa_engine::JsObject) -> bool;
+
+    fn get_from_js_obj(
+        &self,
+        classes: &TsClasses,
+        value: &boa_engine::JsObject,
+        engine_ctx: &mut EngineContext<'_>,
+        cache: &Cache,
+    ) -> Result<ObjectValue, boa_engine::JsError>;
+}
+
 #[derive(Debug)]
-pub struct TsClass {
+pub struct BuiltinArrayClass {
+    class_name: CachedString,
+    id: u64,
+}
+
+impl BuiltinArrayClass {
+    fn new(id: u64, cache: &Cache) -> Self {
+        Self {
+            class_name: str_cached!(cache; "Array"),
+            id,
+        }
+    }
+}
+
+impl TsClass for BuiltinArrayClass {
+    fn obj_type(&self, template_types: Option<Vec<ValueType>>, cache: &Cache) -> ValueType {
+        let template_types = template_types.unwrap();
+        assert!(template_types.len() == 1);
+        ValueType::Object(
+            scached!(cache; format!("{}<{}>", self.get_class_name(), template_types[0])),
+        )
+    }
+
+    fn wrap_as_js_object(
+        &self,
+        obj: ObjectValue,
+        engine_ctx: &mut EngineContext<'_>,
+    ) -> boa_engine::JsObject {
+        JsArrayWrapper::wrap_object(&obj, engine_ctx).unwrap()
+    }
+
+    fn is_parametrized(&self) -> bool {
+        false
+    }
+
+    fn get_class_name(&self) -> &CachedString {
+        &self.class_name
+    }
+
+    fn get_class_id(&self) -> u64 {
+        self.id
+    }
+}
+
+impl TsBuiltinClass for BuiltinArrayClass {
+    fn is_builtin_object(&self, value: &boa_engine::JsObject) -> bool {
+        value.is_array()
+    }
+
+    fn get_from_js_obj(
+        &self,
+        classes: &TsClasses,
+        value: &boa_engine::JsObject,
+        engine_ctx: &mut EngineContext<'_>,
+        cache: &Cache,
+    ) -> Result<ObjectValue, boa_engine::JsError> {
+        let js_array = boa_engine::object::builtins::JsArray::from_object(value.clone())?;
+
+        let arr_len = js_array.length(engine_ctx).unwrap() as i64;
+        if arr_len == 0 {
+            return engine_ctx.create_array_object(vec![], &ValueType::Null);
+        }
+
+        let elements: Vec<Value> = (0..arr_len)
+            .map(|i| {
+                let js_elem = js_array.at(i, engine_ctx).unwrap();
+                let elem = js_value_to_value(classes, &js_elem, engine_ctx, cache);
+                elem
+            })
+            .collect();
+
+        let elem_type = elements[0].val_type();
+        engine_ctx.create_array_object(elements, &elem_type)
+    }
+}
+
+#[derive(Debug)]
+pub struct TsUserClass {
     pub description: Arc<TsClassDescription>,
     pub member_opcodes: OpcodesList,
     pub method_opcodes: OpcodesList,
+    pub constructor_opcodes: OpcodesList,
     pub static_graph: Option<Arc<ObjectGraph>>,
     pub root_node: NodeIndex,
     pub static_fields: HashMap<CachedString, LocValue>,
@@ -404,11 +593,7 @@ pub struct TsClass {
     wrapper: JsObjectWrapper,
 }
 
-impl TsClass {
-    pub fn obj_type(&self) -> ValueType {
-        ValueType::Object(self.description.class_name.clone())
-    }
-
+impl TsUserClass {
     pub fn generate_object<I>(
         &self,
         map: I,
@@ -433,15 +618,6 @@ impl TsClass {
             graph_id: graph_id,
             node: obj_id,
         }
-    }
-
-    pub fn wrap_as_js_object(
-        &self,
-        obj: ObjectValue,
-        engine_ctx: &mut EngineContext<'_>,
-    ) -> boa_engine::JsObject {
-        let wrapper = JsObjectWrapper::new(self.description.clone());
-        wrapper.from_data(obj.into(), engine_ctx).unwrap()
     }
 
     fn get_ast(code: &str) -> Result<ast::Program, Error> {
@@ -469,7 +645,7 @@ impl TsClass {
         params: I,
         classes: &TsClasses,
         engine_ctx: &mut EngineContext<'_>,
-    ) -> ObjectValue
+    ) -> boa_engine::JsResult<ObjectValue>
     where
         I: IntoIterator<Item = &'a Value>,
     {
@@ -482,11 +658,10 @@ impl TsClass {
             .collect_vec();
         let obj = self
             .wrapper
-            .construct(&boa_engine::JsValue::new(target), &args, engine_ctx)
-            .unwrap();
-        let new_instance = JsWrapped::<ObjectValue>::get_from_js_obj(&obj).unwrap();
+            .construct(&boa_engine::JsValue::new(target), &args, engine_ctx)?;
+        let new_instance = JsWrapped::<ObjectValue>::get_from_js_obj(&obj)?;
 
-        new_instance.clone()
+        Ok(new_instance.clone())
     }
 
     pub fn call_static_method<'a, I>(
@@ -512,7 +687,7 @@ impl TsClass {
 
         let result = self
             .wrapper
-            .call_method_body(method_name, &this, &args, engine_ctx)?;
+            .call_static_method_body(method_name, &this, &args, engine_ctx)?;
 
         Ok(js_value_to_value(classes, &result, engine_ctx, cache))
     }
@@ -531,7 +706,7 @@ impl TsClass {
     {
         debug_assert!(!method_desc.is_static);
         if this.is_null() {
-            return Err(error_null_this());
+            return Err(js_error_null_this());
         }
 
         let this = value_to_js_value(classes, &this, engine_ctx);
@@ -542,6 +717,7 @@ impl TsClass {
 
         let method_name = match method_desc.kind {
             MethodKind::Method => method_desc.name.as_str(),
+            MethodKind::GlobalFunction => method_desc.name.as_str(),
             MethodKind::Getter => &JsObjectWrapper::getter_name(&method_desc.name),
             MethodKind::Setter => &JsObjectWrapper::setter_name(&method_desc.name),
         };
@@ -563,28 +739,90 @@ impl TsClass {
     }
 }
 
-unsafe impl Send for TsClass {}
-unsafe impl Sync for TsClass {}
+impl TsClass for TsUserClass {
+    fn obj_type(&self, template_types: Option<Vec<ValueType>>, _cache: &Cache) -> ValueType {
+        assert!(template_types.is_none());
+
+        ValueType::Object(self.get_class_name().clone())
+    }
+
+    fn wrap_as_js_object(
+        &self,
+        obj: ObjectValue,
+        engine_ctx: &mut EngineContext<'_>,
+    ) -> boa_engine::JsObject {
+        let wrapper = JsObjectWrapper::new(self.description.clone());
+        wrapper.from_data(obj.into(), engine_ctx).unwrap()
+    }
+
+    fn is_parametrized(&self) -> bool {
+        false
+    }
+
+    fn get_class_name(&self) -> &CachedString {
+        &self.description.class_name
+    }
+
+    fn get_class_id(&self) -> u64 {
+        self.description.id
+    }
+}
+
+unsafe impl Send for TsUserClass {}
+unsafe impl Sync for TsUserClass {}
 
 pub struct TsClassesBuilder {
-    classes: Vec<ClassDecl>,
+    classes: Vec<(Vec<String>, ClassDecl)>,
+    functions: Vec<(Vec<String>, FnDecl)>,
+    variables: Vec<(Vec<String>, Box<VarDecl>)>,
 }
 
 impl TsClassesBuilder {
     pub fn new() -> Self {
         Self {
             classes: Default::default(),
+            functions: Default::default(),
+            variables: Default::default(),
         }
     }
 
-    pub fn add_class(&mut self, code: &str, cache: &Cache) -> Result<CachedString, Error> {
-        let class_decl = TsClassBuilder::get_class_decl(code)?;
-        let class_name = str_cached!(cache; TsClassBuilder::get_class_name(&class_decl));
-        self.classes.push(class_decl);
-        Ok(class_name)
+    pub fn add_classes(&mut self, code: &str, cache: &Cache) -> Result<Vec<CachedString>, Error> {
+        let script = TsUserClass::get_ast(code)?.script().unwrap();
+        self.parse_body(&vec![], &script.body, cache)
     }
 
-    pub fn add_ts_file<P: AsRef<Path>>(
+    pub fn add_ts_files<P: AsRef<Path>>(
+        &mut self,
+        full_path: P,
+        cache: &Cache,
+    ) -> Result<Vec<CachedString>, Error> {
+        if !full_path.as_ref().exists() {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                format!("{} doesn't exist", full_path.as_ref().display()),
+            )
+            .into());
+        } else if full_path.as_ref().is_dir() {
+            let mut classes_names = vec![];
+
+            for entry in walkdir::WalkDir::new(full_path)
+                .into_iter()
+                .filter_map(Result::ok)
+                .filter(|e| {
+                    e.file_type().is_file()
+                        && e.path().extension().map(|s| s == "ts").unwrap_or(false)
+                })
+            {
+                classes_names.extend(self.add_ts_file(entry.path(), cache)?);
+            }
+
+            Ok(classes_names)
+        } else {
+            self.add_ts_file(full_path, cache)
+        }
+    }
+
+    fn add_ts_file<P: AsRef<Path>>(
         &mut self,
         full_path: P,
         cache: &Cache,
@@ -610,29 +848,91 @@ impl TsClassesBuilder {
             .script()
             .unwrap();
 
+        self.parse_body(&vec![], &script.body, cache)
+    }
+
+    pub fn parse_body(
+        &mut self,
+        namespace: &Vec<String>,
+        body: &Vec<ast::Stmt>,
+        cache: &Cache,
+    ) -> Result<Vec<CachedString>, Error> {
         let mut class_names = vec![];
 
-        for stmt in &script.body {
-            if let ast::Stmt::Decl(ast::Decl::Class(class_decl)) = stmt {
-                let class_name = str_cached!(cache; TsClassBuilder::get_class_name(class_decl));
-                self.classes.push(class_decl.clone());
-                class_names.push(class_name.clone());
+        for stmt in body {
+            match stmt {
+                ast::Stmt::Decl(ast::Decl::Class(class_decl)) => {
+                    let class_name =
+                        scached!(cache; TsClassBuilder::get_class_name(namespace, class_decl));
+                    self.classes.push((namespace.clone(), class_decl.clone()));
+                    class_names.push(class_name.clone());
+                }
+                ast::Stmt::Decl(ast::Decl::Fn(fn_decl)) => {
+                    self.functions.push((namespace.clone(), fn_decl.clone()));
+                }
+                ast::Stmt::Decl(ast::Decl::Var(var_decl)) => {
+                    self.variables.push((namespace.clone(), var_decl.clone()));
+                }
+                ast::Stmt::Decl(ast::Decl::TsModule(ts_module)) => {
+                    if let Some(ast::TsNamespaceBody::TsModuleBlock(ns_body)) =
+                        ts_module.body.clone()
+                    {
+                        let ns_name = ts_module.id.as_ident().unwrap().sym.as_str().to_string();
+                        let mut new_ns = namespace.clone();
+                        new_ns.insert(0, ns_name);
+                        let stmts = ns_body
+                            .body
+                            .into_iter()
+                            .filter_map(|x| x.stmt())
+                            .collect_vec();
+                        let ns_classes = self.parse_body(&new_ns, &stmts, cache)?;
+                        class_names.extend(ns_classes);
+                    }
+                }
+                _ => {
+                    // Ignore other statements
+                }
             }
         }
 
         Ok(class_names)
     }
 
+    fn get_builtin_classes(&self, cache: &Cache) -> HashMap<String, Box<dyn TsBuiltinClass>> {
+        let mut builtin_classes: HashMap<String, Box<dyn TsBuiltinClass>> = HashMap::new();
+        builtin_classes.insert(
+            "Array".to_string(),
+            Box::new(BuiltinArrayClass::new(builtin_classes.len() as u64, cache)),
+        );
+        builtin_classes
+    }
+
     pub fn finalize(self, cache: &Arc<Cache>) -> Box<TsClasses> {
-        let gen_id = Arc::new(GraphIdGenerator::default());
+        let builtin_classes = self.get_builtin_classes(cache);
+
+        let gen_id = Arc::new(GraphIdGenerator::with_initial_values(
+            NodeIndex(0),
+            builtin_classes.len(),
+        ));
+
         let mut classes = TsClasses {
             static_classes_gen_id: gen_id,
-            classes: Default::default(),
+            user_classes: Default::default(),
+            builtin_classes,
         };
 
         let mut graphs_map = GraphsMap::default();
-        for class_decl in &self.classes {
+        let global_class_builder = TsClassBuilder::global_class(
+            self.functions,
+            self.variables,
+            classes.static_classes_gen_id.clone(),
+            cache,
+        );
+        global_class_builder.finalize(&mut classes, &mut graphs_map, cache);
+
+        for (namespace, class_decl) in &self.classes {
             let builder = TsClassBuilder::from_class_decl(
+                namespace,
                 class_decl,
                 classes.static_classes_gen_id.clone(),
                 cache,
@@ -651,29 +951,34 @@ struct TsClassBuilder {
     methods: HashMap<String, MethodDescription>,
     constructor: MethodDescription,
     gen_id: Arc<GraphIdGenerator>,
+    super_class: Option<CachedString>,
+    is_abstract: bool,
 }
 
 // Main functions
 impl TsClassBuilder {
-    fn get_class_decl(code: &str) -> Result<ClassDecl, Error> {
-        let script = TsClass::get_ast(code)?.script().unwrap();
-        Ok(script.body[0]
-            .as_decl()
-            .unwrap()
-            .as_class()
-            .unwrap()
-            .clone())
+    fn get_name_with_namespace(namespace: &Vec<String>, name: &str) -> String {
+        if namespace.is_empty() {
+            name.to_string()
+        } else {
+            namespace.join(".") + "." + name
+        }
     }
 
-    fn get_class_name(decl: &ClassDecl) -> &str {
-        decl.ident.sym.as_str()
+    fn get_class_name(namespace: &Vec<String>, decl: &ClassDecl) -> String {
+        Self::get_name_with_namespace(namespace, decl.ident.sym.as_str())
     }
 
-    fn from_class_decl(decl: &ClassDecl, gen_id: Arc<GraphIdGenerator>, cache: &Cache) -> Self {
+    fn from_class_decl(
+        namespace: &Vec<String>,
+        decl: &ClassDecl,
+        gen_id: Arc<GraphIdGenerator>,
+        cache: &Cache,
+    ) -> Self {
         let mut fields = Default::default();
         let mut methods = Default::default();
         let mut constructor = MethodDescription {
-            name: str_cached!(cache; Self::get_class_name(decl)),
+            name: scached!(cache; Self::get_class_name(namespace, decl)),
             params: Default::default(),
             kind: MethodKind::Method,
             is_static: false,
@@ -684,13 +989,65 @@ impl TsClassBuilder {
         Self::add_fields(&decl.class, &mut fields, &mut constructor, cache);
         Self::add_methods(&decl.class, &mut methods, cache);
 
+        let super_class = decl.class.super_class.as_deref().map(|super_class| {
+            let ident = super_class.as_ident().unwrap();
+            str_cached!(cache; ident.sym.as_str())
+        });
+
         let class = Self {
             id: gen_id.get_id_for_graph() as u64,
-            class_name: str_cached!(cache; Self::get_class_name(decl)),
+            class_name: scached!(cache; Self::get_class_name(namespace, decl)),
             fields,
             methods,
             constructor,
             gen_id,
+            super_class,
+            is_abstract: decl.class.is_abstract,
+        };
+
+        class
+    }
+
+    fn global_class(
+        functions: Vec<(Vec<String>, FnDecl)>,
+        variables: Vec<(Vec<String>, Box<VarDecl>)>,
+        gen_id: Arc<GraphIdGenerator>,
+        cache: &Cache,
+    ) -> Self {
+        let mut fields = HashMap::default();
+        let mut methods = HashMap::default();
+
+        for func in functions {
+            let func_name = Self::get_name_with_namespace(&func.0, func.1.ident.sym.as_str());
+            let desc = MethodDescription::from_with_cache(&func.1, cache);
+            methods.insert(func_name, desc);
+        }
+        for var in variables {
+            for decl in var.1.decls.iter() {
+                let var_name = Self::get_name_with_namespace(&var.0, decl.name.as_ident().unwrap().sym.as_str());
+                let desc = JsFieldDescription::from_with_cache(decl, cache);
+                fields.insert(var_name, desc);
+            }
+        }
+
+        let constructor = MethodDescription {
+            name: str_cached!(cache; TsClasses::GLOBAL_CLASS_NAME),
+            params: Default::default(),
+            kind: MethodKind::Method,
+            is_static: false,
+            is_private: true,
+            body: None,
+        };
+
+        let class = Self {
+            id: gen_id.get_id_for_graph() as u64,
+            class_name: str_cached!(cache; TsClasses::GLOBAL_CLASS_NAME),
+            fields,
+            methods,
+            constructor,
+            gen_id,
+            super_class: None,
+            is_abstract: true,
         };
 
         class
@@ -703,15 +1060,18 @@ impl TsClassBuilder {
             fields: self.fields.clone(),
             constructor: self.constructor.clone(),
             methods: self.methods.clone(),
+            extends: self.super_class.clone(),
+            is_abstract: self.is_abstract,
         });
 
         let static_graph_obj_type = static_graph_obj_type(&description.class_name, cache);
         let wrapper = JsObjectWrapper::new(description.clone());
 
-        let class = TsClass {
+        let class = TsUserClass {
             description,
             member_opcodes: Default::default(),
             method_opcodes: Default::default(),
+            constructor_opcodes: Default::default(),
             static_graph: None,
             root_node: classes.static_classes_gen_id.get_id_for_node(),
             static_fields: Default::default(),
@@ -720,18 +1080,18 @@ impl TsClassBuilder {
         };
         let root_node = class.root_node;
         classes
-            .classes
-            .insert(class.description.class_name.clone(), class);
+            .user_classes
+            .insert(class.description.class_name.to_string(), class);
 
         if self.fields.values().any(|field| field.is_static) {
             let graph = self.populate_static_graph(root_node, graphs_map, classes, cache);
             classes
-                .get_class_mut(&self.class_name)
+                .get_user_class_mut(&self.class_name)
                 .unwrap()
                 .static_graph = Some(graph);
         }
 
-        self.populate_opcodes(classes.get_class_mut(&self.class_name).unwrap(), cache);
+        self.populate_opcodes(classes.get_user_class_mut(&self.class_name).unwrap(), cache);
     }
 }
 
@@ -759,6 +1119,10 @@ impl TsClassBuilder {
         constructor_ast: &ast::Constructor,
         cache: &Cache,
     ) {
+        constructor.is_private = constructor_ast
+            .accessibility
+            .unwrap_or(ast::Accessibility::Public)
+            != ast::Accessibility::Public;
         for param in &constructor_ast.params {
             let param_description = ParamDescription::from_with_cache(param, cache);
 
@@ -797,7 +1161,7 @@ impl TsClassBuilder {
 
 // Opcodes
 impl TsClassBuilder {
-    fn populate_opcodes(&self, class: &mut TsClass, cache: &Cache) {
+    fn populate_opcodes(&self, class: &mut TsUserClass, cache: &Cache) {
         for field in self.fields.values() {
             if let Some(op) = self.get_opcode_from_field(class, field, cache) {
                 class.member_opcodes.push(op);
@@ -809,11 +1173,20 @@ impl TsClassBuilder {
                 .values()
                 .filter_map(|m| self.get_method_opcode(m)),
         );
+
+        if !self.is_abstract && !self.constructor.is_private {
+            class
+                .constructor_opcodes
+                .push(Arc::new(ClassConstructorOp::new(
+                    self.class_name.clone(),
+                    self.constructor.clone(),
+                )));
+        }
     }
 
     fn get_opcode_from_field(
         &self,
-        class: &TsClass,
+        class: &TsUserClass,
         field: &JsFieldDescription,
         cache: &Cache,
     ) -> Option<Arc<dyn ExprOpcode>> {
@@ -917,7 +1290,7 @@ impl TsClassBuilder {
             &init_val,
         );
 
-        let class = classes.get_class_mut(&self.class_name).unwrap();
+        let class = classes.get_user_class_mut(&self.class_name).unwrap();
         class.static_fields.insert(
             field.name.clone(),
             LocValue {

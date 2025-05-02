@@ -1,0 +1,520 @@
+use std::{
+    ops::{Deref, DerefMut},
+    sync::Arc,
+};
+
+use boa_engine::{js_string, JsResult};
+use ruse_object_graph::{
+    value::{ObjectValue, Value, ValueType},
+    vnull, Cache, FieldName, GraphIndex, GraphsMap, ObjectType,
+};
+use ruse_synthesizer::context::{Context, GraphIdGenerator};
+
+use crate::{
+    js_console_logger::RuseJsConsoleLogger, js_errors::{js_error_immutable_context, js_error_no_static_graph, js_error_not_initialized}, js_object_wrapper::JsObjectWrapper, js_value::{js_value_to_value, value_to_js_value}, js_wrapped::JsWrapped, ts_class::{TsClasses, TsUserClass}
+};
+
+struct EngineContextHooks;
+
+impl boa_engine::context::HostHooks for EngineContextHooks {
+    fn create_global_object(
+        &self,
+        intrinsics: &boa_engine::context::intrinsics::Intrinsics,
+    ) -> boa_engine::prelude::JsObject {
+        boa_engine::JsObject::from_proto_and_data(
+            intrinsics.constructors().object().prototype(),
+            JsWrapped(RuseJsGlobalObject::default()),
+        )
+    }
+}
+
+trait GlobalObjectInner {
+    fn set_field(
+        &mut self,
+        obj_val: &ObjectValue,
+        field_name: &FieldName,
+        new_value: &Value,
+    ) -> boa_engine::JsResult<()>;
+
+    fn classes(&self) -> &TsClasses;
+    fn cache(&self) -> &Cache;
+    fn graphs_map(&self) -> &GraphsMap;
+    fn mut_graphs_map(&self) -> boa_engine::JsResult<&mut GraphsMap>;
+    fn get_graph_id_for_new_object(&self) -> boa_engine::JsResult<GraphIndex>;
+    fn id_gen(&self) -> &GraphIdGenerator;
+    fn dirty(&self) -> bool;
+    fn set_dirty(&mut self);
+}
+
+struct GraphGlobalObjectInner {
+    cache: Arc<Cache>,
+    id_gen: Arc<GraphIdGenerator>,
+    graph_id: GraphIndex,
+    graphs_map: *mut GraphsMap,
+    classes: *const TsClasses,
+    dirty: bool,
+}
+
+impl GlobalObjectInner for GraphGlobalObjectInner {
+    fn set_field(
+        &mut self,
+        obj_val: &ObjectValue,
+        field_name: &FieldName,
+        new_value: &Value,
+    ) -> boa_engine::JsResult<()> {
+        self.mut_graphs_map()?.set_field(
+            field_name.clone(),
+            obj_val.graph_id,
+            obj_val.node,
+            new_value,
+        );
+
+        Ok(())
+    }
+
+    fn classes(&self) -> &TsClasses {
+        unsafe { self.classes.as_ref().unwrap() }
+    }
+    fn cache(&self) -> &Cache {
+        self.cache.as_ref()
+    }
+    fn graphs_map(&self) -> &GraphsMap {
+        unsafe { self.graphs_map.as_ref().unwrap() }
+    }
+    fn mut_graphs_map(&self) -> boa_engine::JsResult<&mut GraphsMap> {
+        Ok(unsafe { self.graphs_map.as_mut().unwrap() })
+    }
+    fn get_graph_id_for_new_object(&self) -> boa_engine::JsResult<GraphIndex> {
+        Ok(self.graph_id)
+    }
+    fn id_gen(&self) -> &GraphIdGenerator {
+        self.id_gen.as_ref()
+    }
+
+    fn dirty(&self) -> bool {
+        self.dirty
+    }
+    fn set_dirty(&mut self) {
+        self.dirty = true;
+    }
+}
+
+struct MutContextGlobalObjectInner {
+    cache: Arc<Cache>,
+    context: *mut Context,
+    classes: *const TsClasses,
+    dirty: bool,
+}
+
+impl MutContextGlobalObjectInner {
+    fn context(&self) -> &mut Context {
+        unsafe { self.context.as_mut().unwrap() }
+    }
+}
+
+impl GlobalObjectInner for MutContextGlobalObjectInner {
+    fn set_field(
+        &mut self,
+        obj_val: &ObjectValue,
+        field_name: &FieldName,
+        new_value: &Value,
+    ) -> boa_engine::JsResult<()> {
+        self.context().set_field(
+            obj_val.graph_id,
+            obj_val.node,
+            field_name.clone(),
+            &new_value,
+        );
+
+        Ok(())
+    }
+
+    fn classes(&self) -> &TsClasses {
+        unsafe { self.classes.as_ref().unwrap() }
+    }
+    fn cache(&self) -> &Cache {
+        self.cache.as_ref()
+    }
+    fn graphs_map(&self) -> &GraphsMap {
+        &self.context().graphs_map
+    }
+    fn mut_graphs_map(&self) -> boa_engine::JsResult<&mut GraphsMap> {
+        Ok(Arc::make_mut(&mut self.context().graphs_map))
+    }
+    fn get_graph_id_for_new_object(&self) -> boa_engine::JsResult<GraphIndex> {
+        Ok(self.context().create_graph_in_map())
+    }
+    fn id_gen(&self) -> &GraphIdGenerator {
+        &self.context().graph_id_gen
+    }
+
+    fn dirty(&self) -> bool {
+        self.dirty
+    }
+    fn set_dirty(&mut self) {
+        self.dirty = true;
+    }
+}
+
+struct ContextGlobalObjectInner {
+    cache: Arc<Cache>,
+    context: *const Context,
+    classes: *const TsClasses,
+}
+
+impl ContextGlobalObjectInner {
+    fn context(&self) -> &Context {
+        unsafe { self.context.as_ref().unwrap() }
+    }
+}
+
+impl GlobalObjectInner for ContextGlobalObjectInner {
+    fn set_field(
+        &mut self,
+        _obj_val: &ObjectValue,
+        _field_name: &FieldName,
+        _new_value: &Value,
+    ) -> boa_engine::JsResult<()> {
+        Err(js_error_immutable_context())
+    }
+
+    fn classes(&self) -> &TsClasses {
+        unsafe { self.classes.as_ref().unwrap() }
+    }
+    fn cache(&self) -> &Cache {
+        self.cache.as_ref()
+    }
+    fn graphs_map(&self) -> &GraphsMap {
+        &self.context().graphs_map
+    }
+    fn mut_graphs_map(&self) -> boa_engine::JsResult<&mut GraphsMap> {
+        Err(js_error_immutable_context())
+    }
+    fn get_graph_id_for_new_object(&self) -> boa_engine::JsResult<GraphIndex> {
+        Err(js_error_immutable_context())
+    }
+    fn id_gen(&self) -> &GraphIdGenerator {
+        &self.context().graph_id_gen
+    }
+
+    fn dirty(&self) -> bool {
+        false
+    }
+    fn set_dirty(&mut self) {}
+}
+
+enum RuseJsGlobalObjectInner {
+    None,
+    Graph(GraphGlobalObjectInner),
+    Contxt(ContextGlobalObjectInner),
+    MutContxt(MutContextGlobalObjectInner),
+}
+
+pub(crate) struct RuseJsGlobalObject(RuseJsGlobalObjectInner);
+
+impl RuseJsGlobalObject {
+    fn inner(&self) -> JsResult<&dyn GlobalObjectInner> {
+        match &self.0 {
+            RuseJsGlobalObjectInner::None => Err(js_error_not_initialized()),
+            RuseJsGlobalObjectInner::Graph(graph_inner) => Ok(graph_inner),
+            RuseJsGlobalObjectInner::Contxt(context_inner) => Ok(context_inner),
+            RuseJsGlobalObjectInner::MutContxt(context_inner) => Ok(context_inner),
+        }
+    }
+
+    fn inner_mut(&mut self) -> JsResult<&mut dyn GlobalObjectInner> {
+        match &mut self.0 {
+            RuseJsGlobalObjectInner::None => Err(js_error_not_initialized()),
+            RuseJsGlobalObjectInner::Graph(graph_inner) => Ok(graph_inner),
+            RuseJsGlobalObjectInner::Contxt(context_inner) => Ok(context_inner),
+            RuseJsGlobalObjectInner::MutContxt(context_inner) => Ok(context_inner),
+        }
+    }
+
+    fn value_to_js_value(
+        &self,
+        value: &Value,
+        engine_ctx: &mut EngineContext<'_>,
+    ) -> boa_engine::JsResult<boa_engine::JsValue> {
+        Ok(value_to_js_value(self.classes()?, value, engine_ctx))
+    }
+    fn js_value_to_value(
+        &self,
+        js_value: &boa_engine::JsValue,
+        engine_ctx: &mut EngineContext<'_>,
+    ) -> boa_engine::JsResult<Value> {
+        Ok(js_value_to_value(
+            self.classes()?,
+            js_value,
+            engine_ctx,
+            self.cache()?,
+        ))
+    }
+
+    pub fn get_field(
+        wrapped_obj: &boa_engine::JsValue,
+        field_name: &FieldName,
+        engine_ctx: &mut EngineContext<'_>,
+    ) -> boa_engine::JsResult<boa_engine::JsValue> {
+        let obj_val = JsWrapped::<ObjectValue>::get_from_js_val(wrapped_obj)?;
+        let global_obj = engine_ctx.global_object();
+        let inner: boa_engine::gc::GcRef<'_, JsWrapped<RuseJsGlobalObject>> =
+            JsWrapped::<Self>::get_from_js_obj(&global_obj)?;
+
+        let field = obj_val
+            .get_field_value(field_name, inner.graphs_map()?)
+            .unwrap_or(vnull!());
+
+        inner.value_to_js_value(&field, engine_ctx)
+    }
+
+    pub fn set_field(
+        wrapped_obj: &boa_engine::JsValue,
+        field_name: &FieldName,
+        new_js_value: &boa_engine::JsValue,
+        engine_ctx: &mut EngineContext<'_>,
+    ) -> boa_engine::JsResult<()> {
+        let obj_val = JsWrapped::<ObjectValue>::get_from_js_val(wrapped_obj)?;
+        let global_obj = engine_ctx.global_object();
+
+        let new_value = {
+            let inner = JsWrapped::<Self>::get_from_js_obj(&global_obj)?;
+            inner.js_value_to_value(&new_js_value, engine_ctx)
+        }?;
+
+        {
+            let mut wrapped_inner = JsWrapped::<Self>::mut_from_js_obj(&global_obj)?;
+            let inner = wrapped_inner.inner_mut()?;
+
+            inner.set_field(&obj_val, field_name, &new_value)?;
+            inner.set_dirty();
+        }
+        Ok(())
+    }
+
+    pub fn get_static_field(
+        class_name: &ObjectType,
+        field_name: &FieldName,
+        engine_ctx: &mut EngineContext<'_>,
+    ) -> boa_engine::JsResult<boa_engine::JsValue> {
+        let global_obj = engine_ctx.global_object();
+        let inner = JsWrapped::<Self>::get_from_js_obj(&global_obj)?;
+        let classes = inner.classes()?;
+
+        let class = classes.get_user_class(class_name).unwrap();
+
+        let field = &class.static_fields[field_name];
+
+        inner.value_to_js_value(&field.val, engine_ctx)
+    }
+
+    pub fn set_static_field(
+        class_name: &ObjectType,
+        field_name: &FieldName,
+        new_js_value: &boa_engine::JsValue,
+        engine_ctx: &mut EngineContext<'_>,
+    ) -> boa_engine::JsResult<()> {
+        let global_obj = engine_ctx.global_object();
+        let (new_value, obj_val) = {
+            let inner = JsWrapped::<Self>::get_from_js_obj(&global_obj)?;
+            let classes = inner.classes()?;
+
+            let class = classes.get_user_class(class_name).unwrap();
+            let obj_val = class
+                .static_object_value()
+                .ok_or(js_error_no_static_graph(class_name))?;
+
+            (inner.js_value_to_value(&new_js_value, engine_ctx)?, obj_val)
+        };
+
+        {
+            let mut wrapped_inner = JsWrapped::<Self>::mut_from_js_obj(&global_obj)?;
+            let inner = wrapped_inner.inner_mut()?;
+            inner.set_field(&obj_val, field_name, &new_value)
+        }
+    }
+
+    pub fn classes(&self) -> boa_engine::JsResult<&TsClasses> {
+        Ok(self.inner()?.classes())
+    }
+    pub fn cache(&self) -> boa_engine::JsResult<&Cache> {
+        Ok(self.inner()?.cache())
+    }
+    pub fn graphs_map(&self) -> boa_engine::JsResult<&GraphsMap> {
+        Ok(self.inner()?.graphs_map())
+    }
+    pub fn mut_graphs_map(&self) -> boa_engine::JsResult<&mut GraphsMap> {
+        self.inner()?.mut_graphs_map()
+    }
+    pub fn get_graph_id_for_new_object(&self) -> boa_engine::JsResult<GraphIndex> {
+        self.inner()?.get_graph_id_for_new_object()
+    }
+    pub fn id_gen(&self) -> boa_engine::JsResult<&GraphIdGenerator> {
+        Ok(self.inner()?.id_gen())
+    }
+}
+
+impl Default for RuseJsGlobalObject {
+    fn default() -> Self {
+        Self(RuseJsGlobalObjectInner::None)
+    }
+}
+
+#[derive(Debug)]
+pub struct EngineContext<'a>(&'a mut boa_engine::Context);
+
+impl<'a> EngineContext<'a> {
+    pub fn new_boa_ctx() -> Box<boa_engine::Context> {
+        Box::new(
+            boa_engine::context::ContextBuilder::default()
+                .host_hooks(EngineContextHooks.into())
+                .build()
+                .expect("Failed to build context"),
+        )
+    }
+
+    pub fn create_engine_ctx(boa_ctx: &'a mut boa_engine::Context, classes: &TsClasses) -> Self {
+        let mut engine_ctx = Self(boa_ctx);
+        classes.init_engine_ctx(&mut engine_ctx);
+
+        let console = boa_runtime::Console::init_with_logger(&mut engine_ctx, RuseJsConsoleLogger);
+        // Register the console as a global property to the context.
+        engine_ctx
+            .register_global_property(
+                js_string!(boa_runtime::Console::NAME),
+                console,
+                boa_engine::property::Attribute::all(),
+            )
+            .expect("the console object shouldn't exist yet");
+
+        engine_ctx
+    }
+
+    pub fn reset_with_context(&self, post_ctx: &Context, classes: &TsClasses, cache: &Arc<Cache>) {
+        let global_obj = self.global_object();
+        let mut wrapped_inner =
+            JsWrapped::<RuseJsGlobalObject>::mut_from_js_obj(&global_obj).unwrap();
+        wrapped_inner.0 .0 = RuseJsGlobalObjectInner::Contxt(ContextGlobalObjectInner {
+            context: std::ptr::from_ref(post_ctx),
+            classes: std::ptr::from_ref(classes),
+            cache: cache.clone(),
+        });
+    }
+
+    pub fn reset_with_mut_context(
+        &self,
+        post_ctx: &mut Context,
+        classes: &TsClasses,
+        cache: &Arc<Cache>,
+    ) {
+        let global_obj = self.global_object();
+        let mut wrapped_inner =
+            JsWrapped::<RuseJsGlobalObject>::mut_from_js_obj(&global_obj).unwrap();
+        wrapped_inner.0 .0 = RuseJsGlobalObjectInner::MutContxt(MutContextGlobalObjectInner {
+            context: std::ptr::from_mut(post_ctx),
+            classes: std::ptr::from_ref(classes),
+            cache: cache.clone(),
+            dirty: false,
+        });
+    }
+
+    pub fn reset_with_graph(
+        &self,
+        graph_id: GraphIndex,
+        graphs_map: &mut GraphsMap,
+        classes: &TsClasses,
+        id_gen: &Arc<GraphIdGenerator>,
+        cache: &Arc<Cache>,
+    ) {
+        let global_obj = self.global_object();
+        let mut wrapped_inner =
+            JsWrapped::<RuseJsGlobalObject>::mut_from_js_obj(&global_obj).unwrap();
+        wrapped_inner.0 .0 = RuseJsGlobalObjectInner::Graph(GraphGlobalObjectInner {
+            graph_id: graph_id,
+            graphs_map: std::ptr::from_mut(graphs_map),
+            classes: std::ptr::from_ref(classes),
+            id_gen: id_gen.clone(),
+            cache: cache.clone(),
+            dirty: false,
+        });
+    }
+
+    pub fn create_array_object<I>(
+        &self,
+        elements: I,
+        elem_type: &ValueType,
+    ) -> JsResult<ObjectValue>
+    where
+        I: IntoIterator<Item = Value>,
+    {
+        let global_obj = self.global_object();
+        let global_ctx = JsWrapped::<RuseJsGlobalObject>::get_from_js_obj(&global_obj)?;
+        let inner = global_ctx.inner()?;
+        let cache = inner.cache();
+        let id_gen = inner.id_gen();
+
+        let graph_id = inner.get_graph_id_for_new_object()?;
+        let node_id = id_gen.get_id_for_node();
+
+        let graphs_map = inner.mut_graphs_map()?;
+
+        if elem_type.is_primitive() {
+            graphs_map.add_primitive_array_object(
+                graph_id,
+                node_id,
+                elem_type,
+                elements.into_iter().map(|x| x.into_primitive().unwrap()),
+                cache,
+            );
+        } else {
+            graphs_map.add_array_object(graph_id, node_id, elem_type, elements, cache);
+        }
+
+        Ok(ObjectValue {
+            obj_type: ValueType::array_obj_cached_string(elem_type, cache),
+            graph_id,
+            node: node_id,
+        })
+    }
+
+    pub fn register_global_class(&mut self, global_class: &TsUserClass) -> JsResult<()> {
+        for (name, method) in &global_class.description.methods {
+            let js_func = JsObjectWrapper::method_js_function(method, self);
+            self.register_global_builtin_callable(js_string!(name.as_str()), method.params.len(), js_func)?;
+        }
+
+        Ok(())
+    }
+}
+
+impl<'a> From<&'a mut boa_engine::Context> for EngineContext<'a> {
+    fn from(value: &'a mut boa_engine::Context) -> Self {
+        Self(value)
+    }
+}
+
+impl<'a> Deref for EngineContext<'a> {
+    type Target = boa_engine::Context;
+
+    fn deref(&self) -> &Self::Target {
+        self.0
+    }
+}
+
+impl<'a> DerefMut for EngineContext<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.0
+    }
+}
+
+impl<'a> EngineContext<'a> {
+    pub fn is_dirty(&self) -> bool {
+        let global_obj = self.global_object();
+        let wrapped_inner = JsWrapped::<RuseJsGlobalObject>::get_from_js_obj(&global_obj).unwrap();
+        if let Ok(inner) = wrapped_inner.inner() {
+            inner.dirty()
+        } else {
+            false
+        }
+    }
+}

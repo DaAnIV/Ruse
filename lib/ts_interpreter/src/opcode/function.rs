@@ -9,8 +9,8 @@ use ruse_synthesizer::{
 use tracing::trace;
 
 use crate::{
-    js_object_wrapper::EngineContext,
-    opcode::{member_call_ast, member_field_ast, static_member_call_ast},
+    engine_context::EngineContext,
+    opcode::{member_call_ast, member_field_ast, new_obj_ast, static_member_call_ast},
     ts_class::{MethodDescription, MethodKind, TsClasses},
 };
 
@@ -23,7 +23,11 @@ pub struct ClassMethodOp {
 
 impl ClassMethodOp {
     pub fn new(obj_type: CachedString, method_desc: &MethodDescription) -> Self {
-        let full_method_name = format!("{}.{}", &obj_type, &method_desc.name);
+        let full_method_name = if method_desc.kind == MethodKind::GlobalFunction {
+            format!("{}", &method_desc.name)
+        } else {
+            format!("{}.{}", &obj_type, &method_desc.name)
+        };
         let mut arg_types = vec![];
         if !method_desc.is_static {
             arg_types.push(ValueType::Object(obj_type.clone()));
@@ -58,7 +62,7 @@ impl ExprOpcode for ClassMethodOp {
         let mut boa_ctx = EngineContext::new_boa_ctx();
         let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, classes);
         engine_ctx.reset_with_mut_context(post_ctx, classes, &syn_ctx.cache);
-        let class = classes.get_class(&self.obj_type).unwrap();
+        let class = classes.get_user_class(&self.obj_type).unwrap();
 
         let result = if self.desc.is_static {
             class.call_static_method(
@@ -118,6 +122,86 @@ impl std::fmt::Debug for ClassMethodOp {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ClassMethodOp")
             .field("desc", &self.desc)
+            .finish()
+    }
+}
+
+pub struct ClassConstructorOp {
+    obj_type: CachedString,
+    full_method_name: String,
+    arg_types: Vec<ValueType>,
+}
+
+impl ClassConstructorOp {
+    pub fn new(obj_type: CachedString, desc: MethodDescription) -> Self {
+        let full_method_name = format!("new {}", &obj_type);
+
+        let mut arg_types = vec![];
+        arg_types.extend(desc.params.iter().map(|x| x.value_type.clone()));
+
+        Self {
+            obj_type,
+            full_method_name,
+            arg_types,
+        }
+    }
+}
+
+impl ExprOpcode for ClassConstructorOp {
+    fn op_name(&self) -> &str {
+        &self.full_method_name
+    }
+
+    fn arg_types(&self) -> &[ValueType] {
+        &self.arg_types
+    }
+
+    fn eval(
+        &self,
+        args: &[&LocValue],
+        post_ctx: &mut Context,
+        syn_ctx: &SynthesizerContext,
+    ) -> EvalResult {
+        let classes = syn_ctx.data.downcast_ref::<TsClasses>().unwrap();
+        let mut boa_ctx = EngineContext::new_boa_ctx();
+        let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, classes);
+        engine_ctx.reset_with_mut_context(post_ctx, classes, &syn_ctx.cache);
+        let class = classes.get_user_class(&self.obj_type).unwrap();
+
+        let result = class.call_constructor(args.iter().map(|x| x.val()), classes, &mut engine_ctx);
+
+        match result {
+            // Need to check if func changed the context
+            Ok(res) => {
+                let output = post_ctx.temp_value(Value::Object(res));
+                if engine_ctx.is_dirty() {
+                    dirty!(output)
+                } else {
+                    pure!(output)
+                }
+            }
+            Err(err) => {
+                trace!(
+                    "Failed to evaluate {}. error: {}",
+                    self.full_method_name,
+                    err
+                );
+                Err(())
+            }
+        }
+    }
+
+    fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
+        debug_assert_eq!(children.len(), self.arg_types.len());
+        new_obj_ast(&self.obj_type, children)
+    }
+}
+
+impl std::fmt::Debug for ClassConstructorOp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ClassConstructorOp")
+            .field("obj", &self.obj_type)
+            .field("arg_types", &self.arg_types)
             .finish()
     }
 }

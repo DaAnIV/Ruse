@@ -21,10 +21,14 @@ itertools.workspace = true
 html_parser.workspace = true
 
 boa_engine.workspace = true
+boa_runtime.workspace = true
+boa_gc.workspace = true
 
 tracing.workspace = true
 
 num-traits.workspace = true
+
+walkdir.workspace = true
 
 [dev-dependencies]
 criterion.workspace = true

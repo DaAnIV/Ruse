@@ -1,7 +1,8 @@
 use ruse_object_graph::value::*;
 use ruse_object_graph::{scached, Cache, Number, PrimitiveValue};
 
-use crate::js_object_wrapper::{EngineContext, JsWrapped};
+use crate::engine_context::EngineContext;
+use crate::js_wrapped::JsWrapped;
 use crate::ts_class::TsClasses;
 
 pub fn primitive_value_to_js_value(value: &PrimitiveValue) -> boa_engine::JsValue {
@@ -35,13 +36,25 @@ pub fn value_to_js_value(
 }
 
 pub fn js_object_to_value(
-    _classes: &TsClasses,
+    classes: &TsClasses,
     value: &boa_engine::JsObject,
-    _engine_ctx: &mut EngineContext<'_>,
-    _cache: &Cache,
+    engine_ctx: &mut EngineContext<'_>,
+    cache: &Cache,
 ) -> Value {
-    let wrapped_obj = JsWrapped::<ObjectValue>::get_from_js_obj(value).unwrap();
-    Value::Object(wrapped_obj.clone())
+    if let Ok(wrapped_obj) = JsWrapped::<ObjectValue>::get_from_js_obj(value) {
+        return Value::Object(wrapped_obj.clone());
+    }
+    for class in classes.builtin_classes() {
+        if class.is_builtin_object(value) {
+            return Value::Object(
+                class
+                    .get_from_js_obj(classes, value, engine_ctx, cache)
+                    .unwrap(),
+            );
+        }
+    }
+
+    todo!("Cannot convert JS object to value. {:?}", value)
 }
 
 pub fn js_value_to_value(

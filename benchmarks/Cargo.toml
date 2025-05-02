@@ -31,7 +31,7 @@ sysinfo = { version = "*", default-features = false, features = [
     "serde",
     "system",
 ] }
-walkdir = "*"
+walkdir.workspace = true
 itertools.workspace = true
 
 serde.workspace = true

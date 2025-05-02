@@ -331,7 +331,7 @@ fn print_opcodes(cli: &PrintOpcodesArgs) -> ExitCode {
     let mut class_names = vec![];
 
     for full_path in cli.ts_files.iter() {
-        class_names.extend(builder.add_ts_file(&full_path, &cache).unwrap());
+        class_names.extend(builder.add_ts_files(&full_path, &cache).unwrap());
     }
 
     let classes = builder.finalize(&cache);

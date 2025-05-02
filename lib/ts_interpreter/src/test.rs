@@ -5,13 +5,13 @@ pub mod ts_op_helpers {
 
     use ruse_object_graph::{str_cached, Cache, Number};
 
-    use crate::{opcode, ts_class::TsClass};
+    use crate::{opcode, ts_class::TsUserClass};
 
     pub fn id_op(id: &str, cache: &Cache) -> Arc<opcode::IdentOp> {
         Arc::new(opcode::IdentOp::new(str_cached!(cache; id)))
     }
 
-    pub fn class_method_op(class: &TsClass, method_name: &str) -> Arc<opcode::ClassMethodOp> {
+    pub fn class_method_op(class: &TsUserClass, method_name: &str) -> Arc<opcode::ClassMethodOp> {
         Arc::new(opcode::ClassMethodOp::new(
             class.description.class_name.clone(),
             &class.description.methods[method_name],
@@ -290,10 +290,11 @@ mod ts_class_tests {
     };
     use ruse_synthesizer::test::helpers::{get_composite_prog, get_init_prog};
 
-    use crate::js_object_wrapper::{EngineContext, JsWrapped};
+    use crate::engine_context::EngineContext;
     use crate::js_value::value_to_js_value;
+    use crate::js_wrapped::JsWrapped;
     use crate::test::ts_op_helpers::*;
-    use crate::ts_class::{TsClasses, TsClassesBuilder};
+    use crate::ts_class::{TsClass, TsClasses, TsClassesBuilder};
 
     #[test]
     fn generate_object() {
@@ -307,14 +308,15 @@ mod ts_class_tests {
         let mut builder = TsClassesBuilder::new();
 
         let user_class_name = builder
-            .add_class(code, &cache)
-            .expect("Failed to add User class");
+            .add_classes(code, &cache)
+            .expect("Failed to add User class")[0]
+            .clone();
         let classes = builder.finalize(&cache);
 
         let graph_id = id_gen.get_id_for_graph();
         graphs_map.ensure_graph(graph_id);
         let user = classes
-            .get_class(&user_class_name)
+            .get_user_class(&user_class_name)
             .unwrap()
             .generate_object(
                 HashMap::from([
@@ -345,12 +347,13 @@ mod ts_class_tests {
         let mut builder = TsClassesBuilder::new();
 
         let user_class_name = builder
-            .add_class(code, &cache)
-            .expect("Failed to add User class");
+            .add_classes(code, &cache)
+            .expect("Failed to add User class")[0]
+            .clone();
 
         let classes = builder.finalize(&cache);
 
-        let user_class = classes.get_class(&user_class_name).unwrap();
+        let user_class = classes.get_user_class(&user_class_name).unwrap();
         let opcodes = &user_class.member_opcodes;
         assert_eq!(opcodes.len(), 2);
         assert!(opcodes.iter().all(|op| {
@@ -375,13 +378,13 @@ mod ts_class_tests {
         let cache = Arc::new(Cache::new());
         let mut builder = TsClassesBuilder::new();
 
-        let student_class_name = builder.add_class(code1, &cache).unwrap();
-        let class_class_name = builder.add_class(code2, &cache).unwrap();
+        let student_class_name = builder.add_classes(code1, &cache).unwrap()[0].clone();
+        let class_class_name = builder.add_classes(code2, &cache).unwrap()[0].clone();
 
         let classes = builder.finalize(&cache);
 
-        let student_class = classes.get_class(&student_class_name).unwrap();
-        let class_class = classes.get_class(&class_class_name).unwrap();
+        let student_class = classes.get_user_class(&student_class_name).unwrap();
+        let class_class = classes.get_user_class(&class_class_name).unwrap();
 
         assert!(student_class.description.fields.get("name").is_some());
         assert!(student_class.description.fields.get("surname").is_some());
@@ -407,7 +410,7 @@ mod ts_class_tests {
         );
         assert_eq!(
             class_class.description.fields["students"].value_type,
-            ValueType::array_value_type(&student_class.obj_type(), &cache)
+            ValueType::array_value_type(&student_class.obj_type(None, &cache), &cache)
         );
 
         assert!(class_class
@@ -430,12 +433,13 @@ mod ts_class_tests {
         let mut builder = TsClassesBuilder::new();
 
         let user_class_name = builder
-            .add_class(code, &cache)
-            .expect("Failed to add User class");
+            .add_classes(code, &cache)
+            .expect("Failed to add User class")[0]
+            .clone();
 
         let classes = builder.finalize(&cache);
 
-        let user_class = classes.get_class(&user_class_name).unwrap();
+        let user_class = classes.get_user_class(&user_class_name).unwrap();
         let graph_id = id_gen.get_id_for_graph();
         graphs_map.ensure_graph(graph_id);
         let user = user_class.generate_object(
@@ -483,13 +487,13 @@ mod ts_class_tests {
         let id_gen = Arc::new(GraphIdGenerator::default());
         let mut builder = TsClassesBuilder::new();
 
-        let user_class_name = builder.add_class(code1, &cache).unwrap();
-        let user_pair_class_name = builder.add_class(code2, &cache).unwrap();
+        let user_class_name = builder.add_classes(code1, &cache).unwrap()[0].clone();
+        let user_pair_class_name = builder.add_classes(code2, &cache).unwrap()[0].clone();
 
         let classes = builder.finalize(&cache);
 
-        let user_class = classes.get_class(&user_class_name).unwrap();
-        let user_class_pair = classes.get_class(&user_pair_class_name).unwrap();
+        let user_class = classes.get_user_class(&user_class_name).unwrap();
+        let user_class_pair = classes.get_user_class(&user_pair_class_name).unwrap();
 
         let user1_graph_id = id_gen.get_id_for_graph();
         graphs_map.ensure_graph(user1_graph_id);
@@ -528,7 +532,11 @@ mod ts_class_tests {
             complex_user_graph_id,
             &id_gen,
         );
-        graphs_map.set_as_root(str_cached!(cache; "student_pair"), complex_user.graph_id, complex_user.node);
+        graphs_map.set_as_root(
+            str_cached!(cache; "student_pair"),
+            complex_user.graph_id,
+            complex_user.node,
+        );
 
         let mut ctx = Context::with_values([].into(), graphs_map.into(), id_gen);
         let mut boa_ctx = EngineContext::new_boa_ctx();
@@ -561,15 +569,16 @@ mod ts_class_tests {
         let mut builder = TsClassesBuilder::new();
 
         let user_class_name = builder
-            .add_class(code, &cache)
-            .expect("Failed to add User class");
+            .add_classes(code, &cache)
+            .expect("Failed to add User class")[0]
+            .clone();
 
         let classes = builder.finalize(&cache);
 
         let graph_id = id_gen.get_id_for_graph();
         graphs_map.ensure_graph(graph_id);
         let user = {
-            let user_class = classes.get_class(&user_class_name).unwrap();
+            let user_class = classes.get_user_class(&user_class_name).unwrap();
             user_class.generate_object(
                 HashMap::from([
                     (str_cached!(cache; "surname"), vstr!(cache; "Doe")),
@@ -592,7 +601,7 @@ mod ts_class_tests {
             cache,
         );
         let classes_ref = syn_ctx.data.downcast_ref::<TsClasses>().unwrap();
-        let user_class = classes_ref.get_class(&user_class_name).unwrap();
+        let user_class = classes_ref.get_user_class(&user_class_name).unwrap();
 
         let mut boa_ctx = EngineContext::new_boa_ctx();
         let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, classes_ref);
@@ -653,13 +662,14 @@ mod ts_class_tests {
         let mut builder = TsClassesBuilder::new();
 
         let user_class_name = builder
-            .add_class(code, &cache)
-            .expect("Failed to add User class");
+            .add_classes(code, &cache)
+            .expect("Failed to add User class")[0]
+            .clone();
 
         let classes = builder.finalize(&cache);
 
         {
-            let user_class = classes.get_class(&user_class_name).unwrap();
+            let user_class = classes.get_user_class(&user_class_name).unwrap();
 
             assert_eq!(user_class.method_opcodes.len(), 1);
             println!("{}", user_class.method_opcodes[0].op_name());
@@ -672,7 +682,7 @@ mod ts_class_tests {
         let graph_id = id_gen.get_id_for_graph();
         graphs_map.ensure_graph(graph_id);
         let user = classes
-            .get_class(&user_class_name)
+            .get_user_class(&user_class_name)
             .unwrap()
             .generate_object(
                 HashMap::from([
@@ -694,7 +704,7 @@ mod ts_class_tests {
             SynthesizerContext::from_context_array_with_data(ctx_arr.clone(), classes, cache);
 
         let classes_ref = syn_ctx.data.downcast_ref::<TsClasses>().unwrap();
-        let user_class = classes_ref.get_class(&user_class_name).unwrap();
+        let user_class = classes_ref.get_user_class(&user_class_name).unwrap();
 
         let user_op = id_op("user", &syn_ctx.cache);
         let user_prog = get_init_prog(user_op, &ctx_arr, &syn_ctx);
@@ -761,8 +771,9 @@ mod ts_class_tests {
         let mut builder = TsClassesBuilder::new();
 
         let user_class_name = builder
-            .add_class(code, &cache)
-            .expect("Failed to add User class");
+            .add_classes(code, &cache)
+            .expect("Failed to add User class")[0]
+            .clone();
 
         let classes = builder.finalize(&cache);
 
@@ -773,12 +784,12 @@ mod ts_class_tests {
         let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, &classes);
         engine_ctx.reset_with_graph(graph_id, &mut graphs_map, &classes, &id_gen, &cache);
 
-        let user_class = classes.get_class(&user_class_name).unwrap();
+        let user_class = classes.get_user_class(&user_class_name).unwrap();
         let js_user = user_class.call_constructor(
             &[vstr!(cache; "a"), vstr!(cache; "b")],
             &classes,
             &mut engine_ctx,
-        );
+        ).unwrap();
         let name_field = js_user.get_field_value(&str_cached!(cache; "name"), &graphs_map);
         let surname_field = js_user.get_field_value(&str_cached!(cache; "surname"), &graphs_map);
         let fullname_field = js_user.get_field_value(&str_cached!(cache; "fullname"), &graphs_map);
@@ -819,7 +830,7 @@ mod ts_class_tests {
         let mut builder = TsClassesBuilder::new();
 
         builder
-            .add_class(code, &cache)
+            .add_classes(code, &cache)
             .expect("Failed to add User class");
 
         let classes = builder.finalize(&cache);

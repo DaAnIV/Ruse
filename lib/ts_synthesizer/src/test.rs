@@ -34,12 +34,13 @@ mod tests {
         let mut builder = TsClassesBuilder::new();
 
         let user_class_name = builder
-            .add_class(code, &cache)
-            .expect("Failed to add User class");
+            .add_classes(code, &cache)
+            .expect("Failed to add User class")[0]
+            .clone();
 
         let classes = builder.finalize(&cache);
 
-        let user_class = classes.get_class(&user_class_name).unwrap();
+        let user_class = classes.get_user_class(&user_class_name).unwrap();
 
         let user1_graph_id = id_gen1.get_id_for_graph();
         graphs_map1.ensure_graph(user1_graph_id);
@@ -143,11 +144,11 @@ mod tests {
         let mut graphs_map2 = GraphsMap::default();
         let mut builder = TsClassesBuilder::new();
 
-        let point_class_name = builder.add_class(code, &cache).unwrap();
+        let point_class_name = builder.add_classes(code, &cache).unwrap()[0].clone();
 
         let classes = builder.finalize(&cache);
 
-        let point_class = classes.get_class(&point_class_name).unwrap();
+        let point_class = classes.get_user_class(&point_class_name).unwrap();
 
         let point1_graph_id = id_gen1.get_id_for_graph();
         graphs_map1.ensure_graph(point1_graph_id);

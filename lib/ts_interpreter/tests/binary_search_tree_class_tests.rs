@@ -15,9 +15,9 @@ use ruse_synthesizer::{
 };
 use ruse_task_parser::predicate_builder::PredicateBuilder;
 use ruse_ts_interpreter::{
-    js_object_wrapper::EngineContext,
+    engine_context::EngineContext,
     test::ts_op_helpers::*,
-    ts_class::{TsClass, TsClasses, TsClassesBuilder},
+    ts_class::{TsUserClass, TsClasses, TsClassesBuilder},
 };
 
 const BINARY_SEARCH_TREE_TS_PATH: &str = "../../benchmarks/tasks/classes/binary_search_tree.ts";
@@ -27,7 +27,7 @@ fn create_binary_tree_inner(
     left: isize,
     right: isize,
     classes: &TsClasses,
-    binary_tree_class: &TsClass,
+    binary_tree_class: &TsUserClass,
     engine_ctx: &mut EngineContext,
 ) -> Value {
     if left > right {
@@ -62,13 +62,14 @@ fn create_binary_tree_inner(
             classes,
             engine_ctx,
         )
+        .unwrap()
         .into()
 }
 
 fn create_binary_tree(
     values: &[usize],
     classes: &TsClasses,
-    binary_tree_class: &TsClass,
+    binary_tree_class: &TsUserClass,
     engine_ctx: &mut EngineContext,
 ) -> Value {
     let mut sorted = values.iter().cloned().collect_vec();
@@ -99,7 +100,7 @@ fn tests_construct_binary_tree() {
     let cache = Arc::new(Cache::new());
     let mut builder = TsClassesBuilder::new();
     let binary_tree_class_name = &builder
-        .add_ts_file(&BINARY_SEARCH_TREE_TS_PATH, &cache)
+        .add_ts_files(&BINARY_SEARCH_TREE_TS_PATH, &cache)
         .unwrap()[0];
     let classes = builder.finalize(&cache);
     let id_gen = Arc::new(GraphIdGenerator::default());
@@ -112,31 +113,37 @@ fn tests_construct_binary_tree() {
     let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, &classes);
     engine_ctx.reset_with_graph(graph_id, &mut graphs_map, &classes, &id_gen, &cache);
 
-    let binary_tree_class = classes.get_class(&binary_tree_class_name).unwrap();
+    let binary_tree_class = classes.get_user_class(&binary_tree_class_name).unwrap();
 
-    let left = binary_tree_class.call_constructor(
-        &[vnum!(Number::from(58)), vnull!(), vnull!()],
-        &classes,
-        &mut engine_ctx,
-    );
+    let left = binary_tree_class
+        .call_constructor(
+            &[vnum!(Number::from(58)), vnull!(), vnull!()],
+            &classes,
+            &mut engine_ctx,
+        )
+        .unwrap();
     println!("{}", left.wrap(&graphs_map));
 
-    let right = binary_tree_class.call_constructor(
-        &[vnum!(Number::from(28)), vnull!(), vnull!()],
-        &classes,
-        &mut engine_ctx,
-    );
+    let right = binary_tree_class
+        .call_constructor(
+            &[vnum!(Number::from(28)), vnull!(), vnull!()],
+            &classes,
+            &mut engine_ctx,
+        )
+        .unwrap();
     println!("{}", right.wrap(&graphs_map));
 
-    let root = binary_tree_class.call_constructor(
-        &[
-            vnum!(Number::from(1)),
-            Value::Object(left),
-            Value::Object(right),
-        ],
-        &classes,
-        &mut engine_ctx,
-    );
+    let root = binary_tree_class
+        .call_constructor(
+            &[
+                vnum!(Number::from(1)),
+                Value::Object(left),
+                Value::Object(right),
+            ],
+            &classes,
+            &mut engine_ctx,
+        )
+        .unwrap();
 
     println!("{}", root.wrap(&graphs_map));
 }
@@ -146,7 +153,7 @@ fn tests_binary_tree_contains() {
     let cache = Arc::new(Cache::new());
     let mut builder = TsClassesBuilder::new();
     let binary_tree_class_name = &builder
-        .add_ts_file(&BINARY_SEARCH_TREE_TS_PATH, &cache)
+        .add_ts_files(&BINARY_SEARCH_TREE_TS_PATH, &cache)
         .unwrap()[0];
     let classes = builder.finalize(&cache);
     let id_gen = Arc::new(GraphIdGenerator::default());
@@ -159,7 +166,7 @@ fn tests_binary_tree_contains() {
     let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, &classes);
     engine_ctx.reset_with_graph(graph_id, &mut graphs_map, &classes, &id_gen, &cache);
 
-    let binary_tree_class = classes.get_class(&binary_tree_class_name).unwrap();
+    let binary_tree_class = classes.get_user_class(&binary_tree_class_name).unwrap();
 
     let left: Value = binary_tree_class
         .call_constructor(
@@ -167,6 +174,7 @@ fn tests_binary_tree_contains() {
             &classes,
             &mut engine_ctx,
         )
+        .unwrap()
         .into();
     let right: Value = binary_tree_class
         .call_constructor(
@@ -174,6 +182,7 @@ fn tests_binary_tree_contains() {
             &classes,
             &mut engine_ctx,
         )
+        .unwrap()
         .into();
 
     let root: Value = binary_tree_class
@@ -182,6 +191,7 @@ fn tests_binary_tree_contains() {
             &classes,
             &mut engine_ctx,
         )
+        .unwrap()
         .into();
 
     let mut res;
@@ -385,7 +395,7 @@ fn auto_constructor() {
     let cache = Arc::new(Cache::new());
     let mut builder = TsClassesBuilder::new();
     let binary_tree_class_name = &builder
-        .add_ts_file(&BINARY_SEARCH_TREE_TS_PATH, &cache)
+        .add_ts_files(&BINARY_SEARCH_TREE_TS_PATH, &cache)
         .unwrap()[0];
     let classes = builder.finalize(&cache);
     let id_gen = Arc::new(GraphIdGenerator::default());
@@ -398,7 +408,7 @@ fn auto_constructor() {
         let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, &classes);
         engine_ctx.reset_with_graph(graph_id, &mut graphs_map, &classes, &id_gen, &cache);
 
-        let binary_tree_class = classes.get_class(&binary_tree_class_name).unwrap();
+        let binary_tree_class = classes.get_user_class(&binary_tree_class_name).unwrap();
 
         create_binary_tree(
             &[5, 2, 1, 3, 6, 10, 11],
@@ -432,7 +442,7 @@ fn auto_constructor() {
 fn get_ctx(
     tree_values: &[usize],
     node_to_delete_value: usize,
-    binary_tree_class: &TsClass,
+    binary_tree_class: &TsUserClass,
     classes: &TsClasses,
     cache: &Arc<Cache>,
 ) -> Box<Context> {
@@ -491,11 +501,11 @@ fn check_delete_two_children() {
     let cache = Arc::new(Cache::new());
     let mut builder = TsClassesBuilder::new();
     let binary_tree_class_name = &builder
-        .add_ts_file(&BINARY_SEARCH_TREE_TS_PATH, &cache)
+        .add_ts_files(&BINARY_SEARCH_TREE_TS_PATH, &cache)
         .unwrap()[0];
     let classes = builder.finalize(&cache);
 
-    let binary_tree_class = classes.get_class(&binary_tree_class_name).unwrap();
+    let binary_tree_class = classes.get_user_class(&binary_tree_class_name).unwrap();
 
     let ctx = ContextArray::from(vec![
         get_ctx(
@@ -523,7 +533,7 @@ fn check_delete_two_children() {
     let syn_ctx =
         SynthesizerContext::from_context_array_with_data(ctx.clone(), classes, cache.clone());
     let classes_ref = syn_ctx.data.downcast_ref::<TsClasses>().unwrap();
-    let binary_tree_class = classes_ref.get_class(&binary_tree_class_name).unwrap();
+    let binary_tree_class = classes_ref.get_user_class(&binary_tree_class_name).unwrap();
     let tree_objs = ctx
         .iter()
         .map(|x| {
