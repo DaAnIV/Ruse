@@ -3,7 +3,7 @@ use clap_verbosity_flag::{InfoLevel, Verbosity};
 use itertools::Itertools;
 use ruse_synthesizer::{bank_hasher::BankHasherBuilder, opcode::sort_opcodes};
 use ruse_task_parser::SnythesisTask;
-use ruse_ts_interpreter::ts_class::TsClassesBuilder;
+use ruse_ts_interpreter::ts_classes::TsClassesBuilder;
 use serde_json::ser::Formatter;
 use std::{
     backtrace::{Backtrace, BacktraceStatus},

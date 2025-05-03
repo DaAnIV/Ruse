@@ -13,7 +13,8 @@ use ruse_synthesizer::context::GraphIdGenerator;
 use ruse_ts_interpreter::{
     dom::{self, DomLoader},
     engine_context::EngineContext,
-    ts_class::{TsClasses, TsUserClass},
+    ts_classes::TsClasses,
+    ts_user_class::TsUserClass,
 };
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::json;

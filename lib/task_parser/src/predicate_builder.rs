@@ -8,7 +8,7 @@ use ruse_synthesizer::context::ValuesMap;
 use ruse_synthesizer::{context::SynthesizerContext, prog::SubProgram};
 use ruse_ts_interpreter::engine_context::EngineContext;
 use ruse_ts_interpreter::js_value::value_to_js_value;
-use ruse_ts_interpreter::ts_class::TsClasses;
+use ruse_ts_interpreter::ts_classes::TsClasses;
 
 pub type SynthesizerPredicate = Box<dyn Fn(&SubProgram, &SynthesizerContext) -> bool + Send + Sync>;
 

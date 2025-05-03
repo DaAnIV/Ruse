@@ -17,7 +17,8 @@ use ruse_task_parser::predicate_builder::PredicateBuilder;
 use ruse_ts_interpreter::{
     engine_context::EngineContext,
     test::ts_op_helpers::*,
-    ts_class::{TsUserClass, TsClasses, TsClassesBuilder},
+    ts_classes::{TsClasses, TsClassesBuilder},
+    ts_user_class::TsUserClass,
 };
 
 const BINARY_SEARCH_TREE_TS_PATH: &str = "../../benchmarks/tasks/classes/binary_search_tree.ts";

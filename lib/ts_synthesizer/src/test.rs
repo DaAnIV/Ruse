@@ -13,7 +13,7 @@ mod tests {
         context::{Context, ContextArray, GraphIdGenerator, SynthesizerContext},
         location::Location,
     };
-    use ruse_ts_interpreter::ts_class::TsClassesBuilder;
+    use ruse_ts_interpreter::ts_classes::TsClassesBuilder;
     use swc_ecma_ast as ast;
 
     use crate::*;

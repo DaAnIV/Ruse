@@ -5,7 +5,7 @@ pub mod ts_op_helpers {
 
     use ruse_object_graph::{str_cached, Cache, Number};
 
-    use crate::{opcode, ts_class::TsUserClass};
+    use crate::{opcode, ts_user_class::TsUserClass};
 
     pub fn id_op(id: &str, cache: &Cache) -> Arc<opcode::IdentOp> {
         Arc::new(opcode::IdentOp::new(str_cached!(cache; id)))
@@ -294,7 +294,10 @@ mod ts_class_tests {
     use crate::js_value::value_to_js_value;
     use crate::js_wrapped::JsWrapped;
     use crate::test::ts_op_helpers::*;
-    use crate::ts_class::{TsClass, TsClasses, TsClassesBuilder};
+    use crate::{
+        ts_class::TsClass,
+        ts_classes::{TsClasses, TsClassesBuilder},
+    };
 
     #[test]
     fn generate_object() {

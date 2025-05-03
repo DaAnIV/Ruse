@@ -16,7 +16,8 @@ use crate::{
     js_object_wrapper::JsObjectWrapper,
     js_value::{js_value_to_value, value_to_js_value},
     js_wrapped::JsWrapped,
-    ts_class::{TsClasses, TsUserClass},
+    ts_classes::TsClasses,
+    ts_user_class::TsUserClass,
 };
 
 struct EngineContextHooks;

@@ -3,7 +3,7 @@ use ruse_object_graph::{scached, Cache, Number, PrimitiveValue};
 
 use crate::engine_context::EngineContext;
 use crate::js_wrapped::JsWrapped;
-use crate::ts_class::TsClasses;
+use crate::ts_classes::TsClasses;
 
 pub fn primitive_value_to_js_value(value: &PrimitiveValue) -> boa_engine::JsValue {
     match value {

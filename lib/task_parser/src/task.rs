@@ -19,7 +19,7 @@ use ruse_synthesizer::{
     opcode::{ExprOpcode, OpcodesList},
     synthesizer::SynthesizerPredicate,
 };
-use ruse_ts_interpreter::ts_class::{TsClasses, TsClassesBuilder};
+use ruse_ts_interpreter::ts_classes::{TsClasses, TsClassesBuilder};
 use ruse_ts_synthesizer::*;
 
 use serde::{Deserialize, Serialize};

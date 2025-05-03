@@ -11,7 +11,8 @@ use tracing::trace;
 use crate::{
     engine_context::EngineContext,
     opcode::{member_call_ast, member_field_ast, new_obj_ast, static_member_call_ast},
-    ts_class::{MethodDescription, MethodKind, TsClasses},
+    ts_class::{MethodDescription, MethodKind},
+    ts_classes::TsClasses,
 };
 
 pub struct ClassMethodOp {
