@@ -155,7 +155,6 @@ impl FromWithCache<&ast::VarDeclarator> for JsFieldDescription {
     fn from_with_cache(value: &ast::VarDeclarator, cache: &Cache) -> Self {
         let ident = value.name.as_ident().unwrap();
         let field_name = ident.sym.as_str();
-        let access = ast::Accessibility::Public;
         let value_type = if let Some(type_ann) = &ident.type_ann {
             get_value_type_from_ts_type(&type_ann.type_ann, cache)
         } else {
@@ -165,7 +164,7 @@ impl FromWithCache<&ast::VarDeclarator> for JsFieldDescription {
         JsFieldDescription {
             name: str_cached!(cache; field_name),
             value_type,
-            is_private: access != ast::Accessibility::Public,
+            is_private: true,
             is_readonly: false,
             is_static: true,
             is_constructor_prop: false,
@@ -184,14 +183,18 @@ pub struct ParamDescription {
 impl FromWithCache<&ast::Param> for ParamDescription {
     fn from_with_cache(value: &ast::Param, cache: &Cache) -> Self {
         match &value.pat {
-            swc_ecma_ast::Pat::Ident(binding_ident) => ParamDescription {
-                name: str_cached!(cache; binding_ident.id.sym.as_str()),
-                value_type: get_value_type_from_ts_type(
-                    &binding_ident.type_ann.as_ref().unwrap().type_ann,
-                    cache,
-                ),
-                is_prop: false,
-            },
+            swc_ecma_ast::Pat::Ident(binding_ident) => {
+                let value_type = if let Some(type_ann) = &binding_ident.type_ann.as_ref() {
+                    get_value_type_from_ts_type(&type_ann.type_ann, cache)
+                } else {
+                    ValueType::Null
+                };
+                ParamDescription {
+                    name: str_cached!(cache; binding_ident.id.sym.as_str()),
+                    value_type,
+                    is_prop: false,
+                }
+            }
             swc_ecma_ast::Pat::Assign(assign_pat) => {
                 let ident = assign_pat.left.as_ident().unwrap();
                 let value_type = if let Some(type_ann) = &ident.type_ann {
@@ -303,7 +306,6 @@ impl FromWithCache<&ast::FnDecl> for MethodDescription {
     fn from_with_cache(value: &ast::FnDecl, cache: &Cache) -> Self {
         let name = str_cached!(cache; value.ident.sym.as_str());
         let mut params = vec![];
-        let access = ast::Accessibility::Public;
         let body = value.function.body.as_ref().map(|body| get_code(body));
 
         for param in &value.function.params {
@@ -314,7 +316,7 @@ impl FromWithCache<&ast::FnDecl> for MethodDescription {
             name,
             params,
             is_static: true,
-            is_private: access != ast::Accessibility::Public,
+            is_private: true,
             kind: MethodKind::GlobalFunction,
             body: body,
         }
@@ -819,6 +821,7 @@ pub struct TsClassesBuilder {
     classes: Vec<(Vec<String>, ClassDecl)>,
     functions: Vec<(Vec<String>, FnDecl)>,
     variables: Vec<(Vec<String>, Box<VarDecl>)>,
+    exports: HashSet<String>,
 }
 
 impl TsClassesBuilder {
@@ -827,6 +830,7 @@ impl TsClassesBuilder {
             classes: Default::default(),
             functions: Default::default(),
             variables: Default::default(),
+            exports: Default::default(),
         }
     }
 
@@ -933,6 +937,32 @@ impl TsClassesBuilder {
                         class_names.extend(ns_classes);
                     }
                 }
+                ast::Stmt::Expr(expr_stmt) => match expr_stmt.expr.as_ref() {
+                    ast::Expr::Assign(assign_expr) => {
+                        if let ast::AssignTarget::Simple(ast::SimpleAssignTarget::Member(
+                            member_expr,
+                        )) = &assign_expr.left
+                        {
+                            let name = member_expr.obj.as_ident().unwrap().sym.as_str();
+                            let prop = member_expr.prop.as_ident().unwrap().sym.as_str();
+                            if name == "module" && prop == "exports" {
+                                if let ast::Expr::Lit(lit) = assign_expr.right.as_ref() {
+                                    if let ast::Lit::Str(s) = lit {
+                                        self.exports.insert(s.value.to_string());
+                                    }
+                                }
+                                if let ast::Expr::Object(lit) = assign_expr.right.as_ref() {
+                                    for prop in &lit.props {
+                                        let val = prop.as_prop().unwrap();
+                                        let ident = val.as_shorthand().unwrap();
+                                        self.exports.insert(ident.sym.to_string());
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    _ => {}
+                },
                 _ => {
                     // Ignore other statements
                 }
@@ -969,6 +999,7 @@ impl TsClassesBuilder {
         let global_class_builder = TsClassBuilder::global_class(
             self.functions,
             self.variables,
+            self.exports,
             classes.static_classes_gen_id.clone(),
             cache,
         );
@@ -1055,6 +1086,7 @@ impl TsClassBuilder {
     fn global_class(
         functions: Vec<(Vec<String>, FnDecl)>,
         variables: Vec<(Vec<String>, Box<VarDecl>)>,
+        exports: HashSet<String>,
         gen_id: Arc<GraphIdGenerator>,
         cache: &Cache,
     ) -> Self {
@@ -1063,7 +1095,14 @@ impl TsClassBuilder {
 
         for func in functions {
             let func_name = Self::get_name_with_namespace(&func.0, func.1.ident.sym.as_str());
-            let desc = MethodDescription::from_with_cache(&func.1, cache);
+            let mut desc = MethodDescription::from_with_cache(&func.1, cache);
+            if exports.contains(&func_name) {
+                assert!(desc
+                    .params
+                    .iter()
+                    .all(|p| !matches!(p.value_type, ValueType::Null)));
+                desc.is_private = false;
+            }
             methods.insert(func_name, desc);
         }
         for var in variables {
@@ -1072,7 +1111,10 @@ impl TsClassBuilder {
                     &var.0,
                     decl.name.as_ident().unwrap().sym.as_str(),
                 );
-                let desc = JsFieldDescription::from_with_cache(decl, cache);
+                let mut desc = JsFieldDescription::from_with_cache(decl, cache);
+                if exports.contains(&var_name) {
+                    desc.is_private = false;
+                }
                 fields.insert(var_name, desc);
             }
         }
@@ -1201,6 +1243,12 @@ impl TsClassBuilder {
     ) {
         for method in class.body.iter().filter_map(|x| x.as_method()) {
             let desc = MethodDescription::from_with_cache(method, cache);
+            if !desc.is_private {
+                assert!(desc
+                    .params
+                    .iter()
+                    .all(|p| !matches!(p.value_type, ValueType::Null)));
+            }
             methods.insert(desc.name.to_string(), desc);
         }
     }
