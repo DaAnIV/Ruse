@@ -1,5 +1,5 @@
-use ruse_object_graph::value::*;
 use ruse_object_graph::CachedString;
+use ruse_object_graph::ValueType;
 use ruse_synthesizer::context::*;
 use ruse_synthesizer::location::*;
 use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};

@@ -225,7 +225,7 @@ mod ts_simple_opcodes_tests {
 
         let ctx = &syn_ctx.start_context[0];
         let id = id_op("x", &cache);
-        let op = ArrayPushOp::new(&ValueType::Number, &syn_ctx.cache);
+        let op = ArrayPushOp::new(&ValueType::Number);
 
         let mut id_out_ctx = ctx.clone();
         let x_val = id.eval(&[], &mut id_out_ctx, &syn_ctx).unwrap();
@@ -358,7 +358,7 @@ mod ts_class_tests {
         assert_eq!(opcodes.len(), 2);
         assert!(opcodes.iter().all(|op| {
             op.arg_types().len() == 1
-                && op.arg_types()[0] == ValueType::Object(user_class_name.clone())
+                && op.arg_types()[0] == ValueType::class_value_type(user_class_name.clone())
         }));
         // Need to check the opcodes are correct?
     }
@@ -406,11 +406,11 @@ mod ts_class_tests {
         );
         assert_eq!(
             student_class.description.fields["grades"].value_type,
-            ValueType::array_value_type(&ValueType::Number, &cache)
+            ValueType::array_value_type(&ValueType::Number)
         );
         assert_eq!(
             class_class.description.fields["students"].value_type,
-            ValueType::array_value_type(&student_class.obj_type(None, &cache), &cache)
+            ValueType::array_value_type(&student_class.obj_type(None))
         );
 
         assert!(class_class
@@ -785,11 +785,13 @@ mod ts_class_tests {
         engine_ctx.reset_with_graph(graph_id, &mut graphs_map, &classes, &id_gen, &cache);
 
         let user_class = classes.get_user_class(&user_class_name).unwrap();
-        let js_user = user_class.call_constructor(
-            &[vstr!(cache; "a"), vstr!(cache; "b")],
-            &classes,
-            &mut engine_ctx,
-        ).unwrap();
+        let js_user = user_class
+            .call_constructor(
+                &[vstr!(cache; "a"), vstr!(cache; "b")],
+                &classes,
+                &mut engine_ctx,
+            )
+            .unwrap();
         let name_field = js_user.get_field_value(&str_cached!(cache; "name"), &graphs_map);
         let surname_field = js_user.get_field_value(&str_cached!(cache; "surname"), &graphs_map);
         let fullname_field = js_user.get_field_value(&str_cached!(cache; "fullname"), &graphs_map);
@@ -949,8 +951,8 @@ mod specific_bugs_tests {
 
     use object_graph::str_cached;
     use ruse_object_graph::{
-        self as object_graph, graph_map_value::GraphMapWrap, value::ValueType, vnum, vstr, Cache,
-        GraphsMap, Number,
+        self as object_graph, graph_map_value::GraphMapWrap, vnum, vstr, Cache, GraphsMap, Number,
+        ValueType,
     };
     use ruse_synthesizer::{
         context::{Context, ContextArray, GraphIdGenerator, SynthesizerContext, ValuesMap},
@@ -979,12 +981,8 @@ mod specific_bugs_tests {
 
         let id_op = id_op("names", &syn_ctx.cache);
         let one_op = lit_number_op(1);
-        let splice_op = Arc::new(ArraySpliceOp::new(
-            &ValueType::String,
-            false,
-            &syn_ctx.cache,
-        ));
-        let len_op = Arc::new(ArrayLengthOp::new(&ValueType::String, &syn_ctx.cache));
+        let splice_op = Arc::new(ArraySpliceOp::new(&ValueType::String, false));
+        let len_op = Arc::new(ArrayLengthOp::new(&ValueType::String));
 
         let names_prog = get_init_prog(id_op, &ctx_arr, &syn_ctx);
         let one_prog = get_init_prog(one_op, &ctx_arr, &syn_ctx);
@@ -1034,9 +1032,9 @@ mod specific_bugs_tests {
         let arr_op = id_op("arr", &syn_ctx.cache);
         let zero_op = lit_number_op(0);
         let one_op = lit_number_op(1);
-        let push_op = Arc::new(ArrayPushOp::new(&ValueType::Number, &syn_ctx.cache));
-        let splice_op = Arc::new(ArraySpliceOp::new(&ValueType::Number, true, &syn_ctx.cache));
-        let array_index_op = Arc::new(ArrayIndexOp::new(&ValueType::Number, &syn_ctx.cache));
+        let push_op = Arc::new(ArrayPushOp::new(&ValueType::Number));
+        let splice_op = Arc::new(ArraySpliceOp::new(&ValueType::Number, true));
+        let array_index_op = Arc::new(ArrayIndexOp::new(&ValueType::Number));
 
         // In arr.push(x) x is evaluated first,
         let progs = evaluate_chain(
@@ -1108,9 +1106,9 @@ mod specific_bugs_tests {
         let i_op = id_op("i", &syn_ctx.cache);
         let zero_op = lit_number_op(0);
         let one_op = lit_number_op(1);
-        let splice_op = Arc::new(ArraySpliceOp::new(&ValueType::Number, true, &syn_ctx.cache));
-        let array_index_op = Arc::new(ArrayIndexOp::new(&ValueType::Number, &syn_ctx.cache));
-        let push_op = Arc::new(ArrayPushOp::new(&ValueType::Number, &syn_ctx.cache));
+        let splice_op = Arc::new(ArraySpliceOp::new(&ValueType::Number, true));
+        let array_index_op = Arc::new(ArrayIndexOp::new(&ValueType::Number));
+        let push_op = Arc::new(ArrayPushOp::new(&ValueType::Number));
 
         let progs = evaluate_chain(
             op_chain!("final", &push_op;

@@ -15,27 +15,27 @@ use crate::{
 };
 
 pub struct ClassMethodOp {
-    obj_type: CachedString,
+    class_name: ClassName,
     desc: MethodDescription,
     full_method_name: String,
     arg_types: Vec<ValueType>,
 }
 
 impl ClassMethodOp {
-    pub fn new(obj_type: CachedString, method_desc: &MethodDescription) -> Self {
+    pub fn new(class_name: ClassName, method_desc: &MethodDescription) -> Self {
         let full_method_name = if method_desc.kind == MethodKind::GlobalFunction {
             format!("{}", &method_desc.name)
         } else {
-            format!("{}.{}", &obj_type, &method_desc.name)
+            format!("{}.{}", &class_name, &method_desc.name)
         };
         let mut arg_types = vec![];
         if !method_desc.is_static {
-            arg_types.push(ValueType::Object(obj_type.clone()));
+            arg_types.push(ValueType::Object(ObjectType::Class(class_name.clone())));
         };
         arg_types.extend(method_desc.params.iter().map(|x| x.value_type.clone()));
 
         Self {
-            obj_type,
+            class_name,
             desc: method_desc.clone(),
             full_method_name,
             arg_types,
@@ -62,7 +62,7 @@ impl ExprOpcode for ClassMethodOp {
         let mut boa_ctx = EngineContext::new_boa_ctx();
         let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, classes);
         engine_ctx.reset_with_mut_context(post_ctx, classes, &syn_ctx.cache);
-        let class = classes.get_user_class(&self.obj_type).unwrap();
+        let class = classes.get_user_class(&self.class_name).unwrap();
 
         let result = if self.desc.is_static {
             class.call_static_method(
@@ -111,7 +111,7 @@ impl ExprOpcode for ClassMethodOp {
         } else if self.desc.kind == MethodKind::Setter {
             todo!()
         } else if self.desc.is_static {
-            static_member_call_ast(self.obj_type.as_str(), self.desc.name.as_str(), children)
+            static_member_call_ast(&self.class_name.as_str(), self.desc.name.as_str(), children)
         } else {
             member_call_ast(self.desc.name.as_str(), children)
         }

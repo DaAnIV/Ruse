@@ -9,11 +9,11 @@ use std::{
 use itertools::Itertools;
 
 use crate::{
-    connected_components::GraphsMapWeakComponents,
+    connected_components::*,
     graph_equality, scached,
-    value::{ObjectValue, Value, ValueType},
+    value::{ObjectValue, Value},
     vobj, Cache, EdgeEndPoint, FieldName, FieldsMap, GraphIndex, NodeIndex, ObjectGraph,
-    ObjectGraphNode, ObjectType, PointersMap, PrimitiveField, PrimitiveValue, RootName,
+    ObjectGraphNode, ObjectType, PointersMap, PrimitiveField, PrimitiveValue, RootName, ValueType,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -130,6 +130,21 @@ impl GraphsMap {
     pub fn node_ids(&self) -> impl Iterator<Item = &NodeIndex> {
         self.graphs().flat_map(|g| g.node_ids())
     }
+
+    pub fn graph_node_ids<'a>(&'a self) -> impl Iterator<Item = (GraphIndex, NodeIndex)> + 'a {
+        self.graphs().flat_map(|g| g.node_ids().map(|n| (g.id, *n)))
+    }
+
+    pub fn neighbors<'a>(
+        &'a self,
+        graph: GraphIndex,
+        node: NodeIndex,
+    ) -> impl Iterator<Item = (GraphIndex, NodeIndex)> + 'a {
+        self.get(&graph)
+            .unwrap()
+            .neighbors(&node)
+            .map(move |(_, edge)| (edge.graph.unwrap_or(graph), edge.node))
+    }
 }
 
 impl GraphsMap {
@@ -217,7 +232,11 @@ impl GraphsMap {
         graph: GraphIndex,
         node: NodeIndex,
         value: &Value,
-    ) {
+    ) -> bool {
+        if self[graph].get_node(&node).unwrap().attributes.readonly {
+            return false;
+        }
+
         match value {
             Value::Primitive(primitive_value) => {
                 self.set_primitive_field(field, graph, node, primitive_value.clone())
@@ -229,6 +248,8 @@ impl GraphsMap {
                 self.remove_edge(&field, graph, node);
             }
         }
+
+        true
     }
 
     pub fn set_primitive_field(
@@ -329,7 +350,7 @@ impl GraphsMap {
         I: IntoIterator,
         I::Item: Into<PrimitiveValue>,
     {
-        let obj_type = ValueType::array_obj_cached_string(elem_type, cache);
+        let obj_type = ObjectType::array_obj_type(elem_type);
         let map = values
             .into_iter()
             .enumerate()
@@ -349,7 +370,7 @@ impl GraphsMap {
         I: IntoIterator,
         I::Item: Into<PrimitiveField>,
     {
-        let obj_type = ValueType::array_obj_cached_string(elem_type, cache);
+        let obj_type = ObjectType::array_obj_type(elem_type);
         let map = values
             .into_iter()
             .enumerate()
@@ -368,7 +389,7 @@ impl GraphsMap {
     where
         I: IntoIterator<Item = Value>,
     {
-        let obj_type = ValueType::array_obj_cached_string(elem_type, cache);
+        let obj_type = ObjectType::array_obj_type(elem_type);
         let values_map = values
             .into_iter()
             .enumerate()
@@ -388,7 +409,7 @@ impl GraphsMap {
         I: IntoIterator,
         I::Item: Into<PrimitiveValue>,
     {
-        let obj_type = ValueType::set_obj_cached_string(elem_type, cache);
+        let obj_type = ObjectType::array_obj_type(elem_type);
         let map = values.into_iter().map(|v| {
             let pv: PrimitiveValue = v.into();
             (scached!(cache; pv.to_string()), pv)
@@ -408,7 +429,7 @@ impl GraphsMap {
         I: IntoIterator,
         I::Item: Into<PrimitiveField>,
     {
-        let obj_type = ValueType::set_obj_cached_string(elem_type, cache);
+        let obj_type = ObjectType::set_obj_type(elem_type);
         let map = values.into_iter().map(|f| {
             let pf: PrimitiveField = f.into();
             (scached!(cache; pf.value.to_string()), pf)

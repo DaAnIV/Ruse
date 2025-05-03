@@ -33,3 +33,9 @@ pub(crate) fn js_error_no_static_graph(class_name: &str) -> boa_engine::JsError 
         .with_message(format!("Class {} has not static graph", class_name))
         .into()
 }
+
+pub(crate) fn js_error_not_builtin_array() -> boa_engine::JsError {
+    boa_engine::JsNativeError::typ()
+        .with_message("Not a builtin array")
+        .into()
+}

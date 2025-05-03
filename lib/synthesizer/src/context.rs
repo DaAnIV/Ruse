@@ -5,7 +5,7 @@ use itertools::Itertools;
 use ruse_object_graph::{
     dot::DotConfig,
     graph_map_value::*,
-    value::{ObjectValue, Value, ValueType},
+    value::{ObjectValue, Value},
     *,
 };
 use std::{
@@ -433,7 +433,7 @@ impl Context {
         );
 
         ObjectValue {
-            obj_type: ValueType::array_obj_cached_string(elem_type, &syn_ctx.cache),
+            obj_type: ObjectType::array_obj_type(elem_type),
             graph_id: out_graph_id,
             node: out_node_id,
         }
@@ -463,7 +463,7 @@ impl Context {
         );
 
         ObjectValue {
-            obj_type: ValueType::array_obj_cached_string(elem_type, &syn_ctx.cache),
+            obj_type: ObjectType::array_obj_type(elem_type),
             graph_id: out_graph_id,
             node: out_node_id,
         }
@@ -486,7 +486,7 @@ impl Context {
         graphs_map.add_array_object(out_graph_id, out_node_id, elem_type, values, &syn_ctx.cache);
 
         ObjectValue {
-            obj_type: ValueType::array_obj_cached_string(elem_type, &syn_ctx.cache),
+            obj_type: ObjectType::array_obj_type(elem_type),
             graph_id: out_graph_id,
             node: out_node_id,
         }
@@ -516,7 +516,7 @@ impl Context {
         );
 
         ObjectValue {
-            obj_type: ValueType::set_obj_cached_string(elem_type, &syn_ctx.cache),
+            obj_type: ObjectType::set_obj_type(elem_type),
             graph_id: out_graph_id,
             node: out_node_id,
         }

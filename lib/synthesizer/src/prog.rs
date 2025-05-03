@@ -3,7 +3,7 @@ use std::fmt::{Debug, Display};
 use std::hash::Hash;
 use std::sync::Arc;
 
-use ruse_object_graph::{graph_map_value::*, value::ValueType};
+use ruse_object_graph::{graph_map_value::*, ValueType};
 
 use crate::context::ContextArray;
 use crate::context::SynthesizerContext;

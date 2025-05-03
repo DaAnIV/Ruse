@@ -2,10 +2,10 @@ use crate::{
     dot::{Dot, DotConfig},
     graph_equality::equal_graphs_by_node,
     graph_map_value::*,
-    graph_node::{EdgeEndPoint, FieldName, ObjectType},
+    graph_node::{EdgeEndPoint, FieldName},
     graph_walk::ObjectGraphWalker,
-    scached, Attributes, Cache, CachedString, GraphIndex, GraphsMap, NodeIndex, Number,
-    ObjectGraph, PrimitiveField, PrimitiveValue,
+    Attributes, CachedString, GraphIndex, GraphsMap, NodeIndex, Number, ObjectGraph, ObjectType,
+    PrimitiveField, PrimitiveValue, ValueType,
 };
 use core::fmt;
 use std::{
@@ -13,60 +13,6 @@ use std::{
     hash::Hash,
     sync::Arc,
 };
-
-#[derive(Clone, PartialEq, Eq, Hash, Debug, PartialOrd, Ord)]
-pub enum ValueType {
-    Number,
-    Bool,
-    String,
-    Object(ObjectType),
-    Null,
-}
-
-impl ValueType {
-    pub fn is_array_obj_type(obj_type: &ObjectType) -> bool {
-        obj_type.starts_with("Array<")
-    }
-
-    pub fn array_obj_string(elem_type: &ValueType) -> String {
-        format!("Array<{}>", elem_type)
-    }
-
-    pub fn array_obj_cached_string(elem_type: &ValueType, cache: &Cache) -> ObjectType {
-        scached!(cache; Self::array_obj_string(elem_type))
-    }
-
-    pub fn array_value_type(elem_type: &ValueType, cache: &Cache) -> ValueType {
-        ValueType::Object(Self::array_obj_cached_string(elem_type, cache))
-    }
-
-    pub fn is_set_obj_type(obj_type: &ObjectType) -> bool {
-        obj_type.starts_with("Set<")
-    }
-
-    pub fn set_obj_string(elem_type: &ValueType) -> String {
-        format!("Set<{}>", elem_type)
-    }
-
-    pub fn set_obj_cached_string(elem_type: &ValueType, cache: &Cache) -> ObjectType {
-        scached!(cache; Self::set_obj_string(elem_type))
-    }
-
-    pub fn set_value_type(elem_type: &ValueType, cache: &Cache) -> ValueType {
-        ValueType::Object(Self::set_obj_cached_string(elem_type, cache))
-    }
-
-    pub fn is_primitive(&self) -> bool {
-        !matches!(self, ValueType::Object(_))
-    }
-
-    pub fn obj_type(&self) -> Option<&ObjectType> {
-        match self {
-            ValueType::Object(obj_type) => Some(obj_type),
-            _ => None,
-        }
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct ObjectValue {
@@ -158,7 +104,9 @@ impl ObjectValue {
         field_name: &FieldName,
         graphs_map: &GraphsMap,
     ) -> Option<Attributes> {
-        self.graph(graphs_map).get_neighbor(&self.node, field_name).map(|x| x.attrs)
+        self.graph(graphs_map)
+            .get_neighbor(&self.node, field_name)
+            .map(|x| x.attrs)
     }
 
     pub fn get_object_field(
@@ -195,11 +143,11 @@ impl ObjectValue {
     }
 
     pub fn is_array(&self) -> bool {
-        ValueType::is_array_obj_type(&self.obj_type)
+        self.obj_type.is_array_obj_type()
     }
 
     pub fn is_set(&self) -> bool {
-        ValueType::is_set_obj_type(&self.obj_type)
+        self.obj_type.is_set_obj_type()
     }
 
     pub fn fields<'a>(
@@ -421,18 +369,6 @@ impl fmt::Debug for Value {
             Value::Primitive(primitive_value) => fmt::Debug::fmt(primitive_value, f),
             Value::Object(object_value) => fmt::Debug::fmt(object_value, f),
             Value::Null => write!(f, "Null"),
-        }
-    }
-}
-
-impl fmt::Display for ValueType {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            ValueType::Number => write!(f, "Number"),
-            ValueType::Bool => write!(f, "Bool"),
-            ValueType::String => write!(f, "String"),
-            ValueType::Null => write!(f, "Null"),
-            ValueType::Object(o) => write!(f, "{}", o.as_str()),
         }
     }
 }

@@ -11,9 +11,9 @@ pub mod helpers {
     use ruse_object_graph::{
         generator::object_graph_generator::generate_random_str,
         scached,
-        value::{ObjectValue, Value, ValueType},
+        value::{ObjectValue, Value},
         vbool, Cache, CachedString, FieldName, FieldsMap, GraphsMap, Number, ObjectType,
-        PrimitiveValue,
+        PrimitiveValue, ValueType,
     };
 
     use crate::{
@@ -252,13 +252,13 @@ pub mod helpers {
         graphs_map.ensure_graph(graph_id);
 
         let fields = generate_fields(4, rng, cache);
-        let obj_type = scached!(cache; generate_random_str(4, rng));
+        let obj_type = ObjectType::class_obj_type(&generate_random_str(4, rng), cache);
         graphs_map.construct_node(graph_id, root_id, obj_type.clone(), fields);
 
         for _ in 0..4 {
             let neig_id = graph_id_gen.get_id_for_node();
             let fields = generate_fields(4, rng, cache);
-            let obj_type = scached!(cache; generate_random_str(4, rng));
+            let obj_type = ObjectType::class_obj_type(&generate_random_str(4, rng), cache);
             graphs_map.construct_node(graph_id, neig_id, obj_type, fields);
 
             let edge_name = scached!(cache; generate_random_str(4, rng));
@@ -324,7 +324,7 @@ pub mod helpers {
         values.insert(
             key,
             Value::Object(ObjectValue {
-                obj_type: ValueType::array_obj_cached_string(elem_type, cache),
+                obj_type: ObjectType::array_obj_type(elem_type),
                 graph_id,
                 node,
             }),
@@ -474,10 +474,7 @@ mod bank_iterator_tests {
 
     use dashmap::DashMap;
     use itertools::Itertools;
-    use ruse_object_graph::{
-        value::{Value, ValueType},
-        vnum, Cache, Number,
-    };
+    use ruse_object_graph::{value::Value, vnum, Cache, Number, ValueType};
 
     use crate::{
         bank::{ProgBank, SubsumptionProgBank},
@@ -977,7 +974,7 @@ mod bank_iterator_tests {
 mod context_tests {
     use crate::{context::ContextArray, test::helpers::*};
     use rand::{rngs::StdRng, SeedableRng};
-    use ruse_object_graph::{str_cached, value::ValueType, vstr, Cache};
+    use ruse_object_graph::{str_cached, vstr, Cache, ValueType};
 
     const SEED: u64 = 10;
 
@@ -1100,7 +1097,7 @@ mod embedding_tests {
 
     use itertools::Itertools;
     use ruse_object_graph::{
-        graph_map_value::GraphMapWrap, str_cached, vobj, vstr, Cache, GraphsMap,
+        graph_map_value::GraphMapWrap, str_cached, vobj, vstr, Cache, GraphsMap, ObjectType,
     };
 
     use crate::{
@@ -1113,7 +1110,7 @@ mod embedding_tests {
         let cache = Arc::new(Cache::new());
         let mut graphs_map = GraphsMap::default();
         let id_gen = Arc::new(GraphIdGenerator::default());
-        let obj_type = str_cached!(cache; "Foo");
+        let obj_type = ObjectType::class_obj_type("Foo", &cache);
         let field_name = str_cached!(cache; "f");
 
         let x_graph_id = id_gen.get_id_for_graph();
@@ -1227,9 +1224,9 @@ mod embedding_tests {
         let cache = Arc::new(Cache::new());
         let mut graphs_map = GraphsMap::default();
         let id_gen = Arc::new(GraphIdGenerator::default());
-        let obj_type = str_cached!(cache; "Foo");
+        let obj_type = ObjectType::class_obj_type("Foo", &cache);
         let field_name = str_cached!(cache; "f");
-        let obj_type2 = str_cached!(cache; "Boo");
+        let obj_type2 = ObjectType::class_obj_type("Boo", &cache);
         let field_name2 = str_cached!(cache; "b");
 
         let graph_id = id_gen.get_id_for_graph();

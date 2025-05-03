@@ -1,6 +1,6 @@
 use num_traits::ToPrimitive;
-use ruse_object_graph::value::{Value, ValueType};
-use ruse_object_graph::{vnum, vobj, Cache, Number};
+use ruse_object_graph::{value::Value, ValueType};
+use ruse_object_graph::{vnum, vobj, Number};
 use ruse_synthesizer::location::*;
 use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};
 use ruse_synthesizer::{context::*, dirty, pure};
@@ -19,10 +19,10 @@ pub struct ArrayIndexOp {
 }
 
 impl ArrayIndexOp {
-    pub fn new(elem_type: &ValueType, cache: &Cache) -> Self {
+    pub fn new(elem_type: &ValueType) -> Self {
         Self {
             arg_types: [
-                ValueType::array_value_type(elem_type, cache),
+                ValueType::array_value_type(elem_type),
                 ValueType::Number,
             ],
         }
@@ -81,9 +81,9 @@ pub struct ArrayLengthOp {
 }
 
 impl ArrayLengthOp {
-    pub fn new(elem_type: &ValueType, cache: &Cache) -> Self {
+    pub fn new(elem_type: &ValueType) -> Self {
         Self {
-            arg_types: [ValueType::array_value_type(elem_type, cache)],
+            arg_types: [ValueType::array_value_type(elem_type)],
         }
     }
 }
@@ -123,10 +123,10 @@ pub struct ArrayPushOp {
 }
 
 impl ArrayPushOp {
-    pub fn new(elem_type: &ValueType, cache: &Cache) -> Self {
+    pub fn new(elem_type: &ValueType) -> Self {
         Self {
             arg_types: [
-                ValueType::array_value_type(elem_type, cache),
+                ValueType::array_value_type(elem_type),
                 elem_type.to_owned(),
             ],
         }
@@ -174,9 +174,9 @@ pub struct ArrayPopOp {
 }
 
 impl ArrayPopOp {
-    pub fn new(elem_type: &ValueType, cache: &Cache) -> Self {
+    pub fn new(elem_type: &ValueType) -> Self {
         Self {
-            arg_types: [ValueType::array_value_type(elem_type, cache)],
+            arg_types: [ValueType::array_value_type(elem_type)],
         }
     }
 }
@@ -224,9 +224,9 @@ pub struct ArraySliceOp {
 }
 
 impl ArraySliceOp {
-    pub fn new(elem_type: &ValueType, with_end: bool, cache: &Cache) -> Self {
+    pub fn new(elem_type: &ValueType, with_end: bool) -> Self {
         let mut arg_types = vec![
-            ValueType::array_value_type(elem_type, cache),
+            ValueType::array_value_type(elem_type),
             ValueType::Number,
         ];
         if with_end {
@@ -305,10 +305,10 @@ pub struct ArrayConcatOp {
 }
 
 impl ArrayConcatOp {
-    pub fn new(elem_type: &ValueType, count: usize, cache: &Cache) -> Self {
+    pub fn new(elem_type: &ValueType, count: usize) -> Self {
         assert!(count > 0);
 
-        let mut arg_types = vec![ValueType::array_value_type(elem_type, cache)];
+        let mut arg_types = vec![ValueType::array_value_type(elem_type)];
         arg_types.extend(vec![elem_type.clone(); count]);
         Self {
             elem_type: elem_type.clone(),
@@ -375,9 +375,9 @@ pub struct ArraySpliceOp {
 }
 
 impl ArraySpliceOp {
-    pub fn new(elem_type: &ValueType, with_delete: bool, cache: &Cache) -> Self {
+    pub fn new(elem_type: &ValueType, with_delete: bool) -> Self {
         let mut arg_types = vec![
-            ValueType::array_value_type(elem_type, cache),
+            ValueType::array_value_type(elem_type),
             ValueType::Number,
         ];
         if with_delete {
@@ -485,10 +485,10 @@ pub struct ArrayConcatArrayOp {
 }
 
 impl ArrayConcatArrayOp {
-    pub fn new(elem_type: &ValueType, cache: &Cache) -> Self {
+    pub fn new(elem_type: &ValueType) -> Self {
         let arg_types = vec![
-            ValueType::array_value_type(elem_type, cache),
-            ValueType::array_value_type(elem_type, cache),
+            ValueType::array_value_type(elem_type),
+            ValueType::array_value_type(elem_type),
         ];
         Self {
             elem_type: elem_type.clone(),

@@ -12,7 +12,8 @@ use dashmap::DashSet;
 use futures::FutureExt;
 use ruse_object_graph::{
     dot::DotConfig,
-    value::{Value, ValueType},
+    value::Value,
+    ValueType,
     CachedString,
 };
 use serde::ser::SerializeStruct;

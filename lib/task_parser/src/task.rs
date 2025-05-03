@@ -8,8 +8,8 @@ use std::{
 
 use itertools::Itertools;
 use ruse_object_graph::{
-    value::{Value, ValueType},
     *,
+    {value::Value, ValueType},
 };
 use ruse_synthesizer::{
     bank::ProgBank,
@@ -468,7 +468,7 @@ impl SnythesisTaskInner {
 pub struct SnythesisTask {
     inner: SnythesisTaskInner,
     classes: Box<TsClasses>,
-    class_names: Vec<ObjectType>,
+    class_names: Vec<ClassName>,
     pub string_literals: HashSet<String, BuildHasherDefault<DefaultHasher>>,
     pub num_literals: HashSet<i64, BuildHasherDefault<DefaultHasher>>,
 }
@@ -636,7 +636,7 @@ impl SnythesisTask {
 
     pub fn get_composite_opcodes(
         classes: &TsClasses,
-        class_names: &Vec<ObjectType>,
+        class_names: &Vec<ClassName>,
         add_seq: bool,
         cache: &Cache,
     ) -> OpcodesList {
@@ -651,22 +651,24 @@ impl SnythesisTask {
         add_array_opcodes(
             &mut composite_opcodes,
             &[ValueType::Number, ValueType::String],
-            cache,
         );
         add_dom_opcodes(&mut composite_opcodes, cache);
 
         add_set_opcodes(
             &mut composite_opcodes,
             &[ValueType::Number, ValueType::String],
-            cache,
         );
         if add_seq {
             let mut value_types = vec![ValueType::Number, ValueType::String, ValueType::Null];
-            value_types.extend(class_names.iter().map(|x| ValueType::Object(x.clone())));
-            value_types.push(ValueType::array_value_type(&ValueType::Number, cache));
-            value_types.push(ValueType::array_value_type(&ValueType::String, cache));
-            value_types.push(ValueType::set_value_type(&ValueType::Number, cache));
-            value_types.push(ValueType::set_value_type(&ValueType::String, cache));
+            value_types.extend(
+                class_names
+                    .iter()
+                    .map(|x| ValueType::class_value_type(x.clone())),
+            );
+            value_types.push(ValueType::array_value_type(&ValueType::Number));
+            value_types.push(ValueType::array_value_type(&ValueType::String));
+            value_types.push(ValueType::set_value_type(&ValueType::Number));
+            value_types.push(ValueType::set_value_type(&ValueType::String));
             add_seq_opcodes(&mut composite_opcodes, 2, &value_types);
         }
 
@@ -675,7 +677,7 @@ impl SnythesisTask {
         composite_opcodes
     }
 
-    pub fn get_classes_opcodes(classes: &TsClasses, class_names: &Vec<ObjectType>) -> OpcodesList {
+    pub fn get_classes_opcodes(classes: &TsClasses, class_names: &Vec<ClassName>) -> OpcodesList {
         let mut composite_opcodes = OpcodesList::new();
 
         for class_name in class_names {
@@ -764,7 +766,10 @@ impl SnythesisTask {
 
         for (var, var_type) in variables {
             if let TaskType::Object(obj_type) = var_type {
-                if classes.get_user_class(&str_cached!(cache; obj_type)).is_none() {
+                if classes
+                    .get_user_class(&str_cached!(cache; obj_type))
+                    .is_none()
+                {
                     return Err(verify_err!(
                         "Variable {} has an unknown object type {}",
                         var,

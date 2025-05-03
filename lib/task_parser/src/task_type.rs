@@ -1,21 +1,19 @@
 use std::{
     collections::HashMap,
-    fs,
+    fmt, fs,
     path::{Path, PathBuf},
     sync::Arc,
 };
 
-use itertools::Itertools;
 use ruse_object_graph::{
-    fields, str_cached,
-    value::{Value, ValueType},
-    vbool, vnull, vnum, vobj, vstr, Cache, GraphIndex, GraphsMap, Number, PrimitiveValue,
+    fields, str_cached, value::Value, vbool, vnull, vnum, vobj, vstr, Cache, GraphIndex, GraphsMap,
+    ObjectType, PrimitiveValue, ValueType,
 };
 use ruse_synthesizer::context::GraphIdGenerator;
 use ruse_ts_interpreter::{
     dom::{self, DomLoader},
     engine_context::EngineContext,
-    ts_class::{TsUserClass, TsClasses},
+    ts_class::{TsClasses, TsUserClass},
 };
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::json;
@@ -58,14 +56,11 @@ impl ExprPrefix {
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) enum TaskType {
     Int,
-    IntArray,
-    IntSet,
     Double,
-    DoubleArray,
     Bool,
     String,
-    StringArray,
-    StringSet,
+    Array(Box<TaskType>),
+    Set(Box<TaskType>),
     Dom,
     DOMElement,
     VarRef(VarRef),
@@ -125,70 +120,12 @@ impl TaskType {
                 Some(num) => Ok(vnum!(ruse_object_graph::Number::from(num))),
                 None => Err(parse_err!(value, "Value is not a int")),
             },
-            TaskType::IntArray => {
-                let numbers = match value.as_array() {
-                    Some(value_array) => {
-                        if value_array.iter().any(|x| !x.is_i64()) {
-                            return Err(parse_err!(
-                                value,
-                                "Value is an array with an invalid int value"
-                            ));
-                        }
-                        value_array
-                            .iter()
-                            .map(|x| Number::from(x.as_i64().unwrap()))
-                    }
-                    None => return Err(parse_err!(value, "Value is not an array")),
-                };
-                graphs_map.ensure_graph(graph_id);
-                let node = graphs_map.add_primitive_array_object(
-                    graph_id,
-                    id_gen.get_id_for_node(),
-                    &ValueType::Number,
-                    numbers,
-                    cache,
-                );
-
-                Ok(vobj!(
-                    ValueType::array_obj_cached_string(&ValueType::Number, cache),
-                    graph_id,
-                    node
-                ))
-            }
-            TaskType::Double => match value.as_f64() {
-                Some(num) => Ok(vnum!(ruse_object_graph::Number::from(num))),
+            TaskType::Double => match value.as_number() {
+                Some(num) => Ok(vnum!(ruse_object_graph::Number::from(
+                    num.as_f64().unwrap()
+                ))),
                 None => Err(parse_err!(value, "Value is not a double")),
             },
-            TaskType::DoubleArray => {
-                let numbers = match value.as_array() {
-                    Some(value_array) => {
-                        if value_array.iter().any(|x| !x.is_f64()) {
-                            return Err(parse_err!(
-                                value,
-                                "Value is an array with an invalid double value"
-                            ));
-                        }
-                        value_array
-                            .iter()
-                            .map(|x| Number::from(x.as_f64().unwrap()))
-                    }
-                    None => return Err(parse_err!(value, "Value is not an array")),
-                };
-                graphs_map.ensure_graph(graph_id);
-                let node = graphs_map.add_primitive_array_object(
-                    graph_id,
-                    id_gen.get_id_for_node(),
-                    &ValueType::Number,
-                    numbers,
-                    cache,
-                );
-
-                Ok(vobj!(
-                    ValueType::array_obj_cached_string(&ValueType::Number, cache),
-                    graph_id,
-                    node
-                ))
-            }
             TaskType::Bool => match value.as_bool() {
                 Some(b) => Ok(vbool!(b)),
                 None => Err(parse_err!(value, "Value is not a boolean")),
@@ -197,53 +134,76 @@ impl TaskType {
                 Some(s) => Ok(vstr!(cache; Self::strip_string(s)?)),
                 None => Err(parse_err!(value, "Value is not a string")),
             },
-            TaskType::StringArray => {
-                let strings: Result<Vec<_>, _> = match value.as_array() {
+            TaskType::Array(inner_type) => {
+                if inner_type.is_var_ref() || inner_type.is_dom() {
+                    return Err(parse_err!(
+                        value,
+                        format!("Array of {} is not supported", inner_type)
+                    ));
+                }
+                let elements = match value.as_array() {
                     Some(value_array) => {
-                        if value_array.iter().any(|x| !x.is_string()) {
-                            return Err(parse_err!(
-                                value,
-                                "Value is an array with an invalid string value"
-                            ));
-                        }
-
-                        value_array
+                        let result: Result<Vec<_>, _> = value_array
                             .iter()
-                            .map(|x| {
-                                Self::strip_string(x.as_str().unwrap())
-                                    .map(|s| str_cached!(cache; s))
+                            .map(|inner_value| {
+                                inner_type.create_regular_value(
+                                    inner_value,
+                                    graph_id,
+                                    classes,
+                                    graphs_map,
+                                    id_gen,
+                                    refs_graph_id,
+                                    cache,
+                                )
                             })
-                            .collect()
+                            .collect();
+
+                        result?
                     }
                     None => return Err(parse_err!(value, "Value is not an array")),
                 };
                 graphs_map.ensure_graph(graph_id);
-                let node = graphs_map.add_primitive_array_object(
+                let node = graphs_map.add_array_object(
                     graph_id,
                     id_gen.get_id_for_node(),
-                    &ValueType::String,
-                    strings?,
+                    &inner_type.value_type(cache),
+                    elements,
                     cache,
                 );
 
                 Ok(vobj!(
-                    ValueType::array_obj_cached_string(&ValueType::String, cache),
+                    ObjectType::array_obj_type(&ValueType::Number),
                     graph_id,
                     node
                 ))
             }
-            TaskType::IntSet => {
-                let numbers = match value.as_array() {
+            TaskType::Set(inner_type) => {
+                if inner_type.is_var_ref() || inner_type.is_dom() || inner_type.is_object() {
+                    return Err(parse_err!(
+                        value,
+                        format!("Array of {} is not supported", inner_type)
+                    ));
+                }
+                let elements = match value.as_array() {
                     Some(value_array) => {
-                        if value_array.iter().any(|x| !x.is_i64()) {
-                            return Err(parse_err!(
-                                value,
-                                "Value is an array with an invalid number value"
-                            ));
-                        }
-                        value_array
+                        let result: Result<Vec<_>, _> = value_array
                             .iter()
-                            .map(|x| Number::from(x.as_i64().unwrap()))
+                            .map(|inner_value| {
+                                let elem = inner_type.create_regular_value(
+                                    inner_value,
+                                    graph_id,
+                                    classes,
+                                    graphs_map,
+                                    id_gen,
+                                    refs_graph_id,
+                                    cache,
+                                )?;
+
+                                Ok(elem.into_primitive().unwrap())
+                            })
+                            .collect();
+
+                        result?
                     }
                     None => return Err(parse_err!(value, "Value is not an array")),
                 };
@@ -251,47 +211,13 @@ impl TaskType {
                 let node = graphs_map.add_primitive_set_object(
                     graph_id,
                     id_gen.get_id_for_node(),
-                    &ValueType::Number,
-                    numbers.unique(),
+                    &inner_type.value_type(cache),
+                    elements,
                     cache,
                 );
 
                 Ok(vobj!(
-                    ValueType::set_obj_cached_string(&ValueType::Number, cache),
-                    graph_id,
-                    node
-                ))
-            }
-            TaskType::StringSet => {
-                let strings: Result<Vec<_>, _> = match value.as_array() {
-                    Some(value_array) => {
-                        if value_array.iter().any(|x| !x.is_string()) {
-                            return Err(parse_err!(
-                                value,
-                                "Value is an array with an invalid string value"
-                            ));
-                        }
-                        value_array
-                            .iter()
-                            .map(|x| {
-                                Self::strip_string(x.as_str().unwrap())
-                                    .map(|s| str_cached!(cache; s))
-                            })
-                            .collect()
-                    }
-                    None => return Err(parse_err!(value, "Value is not an array")),
-                };
-                graphs_map.ensure_graph(graph_id);
-                let node = graphs_map.add_primitive_set_object(
-                    graph_id,
-                    id_gen.get_id_for_node(),
-                    &ValueType::String,
-                    strings?.into_iter().unique(),
-                    cache,
-                );
-
-                Ok(vobj!(
-                    ValueType::set_obj_cached_string(&ValueType::String, cache),
+                    ObjectType::array_obj_type(&ValueType::Number),
                     graph_id,
                     node
                 ))
@@ -460,7 +386,7 @@ impl TaskType {
                     };
 
                 Ok(vobj!(
-                    dom::DomLoader::document_obj_type(cache),
+                    dom::DomLoader::document_obj_type(),
                     graph_id,
                     dom_value
                 ))
@@ -473,7 +399,7 @@ impl TaskType {
                     };
 
                 Ok(vobj!(
-                    dom::DomLoader::element_obj_type(cache),
+                    dom::DomLoader::element_obj_type(),
                     graph_id,
                     dom_value
                 ))
@@ -598,7 +524,7 @@ impl TaskType {
         }
 
         graphs_map.ensure_graph(refs_graph_id);
-        let obj_type = str_cached!(cache; REF_GRAPH_OBJ_TYPE);
+        let obj_type = ObjectType::class_obj_type(&REF_GRAPH_OBJ_TYPE, cache);
         let ref_id = graphs_map.add_simple_object_from_fields_map(
             refs_graph_id,
             id_gen.get_id_for_node(),
@@ -615,24 +541,31 @@ impl TaskType {
     fn value_type(&self, cache: &Cache) -> ValueType {
         match self {
             TaskType::Int => ValueType::Number,
-            TaskType::IntArray => ValueType::array_value_type(&ValueType::Number, cache),
-            TaskType::IntSet => ValueType::set_value_type(&ValueType::Number, cache),
             TaskType::Double => ValueType::Number,
-            TaskType::DoubleArray => ValueType::array_value_type(&ValueType::Number, cache),
             TaskType::Bool => ValueType::Bool,
             TaskType::String => ValueType::String,
-            TaskType::StringArray => ValueType::array_value_type(&ValueType::String, cache),
-            TaskType::StringSet => ValueType::set_value_type(&ValueType::String, cache),
-            TaskType::Dom => ValueType::Object(DomLoader::document_obj_type(cache)),
-            TaskType::DOMElement => ValueType::Object(DomLoader::element_obj_type(cache)),
+            TaskType::Array(inner_type) => {
+                ValueType::array_value_type(&inner_type.value_type(cache))
+            }
+            TaskType::Set(inner_type) => ValueType::set_value_type(&inner_type.value_type(cache)),
+            TaskType::Dom => ValueType::Object(DomLoader::document_obj_type()),
+            TaskType::DOMElement => ValueType::Object(DomLoader::element_obj_type()),
             TaskType::VarRef(_var_ref) => todo!(),
-            TaskType::Object(o) => ValueType::Object(str_cached!(cache; o)),
+            TaskType::Object(o) => ValueType::Object(ObjectType::class_obj_type(&o, cache)),
         }
     }
 
     pub(crate) fn is_var_ref(&self) -> bool {
         match self {
             TaskType::VarRef(_) => true,
+            _ => false,
+        }
+    }
+
+    pub(crate) fn is_dom(&self) -> bool {
+        match self {
+            TaskType::DOMElement => true,
+            TaskType::Dom => true,
             _ => false,
         }
     }
@@ -711,6 +644,20 @@ impl TaskType {
         }
     }
 
+    fn parse_double_set(value_string: &str) -> Result<serde_json::Value, SnythesisTaskError> {
+        if !value_string.starts_with('{') {
+            return Err(parse_err!(value_string, "Missing opening bracket"));
+        }
+        if !value_string.ends_with('}') {
+            return Err(parse_err!(value_string, "Missing closing bracket"));
+        }
+        let array_string = value_string.replace('{', "[").replace('}', "]");
+        match serde_json::from_str::<Vec<f64>>(array_string.as_str()) {
+            Ok(numbers) => Ok(json!(numbers)),
+            Err(e) => Err(parse_err!(value_string, e)),
+        }
+    }
+
     pub fn json_value_from_string(
         &self,
         value_string: &str,
@@ -720,16 +667,8 @@ impl TaskType {
                 Ok(num) => Ok(json!(num)),
                 Err(e) => Err(parse_err!(value_string, e)),
             },
-            TaskType::IntArray => match serde_json::from_str::<Vec<i64>>(value_string) {
-                Ok(numbers) => Ok(json!(numbers)),
-                Err(e) => Err(parse_err!(value_string, e)),
-            },
             TaskType::Double => match value_string.parse::<f64>() {
                 Ok(num) => Ok(json!(num)),
-                Err(e) => Err(parse_err!(value_string, e)),
-            },
-            TaskType::DoubleArray => match serde_json::from_str::<Vec<f64>>(value_string) {
-                Ok(numbers) => Ok(json!(numbers)),
                 Err(e) => Err(parse_err!(value_string, e)),
             },
             TaskType::Bool => match value_string.parse::<bool>() {
@@ -737,9 +676,34 @@ impl TaskType {
                 Err(e) => Err(parse_err!(value_string, e)),
             },
             TaskType::String => Ok(json!(value_string)),
-            TaskType::StringArray => Self::parse_string_collection(value_string, false),
-            TaskType::IntSet => Self::parse_int_set(value_string),
-            TaskType::StringSet => Self::parse_string_collection(value_string, true),
+            TaskType::Array(inner_element) => match inner_element.as_ref() {
+                TaskType::Int => match serde_json::from_str::<Vec<i64>>(value_string) {
+                    Ok(numbers) => Ok(json!(numbers)),
+                    Err(e) => Err(parse_err!(value_string, e)),
+                },
+                TaskType::Double => match serde_json::from_str::<Vec<f64>>(value_string) {
+                    Ok(numbers) => Ok(json!(numbers)),
+                    Err(e) => Err(parse_err!(value_string, e)),
+                },
+                TaskType::String => Self::parse_string_collection(value_string, false),
+                _ => {
+                    return Err(parse_err!(
+                        value_string,
+                        format!("Doesn't support converting from string to {}", self)
+                    ))
+                }
+            },
+            TaskType::Set(inner_element) => match inner_element.as_ref() {
+                TaskType::Int => Self::parse_int_set(value_string),
+                TaskType::Double => Self::parse_double_set(value_string),
+                TaskType::String => Self::parse_string_collection(value_string, true),
+                _ => {
+                    return Err(parse_err!(
+                        value_string,
+                        format!("Doesn't support converting from string to {}", self)
+                    ))
+                }
+            },
             TaskType::Dom => Ok(json!(value_string)),
             TaskType::DOMElement => Ok(json!(value_string)),
             TaskType::VarRef(_) => Err(parse_err!(
@@ -805,22 +769,67 @@ impl TaskType {
     }
 }
 
+impl fmt::Display for TaskType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            TaskType::Int => write!(f, "int"),
+            TaskType::Double => write!(f, "double"),
+            TaskType::Bool => write!(f, "bool"),
+            TaskType::String => write!(f, "string"),
+            TaskType::Array(inner_type) => write!(f, "Array<{}>", inner_type),
+            TaskType::Set(inner_type) => write!(f, "Set<{}>", inner_type),
+            TaskType::Dom => write!(f, "dom"),
+            TaskType::DOMElement => write!(f, "dom_element"),
+            TaskType::VarRef(var_ref) => write!(f, "{}", var_ref),
+            TaskType::Object(o) => write!(f, "{}", o),
+        }
+    }
+}
+
 impl From<&ValueType> for TaskType {
-    fn from(value: &ValueType) -> Self {
-        match value {
+    fn from(value_type: &ValueType) -> Self {
+        match value_type {
             ValueType::Number => TaskType::Double,
             ValueType::Bool => TaskType::Bool,
             ValueType::String => TaskType::String,
-            ValueType::Object(o) => match o.as_str() {
-                "Array<Number>" => TaskType::DoubleArray,
-                "Array<String>" => TaskType::StringArray,
-                "Set<Number>" => TaskType::IntSet,
-                "Set<String>" => TaskType::StringSet,
-                dom::DomLoader::DOM_CLASS_STR => TaskType::Dom,
-                dom::DomLoader::ELEMENT_CLASS_STR => TaskType::DOMElement,
-                s => TaskType::Object(s.to_owned()),
-            },
-            ValueType::Null => unreachable!(),
+            ValueType::Object(ObjectType::Class(class_name)) => {
+                TaskType::Object(class_name.to_string())
+            }
+            ValueType::Object(ObjectType::Array(inner_type)) => {
+                TaskType::Array(Box::new(TaskType::from(inner_type.as_ref())))
+            }
+            ValueType::Object(ObjectType::Set(inner_type)) => {
+                TaskType::Set(Box::new(TaskType::from(inner_type.as_ref())))
+            }
+            _ => unreachable!("Unsupported type"),
+        }
+    }
+}
+
+fn strip_string_wrap(value_str: &str, prefix: char, suffix: char) -> Option<&str> {
+    value_str.strip_prefix(prefix)?.strip_suffix(suffix)
+}
+
+impl From<&str> for TaskType {
+    fn from(val: &str) -> Self {
+        match val {
+            "Int" => TaskType::Int,
+            "Double" => TaskType::Double,
+            "Bool" => TaskType::Bool,
+            "String" => TaskType::String,
+            "DOM" => TaskType::Dom,
+            "DOMElement" => TaskType::DOMElement,
+            _ => {
+                if let Some(elem_type) = strip_string_wrap(val, '[', ']') {
+                    TaskType::Array(Box::new(TaskType::from(elem_type)))
+                } else if let Some(elem_type) = strip_string_wrap(val, '{', '}') {
+                    TaskType::Set(Box::new(TaskType::from(elem_type)))
+                } else if let Some(var_ref) = ExprPrefix::FieldRef.get(&val) {
+                    TaskType::VarRef(VarRef::from(var_ref))
+                } else {
+                    TaskType::Object(val.to_string())
+                }
+            }
         }
     }
 }
@@ -831,26 +840,7 @@ impl<'de> Deserialize<'de> for TaskType {
         D: Deserializer<'de>,
     {
         let val = String::deserialize(deserializer)?;
-        match val.as_str() {
-            "Int" => Ok(TaskType::Int),
-            "[Int]" => Ok(TaskType::IntArray),
-            "{Int}" => Ok(TaskType::IntSet),
-            "Double" => Ok(TaskType::Double),
-            "[Double]" => Ok(TaskType::DoubleArray),
-            "Bool" => Ok(TaskType::Bool),
-            "String" => Ok(TaskType::String),
-            "[String]" => Ok(TaskType::StringArray),
-            "{String}" => Ok(TaskType::StringSet),
-            "DOM" => Ok(TaskType::Dom),
-            "DOMElement" => Ok(TaskType::DOMElement),
-            _ => {
-                if let Some(var_ref) = ExprPrefix::FieldRef.get(&val) {
-                    Ok(TaskType::VarRef(VarRef::from(var_ref)))
-                } else {
-                    Ok(TaskType::Object(val))
-                }
-            }
-        }
+        Ok(TaskType::from(val.as_str()))
     }
 }
 
@@ -859,20 +849,6 @@ impl Serialize for TaskType {
     where
         S: Serializer,
     {
-        match self {
-            TaskType::Int => serializer.serialize_str("Int"),
-            TaskType::IntArray => serializer.serialize_str("[Int]"),
-            TaskType::Double => serializer.serialize_str("Double"),
-            TaskType::DoubleArray => serializer.serialize_str("[Double]"),
-            TaskType::Bool => serializer.serialize_str("Bool"),
-            TaskType::String => serializer.serialize_str("String"),
-            TaskType::StringArray => serializer.serialize_str("[String]"),
-            TaskType::IntSet => serializer.serialize_str("{Int}"),
-            TaskType::StringSet => serializer.serialize_str("{String}"),
-            TaskType::Object(o) => serializer.serialize_str(o),
-            TaskType::VarRef(v) => serializer.serialize_str(&format!("{}", v)),
-            TaskType::Dom => serializer.serialize_str("DOM"),
-            TaskType::DOMElement => serializer.serialize_str("DOMElement"),
-        }
+        serializer.serialize_str(format!("{}", self).as_str())
     }
 }

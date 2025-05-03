@@ -6,7 +6,7 @@ use std::{any::Any, fmt::Debug};
 use crate::context::{Context, SynthesizerContext};
 
 use crate::location::LocValue;
-use ruse_object_graph::{CachedString, value::ValueType};
+use ruse_object_graph::{CachedString, ValueType};
 
 pub trait ExprAst: Any {
     fn to_string(&self) -> String;

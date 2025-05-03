@@ -5,6 +5,7 @@ mod tests {
     use crate::generator::object_graph_generator::*;
     use crate::GraphsMap;
     use crate::dot;
+    use crate::ObjectType;
     use crate::{fields, str_cached, Cache, NodeIndex, PrimitiveValue};
 
     const SEED: u64 = 10;
@@ -25,9 +26,9 @@ mod tests {
         let mut graphs_map_1 = GraphsMap::default();
         let mut graphs_map_2 = GraphsMap::default();
 
-        let obj_name_a = str_cached!(&cache; "A");
-        let obj_name_b = str_cached!(&cache; "B");
-        let obj_name_c = str_cached!(&cache; "C");
+        let obj_name_a = ObjectType::class_obj_type("A", &cache);
+        let obj_name_b = ObjectType::class_obj_type("B", &cache);
+        let obj_name_c = ObjectType::class_obj_type("C", &cache);
         let root_name = str_cached!(&cache; "root");
         let field_name_a = str_cached!(&cache; "a");
         let field_name_b = str_cached!(&cache; "b");
@@ -92,9 +93,9 @@ mod tests {
         let mut map1 = GraphsMap::default();
         let mut map2 = GraphsMap::default();
 
-        let obj_name_a = str_cached!(&cache; "A");
-        let obj_name_b = str_cached!(&cache; "B");
-        let obj_name_c = str_cached!(&cache; "C");
+        let obj_name_a = ObjectType::class_obj_type("A", &cache);
+        let obj_name_b = ObjectType::class_obj_type("B", &cache);
+        let obj_name_c = ObjectType::class_obj_type("C", &cache);
         let root_name = str_cached!(&cache; "root");
         let field_name_a = str_cached!(&cache; "a");
         let field_name_b = str_cached!(&cache; "b");
@@ -159,10 +160,10 @@ mod tests {
         let mut map1 = GraphsMap::new();
         let mut map2 = GraphsMap::new();
 
-        let obj_name_a = str_cached!(&cache; "A");
-        let obj_name_b = str_cached!(&cache; "B");
-        let obj_name_b2 = str_cached!(&cache; "B2");
-        let obj_name_c = str_cached!(&cache; "C");
+        let obj_name_a = ObjectType::class_obj_type("A", &cache);
+        let obj_name_b = ObjectType::class_obj_type("B", &cache);
+        let obj_name_b2 = ObjectType::class_obj_type("B2", &cache);
+        let obj_name_c = ObjectType::class_obj_type("C", &cache);
         let root_name = str_cached!(&cache; "root");
         let field_name_a = str_cached!(&cache; "a");
         let field_name_b = str_cached!(&cache; "b");
@@ -226,9 +227,9 @@ mod tests {
         let mut map1 = GraphsMap::new();
         let mut map2 = GraphsMap::new();
 
-        let obj_name_a = str_cached!(&cache; "A");
-        let obj_name_b = str_cached!(&cache; "B");
-        let obj_name_c = str_cached!(&cache; "C");
+        let obj_name_a = ObjectType::class_obj_type("A", &cache);
+        let obj_name_b = ObjectType::class_obj_type("B", &cache);
+        let obj_name_c = ObjectType::class_obj_type("C", &cache);
         let root_name = str_cached!(&cache; "root");
         let field_name_a = str_cached!(&cache; "a");
         let field_name_b = str_cached!(&cache; "b");
@@ -359,7 +360,7 @@ mod tests {
 
         graphs_map.ensure_graph(graph_id);
 
-        let obj_name = str_cached!(&cache; "A");
+        let obj_name = ObjectType::class_obj_type("A", &cache);
         let field_name = str_cached!(&cache; "a");
         let n1 = graphs_map.add_simple_object(
             graph_id,
@@ -401,7 +402,7 @@ mod tests {
         let g1 = 0;
         let mut map1 = random_gnp_object_graph(&cache, g1, &mut rng1, 5, 0.2);
 
-        let obj_name_a = str_cached!(&cache; "A");
+        let obj_name_a = ObjectType::class_obj_type("A", &cache);
         let root_name = str_cached!(&cache; "root");
         let field_name_a = str_cached!(&cache; "a");
 

@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use ruse_object_graph::{value::ValueType, Cache, CachedString, Number};
+use ruse_object_graph::{Cache, CachedString, Number, ValueType};
 use ruse_synthesizer::{context::VariableName, opcode::OpcodesList};
 use ruse_ts_interpreter::opcode;
 use std::sync::Arc;
@@ -149,27 +149,27 @@ pub fn add_str_opcodes(opcodes: &mut OpcodesList, str_bool_opcodes: &[ast::Binar
     opcodes.push(Arc::new(opcode::StringAtOp::new()));
 }
 
-pub fn add_array_opcodes(opcodes: &mut OpcodesList, array_types: &[ValueType], cache: &Cache) {
+pub fn add_array_opcodes(opcodes: &mut OpcodesList, array_types: &[ValueType]) {
     for t in array_types {
-        opcodes.push(Arc::new(opcode::ArrayLengthOp::new(t, cache)));
-        opcodes.push(Arc::new(opcode::ArrayIndexOp::new(t, cache)));
-        opcodes.push(Arc::new(opcode::ArraySliceOp::new(t, false, cache)));
-        opcodes.push(Arc::new(opcode::ArraySliceOp::new(t, true, cache)));
-        opcodes.push(Arc::new(opcode::ArrayConcatOp::new(t, 1, cache)));
-        opcodes.push(Arc::new(opcode::ArrayConcatArrayOp::new(t, cache)));
-        opcodes.push(Arc::new(opcode::ArraySpliceOp::new(t, false, cache)));
-        opcodes.push(Arc::new(opcode::ArraySpliceOp::new(t, true, cache)));
-        opcodes.push(Arc::new(opcode::ArrayPushOp::new(t, cache)));
-        opcodes.push(Arc::new(opcode::ArrayPopOp::new(t, cache)));
+        opcodes.push(Arc::new(opcode::ArrayLengthOp::new(t)));
+        opcodes.push(Arc::new(opcode::ArrayIndexOp::new(t)));
+        opcodes.push(Arc::new(opcode::ArraySliceOp::new(t, false)));
+        opcodes.push(Arc::new(opcode::ArraySliceOp::new(t, true)));
+        opcodes.push(Arc::new(opcode::ArrayConcatOp::new(t, 1)));
+        opcodes.push(Arc::new(opcode::ArrayConcatArrayOp::new(t)));
+        opcodes.push(Arc::new(opcode::ArraySpliceOp::new(t, false)));
+        opcodes.push(Arc::new(opcode::ArraySpliceOp::new(t, true)));
+        opcodes.push(Arc::new(opcode::ArrayPushOp::new(t)));
+        opcodes.push(Arc::new(opcode::ArrayPopOp::new(t)));
     }
 }
 
-pub fn add_set_opcodes(opcodes: &mut OpcodesList, set_inner_types: &[ValueType], cache: &Cache) {
+pub fn add_set_opcodes(opcodes: &mut OpcodesList, set_inner_types: &[ValueType]) {
     for t in set_inner_types {
-        opcodes.push(Arc::new(opcode::SetAddOp::new(t, cache)));
-        opcodes.push(Arc::new(opcode::SetDeleteOp::new(t, cache)));
-        opcodes.push(Arc::new(opcode::SetHasOp::new(t, cache)));
-        opcodes.push(Arc::new(opcode::SetSizeOp::new(t, cache)));
+        opcodes.push(Arc::new(opcode::SetAddOp::new(t)));
+        opcodes.push(Arc::new(opcode::SetDeleteOp::new(t)));
+        opcodes.push(Arc::new(opcode::SetHasOp::new(t)));
+        opcodes.push(Arc::new(opcode::SetSizeOp::new(t)));
     }
 }
 
@@ -178,8 +178,15 @@ pub fn add_dom_opcodes(opcodes: &mut OpcodesList, cache: &Cache) {
     opcodes.push(op);
 }
 
-pub fn add_seq_opcodes(opcodes: &mut OpcodesList, size: usize, available_value_types: &Vec<ValueType>) {
-    for arg_types in (0..size).map(|_| available_value_types.clone().into_iter()).multi_cartesian_product() {
+pub fn add_seq_opcodes(
+    opcodes: &mut OpcodesList,
+    size: usize,
+    available_value_types: &Vec<ValueType>,
+) {
+    for arg_types in (0..size)
+        .map(|_| available_value_types.clone().into_iter())
+        .multi_cartesian_product()
+    {
         opcodes.push(Arc::new(opcode::SequenceOp::new(arg_types)));
     }
 }

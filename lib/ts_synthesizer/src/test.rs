@@ -5,7 +5,7 @@ mod tests {
     use object_graph::{str_cached, Number};
     use ruse_object_graph::{
         self as object_graph,
-        value::{Value, ValueType},
+        {value::Value, ValueType},
         vnum, vstr, GraphsMap,
     };
     use ruse_synthesizer::{

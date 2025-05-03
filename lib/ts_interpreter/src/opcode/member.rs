@@ -1,8 +1,9 @@
 use std::sync::Arc;
 
-use ruse_object_graph::value::*;
 use ruse_object_graph::CachedString;
+use ruse_object_graph::ClassName;
 use ruse_object_graph::ObjectGraph;
+use ruse_object_graph::ValueType;
 use ruse_synthesizer::context::*;
 use ruse_synthesizer::location::*;
 use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};
@@ -23,10 +24,12 @@ pub struct MemberOp {
 }
 
 impl MemberOp {
-    pub fn new(obj_type: CachedString, field_name: CachedString) -> Self {
-        let full_op_name = format!("{}.{}", &obj_type, &field_name);
+    pub fn new(class_name: ClassName, field_name: CachedString) -> Self {
+        let full_op_name = format!("{}.{}", &class_name, &field_name);
         Self {
-            arg_types: [ValueType::Object(obj_type)],
+            arg_types: [ValueType::Object(ruse_object_graph::ObjectType::Class(
+                class_name,
+            ))],
             field_name,
             full_op_name,
         }
@@ -46,7 +49,9 @@ impl ExprOpcode for MemberOp {
     ) -> EvalResult {
         debug_assert_eq!(args.len(), 1);
 
-        let member = args[0].get_obj_field_loc_value(&post_ctx.graphs_map, &self.field_name).ok_or(())?;
+        let member = args[0]
+            .get_obj_field_loc_value(&post_ctx.graphs_map, &self.field_name)
+            .ok_or(())?;
         pure!(member)
     }
 

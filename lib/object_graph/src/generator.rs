@@ -43,8 +43,11 @@ pub mod object_graph_generator {
                 PrimitiveValue::Number(rng.next_u64().into())
             ));
             let root_name = scached!(cache; generate_random_str(5, rng).to_ascii_uppercase());
-            let obj_name = scached!(cache; generate_random_str(5, rng).to_ascii_uppercase());
-            graphs_map.add_simple_object(graph_id, id, obj_name, root_fields);
+            let obj_type = ObjectType::class_obj_type(
+                &generate_random_str(5, rng).to_ascii_uppercase(),
+                cache,
+            );
+            graphs_map.add_simple_object(graph_id, id, obj_type, root_fields);
             graphs_map.set_as_root(root_name, graph_id, id);
             map.insert(r.into(), id);
             id += 1;
@@ -56,9 +59,11 @@ pub mod object_graph_generator {
                         data_field_string.clone(),
                         PrimitiveValue::Number(rng.next_u64().into())
                     ));
-                    let obj_name =
-                        scached!(cache; generate_random_str(5, rng).to_ascii_uppercase());
-                    graphs_map.add_simple_object(graph_id, id, obj_name, data_fields);
+                    let obj_type = ObjectType::class_obj_type(
+                        &generate_random_str(5, rng).to_ascii_uppercase(),
+                        cache,
+                    );
+                    graphs_map.add_simple_object(graph_id, id, obj_type, data_fields);
                     map.insert(nx, id);
                     id += 1
                 }

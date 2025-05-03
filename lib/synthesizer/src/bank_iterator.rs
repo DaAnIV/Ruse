@@ -1,5 +1,5 @@
 use itertools::{Itertools, MultiProduct};
-use ruse_object_graph::value::ValueType;
+use ruse_object_graph::ValueType;
 use std::marker::PhantomData;
 use std::ops::RangeInclusive;
 use std::sync::Arc;

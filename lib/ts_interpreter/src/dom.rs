@@ -1,7 +1,7 @@
 use html_parser::{self, Dom};
 use ruse_object_graph::{
     fields, scached, str_cached, Cache, CachedString, FieldsMap, GraphIndex, GraphsMap, NodeIndex,
-    PrimitiveValue,
+    ObjectType, PrimitiveValue,
 };
 use ruse_synthesizer::context::GraphIdGenerator;
 
@@ -9,19 +9,17 @@ pub struct DomLoader {}
 
 impl DomLoader {
     pub const DOM_ROOT_STR: &'static str = "document";
-    pub const DOM_CLASS_STR: &'static str = "Document";
-    pub const ELEMENT_CLASS_STR: &'static str = "Element";
 
     pub fn document_root_name(cache: &Cache) -> CachedString {
         str_cached!(cache; Self::DOM_ROOT_STR)
     }
 
-    pub fn document_obj_type(cache: &Cache) -> CachedString {
-        str_cached!(cache; Self::DOM_CLASS_STR)
+    pub fn document_obj_type() -> ObjectType {
+        ObjectType::DOM
     }
 
-    pub fn element_obj_type(cache: &Cache) -> CachedString {
-        str_cached!(cache; Self::ELEMENT_CLASS_STR)
+    pub fn element_obj_type() -> ObjectType {
+        ObjectType::DOMElement
     }
 
     fn add_node(
@@ -61,7 +59,7 @@ impl DomLoader {
         let node = graphs_map.add_simple_object(
             graph_id,
             id_gen.get_id_for_node(),
-            Self::element_obj_type(cache),
+            Self::element_obj_type(),
             fields.into(),
         );
 
@@ -102,7 +100,7 @@ impl DomLoader {
         let root = graphs_map.add_simple_object(
             graph_id,
             id_gen.get_id_for_node(),
-            Self::document_obj_type(cache),
+            Self::document_obj_type(),
             fields!(),
         );
 

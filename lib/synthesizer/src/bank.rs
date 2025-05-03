@@ -1,4 +1,4 @@
-use ruse_object_graph::value::ValueType;
+use ruse_object_graph::ValueType;
 use std::{
     collections::{hash_map::Entry, HashMap, HashSet},
     fmt,
@@ -202,7 +202,7 @@ impl<T: ProgramsMap> TypeMap<T> {
     }
 
     pub(crate) fn contains(&self, p: &Arc<SubProgram>) -> bool {
-        match self.maps.get(&p.out_type()) {
+        match self.maps.get(p.out_type()) {
             None => false,
             Some(values) => values.contains(p),
         }

@@ -1,6 +1,6 @@
 use ruse_object_graph::graph_map_value::GraphMapWrap;
-use ruse_object_graph::value::ValueType;
-use ruse_object_graph::{vbool, vnum, Cache};
+use ruse_object_graph::ValueType;
+use ruse_object_graph::{vbool, vnum};
 use ruse_synthesizer::location::*;
 use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};
 use ruse_synthesizer::{context::*, dirty, pure};
@@ -13,9 +13,9 @@ pub struct SetSizeOp {
 }
 
 impl SetSizeOp {
-    pub fn new(elem_type: &ValueType, cache: &Cache) -> Self {
+    pub fn new(elem_type: &ValueType) -> Self {
         Self {
-            arg_types: [ValueType::set_value_type(elem_type, cache)],
+            arg_types: [ValueType::set_value_type(elem_type)],
         }
     }
 }
@@ -55,12 +55,9 @@ pub struct SetHasOp {
 }
 
 impl SetHasOp {
-    pub fn new(elem_type: &ValueType, cache: &Cache) -> Self {
+    pub fn new(elem_type: &ValueType) -> Self {
         Self {
-            arg_types: [
-                ValueType::set_value_type(elem_type, cache),
-                elem_type.to_owned(),
-            ],
+            arg_types: [ValueType::set_value_type(elem_type), elem_type.to_owned()],
         }
     }
 }
@@ -107,12 +104,9 @@ pub struct SetAddOp {
 }
 
 impl SetAddOp {
-    pub fn new(elem_type: &ValueType, cache: &Cache) -> Self {
+    pub fn new(elem_type: &ValueType) -> Self {
         Self {
-            arg_types: [
-                ValueType::set_value_type(elem_type, cache),
-                elem_type.to_owned(),
-            ],
+            arg_types: [ValueType::set_value_type(elem_type), elem_type.to_owned()],
         }
     }
 }
@@ -161,12 +155,9 @@ pub struct SetDeleteOp {
 }
 
 impl SetDeleteOp {
-    pub fn new(elem_type: &ValueType, cache: &Cache) -> Self {
+    pub fn new(elem_type: &ValueType) -> Self {
         Self {
-            arg_types: [
-                ValueType::set_value_type(elem_type, cache),
-                elem_type.to_owned(),
-            ],
+            arg_types: [ValueType::set_value_type(elem_type), elem_type.to_owned()],
         }
     }
 }

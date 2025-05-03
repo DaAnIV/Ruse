@@ -3,14 +3,13 @@ use std::{collections::HashMap, sync::Arc};
 use boa_engine::{js_str, js_string, value::JsValue};
 use itertools::Itertools;
 use ruse_object_graph::{
-    scached, value::ObjectValue, Attributes, Cache, CachedString, FieldName, FieldsMap, PrimitiveField
+    scached, value::ObjectValue, Attributes, Cache, CachedString, FieldName, FieldsMap, ObjectType,
+    PrimitiveField,
 };
 
 use crate::{
     engine_context::{EngineContext, RuseJsGlobalObject},
-    js_value::{
-        js_value_to_primitive_value, js_value_to_value
-    },
+    js_value::{js_value_to_primitive_value, js_value_to_value},
     js_wrapped::JsWrapped,
     ts_class::{JsFieldDescription, MethodDescription, MethodKind, TsClassDescription},
 };
@@ -166,7 +165,7 @@ impl JsObjectWrapper {
         graphs_map.construct_node(
             graph_id,
             node_id,
-            self.desc.class_name.clone(),
+            ObjectType::Class(self.desc.class_name.clone()),
             FieldsMap::from_iter(primitive_fields),
         );
 
@@ -182,7 +181,7 @@ impl JsObjectWrapper {
         }
 
         Ok(JsWrapped(ObjectValue {
-            obj_type: self.desc.class_name.clone(),
+            obj_type: ObjectType::Class(self.desc.class_name.clone()),
             graph_id: graph_id,
             node: node_id,
         }))
@@ -270,14 +269,16 @@ impl boa_engine::class::DynamicClassBuilder<JsWrapped<ObjectValue>> for JsObject
                     .map(|x| x.to_js_function(builder.context().realm()));
                 let setter = Self::setter_for_field(field)
                     .map(|x| x.to_js_function(builder.context().realm()));
-                let attribute = boa_engine::property::Attribute::WRITABLE | boa_engine::property::Attribute::PERMANENT;
+                let attribute = boa_engine::property::Attribute::WRITABLE
+                    | boa_engine::property::Attribute::PERMANENT;
                 builder.accessor(key, getter, setter, attribute);
             } else {
                 let getter = Self::getter_for_static_field(&self.desc.class_name, field)
                     .map(|x| x.to_js_function(builder.context().realm()));
                 let setter = Self::setter_for_static_field(&self.desc.class_name, field)
                     .map(|x| x.to_js_function(builder.context().realm()));
-                let attribute = boa_engine::property::Attribute::WRITABLE | boa_engine::property::Attribute::PERMANENT;
+                let attribute = boa_engine::property::Attribute::WRITABLE
+                    | boa_engine::property::Attribute::PERMANENT;
                 builder.static_accessor(key, getter, setter, attribute);
             }
         }

@@ -10,6 +10,7 @@ pub mod graph_walk;
 mod graphs_map;
 mod node_index;
 mod primitive_fields;
+mod value_type;
 pub mod value;
 
 pub use cache::*;
@@ -18,5 +19,6 @@ pub use graph_node::*;
 pub use graphs_map::*;
 pub use node_index::NodeIndex;
 pub use primitive_fields::*;
+pub use value_type::*;
 
 mod test;

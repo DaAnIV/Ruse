@@ -1,10 +1,11 @@
 use std::{collections::HashMap, fmt::Debug, io::Read, path::Path, sync::Arc};
 
-use boa_engine::{class::DynamicClassBuilder, JsValue};
+use boa_engine::{class::DynamicClassBuilder, object::builtins::JsTypedArray, JsValue};
 use itertools::Itertools;
 use ruse_object_graph::{
     fields, scached, str_cached, vbool, vnull, vnum, vstring, Attributes, Cache, CachedString,
     FieldName, GraphIndex, GraphsMap, NodeIndex, ObjectGraph, ObjectType, PrimitiveValue,
+    ValueType,
 };
 use ruse_synthesizer::{
     context::{GraphIdGenerator, SynthesizerContextData},
@@ -23,7 +24,7 @@ use swc_ecma_parser::{Syntax, TsSyntax};
 
 use crate::{
     engine_context::EngineContext,
-    js_errors::js_error_null_this,
+    js_errors::{js_error_not_builtin_array, js_error_null_this},
     js_object_wrapper::{JsArrayWrapper, JsObjectWrapper},
     js_value::{js_value_to_value, value_to_js_value},
     js_wrapped::JsWrapped,
@@ -42,19 +43,20 @@ impl SynthesizerContextData for TsClasses {}
 impl TsClasses {
     const GLOBAL_CLASS_NAME: &'static str = "__GLOBAL_CLASS__";
 
-    pub fn get_class(&self, class: &str) -> Option<&dyn TsClass> {
-        let base_class_name = class.split("<").next().unwrap();
-        self.user_classes
-            .get(base_class_name)
-            .map(|user_class| user_class as &dyn TsClass)
-            .or(self
-                .builtin_classes
-                .get(base_class_name)
-                .map(|class| class.as_ref() as &dyn TsClass))
+    pub fn get_class(&self, obj_type: &ObjectType) -> Option<&dyn TsClass> {
+        match obj_type {
+            ObjectType::Class(class_name) => self
+                .user_classes
+                .get(class_name.as_str())
+                .map(|user_class| user_class as &dyn TsClass),
+            _ => self
+                .get_builtin_class(obj_type)
+                .map(|class| class as &dyn TsClass),
+        }
     }
 
-    pub fn get_builtin_class(&self, class: &str) -> Option<&dyn TsBuiltinClass> {
-        let base_class_name = class.split("<").next().unwrap();
+    pub fn get_builtin_class(&self, obj_type: &ObjectType) -> Option<&dyn TsBuiltinClass> {
+        let base_class_name = obj_type.obj_type_base_name();
         self.builtin_classes
             .get(base_class_name)
             .map(|class| class.as_ref() as &dyn TsBuiltinClass)
@@ -336,13 +338,13 @@ fn get_value_type_from_ts_type(type_ann: &ast::TsType, cache: &Cache) -> ValueTy
         ast::TsType::TsFnOrConstructorType(_) => todo!(),
         ast::TsType::TsTypeRef(t) => {
             let id = t.type_name.as_ident().unwrap().sym.to_string();
-            ValueType::Object(scached!(cache; id))
+            ValueType::class_value_type(scached!(cache; id))
         }
         ast::TsType::TsTypeQuery(_) => todo!(),
         ast::TsType::TsTypeLit(_) => todo!(),
         ast::TsType::TsArrayType(t) => {
             let elem_type = get_value_type_from_ts_type(t.elem_type.as_ref(), cache);
-            ValueType::array_value_type(&elem_type, cache)
+            ValueType::array_value_type(&elem_type)
         }
         ast::TsType::TsTupleType(_) => todo!(),
         ast::TsType::TsOptionalType(_) => todo!(),
@@ -408,7 +410,7 @@ fn get_value_type_from_expr(expr: &ast::Expr, cache: &Cache) -> ValueType {
         ast::Expr::New(new) => {
             let id = new.callee.as_ident().unwrap();
             let name = str_cached!(cache; id.sym.as_str());
-            ValueType::Object(name)
+            ValueType::class_value_type(name)
         }
         _ => todo!("expr {:#?} value type is unknown", expr),
     }
@@ -472,7 +474,7 @@ pub struct TsClassDescription {
 }
 
 fn static_graph_obj_type(class_name: &str, cache: &Cache) -> ObjectType {
-    scached!(cache; format!("{}_{}", class_name, &"Static"))
+    ObjectType::class_obj_type(&format!("{}_{}", class_name, &"Static"), cache)
 }
 
 fn static_graph_root_name(class_name: &str, cache: &Cache) -> CachedString {
@@ -480,7 +482,7 @@ fn static_graph_root_name(class_name: &str, cache: &Cache) -> CachedString {
 }
 
 pub trait TsClass: Send + Sync + Debug {
-    fn obj_type(&self, template_types: Option<Vec<ValueType>>, cache: &Cache) -> ValueType;
+    fn obj_type(&self, template_types: Option<Vec<ValueType>>) -> ValueType;
     fn is_parametrized(&self) -> bool;
     fn get_class_name(&self) -> &CachedString;
     fn get_class_id(&self) -> u64;
@@ -516,15 +518,61 @@ impl BuiltinArrayClass {
             id,
         }
     }
+
+    fn get_from_js_array(
+        &self,
+        classes: &TsClasses,
+        js_array: &boa_engine::object::builtins::JsArray,
+        engine_ctx: &mut EngineContext<'_>,
+        cache: &Cache,
+    ) -> Result<ObjectValue, boa_engine::JsError> {
+        let arr_len = js_array.length(engine_ctx).unwrap() as i64;
+        if arr_len == 0 {
+            return engine_ctx.create_array_object(vec![], &ValueType::Null);
+        }
+
+        let elements: Vec<Value> = (0..arr_len)
+            .map(|i| {
+                let js_elem = js_array.at(i, engine_ctx).unwrap();
+                let elem = js_value_to_value(classes, &js_elem, engine_ctx, cache);
+                elem
+            })
+            .collect();
+
+        let elem_type = elements[0].val_type();
+        engine_ctx.create_array_object(elements, &elem_type)
+    }
+
+    fn get_from_js_typed_array(
+        &self,
+        classes: &TsClasses,
+        js_typed_array: &JsTypedArray,
+        engine_ctx: &mut EngineContext<'_>,
+        cache: &Cache,
+    ) -> Result<ObjectValue, boa_engine::JsError> {
+        let arr_len = js_typed_array.length(engine_ctx).unwrap() as i64;
+        if arr_len == 0 {
+            return engine_ctx.create_array_object(vec![], &ValueType::Number);
+        }
+
+        let elements: Vec<Value> = (0..arr_len)
+            .map(|i| {
+                let js_elem = js_typed_array.at(i, engine_ctx).unwrap();
+                let elem = js_value_to_value(classes, &js_elem, engine_ctx, cache);
+                assert!(elem.number_value().is_some());
+                elem
+            })
+            .collect();
+
+        engine_ctx.create_array_object(elements, &ValueType::Number)
+    }
 }
 
 impl TsClass for BuiltinArrayClass {
-    fn obj_type(&self, template_types: Option<Vec<ValueType>>, cache: &Cache) -> ValueType {
+    fn obj_type(&self, template_types: Option<Vec<ValueType>>) -> ValueType {
         let template_types = template_types.unwrap();
         assert!(template_types.len() == 1);
-        ValueType::Object(
-            scached!(cache; format!("{}<{}>", self.get_class_name(), template_types[0])),
-        )
+        ValueType::array_value_type(&template_types[0])
     }
 
     fn wrap_as_js_object(
@@ -550,7 +598,7 @@ impl TsClass for BuiltinArrayClass {
 
 impl TsBuiltinClass for BuiltinArrayClass {
     fn is_builtin_object(&self, value: &boa_engine::JsObject) -> bool {
-        value.is_array()
+        value.is_array() || value.is::<boa_engine::builtins::typed_array::TypedArray>()
     }
 
     fn get_from_js_obj(
@@ -560,23 +608,15 @@ impl TsBuiltinClass for BuiltinArrayClass {
         engine_ctx: &mut EngineContext<'_>,
         cache: &Cache,
     ) -> Result<ObjectValue, boa_engine::JsError> {
-        let js_array = boa_engine::object::builtins::JsArray::from_object(value.clone())?;
-
-        let arr_len = js_array.length(engine_ctx).unwrap() as i64;
-        if arr_len == 0 {
-            return engine_ctx.create_array_object(vec![], &ValueType::Null);
+        if let Ok(js_array) = boa_engine::object::builtins::JsArray::from_object(value.clone()) {
+            self.get_from_js_array(classes, &js_array, engine_ctx, cache)
+        } else if let Ok(typed_array) =
+            boa_engine::object::builtins::JsTypedArray::from_object(value.clone())
+        {
+            self.get_from_js_typed_array(classes, &typed_array, engine_ctx, cache)
+        } else {
+            Err(js_error_not_builtin_array())
         }
-
-        let elements: Vec<Value> = (0..arr_len)
-            .map(|i| {
-                let js_elem = js_array.at(i, engine_ctx).unwrap();
-                let elem = js_value_to_value(classes, &js_elem, engine_ctx, cache);
-                elem
-            })
-            .collect();
-
-        let elem_type = elements[0].val_type();
-        engine_ctx.create_array_object(elements, &elem_type)
     }
 }
 
@@ -609,12 +649,12 @@ impl TsUserClass {
         let obj_id = graphs_map.add_object_from_map(
             graph_id,
             graph_id_gen.get_id_for_node(),
-            self.description.class_name.clone(),
+            ObjectType::Class(self.description.class_name.clone()),
             map,
         );
 
         ObjectValue {
-            obj_type: self.description.class_name.clone(),
+            obj_type: ObjectType::Class(self.description.class_name.clone()),
             graph_id: graph_id,
             node: obj_id,
         }
@@ -740,10 +780,10 @@ impl TsUserClass {
 }
 
 impl TsClass for TsUserClass {
-    fn obj_type(&self, template_types: Option<Vec<ValueType>>, _cache: &Cache) -> ValueType {
+    fn obj_type(&self, template_types: Option<Vec<ValueType>>) -> ValueType {
         assert!(template_types.is_none());
 
-        ValueType::Object(self.get_class_name().clone())
+        ValueType::class_value_type(self.get_class_name().clone())
     }
 
     fn wrap_as_js_object(
@@ -1024,7 +1064,10 @@ impl TsClassBuilder {
         }
         for var in variables {
             for decl in var.1.decls.iter() {
-                let var_name = Self::get_name_with_namespace(&var.0, decl.name.as_ident().unwrap().sym.as_str());
+                let var_name = Self::get_name_with_namespace(
+                    &var.0,
+                    decl.name.as_ident().unwrap().sym.as_str(),
+                );
                 let desc = JsFieldDescription::from_with_cache(decl, cache);
                 fields.insert(var_name, desc);
             }

@@ -1,4 +1,4 @@
-use ruse_object_graph::value::*;
+use ruse_object_graph::{value::*, ValueType};
 use ruse_object_graph::{vbool, vcstring, vnum, Number, PrimitiveValue};
 use ruse_synthesizer::location::*;
 use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};

@@ -17,7 +17,7 @@ impl GetElementByIdOp {
     pub fn new(cache: &Cache) -> Self {
         Self {
             arg_types: [
-                ValueType::Object(dom::DomLoader::document_obj_type(cache)),
+                ValueType::Object(dom::DomLoader::document_obj_type()),
                 ValueType::String,
             ],
             id_field_name: str_cached!(cache; "id"),

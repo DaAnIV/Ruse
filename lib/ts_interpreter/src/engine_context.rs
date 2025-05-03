@@ -5,13 +5,18 @@ use std::{
 
 use boa_engine::{js_string, JsResult};
 use ruse_object_graph::{
-    value::{ObjectValue, Value, ValueType},
-    vnull, Cache, FieldName, GraphIndex, GraphsMap, ObjectType,
+    value::{ObjectValue, Value},
+    vnull, Cache, ClassName, FieldName, GraphIndex, GraphsMap, ObjectType, ValueType,
 };
 use ruse_synthesizer::context::{Context, GraphIdGenerator};
 
 use crate::{
-    js_console_logger::RuseJsConsoleLogger, js_errors::{js_error_immutable_context, js_error_no_static_graph, js_error_not_initialized}, js_object_wrapper::JsObjectWrapper, js_value::{js_value_to_value, value_to_js_value}, js_wrapped::JsWrapped, ts_class::{TsClasses, TsUserClass}
+    js_console_logger::RuseJsConsoleLogger,
+    js_errors::{js_error_immutable_context, js_error_no_static_graph, js_error_not_initialized},
+    js_object_wrapper::JsObjectWrapper,
+    js_value::{js_value_to_value, value_to_js_value},
+    js_wrapped::JsWrapped,
+    ts_class::{TsClasses, TsUserClass},
 };
 
 struct EngineContextHooks;
@@ -293,7 +298,7 @@ impl RuseJsGlobalObject {
     }
 
     pub fn get_static_field(
-        class_name: &ObjectType,
+        class_name: &ClassName,
         field_name: &FieldName,
         engine_ctx: &mut EngineContext<'_>,
     ) -> boa_engine::JsResult<boa_engine::JsValue> {
@@ -309,7 +314,7 @@ impl RuseJsGlobalObject {
     }
 
     pub fn set_static_field(
-        class_name: &ObjectType,
+        class_name: &ClassName,
         field_name: &FieldName,
         new_js_value: &boa_engine::JsValue,
         engine_ctx: &mut EngineContext<'_>,
@@ -471,7 +476,7 @@ impl<'a> EngineContext<'a> {
         }
 
         Ok(ObjectValue {
-            obj_type: ValueType::array_obj_cached_string(elem_type, cache),
+            obj_type: ObjectType::array_obj_type(elem_type),
             graph_id,
             node: node_id,
         })
@@ -480,7 +485,11 @@ impl<'a> EngineContext<'a> {
     pub fn register_global_class(&mut self, global_class: &TsUserClass) -> JsResult<()> {
         for (name, method) in &global_class.description.methods {
             let js_func = JsObjectWrapper::method_js_function(method, self);
-            self.register_global_builtin_callable(js_string!(name.as_str()), method.params.len(), js_func)?;
+            self.register_global_builtin_callable(
+                js_string!(name.as_str()),
+                method.params.len(),
+                js_func,
+            )?;
         }
 
         Ok(())
