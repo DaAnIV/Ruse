@@ -672,12 +672,16 @@ impl SnythesisTask {
             add_seq_opcodes(&mut composite_opcodes, 2, &value_types);
         }
 
-        composite_opcodes.extend(Self::get_classes_opcodes(classes, class_names));
+        composite_opcodes.extend(Self::get_classes_opcodes(classes, class_names, true));
 
         composite_opcodes
     }
 
-    pub fn get_classes_opcodes(classes: &TsClasses, class_names: &Vec<ClassName>) -> OpcodesList {
+    pub fn get_classes_opcodes(
+        classes: &TsClasses,
+        class_names: &Vec<ClassName>,
+        add_global: bool,
+    ) -> OpcodesList {
         let mut composite_opcodes = OpcodesList::new();
 
         for class_name in class_names {
@@ -685,6 +689,13 @@ impl SnythesisTask {
             composite_opcodes.extend_from_slice(&class.member_opcodes);
             composite_opcodes.extend_from_slice(&class.method_opcodes);
             composite_opcodes.extend_from_slice(&class.constructor_opcodes);
+        }
+
+        if add_global {
+            if let Some(global_class) = classes.get_global_class() {
+                composite_opcodes.extend_from_slice(&global_class.member_opcodes);
+                composite_opcodes.extend_from_slice(&global_class.method_opcodes);
+            }
         }
 
         composite_opcodes

@@ -71,6 +71,10 @@ impl TsClasses {
         let base_class_name = class.split("<").next().unwrap();
         self.user_classes.get_mut(base_class_name)
     }
+    
+    pub fn get_global_class(&self) -> Option<&TsUserClass> {
+        self.user_classes.get(Self::GLOBAL_CLASS_NAME)
+    }
 
     pub(crate) fn init_engine_ctx(&self, engine_ctx: &mut EngineContext<'_>) {
         for (name, class) in &self.user_classes {
