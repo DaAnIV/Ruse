@@ -1,20 +1,17 @@
-use std::{
-    collections::{HashMap, HashSet},
-    sync::Arc,
-};
+use std::{collections::HashMap, sync::Arc};
 
 use anyhow::Error;
 use boa_engine::{class::DynamicClassBuilder, JsResult, JsValue};
 use itertools::Itertools;
 use ruse_object_graph::{
-    fields, scached, str_cached,
+    scached, str_cached,
     value::{ObjectValue, Value},
-    Attributes, Cache, ClassName, FieldName, GraphIndex, GraphsMap, NodeIndex, ObjectGraph,
-    ObjectType, RootName, ValueType,
+    Cache, ClassName, FieldName, GraphIndex, GraphsMap, NodeIndex, ObjectGraph, ObjectType,
+    ValueType,
 };
 use ruse_synthesizer::{
     context::GraphIdGenerator,
-    location::{LocValue, Location, ObjectFieldLoc},
+    location::LocValue,
     opcode::{ExprOpcode, OpcodesList},
 };
 use swc_common::{
@@ -34,15 +31,7 @@ use crate::{
     ts_classes::TsClasses,
 };
 
-use swc_ecma_ast::{self as ast, ClassDecl, FnDecl, VarDecl};
-
-fn static_graph_obj_type(class_name: &str, cache: &Cache) -> ObjectType {
-    ObjectType::class_obj_type(&format!("{}_{}", class_name, &"Static"), cache)
-}
-
-fn static_graph_root_name(class_name: &str, cache: &Cache) -> RootName {
-    scached!(cache; format!("{}_{}", class_name, &"Static"))
-}
+use swc_ecma_ast::{self as ast, ClassDecl};
 
 #[derive(Debug)]
 pub struct TsUserClass {
@@ -252,16 +241,8 @@ pub(crate) struct TsUserClassBuilder {
 
 // Main functions
 impl TsUserClassBuilder {
-    fn get_name_with_namespace(namespace: &Vec<String>, name: &str) -> String {
-        if namespace.is_empty() {
-            name.to_string()
-        } else {
-            namespace.join(".") + "." + name
-        }
-    }
-
     pub fn get_class_name(namespace: &Vec<String>, decl: &ClassDecl) -> String {
-        Self::get_name_with_namespace(namespace, decl.ident.sym.as_str())
+        get_name_with_namespace(namespace, decl.ident.sym.as_str())
     }
 
     pub fn from_class_decl(
@@ -303,65 +284,6 @@ impl TsUserClassBuilder {
         class
     }
 
-    pub fn global_class(
-        functions: Vec<(Vec<String>, FnDecl)>,
-        variables: Vec<(Vec<String>, Box<VarDecl>)>,
-        exports: HashSet<String>,
-        gen_id: Arc<GraphIdGenerator>,
-        cache: &Cache,
-    ) -> Self {
-        let mut fields = HashMap::default();
-        let mut methods = HashMap::default();
-
-        for func in functions {
-            let func_name = Self::get_name_with_namespace(&func.0, func.1.ident.sym.as_str());
-            let mut desc = MethodDescription::from_with_cache(&func.1, cache);
-            if exports.contains(&func_name) {
-                assert!(desc
-                    .params
-                    .iter()
-                    .all(|p| !matches!(p.value_type, ValueType::Null)));
-                desc.is_private = false;
-            }
-            methods.insert(func_name, desc);
-        }
-        for var in variables {
-            for decl in var.1.decls.iter() {
-                let var_name = Self::get_name_with_namespace(
-                    &var.0,
-                    decl.name.as_ident().unwrap().sym.as_str(),
-                );
-                let mut desc = JsFieldDescription::from_with_cache(decl, cache);
-                if exports.contains(&var_name) {
-                    desc.is_private = false;
-                }
-                fields.insert(var_name, desc);
-            }
-        }
-
-        let constructor = MethodDescription {
-            name: str_cached!(cache; TsClasses::GLOBAL_CLASS_NAME),
-            params: Default::default(),
-            kind: MethodKind::Method,
-            is_static: false,
-            is_private: true,
-            body: None,
-        };
-
-        let class = Self {
-            id: gen_id.get_id_for_graph() as u64,
-            class_name: str_cached!(cache; TsClasses::GLOBAL_CLASS_NAME),
-            fields,
-            methods,
-            constructor,
-            gen_id,
-            super_class: None,
-            is_abstract: true,
-        };
-
-        class
-    }
-
     pub fn finalize(self, classes: &mut TsClasses, graphs_map: &mut GraphsMap, cache: &Arc<Cache>) {
         let description = Arc::new(TsClassDescription {
             id: self.id,
@@ -373,7 +295,8 @@ impl TsUserClassBuilder {
             is_abstract: self.is_abstract,
         });
 
-        let static_graph_obj_type = static_graph_obj_type(&description.class_name, cache);
+        let static_graph_obj_type =
+            StaticGraphBuilder::static_graph_obj_type(&description.class_name, cache);
         let wrapper = JsObjectWrapper::new(description.clone());
 
         let class = TsUserClass {
@@ -391,7 +314,18 @@ impl TsUserClassBuilder {
         classes.add_user_class(class.description.class_name.to_string(), class);
 
         if self.fields.values().any(|field| field.is_static) {
-            let graph = self.populate_static_graph(root_node, graphs_map, classes, cache);
+            let static_graph_builder = StaticGraphBuilder {
+                id: self.id,
+                class_name: self.class_name.as_str(),
+                gen_id: &self.gen_id,
+            };
+            let graph = static_graph_builder.populate_static_graph(
+                self.fields.values(),
+                root_node,
+                graphs_map,
+                classes,
+                cache,
+            );
             classes
                 .get_user_class_mut(&self.class_name)
                 .unwrap()
@@ -534,87 +468,5 @@ impl TsUserClassBuilder {
             self.class_name.clone(),
             method,
         )))
-    }
-}
-
-// static graph
-impl TsUserClassBuilder {
-    fn populate_static_graph(
-        &self,
-        root_node: NodeIndex,
-        graphs_map: &mut GraphsMap,
-        classes: &mut TsClasses,
-        cache: &Arc<Cache>,
-    ) -> Arc<ObjectGraph> {
-        let graph_id = self.id as GraphIndex;
-        graphs_map.new_static_graph(graph_id);
-        self.add_root_node(graphs_map, graph_id, root_node, cache);
-
-        for field in self.fields.values().filter(|field| field.is_static) {
-            self.add_static_field(field, graph_id, graphs_map, root_node, classes, cache);
-        }
-
-        graphs_map.get(&graph_id).unwrap().clone()
-    }
-
-    fn add_root_node(
-        &self,
-        graphs_map: &mut GraphsMap,
-        graph_id: GraphIndex,
-        root_node: NodeIndex,
-        cache: &Cache,
-    ) {
-        graphs_map.construct_node(
-            graph_id,
-            root_node,
-            static_graph_obj_type(&self.class_name, cache),
-            fields!(),
-        );
-        graphs_map.set_as_root(
-            static_graph_root_name(&self.class_name, cache),
-            graph_id,
-            root_node,
-        );
-    }
-
-    fn add_static_field(
-        &self,
-        field: &JsFieldDescription,
-        graph_id: GraphIndex,
-        graphs_map: &mut GraphsMap,
-        root_node: NodeIndex,
-        classes: &mut TsClasses,
-        cache: &Arc<Cache>,
-    ) {
-        let init_expr = field.init_expr.as_ref().unwrap();
-        let init_val = get_value_from_expr(
-            init_expr,
-            graph_id,
-            graphs_map,
-            classes,
-            &self.gen_id,
-            cache,
-        );
-
-        graphs_map.set_field(
-            str_cached!(cache; &field.name),
-            graph_id,
-            root_node,
-            &init_val,
-        );
-
-        let class = classes.get_user_class_mut(&self.class_name).unwrap();
-        class.static_fields.insert(
-            field.name.clone(),
-            LocValue {
-                loc: Location::ObjectField(ObjectFieldLoc {
-                    graph: graph_id,
-                    node: root_node,
-                    field: str_cached!(cache; &field.name),
-                    attrs: Attributes::default(),
-                }),
-                val: init_val,
-            },
-        );
     }
 }

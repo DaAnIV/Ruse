@@ -693,8 +693,8 @@ impl SnythesisTask {
 
         if add_global {
             if let Some(global_class) = classes.get_global_class() {
-                composite_opcodes.extend_from_slice(&global_class.member_opcodes);
-                composite_opcodes.extend_from_slice(&global_class.method_opcodes);
+                composite_opcodes.extend_from_slice(&global_class.variables_opcodes);
+                composite_opcodes.extend_from_slice(&global_class.function_opcodes);
             }
         }
 

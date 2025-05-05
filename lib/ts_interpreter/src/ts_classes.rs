@@ -20,6 +20,7 @@ use crate::{
     engine_context::EngineContext,
     ts_array_class::BuiltinArrayClass,
     ts_class::{TsBuiltinClass, TsClass},
+    ts_global_class::{TsGlobalClass, TsGlobalClassBuilder},
     ts_user_class::{TsUserClass, TsUserClassBuilder},
 };
 
@@ -28,15 +29,18 @@ pub struct TsClasses {
     pub static_classes_gen_id: Arc<GraphIdGenerator>,
     builtin_classes: HashMap<String, Box<dyn TsBuiltinClass>>,
     user_classes: HashMap<String, TsUserClass>,
+    global_class: Option<TsGlobalClass>,
 }
 
 impl SynthesizerContextData for TsClasses {}
 
 impl TsClasses {
-    pub(crate) const GLOBAL_CLASS_NAME: &'static str = "__GLOBAL_CLASS__";
-
     pub(crate) fn add_user_class(&mut self, name: String, class: TsUserClass) {
         self.user_classes.insert(name, class);
+    }
+
+    pub(crate) fn set_global_class(&mut self, class: TsGlobalClass) {
+        self.global_class = Some(class);
     }
 
     pub fn get_class(&self, obj_type: &ObjectType) -> Option<&dyn TsClass> {
@@ -68,21 +72,20 @@ impl TsClasses {
         self.user_classes.get_mut(base_class_name)
     }
 
-    pub fn get_global_class(&self) -> Option<&TsUserClass> {
-        self.user_classes.get(Self::GLOBAL_CLASS_NAME)
+    pub fn get_global_class(&self) -> Option<&TsGlobalClass> {
+        self.global_class.as_ref()
     }
 
     pub(crate) fn init_engine_ctx(&self, engine_ctx: &mut EngineContext<'_>) {
-        for (name, class) in &self.user_classes {
-            if name == &Self::GLOBAL_CLASS_NAME {
-                engine_ctx
-                    .register_global_class(class)
-                    .expect("Failed to register global class");
-                continue;
-            }
+        for (_, class) in &self.user_classes {
             class
                 .register_class(engine_ctx)
                 .expect("Failed to register class");
+        }
+        if let Some(global_class) = &self.global_class {
+            global_class
+                .register_class(engine_ctx)
+                .expect("Failed to register global class");
         }
     }
 
@@ -267,10 +270,11 @@ impl TsClassesBuilder {
             static_classes_gen_id: gen_id,
             user_classes: Default::default(),
             builtin_classes,
+            global_class: None,
         };
 
         let mut graphs_map = GraphsMap::default();
-        let global_class_builder = TsUserClassBuilder::global_class(
+        let global_class_builder = TsGlobalClassBuilder::global_class(
             self.functions,
             self.variables,
             self.exports,

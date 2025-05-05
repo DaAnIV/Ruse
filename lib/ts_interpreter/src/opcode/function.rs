@@ -10,7 +10,9 @@ use tracing::trace;
 
 use crate::{
     engine_context::EngineContext,
-    opcode::{member_call_ast, member_field_ast, new_obj_ast, static_member_call_ast},
+    opcode::{
+        function_call_ast, member_call_ast, member_field_ast, new_obj_ast, static_member_call_ast,
+    },
     ts_class::{MethodDescription, MethodKind},
     ts_classes::TsClasses,
 };
@@ -24,11 +26,9 @@ pub struct ClassMethodOp {
 
 impl ClassMethodOp {
     pub fn new(class_name: ClassName, method_desc: &MethodDescription) -> Self {
-        let full_method_name = if method_desc.kind == MethodKind::GlobalFunction {
-            format!("{}", &method_desc.name)
-        } else {
-            format!("{}.{}", &class_name, &method_desc.name)
-        };
+        assert!(method_desc.kind != MethodKind::GlobalFunction);
+
+        let full_method_name = format!("{}.{}", &class_name, &method_desc.name);
         let mut arg_types = vec![];
         if !method_desc.is_static {
             arg_types.push(ValueType::Object(ObjectType::Class(class_name.clone())));
@@ -203,6 +203,92 @@ impl std::fmt::Debug for ClassConstructorOp {
         f.debug_struct("ClassConstructorOp")
             .field("obj", &self.obj_type)
             .field("arg_types", &self.arg_types)
+            .finish()
+    }
+}
+
+pub struct GlobalFunctionOp {
+    desc: MethodDescription,
+    full_method_name: String,
+    arg_types: Vec<ValueType>,
+}
+
+impl GlobalFunctionOp {
+    pub fn new(method_desc: &MethodDescription) -> Self {
+        assert!(method_desc.kind == MethodKind::GlobalFunction);
+
+        let full_method_name = format!("{}", &method_desc.name);
+        let mut arg_types = vec![];
+        arg_types.extend(method_desc.params.iter().map(|x| x.value_type.clone()));
+
+        Self {
+            desc: method_desc.clone(),
+            full_method_name,
+            arg_types,
+        }
+    }
+}
+
+impl ExprOpcode for GlobalFunctionOp {
+    fn op_name(&self) -> &str {
+        &self.full_method_name
+    }
+
+    fn arg_types(&self) -> &[ValueType] {
+        &self.arg_types
+    }
+
+    fn eval(
+        &self,
+        args: &[&LocValue],
+        post_ctx: &mut Context,
+        syn_ctx: &SynthesizerContext,
+    ) -> EvalResult {
+        let classes = syn_ctx.data.downcast_ref::<TsClasses>().unwrap();
+        let mut boa_ctx = EngineContext::new_boa_ctx();
+        let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, classes);
+        engine_ctx.reset_with_mut_context(post_ctx, classes, &syn_ctx.cache);
+        let class = classes.get_global_class().unwrap();
+
+        let result = class.call_function(
+            &self.desc.name,
+            args.iter().map(|x| x.val()),
+            classes,
+            &syn_ctx.cache,
+            &mut engine_ctx,
+        );
+
+        match result {
+            // Need to check if func changed the context
+            Ok(res) => {
+                let output = post_ctx.temp_value(res);
+                if engine_ctx.is_dirty() {
+                    dirty!(output)
+                } else {
+                    pure!(output)
+                }
+            }
+            Err(err) => {
+                trace!(
+                    "Failed to evaluate {}. error: {}",
+                    self.full_method_name,
+                    err
+                );
+                Err(())
+            }
+        }
+    }
+
+    fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
+        debug_assert_eq!(children.len(), self.arg_types.len());
+        function_call_ast(&self.full_method_name, children)
+    }
+}
+
+impl std::fmt::Debug for GlobalFunctionOp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("GlobalFunctionOp")
+            .field("desc", &self.desc)
             .finish()
     }
 }

@@ -189,6 +189,41 @@ fn static_member_call_ast(
     TsExprAst::create(ast::Expr::Call(expr))
 }
 
+
+fn function_call_ast(
+    callee_name: &str,
+    children: &[Box<dyn ExprAst>],
+) -> Box<dyn ExprAst> {
+    let callee_ident = ast::Ident {
+        span: DUMMY_SP,
+        sym: callee_name.into(),
+        optional: false,
+        ctxt: Default::default(),
+    };
+
+    let args = children
+        .iter()
+        .map(|x| {
+            let arg_ast = TsExprAst::from(x.as_ref());
+            ast::ExprOrSpread {
+                spread: None,
+                expr: arg_ast.node.to_owned(),
+            }
+        })
+        .collect();
+
+    let expr = ast::CallExpr {
+        span: DUMMY_SP,
+        callee: ast::Callee::Expr(ast::Expr::Ident(callee_ident).into()),
+        args,
+        type_args: None,
+        ctxt: Default::default(),
+    };
+
+    TsExprAst::create(ast::Expr::Call(expr))
+}
+
+
 fn get_start_index(value: &Number, len: usize) -> Result<usize, ()> {
     let ilen = len as isize;
     let ivalue = value.to_isize().ok_or(())?;

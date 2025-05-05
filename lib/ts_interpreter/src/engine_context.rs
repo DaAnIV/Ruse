@@ -483,8 +483,8 @@ impl<'a> EngineContext<'a> {
         })
     }
 
-    pub fn register_global_class(&mut self, global_class: &TsUserClass) -> JsResult<()> {
-        for (name, method) in &global_class.description.methods {
+    pub fn register_global_class(&mut self, global_class: &TsGlobalClass) -> JsResult<()> {
+        for (name, method) in &global_class.methods {
             let js_func = JsObjectWrapper::method_js_function(method, self);
             self.register_global_builtin_callable(
                 js_string!(name.as_str()),
@@ -494,6 +494,17 @@ impl<'a> EngineContext<'a> {
         }
 
         Ok(())
+    }
+
+    pub(crate) fn call_global_function(
+        &mut self,
+        method_name: &str,
+        args: &[JsValue],
+    ) -> JsResult<JsValue> {
+        let func = self.global_object().get(js_string!(method_name), self)?;
+        func.as_callable()
+            .unwrap()
+            .call(&JsValue::undefined(), args, self)
     }
 }
 

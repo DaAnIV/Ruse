@@ -1,16 +1,28 @@
 use std::{collections::HashMap, fmt::Debug, sync::Arc};
 
 use ruse_object_graph::{
-    scached, str_cached, vbool, vnull, vnum, vstring, Cache, CachedString, ClassName, GraphIndex,
-    GraphsMap, PrimitiveValue, ValueType,
+    fields, scached, str_cached, vbool, vnull, vnum, vstring, Attributes, Cache, CachedString,
+    ClassName, GraphIndex, GraphsMap, NodeIndex, ObjectGraph, ObjectType, PrimitiveValue, RootName,
+    ValueType,
 };
-use ruse_synthesizer::context::GraphIdGenerator;
+use ruse_synthesizer::{
+    context::GraphIdGenerator,
+    location::{LocValue, Location, ObjectFieldLoc},
+};
 use swc_common::SourceMap;
 use swc_ecma_ast::{self as ast, BlockStmt};
 
 use ruse_object_graph::value::*;
 
 use crate::{engine_context::EngineContext, ts_classes::TsClasses};
+
+pub(crate) fn get_name_with_namespace(namespace: &Vec<String>, name: &str) -> String {
+    if namespace.is_empty() {
+        name.to_string()
+    } else {
+        namespace.join(".") + "." + name
+    }
+}
 
 pub trait FromWithCache<T> {
     /// Converts to this type from the input type.
@@ -442,3 +454,96 @@ pub trait TsBuiltinClass: TsClass {
     ) -> Result<ObjectValue, boa_engine::JsError>;
 }
 
+
+pub(crate) struct StaticGraphBuilder<'a> {
+    pub id: u64,
+    pub class_name: &'a str,
+    pub gen_id: &'a Arc<GraphIdGenerator>,
+}
+
+impl<'a> StaticGraphBuilder<'a> {
+    pub fn static_graph_obj_type(class_name: &str, cache: &Cache) -> ObjectType {
+        ObjectType::class_obj_type(&format!("{}_{}", class_name, &"Static"), cache)
+    }
+
+    pub fn static_graph_root_name(class_name: &str, cache: &Cache) -> RootName {
+        scached!(cache; format!("{}_{}", class_name, &"Static"))
+    }
+
+    pub fn populate_static_graph<'b, I>(
+        &self,
+        fields: I,
+        root_node: NodeIndex,
+        graphs_map: &mut GraphsMap,
+        classes: &mut TsClasses,
+        cache: &Arc<Cache>,
+    ) -> Arc<ObjectGraph>
+    where
+        I: IntoIterator<Item = &'b JsFieldDescription>,
+    {
+        let graph_id = self.id as GraphIndex;
+        graphs_map.new_static_graph(graph_id);
+        self.add_root_node(graphs_map, graph_id, root_node, cache);
+
+        for field in fields.into_iter().filter(|field| field.is_static) {
+            self.add_static_field(field, graph_id, graphs_map, root_node, classes, cache);
+        }
+
+        graphs_map.get(&graph_id).unwrap().clone()
+    }
+
+    fn add_root_node(
+        &self,
+        graphs_map: &mut GraphsMap,
+        graph_id: GraphIndex,
+        root_node: NodeIndex,
+        cache: &Cache,
+    ) {
+        graphs_map.construct_node(
+            graph_id,
+            root_node,
+            Self::static_graph_obj_type(&self.class_name, cache),
+            fields!(),
+        );
+        graphs_map.set_as_root(
+            Self::static_graph_root_name(&self.class_name, cache),
+            graph_id,
+            root_node,
+        );
+    }
+
+    fn add_static_field(
+        &self,
+        field: &JsFieldDescription,
+        graph_id: GraphIndex,
+        graphs_map: &mut GraphsMap,
+        root_node: NodeIndex,
+        classes: &mut TsClasses,
+        cache: &Arc<Cache>,
+    ) {
+        let init_expr = field.init_expr.as_ref().unwrap();
+        let init_val =
+            get_value_from_expr(init_expr, graph_id, graphs_map, classes, self.gen_id, cache);
+
+        graphs_map.set_field(
+            str_cached!(cache; &field.name),
+            graph_id,
+            root_node,
+            &init_val,
+        );
+
+        let class = classes.get_user_class_mut(&self.class_name).unwrap();
+        class.static_fields.insert(
+            field.name.clone(),
+            LocValue {
+                loc: Location::ObjectField(ObjectFieldLoc {
+                    graph: graph_id,
+                    node: root_node,
+                    field: str_cached!(cache; &field.name),
+                    attrs: Attributes::default(),
+                }),
+                val: init_val,
+            },
+        );
+    }
+}
