@@ -287,7 +287,7 @@ pub(crate) fn get_value_type_from_ts_type(type_ann: &ast::TsType, cache: &Cache)
                     let elem_type = get_value_type_from_ts_type(&type_params.params[0], cache);
                     return ValueType::set_value_type(&elem_type);
                 }
-                "Record" => {
+                "Map" => {
                     let type_params = t.type_params.as_ref().unwrap();
                     assert!(type_params.params.len() == 2);
                     let key_type = get_value_type_from_ts_type(&type_params.params[0], cache);

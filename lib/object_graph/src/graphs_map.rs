@@ -437,6 +437,45 @@ impl GraphsMap {
         self.add_simple_object_from_fields_map(graph, id, obj_type, map)
     }
 
+    pub fn add_primitive_map_object<I,V>(
+        &mut self,
+        graph: GraphIndex,
+        id: NodeIndex,
+        key_type: &ValueType,
+        value_type: &ValueType,
+        values: I,
+        cache: &Cache,
+    ) -> NodeIndex
+    where
+        I: IntoIterator<Item = (PrimitiveValue, V)>,
+        V: Into<PrimitiveValue>,
+    {
+        let obj_type = ObjectType::map_obj_type(key_type, value_type);
+        let map = values
+            .into_iter()
+            .map(|(k, v)| (scached!(cache; k.to_string()), v.into()));
+        self.add_simple_object_from_map(graph, id, obj_type, map)
+    }
+
+    pub fn add_map_object<I>(
+        &mut self,
+        graph: GraphIndex,
+        id: NodeIndex,
+        key_type: &ValueType,
+        value_type: &ValueType,
+        values: I,
+        cache: &Cache,
+    ) -> NodeIndex
+    where
+        I: IntoIterator<Item = (PrimitiveValue, Value)>,
+    {
+        let obj_type = ObjectType::map_obj_type(key_type, value_type);
+        let values_map = values
+            .into_iter()
+            .map(|(k, v)| (scached!(cache; k.to_string()), v));
+        self.add_object_from_map(graph, id, obj_type, values_map)
+    }
+
     pub fn add_simple_object_from_map<I, T>(
         &mut self,
         graph: GraphIndex,

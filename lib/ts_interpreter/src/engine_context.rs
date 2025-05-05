@@ -20,7 +20,7 @@ use crate::{
     js_object_wrapper::JsObjectWrapper,
     js_value::{js_value_to_value, value_to_js_value},
     js_wrapped::JsWrapped,
-    jsbuiltins::{jsarray::JsArrayWrapper, jsiterator::JsObjectIterator},
+    jsbuiltins::{jsarray::JsArrayWrapper, jsiterator::JsObjectIterator, jsmap::JsMapWrapper},
     ts_class::BuiltinClassWrapper,
     ts_classes::TsClasses,
     ts_global_class::TsGlobalClass,
@@ -241,6 +241,17 @@ impl RuseJsConstructors {
             .insert(constructor)
             .prototype())
     }
+
+    pub fn map_prototype(&self, engine_ctx: &mut EngineContext<'_>) -> JsResult<JsObject> {
+        if let Some(constructor) = self.map_constructor.borrow().as_ref() {
+            return Ok(constructor.prototype());
+        }
+        let constructor = JsMapWrapper::build_standard_constructor(engine_ctx)?;
+        Ok(self
+            .map_constructor
+            .borrow_mut()
+            .insert(constructor)
+            .prototype())
     }
 
     pub fn iter_prototype(&self, engine_ctx: &mut EngineContext<'_>) -> JsResult<JsObject> {
@@ -529,6 +540,48 @@ impl<'a> EngineContext<'a> {
 
         Ok(ObjectValue {
             obj_type: ObjectType::array_obj_type(elem_type),
+            graph_id,
+            node: node_id,
+        })
+    }
+
+    pub fn create_map_object<I>(
+        &self,
+        elements: I,
+        key_type: &ValueType,
+        value_type: &ValueType,
+    ) -> JsResult<ObjectValue>
+    where
+        I: IntoIterator<Item = (PrimitiveValue, Value)>,
+    {
+        let global_obj = self.global_object();
+        let global_ctx = JsWrapped::<RuseJsGlobalObject>::get_from_js_obj(&global_obj)?;
+        let inner = global_ctx.inner()?;
+        let cache = inner.cache();
+        let id_gen = inner.id_gen();
+
+        let graph_id = inner.get_graph_id_for_new_object()?;
+        let node_id = id_gen.get_id_for_node();
+
+        let graphs_map = inner.mut_graphs_map()?;
+
+        if value_type.is_primitive() {
+            graphs_map.add_primitive_map_object(
+                graph_id,
+                node_id,
+                key_type,
+                value_type,
+                elements
+                    .into_iter()
+                    .map(|(k, v)| (k, v.into_primitive().unwrap())),
+                cache,
+            );
+        } else {
+            graphs_map.add_map_object(graph_id, node_id, key_type, value_type, elements, cache);
+        }
+
+        Ok(ObjectValue {
+            obj_type: ObjectType::map_obj_type(key_type, value_type),
             graph_id,
             node: node_id,
         })

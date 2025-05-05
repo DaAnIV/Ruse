@@ -9,7 +9,7 @@ use ruse_object_graph::{
     fields, str_cached, value::Value, vbool, vnull, vnum, vobj, vstr, Cache, GraphIndex, GraphsMap,
     ObjectType, PrimitiveValue, ValueType,
 };
-use ruse_synthesizer::context::GraphIdGenerator;
+use ruse_synthesizer::context::{GraphIdGenerator, ValuesMap};
 use ruse_ts_interpreter::{
     dom::{self, DomLoader},
     engine_context::EngineContext,
@@ -62,6 +62,7 @@ pub(crate) enum TaskType {
     String,
     Array(Box<TaskType>),
     Set(Box<TaskType>),
+    Map(Box<TaskType>, Box<TaskType>),
     Dom,
     DOMElement,
     VarRef(VarRef),
@@ -219,6 +220,53 @@ impl TaskType {
 
                 Ok(vobj!(
                     ObjectType::array_obj_type(&ValueType::Number),
+                    graph_id,
+                    node
+                ))
+            }
+            TaskType::Map(key_type, value_type) => {
+                if !key_type.is_primitive() {
+                    return Err(parse_err!(
+                        value,
+                        format!("Only map with primitive keys is supported")
+                    ));
+                }
+                let values = value
+                    .as_object()
+                    .ok_or(parse_err!(value, "Value is not a map value"))?;
+                let mut parsed_values = ValuesMap::default();
+                for (k, v) in values {
+                    key_type.json_value_from_string(k)?;
+
+                    let key = str_cached!(cache; k);
+                    let value = value_type.create_value(
+                        v,
+                        classes,
+                        graph_id,
+                        graphs_map,
+                        id_gen,
+                        refs_graph_id,
+                        cache,
+                    )?;
+                    parsed_values.insert(key, value);
+                }
+
+                graphs_map.ensure_graph(graph_id);
+                let node = graphs_map.add_object_from_map(
+                    graph_id,
+                    id_gen.get_id_for_node(),
+                    ObjectType::map_obj_type(
+                        &key_type.value_type(cache),
+                        &value_type.value_type(cache),
+                    ),
+                    parsed_values,
+                );
+
+                Ok(vobj!(
+                    ObjectType::map_obj_type(
+                        &key_type.value_type(cache),
+                        &value_type.value_type(cache),
+                    ),
                     graph_id,
                     node
                 ))
@@ -549,6 +597,9 @@ impl TaskType {
                 ValueType::array_value_type(&inner_type.value_type(cache))
             }
             TaskType::Set(inner_type) => ValueType::set_value_type(&inner_type.value_type(cache)),
+            TaskType::Map(key_type, val_type) => {
+                ValueType::map_value_type(&key_type.value_type(cache), &val_type.value_type(cache))
+            }
             TaskType::Dom => ValueType::Object(DomLoader::document_obj_type()),
             TaskType::DOMElement => ValueType::Object(DomLoader::element_obj_type()),
             TaskType::VarRef(_var_ref) => todo!(),
@@ -574,6 +625,16 @@ impl TaskType {
     pub(crate) fn is_object(&self) -> bool {
         match self {
             TaskType::Object(_) => true,
+            _ => false,
+        }
+    }
+
+    pub(crate) fn is_primitive(&self) -> bool {
+        match self {
+            TaskType::Bool => true,
+            TaskType::Double => true,
+            TaskType::Int => true,
+            TaskType::String => true,
             _ => false,
         }
     }
@@ -715,6 +776,10 @@ impl TaskType {
                 value_string,
                 "Doesn't support converting from string to object value"
             )),
+            TaskType::Map(_, _) => Err(parse_err!(
+                value_string,
+                "Doesn't support converting from string to map value"
+            )),
         }
     }
 
@@ -779,6 +844,7 @@ impl fmt::Display for TaskType {
             TaskType::String => write!(f, "string"),
             TaskType::Array(inner_type) => write!(f, "Array<{}>", inner_type),
             TaskType::Set(inner_type) => write!(f, "Set<{}>", inner_type),
+            TaskType::Map(key, val) => write!(f, "Map<{},{}>", key, val),
             TaskType::Dom => write!(f, "dom"),
             TaskType::DOMElement => write!(f, "dom_element"),
             TaskType::VarRef(var_ref) => write!(f, "{}", var_ref),
@@ -797,11 +863,15 @@ impl From<&ValueType> for TaskType {
                 TaskType::Object(class_name.to_string())
             }
             ValueType::Object(ObjectType::Array(inner_type)) => {
-                TaskType::Array(Box::new(TaskType::from(inner_type.as_ref())))
+                TaskType::Array(TaskType::from(inner_type.as_ref()).into())
             }
             ValueType::Object(ObjectType::Set(inner_type)) => {
-                TaskType::Set(Box::new(TaskType::from(inner_type.as_ref())))
+                TaskType::Set(TaskType::from(inner_type.as_ref()).into())
             }
+            ValueType::Object(ObjectType::Map(key_type, value_type)) => TaskType::Map(
+                TaskType::from(key_type.as_ref()).into(),
+                TaskType::from(value_type.as_ref()).into(),
+            ),
             _ => unreachable!("Unsupported type"),
         }
     }
@@ -809,6 +879,32 @@ impl From<&ValueType> for TaskType {
 
 fn strip_string_wrap(value_str: &str, prefix: char, suffix: char) -> Option<&str> {
     value_str.strip_prefix(prefix)?.strip_suffix(suffix)
+}
+
+fn strip_template_class<'a>(value_str: &'a str, class: &str) -> Option<&'a str> {
+    let prefix = format!("{}<", class);
+    value_str.strip_prefix(&prefix)?.strip_suffix('>')
+}
+
+fn array_elem_type<'a>(value_str: &'a str) -> Option<TaskType> {
+    let elem_type =
+        strip_string_wrap(value_str, '[', ']').or(strip_template_class(value_str, "Array"))?;
+    Some(TaskType::from(elem_type))
+}
+
+fn set_elem_type<'a>(value_str: &'a str) -> Option<TaskType> {
+    let elem_type =
+        strip_string_wrap(value_str, '{', '}').or(strip_template_class(value_str, "Set"))?;
+    Some(TaskType::from(elem_type))
+}
+
+fn map_types<'a>(value_str: &'a str) -> Option<(TaskType, TaskType)> {
+    let types_str = strip_template_class(value_str, "Map")?;
+    let elements: Vec<&str> = types_str.split(',').collect();
+    assert!(elements.len() != 2, "Map type should have two types");
+    let key_type = TaskType::from(elements[0].trim());
+    let val_type = TaskType::from(elements[1].trim());
+    Some((key_type, val_type))
 }
 
 impl From<&str> for TaskType {
@@ -821,10 +917,12 @@ impl From<&str> for TaskType {
             "DOM" => TaskType::Dom,
             "DOMElement" => TaskType::DOMElement,
             _ => {
-                if let Some(elem_type) = strip_string_wrap(val, '[', ']') {
-                    TaskType::Array(Box::new(TaskType::from(elem_type)))
-                } else if let Some(elem_type) = strip_string_wrap(val, '{', '}') {
-                    TaskType::Set(Box::new(TaskType::from(elem_type)))
+                if let Some(elem_type) = array_elem_type(val) {
+                    TaskType::Array(elem_type.into())
+                } else if let Some(elem_type) = set_elem_type(val) {
+                    TaskType::Set(elem_type.into())
+                } else if let Some((key_type, val_type)) = map_types(val) {
+                    TaskType::Map(key_type.into(), val_type.into())
                 } else if let Some(var_ref) = ExprPrefix::FieldRef.get(&val) {
                     TaskType::VarRef(VarRef::from(var_ref))
                 } else {

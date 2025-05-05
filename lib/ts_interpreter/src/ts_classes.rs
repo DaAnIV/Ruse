@@ -19,6 +19,7 @@ use swc_ecma_parser::{Syntax, TsSyntax};
 use crate::{
     engine_context::EngineContext,
     jsbuiltins::jsarray::BuiltinArrayClass,
+    jsbuiltins::jsmap::BuiltinMapClass,
     ts_class::{TsBuiltinClass, TsClass},
     ts_global_class::{TsGlobalClass, TsGlobalClassBuilder},
     ts_user_class::{TsUserClass, TsUserClassBuilder},
@@ -254,6 +255,10 @@ impl TsClassesBuilder {
         builtin_classes.insert(
             BuiltinArrayClass::CLASS_NAME.to_string(),
             Box::new(BuiltinArrayClass::new(builtin_classes.len() as u64, cache)),
+        );
+        builtin_classes.insert(
+            BuiltinMapClass::CLASS_NAME.to_string(),
+            Box::new(BuiltinMapClass::new(builtin_classes.len() as u64, cache)),
         );
         builtin_classes
     }

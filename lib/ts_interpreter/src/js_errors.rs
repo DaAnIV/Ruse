@@ -69,3 +69,21 @@ pub(crate) fn js_error_unexpected_arg_type(index: usize) -> boa_engine::JsError 
         .with_message(format!("arg index {} type is unexpected", index))
         .into()
 }
+
+pub(crate) fn js_error_not_builtin_map() -> boa_engine::JsError {
+    boa_engine::JsNativeError::typ()
+        .with_message("Not a builtin map")
+        .into()
+}
+
+pub(crate) fn js_error_not_primitive_key() -> boa_engine::JsError {
+    boa_engine::JsNativeError::typ()
+        .with_message("A Map without primitive key is not supported")
+        .into()
+}
+
+pub(crate) fn js_error_this_is_not_obj_map() -> boa_engine::JsError {
+    boa_engine::JsNativeError::typ()
+        .with_message("'this' is not a wrapped Map")
+        .into()
+}

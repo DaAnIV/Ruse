@@ -8,29 +8,38 @@ pub type ClassName = CachedString;
 pub enum ObjectType {
     Array(Box<ValueType>),
     Set(Box<ValueType>),
+    Map(Box<ValueType>, Box<ValueType>),
     Class(ClassName),
     DOM,
-    DOMElement
+    DOMElement,
 }
 impl ObjectType {
     pub fn class_obj_type(class_name: &str, cache: &Cache) -> ObjectType {
         ObjectType::Class(str_cached!(cache; class_name))
     }
-    
+
     pub fn array_obj_type(elem_type: &ValueType) -> ObjectType {
-        ObjectType::Array(Box::new(elem_type.clone()))
+        ObjectType::Array(elem_type.clone().into())
     }
-    
+
     pub fn set_obj_type(elem_type: &ValueType) -> ObjectType {
-        ObjectType::Set(Box::new(elem_type.clone()))
+        ObjectType::Set(elem_type.clone().into())
+    }
+
+    pub fn map_obj_type(key_type: &ValueType, value_type: &ValueType) -> ObjectType {
+        ObjectType::Map(key_type.clone().into(), value_type.clone().into())
     }
 
     pub fn is_array_obj_type(&self) -> bool {
         matches!(self, ObjectType::Array(_))
     }
-    
+
     pub fn is_set_obj_type(&self) -> bool {
         matches!(self, ObjectType::Set(_))
+    }
+
+    pub fn is_map_obj_type(&self) -> bool {
+        matches!(self, ObjectType::Map(_, _))
     }
 
     pub fn class_name(&self) -> Option<&ClassName> {
@@ -45,6 +54,7 @@ impl ObjectType {
             ObjectType::Class(class_name) => class_name.as_str(),
             ObjectType::Array(_) => "Array",
             ObjectType::Set(_) => "Set",
+            ObjectType::Map(_, _) => "Map",
             ObjectType::DOM => "DOM",
             ObjectType::DOMElement => "DOMElement",
         }
@@ -73,8 +83,15 @@ impl ValueType {
         ValueType::Object(ObjectType::set_obj_type(elem_type))
     }
 
+    pub fn map_value_type(key_type: &ValueType, value_type: &ValueType) -> ValueType {
+        ValueType::Object(ObjectType::map_obj_type(key_type, value_type))
+    }
+
     pub fn is_primitive(&self) -> bool {
-        matches!(self, ValueType::Number | ValueType::Bool | ValueType::String)
+        matches!(
+            self,
+            ValueType::Number | ValueType::Bool | ValueType::String
+        )
     }
 
     pub fn obj_type(&self) -> Option<&ObjectType> {
@@ -90,6 +107,7 @@ impl fmt::Display for ObjectType {
         match self {
             ObjectType::Array(elem_type) => write!(f, "Array<{}>", elem_type),
             ObjectType::Set(elem_type) => write!(f, "Set<{}>", elem_type),
+            ObjectType::Map(key_type, value_type) => write!(f, "Map<{},{}>", key_type, value_type),
             ObjectType::Class(class_name) => write!(f, "{}", class_name),
             ObjectType::DOM => write!(f, "DOM"),
             ObjectType::DOMElement => write!(f, "DOMElement"),
