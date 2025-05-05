@@ -352,6 +352,7 @@ pub(crate) fn get_code(body: &BlockStmt) -> String {
         preamble: "",
         codegen_config,
         output: None,
+        source_map_url: None,
     };
     c.print(body, print_args).expect("Failed to get code").code
 }

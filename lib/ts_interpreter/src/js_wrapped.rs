@@ -3,7 +3,7 @@ use std::ops::{Deref, DerefMut};
 use boa_engine::JsError;
 use ruse_object_graph::value::ObjectValue;
 
-use crate::js_errors::{js_error_not_js_object, js_error_not_js_wrapped};
+use crate::js_errors::*;
 
 pub(crate) struct JsWrapped<T: 'static>(pub T);
 
@@ -21,7 +21,7 @@ impl<T> JsWrapped<T> {
     ) -> boa_engine::JsResult<boa_engine::gc::GcRef<'_, Self>> {
         js_obj
             .downcast_ref::<Self>()
-            .ok_or(js_error_not_js_wrapped())
+            .ok_or_else(|| js_error_not_js_wrapped())
     }
 
     pub fn mut_from_js_obj(
@@ -29,13 +29,13 @@ impl<T> JsWrapped<T> {
     ) -> Result<boa_engine::gc::GcRefMut<'_, boa_engine::object::ErasedObject, Self>, JsError> {
         js_obj
             .downcast_mut::<Self>()
-            .ok_or(js_error_not_js_wrapped())
+            .ok_or_else(|| js_error_not_js_wrapped())
     }
 
     pub fn get_from_js_val(
         js_val: &boa_engine::JsValue,
     ) -> boa_engine::JsResult<boa_engine::gc::GcRef<'_, Self>> {
-        let js_obj = js_val.as_object().ok_or(js_error_not_js_object())?;
+        let js_obj = js_val.as_object().ok_or_else(|| js_error_not_js_object())?;
         Self::get_from_js_obj(js_obj)
     }
 }

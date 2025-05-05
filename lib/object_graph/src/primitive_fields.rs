@@ -107,7 +107,7 @@ impl num_traits::FromPrimitive for Number {
     }
 
     fn from_u64(n: u64) -> Option<Self> {
-        Some(Number(n as f64))        
+        Some(Number(n as f64))
     }
 
     fn from_f64(n: f64) -> Option<Self> {
@@ -139,7 +139,7 @@ impl Default for Number {
 pub enum PrimitiveValue {
     Number(Number),
     Bool(bool),
-    String(CachedString)
+    String(CachedString),
 }
 
 impl PrimitiveValue {
