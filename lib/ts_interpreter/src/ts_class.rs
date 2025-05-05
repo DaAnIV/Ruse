@@ -1,5 +1,6 @@
 use std::{collections::HashMap, fmt::Debug, sync::Arc};
 
+use boa_engine::{context::intrinsics::StandardConstructor, JsResult, JsString};
 use ruse_object_graph::{
     fields, scached, str_cached, vbool, vnull, vnum, vstring, Attributes, Cache, CachedString,
     ClassName, GraphIndex, GraphsMap, NodeIndex, ObjectGraph, ObjectType, PrimitiveValue, RootName,
@@ -454,6 +455,18 @@ pub trait TsBuiltinClass: TsClass {
     ) -> Result<ObjectValue, boa_engine::JsError>;
 }
 
+pub trait BuiltinClassWrapper {
+    const NAME: JsString;
+
+    fn build_standard_constructor(
+        engine_ctx: &mut EngineContext<'_>,
+    ) -> JsResult<StandardConstructor>;
+
+    fn wrap_object(
+        map_obj: &ObjectValue,
+        engine_ctx: &mut EngineContext<'_>,
+    ) -> boa_engine::JsResult<boa_engine::JsObject>;
+}
 
 pub(crate) struct StaticGraphBuilder<'a> {
     pub id: u64,

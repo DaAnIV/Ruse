@@ -1,10 +1,9 @@
 use std::{collections::HashMap, sync::Arc};
 
-use boa_engine::{js_str, js_string, value::JsValue};
+use boa_engine::{js_string, value::JsValue};
 use itertools::Itertools;
 use ruse_object_graph::{
-    scached, value::ObjectValue, Attributes, Cache, CachedString, FieldName, FieldsMap, ObjectType,
-    PrimitiveField,
+    value::ObjectValue, Attributes, CachedString, FieldName, FieldsMap, ObjectType, PrimitiveField,
 };
 
 use crate::{
@@ -13,6 +12,17 @@ use crate::{
     js_wrapped::JsWrapped,
     ts_class::{JsFieldDescription, MethodDescription, MethodKind, TsClassDescription},
 };
+
+#[macro_export]
+macro_rules! jsfn_wrap {
+    ($fn_ptr:expr) => {
+        unsafe {
+            boa_engine::native_function::NativeFunction::from_closure(move |this, args, boa_ctx| {
+                $fn_ptr(this, args, &mut boa_ctx.into())
+            })
+        }
+    };
+}
 
 #[derive(Debug, Clone)]
 pub struct JsObjectWrapper {
@@ -248,6 +258,7 @@ impl JsObjectWrapper {
     }
 }
 
+// TODO: remove the use of the DynamicClassBuilder
 impl boa_engine::class::DynamicClassBuilder<JsWrapped<ObjectValue>> for JsObjectWrapper {
     fn name(&self) -> &str {
         &self.desc.class_name
@@ -363,59 +374,5 @@ impl boa_engine::class::DynamicClassBuilder<JsWrapped<ObjectValue>> for JsObject
             return Ok(());
         }
         self.call_constructor_body(instance, args, &mut boa_ctx.into())
-    }
-}
-
-pub(crate) struct JsArrayWrapper {}
-
-impl JsArrayWrapper {
-    pub fn wrap_object(
-        array_obj: &ObjectValue,
-        engine_ctx: &mut EngineContext<'_>,
-    ) -> boa_engine::JsResult<boa_engine::JsObject> {
-        let global_obj = engine_ctx.global_object();
-        let global_ctx: boa_engine::gc::GcRef<'_, JsWrapped<RuseJsGlobalObject>> =
-            JsWrapped::<RuseJsGlobalObject>::get_from_js_obj(&global_obj)?;
-        let graphs_map = global_ctx.graphs_map()?;
-        let cache = global_ctx.cache()?;
-
-        let mut builder = boa_engine::object::ObjectInitializer::with_native_data(
-            JsWrapped(array_obj.clone()),
-            engine_ctx,
-        );
-        builder.property(
-            js_str!("length"),
-            array_obj.total_field_count(graphs_map),
-            boa_engine::property::Attribute::READONLY,
-        );
-
-        for i in 0..array_obj.total_field_count(graphs_map) {
-            let getter = Self::getter_for_index(i as u64, cache)
-                .map(|x| x.to_js_function(builder.context().realm()));
-            let setter = Self::setter_for_index(i as u64, cache)
-                .map(|x| x.to_js_function(builder.context().realm()));
-            builder.accessor(i, getter, setter, boa_engine::property::Attribute::WRITABLE);
-        }
-
-        Ok(builder.build())
-    }
-
-    fn getter_for_index(index: u64, cache: &Cache) -> Option<boa_engine::NativeFunction> {
-        let field_name = scached!(cache; index.to_string());
-        Some(unsafe {
-            boa_engine::native_function::NativeFunction::from_closure(move |this, _, boa_ctx| {
-                RuseJsGlobalObject::get_field(this, &field_name, &mut boa_ctx.into())
-            })
-        })
-    }
-
-    fn setter_for_index(index: u64, cache: &Cache) -> Option<boa_engine::NativeFunction> {
-        let field_name = scached!(cache; index.to_string());
-        Some(unsafe {
-            boa_engine::native_function::NativeFunction::from_closure(move |this, args, boa_ctx| {
-                RuseJsGlobalObject::set_field(this, &field_name, &args[0], &mut boa_ctx.into())?;
-                Ok(boa_engine::JsValue::undefined())
-            })
-        })
     }
 }

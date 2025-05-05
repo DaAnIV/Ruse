@@ -189,6 +189,59 @@ impl ObjectValue {
     }
 }
 
+impl ObjectValue {
+    pub fn field_names_iterator<'a>(
+        &self,
+        graphs_map: &'a GraphsMap,
+    ) -> impl Iterator<Item = &'a FieldName> {
+        self.fields(graphs_map)
+            .map(|(name, _)| name)
+            .chain(self.neighbors(graphs_map).map(|(name, _)| name))
+    }
+
+    pub fn fields_values_iterator<'a>(
+        &self,
+        graphs_map: &'a GraphsMap,
+    ) -> impl Iterator<Item = Value> + 'a {
+        let self_graph_id = self.graph_id;
+        self.fields(graphs_map)
+            .map(|(_, p)| Value::Primitive(p.value.clone()))
+            .chain(self.neighbors(graphs_map).map(move |(_, edge)| {
+                let graph_id = edge.graph.unwrap_or(self_graph_id);
+                let graph = graphs_map.get(&graph_id).unwrap();
+                let obj_type = graph.obj_type(&edge.node).unwrap().clone();
+
+                Value::Object(ObjectValue {
+                    obj_type,
+                    graph_id,
+                    node: edge.node,
+                })
+            }))
+    }
+
+    pub fn fields_names_values_iterator<'a>(
+        &self,
+        graphs_map: &'a GraphsMap,
+    ) -> impl Iterator<Item = (&'a FieldName, Value)> + 'a {
+        let self_graph_id = self.graph_id;
+        self.fields(graphs_map)
+            .map(|(name, p)| (name, Value::Primitive(p.value.clone())))
+            .chain(self.neighbors(graphs_map).map(move |(name, edge)| {
+                let graph_id = edge.graph.unwrap_or(self_graph_id);
+                let graph = graphs_map.get(&graph_id).unwrap();
+                let obj_type = graph.obj_type(&edge.node).unwrap().clone();
+                (
+                    name,
+                    Value::Object(ObjectValue {
+                        obj_type,
+                        graph_id,
+                        node: edge.node,
+                    }),
+                )
+            }))
+    }
+}
+
 impl GraphMapDisplay for ObjectValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>, graphs_map: &GraphsMap) -> fmt::Result {
         let graph = self.graph(graphs_map);

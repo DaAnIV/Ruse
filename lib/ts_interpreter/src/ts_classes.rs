@@ -18,7 +18,7 @@ use swc_ecma_parser::{Syntax, TsSyntax};
 
 use crate::{
     engine_context::EngineContext,
-    ts_array_class::BuiltinArrayClass,
+    jsbuiltins::jsarray::BuiltinArrayClass,
     ts_class::{TsBuiltinClass, TsClass},
     ts_global_class::{TsGlobalClass, TsGlobalClassBuilder},
     ts_user_class::{TsUserClass, TsUserClassBuilder},

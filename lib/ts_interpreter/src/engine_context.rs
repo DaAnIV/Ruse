@@ -1,12 +1,16 @@
 use std::{
+    cell::RefCell,
     ops::{Deref, DerefMut},
     sync::Arc,
 };
 
-use boa_engine::{js_string, JsResult};
+use boa_engine::{
+    context::intrinsics::StandardConstructor, js_string, JsObject, JsResult, JsValue,
+};
 use ruse_object_graph::{
     value::{ObjectValue, Value},
-    vnull, Cache, ClassName, FieldName, GraphIndex, GraphsMap, ObjectType, ValueType,
+    vnull, Cache, ClassName, FieldName, GraphIndex, GraphsMap, ObjectType, PrimitiveValue,
+    ValueType,
 };
 use ruse_synthesizer::context::{Context, GraphIdGenerator};
 
@@ -16,8 +20,10 @@ use crate::{
     js_object_wrapper::JsObjectWrapper,
     js_value::{js_value_to_value, value_to_js_value},
     js_wrapped::JsWrapped,
+    jsbuiltins::{jsarray::JsArrayWrapper, jsiterator::JsObjectIterator},
+    ts_class::BuiltinClassWrapper,
     ts_classes::TsClasses,
-    ts_user_class::TsUserClass,
+    ts_global_class::TsGlobalClass,
 };
 
 struct EngineContextHooks;
@@ -216,11 +222,48 @@ enum RuseJsGlobalObjectInner {
     MutContxt(MutContextGlobalObjectInner),
 }
 
-pub(crate) struct RuseJsGlobalObject(RuseJsGlobalObjectInner);
+#[derive(Debug, Default)]
+pub struct RuseJsConstructors {
+    array_constructor: RefCell<Option<StandardConstructor>>,
+    map_constructor: RefCell<Option<StandardConstructor>>,
+    iter_constructor: RefCell<Option<StandardConstructor>>,
+}
+
+impl RuseJsConstructors {
+    pub fn array_prototype(&self, engine_ctx: &mut EngineContext<'_>) -> JsResult<JsObject> {
+        if let Some(constructor) = self.array_constructor.borrow().as_ref() {
+            return Ok(constructor.prototype());
+        }
+        let constructor = JsArrayWrapper::build_standard_constructor(engine_ctx)?;
+        Ok(self
+            .array_constructor
+            .borrow_mut()
+            .insert(constructor)
+            .prototype())
+    }
+    }
+
+    pub fn iter_prototype(&self, engine_ctx: &mut EngineContext<'_>) -> JsResult<JsObject> {
+        if let Some(constructor) = self.iter_constructor.borrow().as_ref() {
+            return Ok(constructor.prototype());
+        }
+        let constructor = JsObjectIterator::build_standard_constructor(engine_ctx)?;
+        Ok(self
+            .iter_constructor
+            .borrow_mut()
+            .insert(constructor)
+            .prototype())
+    }
+}
+
+pub(crate) struct RuseJsGlobalObject {
+    inner: RuseJsGlobalObjectInner,
+    constructors: RuseJsConstructors,
+}
 
 impl RuseJsGlobalObject {
     fn inner(&self) -> JsResult<&dyn GlobalObjectInner> {
-        match &self.0 {
+        match &self.inner {
             RuseJsGlobalObjectInner::None => Err(js_error_not_initialized()),
             RuseJsGlobalObjectInner::Graph(graph_inner) => Ok(graph_inner),
             RuseJsGlobalObjectInner::Contxt(context_inner) => Ok(context_inner),
@@ -229,7 +272,7 @@ impl RuseJsGlobalObject {
     }
 
     fn inner_mut(&mut self) -> JsResult<&mut dyn GlobalObjectInner> {
-        match &mut self.0 {
+        match &mut self.inner {
             RuseJsGlobalObjectInner::None => Err(js_error_not_initialized()),
             RuseJsGlobalObjectInner::Graph(graph_inner) => Ok(graph_inner),
             RuseJsGlobalObjectInner::Contxt(context_inner) => Ok(context_inner),
@@ -244,6 +287,7 @@ impl RuseJsGlobalObject {
     ) -> boa_engine::JsResult<boa_engine::JsValue> {
         Ok(value_to_js_value(self.classes()?, value, engine_ctx))
     }
+
     fn js_value_to_value(
         &self,
         js_value: &boa_engine::JsValue,
@@ -328,7 +372,7 @@ impl RuseJsGlobalObject {
             let class = classes.get_user_class(class_name).unwrap();
             let obj_val = class
                 .static_object_value()
-                .ok_or(js_error_no_static_graph(class_name))?;
+                .ok_or_else(|| js_error_no_static_graph(class_name))?;
 
             (inner.js_value_to_value(&new_js_value, engine_ctx)?, obj_val)
         };
@@ -358,11 +402,18 @@ impl RuseJsGlobalObject {
     pub fn id_gen(&self) -> boa_engine::JsResult<&GraphIdGenerator> {
         Ok(self.inner()?.id_gen())
     }
+
+    pub fn constructors(&self) -> &RuseJsConstructors {
+        &self.constructors
+    }
 }
 
 impl Default for RuseJsGlobalObject {
     fn default() -> Self {
-        Self(RuseJsGlobalObjectInner::None)
+        Self {
+            inner: RuseJsGlobalObjectInner::None,
+            constructors: Default::default(),
+        }
     }
 }
 
@@ -400,7 +451,7 @@ impl<'a> EngineContext<'a> {
         let global_obj = self.global_object();
         let mut wrapped_inner =
             JsWrapped::<RuseJsGlobalObject>::mut_from_js_obj(&global_obj).unwrap();
-        wrapped_inner.0 .0 = RuseJsGlobalObjectInner::Contxt(ContextGlobalObjectInner {
+        wrapped_inner.0.inner = RuseJsGlobalObjectInner::Contxt(ContextGlobalObjectInner {
             context: std::ptr::from_ref(post_ctx),
             classes: std::ptr::from_ref(classes),
             cache: cache.clone(),
@@ -416,7 +467,7 @@ impl<'a> EngineContext<'a> {
         let global_obj = self.global_object();
         let mut wrapped_inner =
             JsWrapped::<RuseJsGlobalObject>::mut_from_js_obj(&global_obj).unwrap();
-        wrapped_inner.0 .0 = RuseJsGlobalObjectInner::MutContxt(MutContextGlobalObjectInner {
+        wrapped_inner.0.inner = RuseJsGlobalObjectInner::MutContxt(MutContextGlobalObjectInner {
             context: std::ptr::from_mut(post_ctx),
             classes: std::ptr::from_ref(classes),
             cache: cache.clone(),
@@ -435,7 +486,7 @@ impl<'a> EngineContext<'a> {
         let global_obj = self.global_object();
         let mut wrapped_inner =
             JsWrapped::<RuseJsGlobalObject>::mut_from_js_obj(&global_obj).unwrap();
-        wrapped_inner.0 .0 = RuseJsGlobalObjectInner::Graph(GraphGlobalObjectInner {
+        wrapped_inner.0.inner = RuseJsGlobalObjectInner::Graph(GraphGlobalObjectInner {
             graph_id: graph_id,
             graphs_map: std::ptr::from_mut(graphs_map),
             classes: std::ptr::from_ref(classes),
