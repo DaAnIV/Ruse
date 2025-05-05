@@ -183,6 +183,10 @@ impl ObjectValue {
             config,
         }
     }
+
+    pub fn val_type(&self) -> ValueType {
+        ValueType::Object(self.obj_type.clone())
+    }
 }
 
 impl GraphMapDisplay for ObjectValue {
@@ -309,12 +313,8 @@ impl Value {
 
     pub fn val_type(&self) -> ValueType {
         match &self {
-            Value::Primitive(p) => match p {
-                PrimitiveValue::Number(_) => ValueType::Number,
-                PrimitiveValue::Bool(_) => ValueType::Bool,
-                PrimitiveValue::String(_) => ValueType::String,
-            },
-            Value::Object(o) => ValueType::Object(o.obj_type.clone()),
+            Value::Primitive(p) => p.val_type(),
+            Value::Object(o) => o.val_type(),
             Value::Null => ValueType::Null,
         }
     }

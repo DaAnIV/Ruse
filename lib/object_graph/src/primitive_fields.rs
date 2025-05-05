@@ -2,7 +2,7 @@ use std::fmt::Debug;
 use std::fmt::{self, Display, Formatter};
 use std::hash::{Hash, Hasher};
 
-use crate::CachedString;
+use crate::{CachedString, ValueType};
 
 #[derive(Clone, Copy, Debug, PartialOrd)]
 pub struct Number(pub f64);
@@ -161,6 +161,14 @@ impl PrimitiveValue {
         match self {
             PrimitiveValue::String(s) => Some(s.clone()),
             _ => None,
+        }
+    }
+
+    pub fn val_type(&self) -> ValueType {
+        match self {
+            PrimitiveValue::Number(_) => ValueType::Number,
+            PrimitiveValue::Bool(_) => ValueType::Bool,
+            PrimitiveValue::String(_) => ValueType::String,
         }
     }
 }
