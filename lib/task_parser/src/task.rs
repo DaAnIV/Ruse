@@ -342,14 +342,6 @@ impl SnythesisTaskInner {
             ));
         }
 
-        if self.return_type.is_some()
-            && (has_common_output || examples.iter().any(|x| x.output.is_none()))
-        {
-            return Err(verify_err!(
-                "All examples should have an output if the return type is given"
-            ));
-        }
-
         if (has_common_output || examples.iter().any(|x| x.output.is_some()))
             && self.return_type.is_none()
         {
@@ -536,16 +528,18 @@ impl SnythesisTask {
             Some(return_type) => {
                 let mut array = Vec::with_capacity(examples.len());
                 for example in examples {
-                    let output = return_type.create_value(
-                        example.output.as_ref().unwrap(),
-                        &self.classes,
-                        predicate_gen_id.get_id_for_graph(),
-                        &mut predicate_graphs_map,
-                        &predicate_gen_id,
-                        None,
-                        cache,
-                    )?;
-                    array.push(output);
+                    if let Some(output) = example.output.as_ref() {
+                        let output = return_type.create_value(
+                            output,
+                            &self.classes,
+                            predicate_gen_id.get_id_for_graph(),
+                            &mut predicate_graphs_map,
+                            &predicate_gen_id,
+                            None,
+                            cache,
+                        )?;
+                        array.push(output);
+                    }
                 }
                 Some(array)
             }
@@ -574,7 +568,10 @@ impl SnythesisTask {
         let predicate_js: Option<Vec<String>> =
             examples.iter().map(|e| &e.predicate_js).cloned().collect();
 
+        let output_type = self.inner.return_type.as_ref().map(|x| x.value_type(cache));
+
         let builder = PredicateBuilder {
+            output_type,
             output_array,
             state_array,
             predicate_js,
@@ -792,7 +789,9 @@ impl SnythesisTask {
 
         for example in inner.examples.as_mut().unwrap() {
             if let Some(return_type) = &inner.return_type {
-                return_type.load_value(dir.as_path(), example.output.as_mut().unwrap())?;
+                if let Some(output) = example.output.as_mut() {
+                    return_type.load_value(dir.as_path(), output)?;
+                }
             }
             for (var, var_type) in variables {
                 if example.input.contains_key(var) {

@@ -587,7 +587,7 @@ impl TaskType {
         Ok(vobj!(obj_type, refs_graph_id, ref_id))
     }
 
-    fn value_type(&self, cache: &Cache) -> ValueType {
+    pub fn value_type(&self, cache: &Cache) -> ValueType {
         match self {
             TaskType::Int => ValueType::Number,
             TaskType::Double => ValueType::Number,

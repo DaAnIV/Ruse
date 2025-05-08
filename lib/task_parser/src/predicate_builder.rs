@@ -13,6 +13,7 @@ use ruse_ts_interpreter::ts_classes::TsClasses;
 pub type SynthesizerPredicate = Box<dyn Fn(&SubProgram, &SynthesizerContext) -> bool + Send + Sync>;
 
 pub struct PredicateBuilder {
+    pub output_type: Option<ValueType>,
     pub output_array: Option<Vec<Value>>,
     pub state_array: Option<Vec<ValuesMap>>,
     pub predicate_js: Option<Vec<String>>,
@@ -22,6 +23,14 @@ pub struct PredicateBuilder {
 }
 
 impl PredicateBuilder {
+    fn output_type_predicate(&self, p: &SubProgram, _syn_ctx: &SynthesizerContext) -> bool {
+        if let Some(output_type) = &self.output_type {
+            p.out_type() == output_type
+        } else {
+            true
+        }
+    }
+
     fn output_predicate_inner(
         &self,
         output_array: &[Value],
@@ -86,14 +95,21 @@ impl PredicateBuilder {
         let mut boa_ctx = EngineContext::new_boa_ctx();
         let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, classes);
 
-        for (ctx, js) in p.post_ctx().iter().zip_eq(predicate_js) {
+        debug_assert!(
+            p.post_ctx().len() == p.out_value().len() && p.post_ctx().len() == predicate_js.len()
+        );
+
+        for (ctx, output, js) in izip!(p.post_ctx().iter(), p.out_value().iter(), predicate_js) {
             engine_ctx.reset_with_context(ctx, classes, &self.cache);
-            let mut arg_names = Vec::with_capacity(ctx.variable_count());
-            let mut js_values = Vec::with_capacity(ctx.variable_count());
+            let mut arg_names = Vec::with_capacity(ctx.variable_count() + 1);
+            let mut js_values = Vec::with_capacity(ctx.variable_count() + 1);
             for (var, value) in ctx.variables() {
                 arg_names.push(var.as_str());
                 js_values.push(value_to_js_value(classes, value, &mut engine_ctx));
             }
+            arg_names.push("__output__");
+            js_values.push(value_to_js_value(classes, output.val(), &mut engine_ctx));
+
             let code = format!(
                 "function func({}) {{return {}}}\nfunc",
                 arg_names.join(", "),
@@ -128,6 +144,9 @@ impl PredicateBuilder {
     }
 
     fn predicate(&self, p: &SubProgram, syn_ctx: &SynthesizerContext) -> bool {
+        if !self.output_type_predicate(p, syn_ctx) {
+            return false;
+        }
         if !self.output_predicate(p, syn_ctx) {
             return false;
         }
