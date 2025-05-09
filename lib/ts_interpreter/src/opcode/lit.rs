@@ -13,7 +13,7 @@ use super::TsExprAst;
 #[derive(Debug)]
 pub enum LitOp {
     Null,
-    Str(CachedString),
+    Str(StringValue),
     Bool(bool),
     Num(Number),
 }
@@ -37,7 +37,7 @@ impl ExprOpcode for LitOp {
         debug_assert_eq!(args.len(), 0);
         let val = match self {
             LitOp::Null => Value::Null,
-            LitOp::Str(s) => vcstring!(s.clone()),
+            LitOp::Str(s) => vstr!(s.as_str()),
             LitOp::Bool(b) => vbool!(*b),
             LitOp::Num(n) => vnum!(*n),
         };
@@ -98,11 +98,11 @@ impl ExprOpcode for ArrayLitOp {
         &self,
         args: &[&LocValue],
         post_ctx: &mut Context,
-        syn_ctx: &SynthesizerContext,
+        _syn_ctx: &SynthesizerContext,
     ) -> EvalResult {
         let values = args.iter().map(|val| (val.val().clone()));
 
-        let arr = post_ctx.create_output_array_object(&self.elem_type, values, &syn_ctx);
+        let arr = post_ctx.create_output_array_object(&self.elem_type, values);
 
         pure!(post_ctx.temp_value(Value::Object(arr)))
     }

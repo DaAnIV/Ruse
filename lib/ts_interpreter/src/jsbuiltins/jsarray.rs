@@ -7,9 +7,9 @@ use boa_engine::{
     JsObject, JsResult, JsSymbol, JsValue,
 };
 use ruse_object_graph::{
-    scached, str_cached,
+    class_name, field_name,
     value::{ObjectValue, Value},
-    Cache, ClassName, ValueType,
+    ClassName, ValueType,
 };
 
 use crate::{
@@ -33,9 +33,9 @@ pub struct BuiltinArrayClass {
 impl BuiltinArrayClass {
     pub const CLASS_NAME: &'static str = "Array";
 
-    pub(crate) fn new(id: u64, cache: &Cache) -> Self {
+    pub(crate) fn new(id: u64) -> Self {
         Self {
-            class_name: str_cached!(cache; Self::CLASS_NAME),
+            class_name: class_name!(Self::CLASS_NAME),
             id,
         }
     }
@@ -45,7 +45,6 @@ impl BuiltinArrayClass {
         classes: &TsClasses,
         js_array: &boa_engine::object::builtins::JsArray,
         engine_ctx: &mut EngineContext<'_>,
-        cache: &Cache,
     ) -> Result<ObjectValue, boa_engine::JsError> {
         let arr_len = js_array.length(engine_ctx).unwrap() as i64;
         if arr_len == 0 {
@@ -55,7 +54,7 @@ impl BuiltinArrayClass {
         let elements: Vec<Value> = (0..arr_len)
             .map(|i| {
                 let js_elem = js_array.at(i, engine_ctx).unwrap();
-                let elem = js_value_to_value(classes, &js_elem, engine_ctx, cache);
+                let elem = js_value_to_value(classes, &js_elem, engine_ctx);
                 elem
             })
             .collect();
@@ -69,7 +68,6 @@ impl BuiltinArrayClass {
         classes: &TsClasses,
         js_typed_array: &JsTypedArray,
         engine_ctx: &mut EngineContext<'_>,
-        cache: &Cache,
     ) -> Result<ObjectValue, boa_engine::JsError> {
         let arr_len = js_typed_array.length(engine_ctx).unwrap() as i64;
         if arr_len == 0 {
@@ -79,7 +77,7 @@ impl BuiltinArrayClass {
         let elements: Vec<Value> = (0..arr_len)
             .map(|i| {
                 let js_elem = js_typed_array.at(i, engine_ctx).unwrap();
-                let elem = js_value_to_value(classes, &js_elem, engine_ctx, cache);
+                let elem = js_value_to_value(classes, &js_elem, engine_ctx);
                 assert!(elem.number_value().is_some());
                 elem
             })
@@ -127,14 +125,13 @@ impl TsBuiltinClass for BuiltinArrayClass {
         classes: &TsClasses,
         value: &boa_engine::JsObject,
         engine_ctx: &mut EngineContext<'_>,
-        cache: &Cache,
     ) -> Result<ObjectValue, boa_engine::JsError> {
         if let Ok(js_array) = boa_engine::object::builtins::JsArray::from_object(value.clone()) {
-            self.get_from_js_array(classes, &js_array, engine_ctx, cache)
+            self.get_from_js_array(classes, &js_array, engine_ctx)
         } else if let Ok(typed_array) =
             boa_engine::object::builtins::JsTypedArray::from_object(value.clone())
         {
-            self.get_from_js_typed_array(classes, &typed_array, engine_ctx, cache)
+            self.get_from_js_typed_array(classes, &typed_array, engine_ctx)
         } else {
             Err(js_error_not_builtin_array())
         }
@@ -144,8 +141,8 @@ impl TsBuiltinClass for BuiltinArrayClass {
 pub(crate) struct JsArrayWrapper {}
 
 impl JsArrayWrapper {
-    fn getter_for_index(index: u64, cache: &Cache) -> Option<boa_engine::NativeFunction> {
-        let field_name = scached!(cache; index.to_string());
+    fn getter_for_index(index: u64) -> Option<boa_engine::NativeFunction> {
+        let field_name = field_name!(index.to_string());
         Some(unsafe {
             boa_engine::native_function::NativeFunction::from_closure(move |this, _, boa_ctx| {
                 RuseJsGlobalObject::get_field(this, &field_name, &mut boa_ctx.into())
@@ -153,8 +150,8 @@ impl JsArrayWrapper {
         })
     }
 
-    fn setter_for_index(index: u64, cache: &Cache) -> Option<boa_engine::NativeFunction> {
-        let field_name = scached!(cache; index.to_string());
+    fn setter_for_index(index: u64) -> Option<boa_engine::NativeFunction> {
+        let field_name = field_name!(index.to_string());
         Some(unsafe {
             boa_engine::native_function::NativeFunction::from_closure(move |this, args, boa_ctx| {
                 RuseJsGlobalObject::set_field(this, &field_name, &args[0], &mut boa_ctx.into())?;
@@ -307,12 +304,11 @@ impl BuiltinClassWrapper for JsArrayWrapper {
         );
 
         let graphs_map = global_ctx.graphs_map()?;
-        let cache = global_ctx.cache()?;
 
         for i in 0..array_obj.total_field_count(graphs_map) {
-            let getter = Self::getter_for_index(i as u64, cache)
+            let getter = Self::getter_for_index(i as u64)
                 .map(|x| x.to_js_function(builder.context().realm()));
-            let setter = Self::setter_for_index(i as u64, cache)
+            let setter = Self::setter_for_index(i as u64)
                 .map(|x| x.to_js_function(builder.context().realm()));
             builder.accessor(i, getter, setter, boa_engine::property::Attribute::WRITABLE);
         }

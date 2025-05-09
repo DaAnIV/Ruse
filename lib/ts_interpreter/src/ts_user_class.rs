@@ -4,10 +4,9 @@ use anyhow::Error;
 use boa_engine::{class::DynamicClassBuilder, JsResult, JsValue};
 use itertools::Itertools;
 use ruse_object_graph::{
-    scached, str_cached,
+    class_name, field_name,
     value::{ObjectValue, Value},
-    Cache, ClassName, FieldName, GraphIndex, GraphsMap, NodeIndex, ObjectGraph, ObjectType,
-    ValueType,
+    ClassName, FieldName, GraphIndex, GraphsMap, NodeIndex, ObjectGraph, ObjectType, ValueType,
 };
 use ruse_synthesizer::{
     context::GraphIdGenerator,
@@ -122,7 +121,6 @@ impl TsUserClass {
         method_name: &str,
         param_values: I,
         classes: &TsClasses,
-        cache: &Arc<Cache>,
         engine_ctx: &mut EngineContext<'_>,
     ) -> boa_engine::JsResult<Value>
     where
@@ -142,7 +140,7 @@ impl TsUserClass {
             .wrapper
             .call_static_method_body(method_name, &this, &args, engine_ctx)?;
 
-        Ok(js_value_to_value(classes, &result, engine_ctx, cache))
+        Ok(js_value_to_value(classes, &result, engine_ctx))
     }
 
     pub fn call_method<'a, I>(
@@ -151,7 +149,6 @@ impl TsUserClass {
         this: &Value,
         param_values: I,
         classes: &TsClasses,
-        cache: &Arc<Cache>,
         engine_ctx: &mut EngineContext<'_>,
     ) -> boa_engine::JsResult<Value>
     where
@@ -179,7 +176,7 @@ impl TsUserClass {
             .wrapper
             .call_method_body(method_name, &this, &args, engine_ctx)?;
 
-        Ok(js_value_to_value(classes, &result, engine_ctx, cache))
+        Ok(js_value_to_value(classes, &result, engine_ctx))
     }
 
     pub fn static_object_value(&self) -> Option<ObjectValue> {
@@ -249,12 +246,11 @@ impl TsUserClassBuilder {
         namespace: &Vec<String>,
         decl: &ClassDecl,
         gen_id: Arc<GraphIdGenerator>,
-        cache: &Cache,
     ) -> Self {
         let mut fields = Default::default();
         let mut methods = Default::default();
         let mut constructor = MethodDescription {
-            name: scached!(cache; Self::get_class_name(namespace, decl)),
+            name: Self::get_class_name(namespace, decl),
             params: Default::default(),
             kind: MethodKind::Method,
             is_static: false,
@@ -262,17 +258,17 @@ impl TsUserClassBuilder {
             body: None,
         };
 
-        Self::add_fields(&decl.class, &mut fields, &mut constructor, cache);
-        Self::add_methods(&decl.class, &mut methods, cache);
+        Self::add_fields(&decl.class, &mut fields, &mut constructor);
+        Self::add_methods(&decl.class, &mut methods);
 
         let super_class = decl.class.super_class.as_deref().map(|super_class| {
             let ident = super_class.as_ident().unwrap();
-            str_cached!(cache; ident.sym.as_str())
+            class_name!(ident.sym.as_str())
         });
 
         let class = Self {
             id: gen_id.get_id_for_graph() as u64,
-            class_name: scached!(cache; Self::get_class_name(namespace, decl)),
+            class_name: class_name!(Self::get_class_name(namespace, decl)),
             fields,
             methods,
             constructor,
@@ -284,7 +280,7 @@ impl TsUserClassBuilder {
         class
     }
 
-    pub fn finalize(self, classes: &mut TsClasses, graphs_map: &mut GraphsMap, cache: &Arc<Cache>) {
+    pub fn finalize(self, classes: &mut TsClasses, graphs_map: &mut GraphsMap) {
         let description = Arc::new(TsClassDescription {
             id: self.id,
             class_name: self.class_name.clone(),
@@ -296,7 +292,7 @@ impl TsUserClassBuilder {
         });
 
         let static_graph_obj_type =
-            StaticGraphBuilder::static_graph_obj_type(&description.class_name, cache);
+            StaticGraphBuilder::static_graph_obj_type(&description.class_name);
         let wrapper = JsObjectWrapper::new(description.clone());
 
         let class = TsUserClass {
@@ -316,7 +312,7 @@ impl TsUserClassBuilder {
         if self.fields.values().any(|field| field.is_static) {
             let static_graph_builder = StaticGraphBuilder {
                 id: self.id,
-                class_name: self.class_name.as_str(),
+                class_name: &self.class_name,
                 gen_id: &self.gen_id,
             };
             let graph = static_graph_builder.populate_static_graph(
@@ -324,7 +320,6 @@ impl TsUserClassBuilder {
                 root_node,
                 graphs_map,
                 classes,
-                cache,
             );
             classes
                 .get_user_class_mut(&self.class_name)
@@ -332,7 +327,7 @@ impl TsUserClassBuilder {
                 .static_graph = Some(graph);
         }
 
-        self.populate_opcodes(classes.get_user_class_mut(&self.class_name).unwrap(), cache);
+        self.populate_opcodes(classes.get_user_class_mut(&self.class_name).unwrap());
     }
 }
 
@@ -342,15 +337,14 @@ impl TsUserClassBuilder {
         class: &ast::Class,
         fields: &mut HashMap<String, JsFieldDescription>,
         constructor: &mut MethodDescription,
-        cache: &Cache,
     ) {
         for class_prop in class.body.iter().filter_map(|x| x.as_class_prop()) {
-            let desc = JsFieldDescription::from_with_cache(class_prop, cache);
+            let desc = JsFieldDescription::from(class_prop);
             fields.insert(desc.name.to_string(), desc);
         }
 
         for constructor_ast in class.body.iter().filter_map(|x| x.as_constructor()) {
-            Self::add_fields_from_constructor(fields, constructor, constructor_ast, cache);
+            Self::add_fields_from_constructor(fields, constructor, constructor_ast);
         }
     }
 
@@ -358,14 +352,13 @@ impl TsUserClassBuilder {
         fields: &mut HashMap<String, JsFieldDescription>,
         constructor: &mut MethodDescription,
         constructor_ast: &ast::Constructor,
-        cache: &Cache,
     ) {
         constructor.is_private = constructor_ast
             .accessibility
             .unwrap_or(ast::Accessibility::Public)
             != ast::Accessibility::Public;
         for param in &constructor_ast.params {
-            let param_description = ParamDescription::from_with_cache(param, cache);
+            let param_description = ParamDescription::from(param);
 
             constructor.params.push(param_description.clone());
 
@@ -374,7 +367,7 @@ impl TsUserClassBuilder {
                 fields.insert(
                     param_description.name.to_string(),
                     JsFieldDescription {
-                        name: param_description.name.clone(),
+                        name: field_name!(param_description.name.clone()),
                         value_type: param_description.value_type,
                         is_private: access != ast::Accessibility::Public,
                         is_readonly: prop.readonly,
@@ -388,13 +381,9 @@ impl TsUserClassBuilder {
         constructor.body = Some(get_code(constructor_ast.body.as_ref().unwrap()));
     }
 
-    fn add_methods(
-        class: &ast::Class,
-        methods: &mut HashMap<String, MethodDescription>,
-        cache: &Cache,
-    ) {
+    fn add_methods(class: &ast::Class, methods: &mut HashMap<String, MethodDescription>) {
         for method in class.body.iter().filter_map(|x| x.as_method()) {
-            let desc = MethodDescription::from_with_cache(method, cache);
+            let desc = MethodDescription::from(method);
             if !desc.is_private {
                 assert!(desc
                     .params
@@ -408,9 +397,9 @@ impl TsUserClassBuilder {
 
 // Opcodes
 impl TsUserClassBuilder {
-    fn populate_opcodes(&self, class: &mut TsUserClass, cache: &Cache) {
+    fn populate_opcodes(&self, class: &mut TsUserClass) {
         for field in self.fields.values() {
-            if let Some(op) = self.get_opcode_from_field(class, field, cache) {
+            if let Some(op) = self.get_opcode_from_field(class, field) {
                 class.member_opcodes.push(op);
             }
         }
@@ -435,7 +424,6 @@ impl TsUserClassBuilder {
         &self,
         class: &TsUserClass,
         field: &JsFieldDescription,
-        cache: &Cache,
     ) -> Option<Arc<dyn ExprOpcode>> {
         if field.is_private {
             return None;
@@ -445,15 +433,12 @@ impl TsUserClassBuilder {
             let loc_val = class.static_fields[&field.name].clone();
             Arc::new(StaticMemberOp::new(
                 self.class_name.clone(),
-                str_cached!(cache; &field.name),
+                field.name.clone(),
                 class.static_graph.as_ref().unwrap().clone(),
                 loc_val,
             ))
         } else {
-            Arc::new(MemberOp::new(
-                self.class_name.clone(),
-                str_cached!(cache; &field.name),
-            ))
+            Arc::new(MemberOp::new(self.class_name.clone(), field.name.clone()))
         };
 
         return Some(op);

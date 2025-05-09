@@ -37,7 +37,7 @@ impl ExprOpcode for StringSplitOp {
         &self,
         args: &[&LocValue],
         post_ctx: &mut Context,
-        syn_ctx: &SynthesizerContext,
+        _syn_ctx: &SynthesizerContext,
     ) -> EvalResult {
         debug_assert_eq!(args.len(), 2);
 
@@ -45,11 +45,8 @@ impl ExprOpcode for StringSplitOp {
         let pattern = args[1].val().string_value().unwrap();
 
         let substrings = string.split(pattern.as_str());
-        let array = post_ctx.create_output_primitive_array(
-            &ValueType::String,
-            substrings.map(|x| syn_ctx.cached_string(x)),
-            &syn_ctx,
-        );
+        let array = post_ctx
+            .create_output_primitive_array(&ValueType::String, substrings.map(|x| str_cached!(x)));
 
         pure!(post_ctx.temp_value(Value::Object(array)))
     }
@@ -92,7 +89,7 @@ impl ExprOpcode for StringConcatOp {
         &self,
         args: &[&LocValue],
         post_ctx: &mut Context,
-        syn_ctx: &SynthesizerContext,
+        _syn_ctx: &SynthesizerContext,
     ) -> EvalResult {
         debug_assert_eq!(args.len(), 2);
 
@@ -103,7 +100,7 @@ impl ExprOpcode for StringConcatOp {
         new_string.push_str(&string1);
         new_string.push_str(&string2);
 
-        pure!(post_ctx.temp_value(vcstring!(syn_ctx.cached_string(&new_string))))
+        pure!(post_ctx.temp_value(vstr!(new_string.as_str())))
     }
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
@@ -140,7 +137,7 @@ impl ExprOpcode for StringSliceOp {
         &self,
         args: &[&LocValue],
         post_ctx: &mut Context,
-        syn_ctx: &SynthesizerContext,
+        _syn_ctx: &SynthesizerContext,
     ) -> EvalResult {
         let string = args[0].val().string_value().unwrap();
 
@@ -150,12 +147,12 @@ impl ExprOpcode for StringSliceOp {
             None => string.len(),
         };
         if start >= end {
-            return pure!(post_ctx.temp_value(vcstring!(syn_ctx.cached_string(""))));
+            return pure!(post_ctx.temp_value(vstr!("")));
         }
 
-        let substring = string.slice(start..end);
+        let substring = &string[start..end];
 
-        pure!(post_ctx.temp_value(Value::Primitive(PrimitiveValue::String(substring))))
+        pure!(post_ctx.temp_value(vstr!(substring)))
     }
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
@@ -338,7 +335,7 @@ impl ExprOpcode for StringReplaceAllOp {
         &self,
         args: &[&LocValue],
         post_ctx: &mut Context,
-        syn_ctx: &SynthesizerContext,
+        _syn_ctx: &SynthesizerContext,
     ) -> EvalResult {
         debug_assert_eq!(args.len(), 3);
 
@@ -348,7 +345,7 @@ impl ExprOpcode for StringReplaceAllOp {
 
         let new_string = string.replace(pat.as_str(), replacement.as_str());
 
-        pure!(post_ctx.temp_value(vstring!(syn_ctx.cache; new_string)))
+        pure!(post_ctx.temp_value(vstr!(new_string)))
     }
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
@@ -403,9 +400,9 @@ impl ExprOpcode for StringAtOp {
             (str_val.len() as isize + index_isize) as usize
         };
 
-        let char_slice = str_val.slice(index_usize..=index_usize);
+        let char_slice = &str_val[index_usize..=index_usize];
 
-        pure!(post_ctx.temp_value(Value::Primitive(PrimitiveValue::String(char_slice))))
+        pure!(post_ctx.temp_value(vstr!(char_slice)))
     }
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {

@@ -19,7 +19,7 @@ use std::{
     },
 };
 
-pub type VariableName = CachedString;
+pub type VariableName = RootName;
 
 #[derive(PartialEq, Eq, Debug, Clone, Hash)]
 pub struct Variable {
@@ -73,23 +73,20 @@ impl SynthesizerContextData for EmptySynthesizerData {}
 
 pub struct SynthesizerContext {
     all_variables: Arc<BTreeMap<VariableName, Variable>>,
-    pub cache: Arc<Cache>,
     pub start_context: ContextArray,
     pub data: Box<dyn SynthesizerContextData>,
 }
 
 impl SynthesizerContext {
-    pub fn from_context_array(context_array: ContextArray, cache: Arc<Cache>) -> Self {
-        Self::from_context_array_with_data(context_array, Box::new(EmptySynthesizerData {}), cache)
+    pub fn from_context_array(context_array: ContextArray) -> Self {
+        Self::from_context_array_with_data(context_array, Box::new(EmptySynthesizerData {}))
     }
     pub fn from_context_array_with_data(
         context_array: ContextArray,
         data: Box<dyn SynthesizerContextData>,
-        cache: Arc<Cache>,
     ) -> Self {
         Self {
             all_variables: context_array.get_variables(),
-            cache,
             start_context: context_array,
             data,
         }
@@ -102,10 +99,6 @@ impl SynthesizerContext {
         let all_variables = Arc::get_mut(&mut self.all_variables).unwrap();
         let var = all_variables.get_mut(var).unwrap();
         var.immutable = true;
-    }
-
-    pub fn cached_string(&self, string: &str) -> CachedString {
-        str_cached!(self.cache; string)
     }
 
     pub fn variables_count(&self) -> usize {
@@ -152,7 +145,7 @@ impl<const N: usize> From<[(VariableName, Value); N]> for ValuesMap {
 }
 
 impl IntoIterator for ValuesMap {
-    type Item = (FieldName, Value);
+    type Item = (VariableName, Value);
 
     type IntoIter = btree_map::IntoIter<VariableName, Value>;
 
@@ -365,7 +358,7 @@ impl Context {
 
     pub(crate) fn get_partial_context<'a, I>(&self, required_variables: I) -> Option<Box<Self>>
     where
-        I: IntoIterator<Item = &'a CachedString>,
+        I: IntoIterator<Item = &'a VariableName>,
     {
         let mut values = ValuesMap::default();
         let mut hashes = ValuesHashMap::default();
@@ -413,7 +406,6 @@ impl Context {
         &mut self,
         elem_type: &ValueType,
         values: I,
-        syn_ctx: &SynthesizerContext,
     ) -> ObjectValue
     where
         I: IntoIterator,
@@ -424,13 +416,7 @@ impl Context {
 
         let graphs_map = Arc::make_mut(&mut self.graphs_map);
         graphs_map.ensure_graph(out_graph_id);
-        graphs_map.add_primitive_array_object(
-            out_graph_id,
-            out_node_id,
-            elem_type,
-            values,
-            &syn_ctx.cache,
-        );
+        graphs_map.add_primitive_array_object(out_graph_id, out_node_id, elem_type, values);
 
         ObjectValue {
             obj_type: ObjectType::array_obj_type(elem_type),
@@ -443,7 +429,6 @@ impl Context {
         &mut self,
         elem_type: &ValueType,
         values: I,
-        syn_ctx: &SynthesizerContext,
     ) -> ObjectValue
     where
         I: IntoIterator,
@@ -459,7 +444,6 @@ impl Context {
             out_node_id,
             elem_type,
             values,
-            &syn_ctx.cache,
         );
 
         ObjectValue {
@@ -469,12 +453,7 @@ impl Context {
         }
     }
 
-    pub fn create_output_array_object<I>(
-        &mut self,
-        elem_type: &ValueType,
-        values: I,
-        syn_ctx: &SynthesizerContext,
-    ) -> ObjectValue
+    pub fn create_output_array_object<I>(&mut self, elem_type: &ValueType, values: I) -> ObjectValue
     where
         I: IntoIterator<Item = Value>,
     {
@@ -483,7 +462,7 @@ impl Context {
 
         let graphs_map = Arc::make_mut(&mut self.graphs_map);
         graphs_map.ensure_graph(out_graph_id);
-        graphs_map.add_array_object(out_graph_id, out_node_id, elem_type, values, &syn_ctx.cache);
+        graphs_map.add_array_object(out_graph_id, out_node_id, elem_type, values);
 
         ObjectValue {
             obj_type: ObjectType::array_obj_type(elem_type),
@@ -496,7 +475,6 @@ impl Context {
         &mut self,
         elem_type: &ValueType,
         values: I,
-        syn_ctx: &SynthesizerContext,
     ) -> ObjectValue
     where
         I: IntoIterator,
@@ -507,13 +485,7 @@ impl Context {
 
         let graphs_map = Arc::make_mut(&mut self.graphs_map);
         graphs_map.ensure_graph(out_graph_id);
-        graphs_map.add_primitive_set_object(
-            out_graph_id,
-            out_node_id,
-            elem_type,
-            values,
-            &syn_ctx.cache,
-        );
+        graphs_map.add_primitive_set_object(out_graph_id, out_node_id, elem_type, values);
 
         ObjectValue {
             obj_type: ObjectType::set_obj_type(elem_type),
@@ -768,7 +740,7 @@ impl ContextArray {
 
     pub fn get_partial_context<'a, I>(&self, required_variables: I) -> Option<Self>
     where
-        I: IntoIterator<Item = &'a CachedString> + Copy,
+        I: IntoIterator<Item = &'a VariableName> + Copy,
     {
         let mut ctxs = Vec::<Box<Context>>::with_capacity(self.len());
 

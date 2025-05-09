@@ -10,21 +10,21 @@ use crate::opcode::member_call_ast;
 #[derive(Debug)]
 pub struct GetElementByIdOp {
     arg_types: [ValueType; 2],
-    id_field_name: CachedString,
+    id_field_name: FieldName,
 }
 
 impl GetElementByIdOp {
-    pub fn new(cache: &Cache) -> Self {
+    pub fn new() -> Self {
         Self {
             arg_types: [
                 ValueType::Object(dom::DomLoader::document_obj_type()),
                 ValueType::String,
             ],
-            id_field_name: str_cached!(cache; "id"),
+            id_field_name: field_name!("id"),
         }
     }
 
-    fn node_id_equal(&self, node: &ObjectGraphNode, id: &CachedString) -> bool {
+    fn node_id_equal(&self, node: &ObjectGraphNode, id: &StringValue) -> bool {
         if let Some(field) = node.get_field(&self.id_field_name) {
             field.value.string().as_ref().unwrap() == id
         } else {

@@ -2,10 +2,10 @@ use crate::{
     dot::{Dot, DotConfig},
     graph_equality::equal_graphs_by_node,
     graph_map_value::*,
-    graph_node::{EdgeEndPoint, FieldName},
+    graph_node::EdgeEndPoint,
     graph_walk::ObjectGraphWalker,
-    Attributes, CachedString, GraphIndex, GraphsMap, NodeIndex, Number, ObjectGraph, ObjectType,
-    PrimitiveField, PrimitiveValue, ValueType,
+    Attributes, FieldName, GraphIndex, GraphsMap, NodeIndex, Number, ObjectGraph, ObjectType,
+    PrimitiveField, PrimitiveValue, StringValue, ValueType,
 };
 use core::fmt;
 use std::{
@@ -357,7 +357,7 @@ impl Value {
         }
     }
 
-    pub fn string_value(&self) -> Option<CachedString> {
+    pub fn string_value(&self) -> Option<StringValue> {
         match self {
             Value::Primitive(p) => p.string(),
             _ => None,
@@ -441,7 +441,8 @@ impl GraphMapEq for Value {
             (Value::Object(self_object_value), Value::Object(other_object_value)) => {
                 self_object_value.eq(self_graphs_map, other_object_value, other_graphs_map)
             }
-            (_, _) => false,
+            (Value::Null, Value::Null) => true,
+            _ => false,
         }
     }
 }
@@ -484,7 +485,6 @@ impl<'a, 'b> Display for ValueDotDispaly<'a, 'b> {
                     self.config.subgraph.as_ref().map(|s| s.name.to_string()),
                 )?;
                 Dot::write_footer_with_config(f, &self.config)?;
-
                 Ok(())
             }
             Value::Object(o) => write!(
@@ -501,7 +501,6 @@ impl<'a, 'b> Display for ValueDotDispaly<'a, 'b> {
                     self.config.subgraph.as_ref().map(|s| s.name.to_string()),
                 )?;
                 Dot::write_footer_with_config(f, &self.config)?;
-
                 Ok(())
             }
         }
@@ -552,19 +551,11 @@ macro_rules! vnum {
 }
 
 #[macro_export]
-macro_rules! vstring {
-    ($cache:expr; $e:expr) => { $crate::value::Value::Primitive(ruse_object_graph::PrimitiveValue::String(ruse_object_graph::scached!($cache; $e))) }
-}
-
-#[macro_export]
 macro_rules! vstr {
-    ($cache:expr; $e:expr) => { $crate::value::Value::Primitive(ruse_object_graph::PrimitiveValue::String(ruse_object_graph::str_cached!($cache; $e))) }
-}
-
-#[macro_export]
-macro_rules! vcstring {
-    ($e:expr) => {
-        $crate::value::Value::Primitive(ruse_object_graph::PrimitiveValue::String($e))
+    ($x:expr) => {
+        $crate::value::Value::Primitive(ruse_object_graph::PrimitiveValue::String(
+            ruse_object_graph::StringValue::from($x),
+        ))
     };
 }
 

@@ -3,7 +3,8 @@ use std::{collections::HashMap, sync::Arc};
 use boa_engine::{js_string, value::JsValue};
 use itertools::Itertools;
 use ruse_object_graph::{
-    value::ObjectValue, Attributes, CachedString, FieldName, FieldsMap, ObjectType, PrimitiveField,
+    field_name, value::ObjectValue, Attributes, ClassName, FieldName, FieldsMap, ObjectType,
+    PrimitiveField,
 };
 
 use crate::{
@@ -58,7 +59,7 @@ impl JsObjectWrapper {
     }
 
     fn getter_for_static_field(
-        class_name: &CachedString,
+        class_name: &ClassName,
         field: &JsFieldDescription,
     ) -> Option<boa_engine::NativeFunction> {
         debug_assert!(field.is_static);
@@ -73,7 +74,7 @@ impl JsObjectWrapper {
     }
 
     fn setter_for_static_field(
-        class_name: &CachedString,
+        class_name: &ClassName,
         field: &JsFieldDescription,
     ) -> Option<boa_engine::NativeFunction> {
         debug_assert!(field.is_static);
@@ -130,7 +131,6 @@ impl JsObjectWrapper {
         let global_obj = engine_ctx.global_object();
         let global_ctx = JsWrapped::<RuseJsGlobalObject>::get_from_js_obj(&global_obj)?;
 
-        let cache = global_ctx.cache()?;
         let id_gen = global_ctx.id_gen()?;
 
         let primitive_fields =
@@ -143,7 +143,7 @@ impl JsObjectWrapper {
                     }
 
                     let field_name: FieldName = field.name.clone();
-                    let value = field.get_primitive_value(cache)?;
+                    let value = field.get_primitive_value()?;
                     let attributes = Attributes {
                         readonly: field.is_readonly,
                     };
@@ -157,8 +157,8 @@ impl JsObjectWrapper {
                         }
 
                         let field = &self.desc.fields[param.name.as_str()];
-                        let field_name: FieldName = param.name.clone();
-                        let value = js_value_to_primitive_value(arg, cache)?;
+                        let field_name = field_name!(param.name.as_str());
+                        let value = js_value_to_primitive_value(arg)?;
                         let attributes = Attributes {
                             readonly: field.is_readonly,
                         };
@@ -185,8 +185,8 @@ impl JsObjectWrapper {
             }
 
             if !arg.is_null_or_undefined() {
-                let obj_val = js_value_to_value(global_ctx.classes()?, arg, engine_ctx, cache);
-                graphs_map.set_field(param.name.clone(), graph_id, node_id, &obj_val);
+                let obj_val = js_value_to_value(global_ctx.classes()?, arg, engine_ctx);
+                graphs_map.set_field(field_name!(param.name.clone()), graph_id, node_id, &obj_val);
             }
         }
 

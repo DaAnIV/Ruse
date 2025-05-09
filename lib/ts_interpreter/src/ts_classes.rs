@@ -7,7 +7,7 @@ use std::{
 
 use anyhow::Error;
 use itertools::Itertools;
-use ruse_object_graph::{scached, Cache, ClassName, GraphsMap, NodeIndex, ObjectType};
+use ruse_object_graph::{class_name, ClassName, GraphsMap, NodeIndex, ObjectType};
 use ruse_synthesizer::context::{GraphIdGenerator, SynthesizerContextData};
 use swc_common::{
     errors::{ColorConfig, Handler},
@@ -63,12 +63,12 @@ impl TsClasses {
             .map(|class| class.as_ref() as &dyn TsBuiltinClass)
     }
 
-    pub fn get_user_class(&self, class: &str) -> Option<&TsUserClass> {
+    pub fn get_user_class(&self, class: &ClassName) -> Option<&TsUserClass> {
         let base_class_name = class.split("<").next().unwrap();
         self.user_classes.get(base_class_name)
     }
 
-    pub fn get_user_class_mut(&mut self, class: &str) -> Option<&mut TsUserClass> {
+    pub fn get_user_class_mut(&mut self, class: &ClassName) -> Option<&mut TsUserClass> {
         let base_class_name = class.split("<").next().unwrap();
         self.user_classes.get_mut(base_class_name)
     }
@@ -112,16 +112,12 @@ impl TsClassesBuilder {
         }
     }
 
-    pub fn add_classes(&mut self, code: &str, cache: &Cache) -> Result<Vec<ClassName>, Error> {
+    pub fn add_classes(&mut self, code: &str) -> Result<Vec<ClassName>, Error> {
         let script = TsUserClass::get_ast(code)?.script().unwrap();
-        self.parse_body(&vec![], &script.body, cache)
+        self.parse_body(&vec![], &script.body)
     }
 
-    pub fn add_ts_files<P: AsRef<Path>>(
-        &mut self,
-        full_path: P,
-        cache: &Cache,
-    ) -> Result<Vec<ClassName>, Error> {
+    pub fn add_ts_files<P: AsRef<Path>>(&mut self, full_path: P) -> Result<Vec<ClassName>, Error> {
         if !full_path.as_ref().exists() {
             return Err(std::io::Error::new(
                 std::io::ErrorKind::NotFound,
@@ -139,20 +135,16 @@ impl TsClassesBuilder {
                         && e.path().extension().map(|s| s == "ts").unwrap_or(false)
                 })
             {
-                classes_names.extend(self.add_ts_file(entry.path(), cache)?);
+                classes_names.extend(self.add_ts_file(entry.path())?);
             }
 
             Ok(classes_names)
         } else {
-            self.add_ts_file(full_path, cache)
+            self.add_ts_file(full_path)
         }
     }
 
-    fn add_ts_file<P: AsRef<Path>>(
-        &mut self,
-        full_path: P,
-        cache: &Cache,
-    ) -> Result<Vec<ClassName>, Error> {
+    fn add_ts_file<P: AsRef<Path>>(&mut self, full_path: P) -> Result<Vec<ClassName>, Error> {
         let cm = Arc::<SourceMap>::default();
         let handler = Handler::with_tty_emitter(ColorConfig::Auto, true, false, Some(cm.clone()));
         let c = swc::Compiler::new(cm.clone());
@@ -174,14 +166,13 @@ impl TsClassesBuilder {
             .script()
             .unwrap();
 
-        self.parse_body(&vec![], &script.body, cache)
+        self.parse_body(&vec![], &script.body)
     }
 
     pub fn parse_body(
         &mut self,
         namespace: &Vec<String>,
         body: &Vec<ast::Stmt>,
-        cache: &Cache,
     ) -> Result<Vec<ClassName>, Error> {
         let mut class_names = vec![];
 
@@ -189,7 +180,7 @@ impl TsClassesBuilder {
             match stmt {
                 ast::Stmt::Decl(ast::Decl::Class(class_decl)) => {
                     let class_name =
-                        scached!(cache; TsUserClassBuilder::get_class_name(namespace, class_decl));
+                        class_name!(TsUserClassBuilder::get_class_name(namespace, class_decl));
                     self.classes.push((namespace.clone(), class_decl.clone()));
                     class_names.push(class_name.clone());
                 }
@@ -211,7 +202,7 @@ impl TsClassesBuilder {
                             .into_iter()
                             .filter_map(|x| x.stmt())
                             .collect_vec();
-                        let ns_classes = self.parse_body(&new_ns, &stmts, cache)?;
+                        let ns_classes = self.parse_body(&new_ns, &stmts)?;
                         class_names.extend(ns_classes);
                     }
                 }
@@ -250,21 +241,21 @@ impl TsClassesBuilder {
         Ok(class_names)
     }
 
-    fn get_builtin_classes(&self, cache: &Cache) -> HashMap<String, Box<dyn TsBuiltinClass>> {
+    fn get_builtin_classes(&self) -> HashMap<String, Box<dyn TsBuiltinClass>> {
         let mut builtin_classes: HashMap<String, Box<dyn TsBuiltinClass>> = HashMap::new();
         builtin_classes.insert(
             BuiltinArrayClass::CLASS_NAME.to_string(),
-            Box::new(BuiltinArrayClass::new(builtin_classes.len() as u64, cache)),
+            Box::new(BuiltinArrayClass::new(builtin_classes.len() as u64)),
         );
         builtin_classes.insert(
             BuiltinMapClass::CLASS_NAME.to_string(),
-            Box::new(BuiltinMapClass::new(builtin_classes.len() as u64, cache)),
+            Box::new(BuiltinMapClass::new(builtin_classes.len() as u64)),
         );
         builtin_classes
     }
 
-    pub fn finalize(self, cache: &Arc<Cache>) -> Box<TsClasses> {
-        let builtin_classes = self.get_builtin_classes(cache);
+    pub fn finalize(self) -> Box<TsClasses> {
+        let builtin_classes = self.get_builtin_classes();
 
         let gen_id = Arc::new(GraphIdGenerator::with_initial_values(
             NodeIndex(0),
@@ -284,18 +275,16 @@ impl TsClassesBuilder {
             self.variables,
             self.exports,
             classes.static_classes_gen_id.clone(),
-            cache,
         );
-        global_class_builder.finalize(&mut classes, &mut graphs_map, cache);
+        global_class_builder.finalize(&mut classes, &mut graphs_map);
 
         for (namespace, class_decl) in &self.classes {
             let builder = TsUserClassBuilder::from_class_decl(
                 namespace,
                 class_decl,
                 classes.static_classes_gen_id.clone(),
-                cache,
             );
-            builder.finalize(&mut classes, &mut graphs_map, cache);
+            builder.finalize(&mut classes, &mut graphs_map);
         }
 
         Box::new(classes)

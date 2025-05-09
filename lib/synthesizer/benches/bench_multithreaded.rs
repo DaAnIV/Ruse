@@ -3,8 +3,12 @@ use criterion::*;
 // use dashmap;
 use rand::{rngs::StdRng, SeedableRng};
 // use rayon::{self, iter::{IntoParallelRefIterator, ParallelIterator}};
-use ruse_object_graph::{generator::*, GraphsMap, graph_map_value::{GraphMapWrap, GraphMapValue}};
-use ruse_object_graph::{Cache, ObjectGraph};
+use ruse_object_graph::ObjectGraph;
+use ruse_object_graph::{
+    generator::*,
+    graph_map_value::{GraphMapValue, GraphMapWrap},
+    GraphsMap,
+};
 use std::{collections::HashSet, sync::Arc};
 
 const SEED: u64 = 100;

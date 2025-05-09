@@ -9,8 +9,7 @@ use boa_engine::{
 };
 use ruse_object_graph::{
     value::{ObjectValue, Value},
-    vnull, Cache, ClassName, FieldName, GraphIndex, GraphsMap, ObjectType, PrimitiveValue,
-    ValueType,
+    vnull, ClassName, FieldName, GraphIndex, GraphsMap, ObjectType, PrimitiveValue, ValueType,
 };
 use ruse_synthesizer::context::{Context, GraphIdGenerator};
 
@@ -49,7 +48,6 @@ trait GlobalObjectInner {
     ) -> boa_engine::JsResult<()>;
 
     fn classes(&self) -> &TsClasses;
-    fn cache(&self) -> &Cache;
     fn graphs_map(&self) -> &GraphsMap;
     fn mut_graphs_map(&self) -> boa_engine::JsResult<&mut GraphsMap>;
     fn get_graph_id_for_new_object(&self) -> boa_engine::JsResult<GraphIndex>;
@@ -59,7 +57,6 @@ trait GlobalObjectInner {
 }
 
 struct GraphGlobalObjectInner {
-    cache: Arc<Cache>,
     id_gen: Arc<GraphIdGenerator>,
     graph_id: GraphIndex,
     graphs_map: *mut GraphsMap,
@@ -87,9 +84,6 @@ impl GlobalObjectInner for GraphGlobalObjectInner {
     fn classes(&self) -> &TsClasses {
         unsafe { self.classes.as_ref().unwrap() }
     }
-    fn cache(&self) -> &Cache {
-        self.cache.as_ref()
-    }
     fn graphs_map(&self) -> &GraphsMap {
         unsafe { self.graphs_map.as_ref().unwrap() }
     }
@@ -112,7 +106,6 @@ impl GlobalObjectInner for GraphGlobalObjectInner {
 }
 
 struct MutContextGlobalObjectInner {
-    cache: Arc<Cache>,
     context: *mut Context,
     classes: *const TsClasses,
     dirty: bool,
@@ -144,9 +137,6 @@ impl GlobalObjectInner for MutContextGlobalObjectInner {
     fn classes(&self) -> &TsClasses {
         unsafe { self.classes.as_ref().unwrap() }
     }
-    fn cache(&self) -> &Cache {
-        self.cache.as_ref()
-    }
     fn graphs_map(&self) -> &GraphsMap {
         &self.context().graphs_map
     }
@@ -169,7 +159,6 @@ impl GlobalObjectInner for MutContextGlobalObjectInner {
 }
 
 struct ContextGlobalObjectInner {
-    cache: Arc<Cache>,
     context: *const Context,
     classes: *const TsClasses,
 }
@@ -192,9 +181,6 @@ impl GlobalObjectInner for ContextGlobalObjectInner {
 
     fn classes(&self) -> &TsClasses {
         unsafe { self.classes.as_ref().unwrap() }
-    }
-    fn cache(&self) -> &Cache {
-        self.cache.as_ref()
     }
     fn graphs_map(&self) -> &GraphsMap {
         &self.context().graphs_map
@@ -304,12 +290,7 @@ impl RuseJsGlobalObject {
         js_value: &boa_engine::JsValue,
         engine_ctx: &mut EngineContext<'_>,
     ) -> boa_engine::JsResult<Value> {
-        Ok(js_value_to_value(
-            self.classes()?,
-            js_value,
-            engine_ctx,
-            self.cache()?,
-        ))
+        Ok(js_value_to_value(self.classes()?, js_value, engine_ctx))
     }
 
     pub fn get_field(
@@ -398,9 +379,6 @@ impl RuseJsGlobalObject {
     pub fn classes(&self) -> boa_engine::JsResult<&TsClasses> {
         Ok(self.inner()?.classes())
     }
-    pub fn cache(&self) -> boa_engine::JsResult<&Cache> {
-        Ok(self.inner()?.cache())
-    }
     pub fn graphs_map(&self) -> boa_engine::JsResult<&GraphsMap> {
         Ok(self.inner()?.graphs_map())
     }
@@ -458,30 +436,23 @@ impl<'a> EngineContext<'a> {
         engine_ctx
     }
 
-    pub fn reset_with_context(&self, post_ctx: &Context, classes: &TsClasses, cache: &Arc<Cache>) {
+    pub fn reset_with_context(&self, post_ctx: &Context, classes: &TsClasses) {
         let global_obj = self.global_object();
         let mut wrapped_inner =
             JsWrapped::<RuseJsGlobalObject>::mut_from_js_obj(&global_obj).unwrap();
         wrapped_inner.0.inner = RuseJsGlobalObjectInner::Contxt(ContextGlobalObjectInner {
             context: std::ptr::from_ref(post_ctx),
             classes: std::ptr::from_ref(classes),
-            cache: cache.clone(),
         });
     }
 
-    pub fn reset_with_mut_context(
-        &self,
-        post_ctx: &mut Context,
-        classes: &TsClasses,
-        cache: &Arc<Cache>,
-    ) {
+    pub fn reset_with_mut_context(&self, post_ctx: &mut Context, classes: &TsClasses) {
         let global_obj = self.global_object();
         let mut wrapped_inner =
             JsWrapped::<RuseJsGlobalObject>::mut_from_js_obj(&global_obj).unwrap();
         wrapped_inner.0.inner = RuseJsGlobalObjectInner::MutContxt(MutContextGlobalObjectInner {
             context: std::ptr::from_mut(post_ctx),
             classes: std::ptr::from_ref(classes),
-            cache: cache.clone(),
             dirty: false,
         });
     }
@@ -492,7 +463,6 @@ impl<'a> EngineContext<'a> {
         graphs_map: &mut GraphsMap,
         classes: &TsClasses,
         id_gen: &Arc<GraphIdGenerator>,
-        cache: &Arc<Cache>,
     ) {
         let global_obj = self.global_object();
         let mut wrapped_inner =
@@ -502,7 +472,6 @@ impl<'a> EngineContext<'a> {
             graphs_map: std::ptr::from_mut(graphs_map),
             classes: std::ptr::from_ref(classes),
             id_gen: id_gen.clone(),
-            cache: cache.clone(),
             dirty: false,
         });
     }
@@ -518,11 +487,9 @@ impl<'a> EngineContext<'a> {
         let global_obj = self.global_object();
         let global_ctx = JsWrapped::<RuseJsGlobalObject>::get_from_js_obj(&global_obj)?;
         let inner = global_ctx.inner()?;
-        let cache = inner.cache();
-        let id_gen = inner.id_gen();
 
         let graph_id = inner.get_graph_id_for_new_object()?;
-        let node_id = id_gen.get_id_for_node();
+        let node_id = inner.id_gen().get_id_for_node();
 
         let graphs_map = inner.mut_graphs_map()?;
 
@@ -532,10 +499,9 @@ impl<'a> EngineContext<'a> {
                 node_id,
                 elem_type,
                 elements.into_iter().map(|x| x.into_primitive().unwrap()),
-                cache,
             );
         } else {
-            graphs_map.add_array_object(graph_id, node_id, elem_type, elements, cache);
+            graphs_map.add_array_object(graph_id, node_id, elem_type, elements);
         }
 
         Ok(ObjectValue {
@@ -557,11 +523,9 @@ impl<'a> EngineContext<'a> {
         let global_obj = self.global_object();
         let global_ctx = JsWrapped::<RuseJsGlobalObject>::get_from_js_obj(&global_obj)?;
         let inner = global_ctx.inner()?;
-        let cache = inner.cache();
-        let id_gen = inner.id_gen();
 
         let graph_id = inner.get_graph_id_for_new_object()?;
-        let node_id = id_gen.get_id_for_node();
+        let node_id = inner.id_gen().get_id_for_node();
 
         let graphs_map = inner.mut_graphs_map()?;
 
@@ -574,10 +538,9 @@ impl<'a> EngineContext<'a> {
                 elements
                     .into_iter()
                     .map(|(k, v)| (k, v.into_primitive().unwrap())),
-                cache,
             );
         } else {
-            graphs_map.add_map_object(graph_id, node_id, key_type, value_type, elements, cache);
+            graphs_map.add_map_object(graph_id, node_id, key_type, value_type, elements);
         }
 
         Ok(ObjectValue {

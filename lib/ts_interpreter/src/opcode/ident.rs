@@ -1,4 +1,3 @@
-use ruse_object_graph::CachedString;
 use ruse_object_graph::ValueType;
 use ruse_synthesizer::context::*;
 use ruse_synthesizer::location::*;
@@ -12,12 +11,12 @@ use super::TsExprAst;
 
 #[derive(Debug)]
 pub struct IdentOp {
-    pub name: CachedString,
-    required_args: [CachedString; 1],
+    pub name: VariableName,
+    required_args: [VariableName; 1],
 }
 
 impl IdentOp {
-    pub fn new(var_name: CachedString) -> Self {
+    pub fn new(var_name: VariableName) -> Self {
         Self {
             name: var_name.clone(),
             required_args: [var_name],
@@ -60,7 +59,7 @@ impl ExprOpcode for IdentOp {
         &[]
     }
 
-    fn required_variables(&self) -> &[CachedString] {
+    fn required_variables(&self) -> &[VariableName] {
         &self.required_args
     }
 }

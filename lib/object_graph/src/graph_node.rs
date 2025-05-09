@@ -1,12 +1,9 @@
 use core::fmt;
 use std::collections::BTreeMap;
 
-use crate::{node_index::NodeIndex, CachedString, GraphIndex, ObjectType, PrimitiveValue};
+use crate::{node_index::NodeIndex, FieldName, GraphIndex, ObjectType, PrimitiveValue};
 
 use std::hash::{Hash, Hasher};
-
-pub type FieldName = CachedString;
-pub type RootName = CachedString;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Attributes {

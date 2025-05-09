@@ -6,8 +6,9 @@ use std::{
 use boa_engine::JsResult;
 use itertools::Itertools;
 use ruse_object_graph::{
+    class_name,
     value::{ObjectValue, Value},
-    Cache, FieldName, GraphsMap, NodeIndex, ObjectGraph, ObjectType, ValueType,
+    FieldName, GraphsMap, NodeIndex, ObjectGraph, ObjectType, ValueType,
 };
 use ruse_synthesizer::{
     context::GraphIdGenerator,
@@ -43,7 +44,6 @@ impl TsGlobalClass {
         method_name: &str,
         param_values: I,
         classes: &TsClasses,
-        cache: &Arc<Cache>,
         engine_ctx: &mut EngineContext<'_>,
     ) -> boa_engine::JsResult<Value>
     where
@@ -56,7 +56,7 @@ impl TsGlobalClass {
 
         let result = engine_ctx.call_global_function(method_name, &args)?;
 
-        Ok(js_value_to_value(classes, &result, engine_ctx, cache))
+        Ok(js_value_to_value(classes, &result, engine_ctx))
     }
 
     pub fn static_object_value(&self) -> Option<ObjectValue> {
@@ -92,14 +92,13 @@ impl TsGlobalClassBuilder {
         variables: Vec<(Vec<String>, Box<VarDecl>)>,
         exports: HashSet<String>,
         gen_id: Arc<GraphIdGenerator>,
-        cache: &Cache,
     ) -> Self {
         let mut fields = HashMap::default();
         let mut methods = HashMap::default();
 
         for func in functions {
             let func_name = get_name_with_namespace(&func.0, func.1.ident.sym.as_str());
-            let mut desc = MethodDescription::from_with_cache(&func.1, cache);
+            let mut desc = MethodDescription::from(&func.1);
             if exports.contains(&func_name) {
                 assert!(desc
                     .params
@@ -113,7 +112,7 @@ impl TsGlobalClassBuilder {
             for decl in var.1.decls.iter() {
                 let var_name =
                     get_name_with_namespace(&var.0, decl.name.as_ident().unwrap().sym.as_str());
-                let mut desc = JsFieldDescription::from_with_cache(decl, cache);
+                let mut desc = JsFieldDescription::from(decl);
                 if exports.contains(&var_name) {
                     desc.is_private = false;
                 }
@@ -131,16 +130,15 @@ impl TsGlobalClassBuilder {
         class
     }
 
-    pub fn finalize(self, classes: &mut TsClasses, graphs_map: &mut GraphsMap, cache: &Arc<Cache>) {
-        let static_graph_obj_type =
-            StaticGraphBuilder::static_graph_obj_type(Self::CLASS_NAME, cache);
+    pub fn finalize(self, classes: &mut TsClasses, graphs_map: &mut GraphsMap) {
+        let static_graph_obj_type = StaticGraphBuilder::static_graph_obj_type(Self::CLASS_NAME);
 
         let root_node = classes.static_classes_gen_id.get_id_for_node();
 
         let static_graph = if self.fields.values().any(|field| field.is_static) {
             let static_graph_builder = StaticGraphBuilder {
                 id: self.id,
-                class_name: Self::CLASS_NAME,
+                class_name: &class_name!(Self::CLASS_NAME),
                 gen_id: &self.gen_id,
             };
             Some(static_graph_builder.populate_static_graph(
@@ -148,7 +146,6 @@ impl TsGlobalClassBuilder {
                 root_node,
                 graphs_map,
                 classes,
-                cache,
             ))
         } else {
             None

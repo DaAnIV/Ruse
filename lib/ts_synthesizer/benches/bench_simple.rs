@@ -16,7 +16,6 @@ fn simple_synthesize_1(c: &mut Criterion) {
         group.bench_function(format!("Synthesize {:0>4}", i), |b| {
             b.to_async(&rt).iter_batched(
                 || {
-                    let cache = Arc::new(object_graph::Cache::new());
                     let id_gen1 = Arc::new(GraphIdGenerator::default());
                     let id_gen2 = Arc::new(GraphIdGenerator::default());
                     let graphs_map1 = GraphsMap::default();
@@ -25,8 +24,8 @@ fn simple_synthesize_1(c: &mut Criterion) {
                     let ctx = ContextArray::from(vec![
                         Context::with_values(
                             [
-                                (str_cached!(cache; "x"), vnum!(Number::from(4u64))),
-                                (str_cached!(cache; "y"), vnum!(Number::from(2u64))),
+                                (root_name!("x"), vnum!(Number::from(4u64))),
+                                (root_name!("y"), vnum!(Number::from(2u64))),
                             ]
                             .into(),
                             graphs_map1.into(),
@@ -34,8 +33,8 @@ fn simple_synthesize_1(c: &mut Criterion) {
                         ),
                         Context::with_values(
                             [
-                                (str_cached!(cache; "x"), vnum!(Number::from(5u64))),
-                                (str_cached!(cache; "y"), vnum!(Number::from(3u64))),
+                                (root_name!("x"), vnum!(Number::from(5u64))),
+                                (root_name!("y"), vnum!(Number::from(3u64))),
                             ]
                             .into(),
                             graphs_map2.into(),
@@ -43,7 +42,7 @@ fn simple_synthesize_1(c: &mut Criterion) {
                         ),
                     ]);
                     let mut opcodes = construct_opcode_list(
-                        &[str_cached!(cache; "x"), str_cached!(cache; "y")],
+                        &[root_name!("x"), root_name!("y")],
                         &[-1, 1],
                         &[],
                         false,
@@ -56,7 +55,7 @@ fn simple_synthesize_1(c: &mut Criterion) {
                         &ALL_UPDATE_NUM_OPCODES,
                     );
 
-                    let syn_ctx = SynthesizerContext::from_context_array(ctx, cache);
+                    let syn_ctx = SynthesizerContext::from_context_array(ctx);
                     TsSynthesizer::new(
                         SubsumptionProgBank::default(),
                         syn_ctx,

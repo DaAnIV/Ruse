@@ -4,7 +4,7 @@ use boa_engine::{
     js_string, property::Attribute, string::StaticJsStrings, JsResult, JsString, JsSymbol, JsValue,
 };
 use ruse_object_graph::{
-    scached, str_cached, value::ObjectValue, Cache, ClassName, FieldName, ObjectType, ValueType,
+    class_name, field_name, value::ObjectValue, ClassName, FieldName, ObjectType, ValueType,
 };
 
 use crate::{
@@ -28,9 +28,9 @@ pub struct BuiltinMapClass {
 impl BuiltinMapClass {
     pub const CLASS_NAME: &'static str = "Map";
 
-    pub(crate) fn new(id: u64, cache: &Cache) -> Self {
+    pub(crate) fn new(id: u64) -> Self {
         Self {
-            class_name: str_cached!(cache; Self::CLASS_NAME),
+            class_name: class_name!(Self::CLASS_NAME),
             id,
         }
     }
@@ -74,7 +74,6 @@ impl TsBuiltinClass for BuiltinMapClass {
         classes: &TsClasses,
         value: &boa_engine::JsObject,
         engine_ctx: &mut EngineContext<'_>,
-        cache: &Cache,
     ) -> Result<ObjectValue, boa_engine::JsError> {
         if let Ok(js_map) = boa_engine::object::builtins::JsMap::from_object(value.clone()) {
             if js_map.get_size(engine_ctx)? == 0.into() {
@@ -92,10 +91,10 @@ impl TsBuiltinClass for BuiltinMapClass {
             while let Ok(js_key) = js_keys.next(engine_ctx) {
                 let js_value = js_map.get(js_key.clone(), engine_ctx)?;
 
-                let key = js_value_to_value(classes, &js_key, engine_ctx, cache)
+                let key = js_value_to_value(classes, &js_key, engine_ctx)
                     .into_primitive()
-                    .ok_or_else(|| { js_error_not_primitive_key() })?;
-                let value = js_value_to_value(classes, &js_value, engine_ctx, cache);
+                    .ok_or_else(|| js_error_not_primitive_key())?;
+                let value = js_value_to_value(classes, &js_value, engine_ctx);
 
                 key_type = key.val_type();
                 value_type = value.val_type();
@@ -284,15 +283,14 @@ impl JsMapWrapper {
         let global_ctx = JsWrapped::<RuseJsGlobalObject>::get_from_js_obj(&global_obj)?;
         let graphs_map = global_ctx.graphs_map()?;
         let classes = global_ctx.classes()?;
-        let cache = global_ctx.cache()?;
 
         if let ObjectType::Map(key_type, _value_type) = &obj.obj_type {
-            let js_key = args.get(0).ok_or_else(|| { js_error_missing_arg(0) })?;
-            let key = js_value_to_value(classes, js_key, ctx, cache);
+            let js_key = args.get(0).ok_or_else(|| js_error_missing_arg(0))?;
+            let key = js_value_to_value(classes, js_key, ctx);
             if &key.val_type() != key_type.as_ref() {
                 return Err(js_error_unexpected_arg_type(0));
             }
-            let field_name = scached!(cache; key.primitive().unwrap().to_string());
+            let field_name = field_name!(key.primitive().unwrap().to_string());
             if let Some(value) = obj.get_field_value(&field_name, graphs_map) {
                 Ok(value_to_js_value(classes, &value, ctx))
             } else {

@@ -1,13 +1,15 @@
 use ruse_object_graph::{
-    graph_map_value::*, value::Value, Attributes, CachedString, GraphIndex, GraphsMap, NodeIndex,
+    graph_map_value::*, value::Value, Attributes, FieldName, GraphIndex, GraphsMap, NodeIndex,
 };
 use std::{fmt::Debug, fmt::Display, hash::Hash};
+
+use crate::context::VariableName;
 
 #[derive(Debug, Clone)]
 pub struct ObjectFieldLoc {
     pub graph: GraphIndex,
     pub node: NodeIndex,
-    pub field: CachedString,
+    pub field: FieldName,
     pub attrs: Attributes,
 }
 
@@ -27,7 +29,7 @@ impl Hash for ObjectFieldLoc {
 
 #[derive(Debug, Clone)]
 pub struct VarLoc {
-    pub var: CachedString,
+    pub var: VariableName,
     pub attrs: Attributes,
 }
 
@@ -121,7 +123,7 @@ impl LocValue {
     pub fn get_obj_field_loc_value(
         &self,
         graphs_map: &GraphsMap,
-        field_name: &CachedString,
+        field_name: &FieldName,
     ) -> Option<Self> {
         let obj = self.val().obj().unwrap();
         let field = obj.get_field_value(field_name, graphs_map)?;

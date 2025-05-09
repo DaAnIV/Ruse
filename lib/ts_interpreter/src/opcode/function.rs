@@ -62,7 +62,7 @@ impl ExprOpcode for ClassMethodOp {
         let classes = syn_ctx.data.downcast_ref::<TsClasses>().unwrap();
         let mut boa_ctx = EngineContext::new_boa_ctx();
         let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, classes);
-        engine_ctx.reset_with_mut_context(post_ctx, classes, &syn_ctx.cache);
+        engine_ctx.reset_with_mut_context(post_ctx, classes);
         let class = classes.get_user_class(&self.class_name).unwrap();
 
         let result = if self.desc.is_static {
@@ -70,7 +70,6 @@ impl ExprOpcode for ClassMethodOp {
                 &self.desc.name,
                 args.iter().map(|x| x.val()),
                 classes,
-                &syn_ctx.cache,
                 &mut engine_ctx,
             )
         } else {
@@ -79,7 +78,6 @@ impl ExprOpcode for ClassMethodOp {
                 args[0].val(),
                 args.iter().skip(1).map(|x| x.val()),
                 classes,
-                &syn_ctx.cache,
                 &mut engine_ctx,
             )
         };
@@ -128,13 +126,13 @@ impl std::fmt::Debug for ClassMethodOp {
 }
 
 pub struct ClassConstructorOp {
-    obj_type: CachedString,
+    obj_type: ClassName,
     full_method_name: String,
     arg_types: Vec<ValueType>,
 }
 
 impl ClassConstructorOp {
-    pub fn new(obj_type: CachedString, desc: MethodDescription) -> Self {
+    pub fn new(obj_type: ClassName, desc: MethodDescription) -> Self {
         let full_method_name = format!("new {}", &obj_type);
 
         let mut arg_types = vec![];
@@ -166,7 +164,7 @@ impl ExprOpcode for ClassConstructorOp {
         let classes = syn_ctx.data.downcast_ref::<TsClasses>().unwrap();
         let mut boa_ctx = EngineContext::new_boa_ctx();
         let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, classes);
-        engine_ctx.reset_with_mut_context(post_ctx, classes, &syn_ctx.cache);
+        engine_ctx.reset_with_mut_context(post_ctx, classes);
         let class = classes.get_user_class(&self.obj_type).unwrap();
 
         let result = class.call_constructor(args.iter().map(|x| x.val()), classes, &mut engine_ctx);
@@ -247,14 +245,13 @@ impl ExprOpcode for GlobalFunctionOp {
         let classes = syn_ctx.data.downcast_ref::<TsClasses>().unwrap();
         let mut boa_ctx = EngineContext::new_boa_ctx();
         let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, classes);
-        engine_ctx.reset_with_mut_context(post_ctx, classes, &syn_ctx.cache);
+        engine_ctx.reset_with_mut_context(post_ctx, classes);
         let class = classes.get_global_class().unwrap();
 
         let result = class.call_function(
             &self.desc.name,
             args.iter().map(|x| x.val()),
             classes,
-            &syn_ctx.cache,
             &mut engine_ctx,
         );
 

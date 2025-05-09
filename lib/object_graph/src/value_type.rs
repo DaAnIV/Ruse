@@ -1,8 +1,6 @@
 use std::fmt;
 
-use crate::{str_cached, Cache, CachedString};
-
-pub type ClassName = CachedString;
+use crate::{class_name, ClassName};
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug, PartialOrd, Ord)]
 pub enum ObjectType {
@@ -14,8 +12,8 @@ pub enum ObjectType {
     DOMElement,
 }
 impl ObjectType {
-    pub fn class_obj_type(class_name: &str, cache: &Cache) -> ObjectType {
-        ObjectType::Class(str_cached!(cache; class_name))
+    pub fn class_obj_type(class_name: &str) -> ObjectType {
+        ObjectType::Class(class_name!(class_name))
     }
 
     pub fn array_obj_type(elem_type: &ValueType) -> ObjectType {

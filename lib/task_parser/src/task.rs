@@ -61,14 +61,13 @@ fn parse_json_values_map_roots<'a, M>(
     id_gen: &Arc<GraphIdGenerator>,
     refs_graph_id: Option<GraphIndex>,
     classes: &TsClasses,
-    cache: &Arc<Cache>,
 ) -> Result<ValuesMap, SnythesisTaskError>
 where
     M: IntoIterator<Item = (&'a String, &'a serde_json::Value)>,
 {
     let mut values = ValuesMap::default();
     for (k, v) in map {
-        let key = str_cached!(cache; k);
+        let key = root_name!(k.as_str());
         let value_type = &match types.get(k) {
             Some(value_type) => value_type,
             None => return Err(verify_err!("{} type is unknown", k)),
@@ -80,47 +79,11 @@ where
             graphs_map,
             id_gen,
             refs_graph_id,
-            cache,
         )?;
 
         if let Some(obj) = value.mut_obj() {
             graphs_map.set_as_root(key.clone(), obj.graph_id, obj.node);
         }
-        values.insert(key, value);
-    }
-
-    Ok(values)
-}
-
-pub(crate) fn parse_json_values_map<'a, M>(
-    map: M,
-    types: &HashMap<String, TaskType>,
-    graph_id: GraphIndex,
-    graphs_map: &mut GraphsMap,
-    id_gen: &Arc<GraphIdGenerator>,
-    refs_graph_id: Option<GraphIndex>,
-    classes: &TsClasses,
-    cache: &Arc<Cache>,
-) -> Result<ValuesMap, SnythesisTaskError>
-where
-    M: IntoIterator<Item = (&'a String, &'a serde_json::Value)>,
-{
-    let mut values = ValuesMap::default();
-    for (k, v) in map {
-        let key = str_cached!(cache; k);
-        let value_type = &match types.get(k) {
-            Some(value_type) => value_type,
-            None => return Err(verify_err!("{} type is unknown", k)),
-        };
-        let value = value_type.create_value(
-            v,
-            classes,
-            graph_id,
-            graphs_map,
-            id_gen,
-            refs_graph_id,
-            cache,
-        )?;
         values.insert(key, value);
     }
 
@@ -135,7 +98,6 @@ pub(crate) fn parse_json_values_array<'a, V, T>(
     id_gen: &Arc<GraphIdGenerator>,
     classes: &TsClasses,
     refs_graph_id: Option<GraphIndex>,
-    cache: &Arc<Cache>,
 ) -> Result<Vec<Value>, SnythesisTaskError>
 where
     V: IntoIterator<Item = &'a serde_json::Value>,
@@ -143,15 +105,8 @@ where
 {
     let mut values = vec![];
     for (value, task_type) in arr.into_iter().zip_eq(types) {
-        let value = task_type.create_value(
-            value,
-            classes,
-            graph_id,
-            graphs_map,
-            id_gen,
-            refs_graph_id,
-            cache,
-        )?;
+        let value =
+            task_type.create_value(value, classes, graph_id, graphs_map, id_gen, refs_graph_id)?;
         values.push(value);
     }
 
@@ -166,7 +121,7 @@ struct SnythesisTaskExamples {
     #[serde(skip_serializing_if = "Option::is_none")]
     state: Option<JsonValuesMap>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    predicate_js: Option<String>,
+    predicate_js: Option<serde_json::Value>,
 }
 
 impl SnythesisTaskExamples {
@@ -191,7 +146,6 @@ impl SnythesisTaskExamples {
         &self,
         variables: &HashMap<String, TaskType>,
         classes: &TsClasses,
-        cache: &Arc<Cache>,
     ) -> Result<Box<Context>, SnythesisTaskError> {
         let id_gen = Arc::new(GraphIdGenerator::with_initial_values(
             classes.static_classes_gen_id.max_node_id(),
@@ -207,9 +161,8 @@ impl SnythesisTaskExamples {
             &id_gen,
             Some(REF_GRAPH_ID),
             classes,
-            cache,
         )?;
-        set_var_refs(variables, &mut values, &mut graphs_map, cache)?;
+        set_var_refs(variables, &mut values, &mut graphs_map)?;
         graphs_map.remove(REF_GRAPH_ID);
         Ok(Context::with_values(values, graphs_map.into(), id_gen))
     }
@@ -474,14 +427,13 @@ impl SnythesisTask {
         mut max_context_depth: usize,
         iteration_workers_count: usize,
         bank_config: BankConfig,
-        cache: &Arc<Cache>,
     ) -> Result<TsSynthesizer<impl ProgBank>, SnythesisTaskError> {
         let variables = self.inner.variables.as_ref().unwrap();
 
-        let opcodes = self.get_opcodes(cache);
-        let context_array = self.get_context_array(cache)?;
-        let predicate = self.get_predicate(cache)?;
-        let valid = self.get_valid_predicate(cache)?;
+        let opcodes = self.get_opcodes();
+        let context_array = self.get_context_array()?;
+        let predicate = self.get_predicate()?;
+        let valid = self.get_valid_predicate()?;
         if let Some(immutable) = &self.inner.immutable {
             if immutable.len() == variables.len() {
                 max_context_depth = 1;
@@ -491,11 +443,7 @@ impl SnythesisTask {
         let bank = bank_config.new_bank();
 
         let immutable_opt = self.inner.immutable;
-        let syn_ctx = SynthesizerContext::from_context_array_with_data(
-            context_array,
-            self.classes,
-            cache.clone(),
-        );
+        let syn_ctx = SynthesizerContext::from_context_array_with_data(context_array, self.classes);
         let mut synthesizer = TsSynthesizer::new(
             bank,
             syn_ctx,
@@ -508,17 +456,14 @@ impl SnythesisTask {
 
         if let Some(immutable) = &immutable_opt {
             for var in immutable {
-                synthesizer.set_immutable(&str_cached!(cache; var));
+                synthesizer.set_immutable(&root_name!(var.as_str()));
             }
         }
 
         Ok(synthesizer)
     }
 
-    fn get_predicate(
-        &self,
-        cache: &Arc<Cache>,
-    ) -> Result<SynthesizerPredicate, SnythesisTaskError> {
+    fn get_predicate(&self) -> Result<SynthesizerPredicate, SnythesisTaskError> {
         let variables = self.inner.variables.as_ref().unwrap();
         let examples = self.inner.examples.as_ref().unwrap();
 
@@ -536,7 +481,6 @@ impl SnythesisTask {
                             &mut predicate_graphs_map,
                             &predicate_gen_id,
                             None,
-                            cache,
                         )?;
                         array.push(output);
                     }
@@ -556,7 +500,6 @@ impl SnythesisTask {
                         &predicate_gen_id,
                         None,
                         &self.classes,
-                        cache,
                     )?;
                     array.push(state_map);
                 }
@@ -565,10 +508,21 @@ impl SnythesisTask {
             None => None,
         };
 
-        let predicate_js: Option<Vec<String>> =
-            examples.iter().map(|e| &e.predicate_js).cloned().collect();
+        let predicate_js: Option<Vec<String>> = examples
+            .iter()
+            .map(|e| {
+                e.predicate_js.as_ref().map(|predicate| {
+                    if let Some(code_line) = predicate.as_str() {
+                        return code_line.to_string();
+                    }
+                    let code_lines: Vec<String> =
+                        serde_json::from_value(predicate.clone()).unwrap();
+                    code_lines.join("")
+                })
+            })
+            .collect();
 
-        let output_type = self.inner.return_type.as_ref().map(|x| x.value_type(cache));
+        let output_type = self.inner.return_type.as_ref().map(|x| x.value_type());
 
         let builder = PredicateBuilder {
             output_type,
@@ -576,43 +530,38 @@ impl SnythesisTask {
             state_array,
             predicate_js,
             graphs_map: predicate_graphs_map,
-            cache: cache.clone(),
         };
 
         Ok(builder.finalize())
     }
 
-    fn get_valid_predicate(
-        &self,
-        _cache: &Cache,
-    ) -> Result<SynthesizerPredicate, SnythesisTaskError> {
+    fn get_valid_predicate(&self) -> Result<SynthesizerPredicate, SnythesisTaskError> {
         let builder = ValidPredicateBuilder {
             max_string_size: self.inner.max_string_size.unwrap_or(30),
         };
         Ok(builder.finalize())
     }
 
-    fn get_opcodes(&self, cache: &Cache) -> OpcodesList {
+    fn get_opcodes(&self) -> OpcodesList {
         let var_names: Vec<VariableName> = self
             .inner
             .variables
             .as_ref()
             .unwrap()
             .keys()
-            .map(|x| str_cached!(cache; x))
+            .map(|x| root_name!(x.as_str()))
             .collect();
 
         let string_literals = self
             .string_literals
             .iter()
-            .map(|x| str_cached!(cache; x.as_str()))
+            .map(|x| str_cached!(x.as_str()))
             .collect_vec();
 
         let mut opcodes =
             construct_opcode_list(&var_names, &self.num_literals, &string_literals, false);
 
-        let composite_opcodes =
-            Self::get_composite_opcodes(&self.classes, &self.class_names, true, &cache);
+        let composite_opcodes = Self::get_composite_opcodes(&self.classes, &self.class_names, true);
 
         opcodes.extend(composite_opcodes.into_iter().filter(self.get_filter()));
 
@@ -635,7 +584,6 @@ impl SnythesisTask {
         classes: &TsClasses,
         class_names: &Vec<ClassName>,
         add_seq: bool,
-        cache: &Cache,
     ) -> OpcodesList {
         let mut composite_opcodes = OpcodesList::new();
         add_num_opcodes(
@@ -649,7 +597,7 @@ impl SnythesisTask {
             &mut composite_opcodes,
             &[ValueType::Number, ValueType::String],
         );
-        add_dom_opcodes(&mut composite_opcodes, cache);
+        add_dom_opcodes(&mut composite_opcodes);
 
         add_set_opcodes(
             &mut composite_opcodes,
@@ -698,22 +646,19 @@ impl SnythesisTask {
         composite_opcodes
     }
 
-    fn get_context_array(&self, cache: &Arc<Cache>) -> Result<ContextArray, SnythesisTaskError> {
+    fn get_context_array(&self) -> Result<ContextArray, SnythesisTaskError> {
         let variables = self.inner.variables.as_ref().unwrap();
         let examples = self.inner.examples.as_ref().unwrap();
 
         let mut values = Vec::with_capacity(examples.len());
         for example in examples {
-            values.push(example.create_context(variables, &self.classes, cache)?);
+            values.push(example.create_context(variables, &self.classes)?);
         }
 
         Ok(values.into())
     }
 
-    pub fn from_json_file(
-        path: &Path,
-        cache: &Arc<Cache>,
-    ) -> Result<SnythesisTask, SnythesisTaskError> {
+    pub fn from_json_file(path: &Path) -> Result<SnythesisTask, SnythesisTaskError> {
         let reader = std::fs::File::open(path).map_err(|e| SnythesisTaskError::IO(e))?;
         let mut inner: SnythesisTaskInner = match serde_json::from_reader(reader) {
             Ok(val) => val,
@@ -746,7 +691,7 @@ impl SnythesisTask {
         let mut class_names = vec![];
         if let Some(classes_code) = &inner.classes {
             for code in classes_code {
-                match builder.add_classes(code, cache) {
+                match builder.add_classes(code) {
                     Ok(classes_name) => class_names.extend(classes_name),
                     Err(e) => {
                         return Err(parse_err!(code, e));
@@ -761,7 +706,7 @@ impl SnythesisTask {
                     true => path.parent().unwrap().join(ts_file),
                     false => ts_file.clone(),
                 };
-                match builder.add_ts_files(&full_path, cache) {
+                match builder.add_ts_files(&full_path) {
                     Ok(names) => class_names.extend(names),
                     Err(e) => {
                         return Err(parse_err!(String::from(full_path.to_string_lossy()), e));
@@ -770,12 +715,12 @@ impl SnythesisTask {
             }
         }
 
-        let classes = builder.finalize(cache);
+        let classes = builder.finalize();
 
         for (var, var_type) in variables {
             if let TaskType::Object(obj_type) = var_type {
                 if classes
-                    .get_user_class(&str_cached!(cache; obj_type))
+                    .get_user_class(&class_name!(obj_type.as_str()))
                     .is_none()
                 {
                     return Err(verify_err!(

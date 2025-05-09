@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use ruse_object_graph::{Cache, CachedString, Number, ValueType};
+use ruse_object_graph::{Number, StringValue, ValueType};
 use ruse_synthesizer::{context::VariableName, opcode::OpcodesList};
 use ruse_ts_interpreter::opcode;
 use std::sync::Arc;
@@ -61,7 +61,7 @@ pub fn construct_opcode_list<'a, V, N, S>(
 where
     V: std::iter::IntoIterator<Item = &'a VariableName>,
     N: std::iter::IntoIterator<Item = &'a i64>,
-    S: std::iter::IntoIterator<Item = &'a CachedString>,
+    S: std::iter::IntoIterator<Item = &'a StringValue>,
 {
     let mut opcodes: OpcodesList = Vec::new();
 
@@ -173,8 +173,8 @@ pub fn add_set_opcodes(opcodes: &mut OpcodesList, set_inner_types: &[ValueType])
     }
 }
 
-pub fn add_dom_opcodes(opcodes: &mut OpcodesList, cache: &Cache) {
-    let op = Arc::new(opcode::GetElementByIdOp::new(cache));
+pub fn add_dom_opcodes(opcodes: &mut OpcodesList) {
+    let op = Arc::new(opcode::GetElementByIdOp::new());
     opcodes.push(op);
 }
 

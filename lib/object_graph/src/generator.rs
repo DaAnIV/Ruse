@@ -22,7 +22,6 @@ pub mod object_graph_generator {
     }
 
     fn graph_to_random_object_graph<R: Rng + ?Sized>(
-        cache: &Cache,
         graph_id: GraphIndex,
         rng: &mut R,
         base: DiGraph<(), ()>,
@@ -35,18 +34,16 @@ pub mod object_graph_generator {
             HashMap::<petgraph::graph::NodeIndex, node_index::NodeIndex>::with_capacity(n);
         let mut graphs_map = GraphsMap::new();
         graphs_map.ensure_graph(graph_id);
-        let root_field_string = str_cached!(cache; "r");
-        let data_field_string = str_cached!(cache; "a");
+        let root_field_string = field_name!("r");
+        let data_field_string = field_name!("a");
         while let Some(r) = get_unseen_index(n.try_into().unwrap(), &mut discovered) {
             let root_fields = fields!((
                 root_field_string.clone(),
                 PrimitiveValue::Number(rng.next_u64().into())
             ));
-            let root_name = scached!(cache; generate_random_str(5, rng).to_ascii_uppercase());
-            let obj_type = ObjectType::class_obj_type(
-                &generate_random_str(5, rng).to_ascii_uppercase(),
-                cache,
-            );
+            let root_name = root_name!(generate_random_str(5, rng).to_ascii_uppercase());
+            let obj_type =
+                ObjectType::class_obj_type(&generate_random_str(5, rng).to_ascii_uppercase());
             graphs_map.add_simple_object(graph_id, id, obj_type, root_fields);
             graphs_map.set_as_root(root_name, graph_id, id);
             map.insert(r.into(), id);
@@ -61,7 +58,6 @@ pub mod object_graph_generator {
                     ));
                     let obj_type = ObjectType::class_obj_type(
                         &generate_random_str(5, rng).to_ascii_uppercase(),
-                        cache,
                     );
                     graphs_map.add_simple_object(graph_id, id, obj_type, data_fields);
                     map.insert(nx, id);
@@ -73,7 +69,7 @@ pub mod object_graph_generator {
         for edge in base.edge_references() {
             let object = map.get(&edge.source()).unwrap();
             let field = map.get(&edge.target()).unwrap();
-            let edge_name = scached!(cache; format!("{}_{}", object.index(), field.index()));
+            let edge_name = field_name!(format!("{}_{}", object.index(), field.index()));
             graphs_map.set_edge(edge_name, graph_id, *object, graph_id, *field);
         }
 
@@ -81,24 +77,22 @@ pub mod object_graph_generator {
     }
 
     pub fn random_gnp_object_graph<R: Rng + ?Sized>(
-        cache: &Cache,
         graph_id: GraphIndex,
         rng: &mut R,
         n: usize,
         p: f64,
     ) -> GraphsMap {
         let base: DiGraph<(), ()> = random_gnp_graph(rng, n, p);
-        graph_to_random_object_graph(cache, graph_id, rng, base)
+        graph_to_random_object_graph(graph_id, rng, base)
     }
 
     pub fn random_gnm_object_graph<R: Rng + ?Sized>(
-        cache: &Cache,
         graph_id: GraphIndex,
         rng: &mut R,
         n: usize,
         m: usize,
     ) -> GraphsMap {
         let base: DiGraph<(), ()> = random_gnm_graph(rng, n, m);
-        graph_to_random_object_graph(cache, graph_id, rng, base)
+        graph_to_random_object_graph(graph_id, rng, base)
     }
 }

@@ -3,10 +3,11 @@ use std::sync::Arc;
 use itertools::Itertools;
 use ruse_object_graph::{
     dot::{self, DotConfig, SubgraphConfig},
+    field_name,
     graph_map_value::GraphMapWrap,
-    str_cached,
+    root_name, str_cached,
     value::{ObjectValue, Value},
-    vnull, vnum, Cache, GraphsMap, Number,
+    vnull, vnum, GraphsMap, Number,
 };
 use ruse_synthesizer::{
     context::{Context, ContextArray, GraphIdGenerator, SynthesizerContext},
@@ -98,12 +99,9 @@ fn tree_dot_config(name: &str) -> DotConfig {
 
 #[test]
 fn tests_construct_binary_tree() {
-    let cache = Arc::new(Cache::new());
     let mut builder = TsClassesBuilder::new();
-    let binary_tree_class_name = &builder
-        .add_ts_files(&BINARY_SEARCH_TREE_TS_PATH, &cache)
-        .unwrap()[0];
-    let classes = builder.finalize(&cache);
+    let binary_tree_class_name = &builder.add_ts_files(&BINARY_SEARCH_TREE_TS_PATH).unwrap()[0];
+    let classes = builder.finalize();
     let id_gen = Arc::new(GraphIdGenerator::default());
 
     let graph_id = id_gen.get_id_for_graph();
@@ -112,7 +110,7 @@ fn tests_construct_binary_tree() {
 
     let mut boa_ctx = EngineContext::new_boa_ctx();
     let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, &classes);
-    engine_ctx.reset_with_graph(graph_id, &mut graphs_map, &classes, &id_gen, &cache);
+    engine_ctx.reset_with_graph(graph_id, &mut graphs_map, &classes, &id_gen);
 
     let binary_tree_class = classes.get_user_class(&binary_tree_class_name).unwrap();
 
@@ -151,12 +149,9 @@ fn tests_construct_binary_tree() {
 
 #[test]
 fn tests_binary_tree_contains() {
-    let cache = Arc::new(Cache::new());
     let mut builder = TsClassesBuilder::new();
-    let binary_tree_class_name = &builder
-        .add_ts_files(&BINARY_SEARCH_TREE_TS_PATH, &cache)
-        .unwrap()[0];
-    let classes = builder.finalize(&cache);
+    let binary_tree_class_name = &builder.add_ts_files(&BINARY_SEARCH_TREE_TS_PATH).unwrap()[0];
+    let classes = builder.finalize();
     let id_gen = Arc::new(GraphIdGenerator::default());
 
     let graph_id = id_gen.get_id_for_graph();
@@ -165,7 +160,7 @@ fn tests_binary_tree_contains() {
 
     let mut boa_ctx = EngineContext::new_boa_ctx();
     let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, &classes);
-    engine_ctx.reset_with_graph(graph_id, &mut graphs_map, &classes, &id_gen, &cache);
+    engine_ctx.reset_with_graph(graph_id, &mut graphs_map, &classes, &id_gen);
 
     let binary_tree_class = classes.get_user_class(&binary_tree_class_name).unwrap();
 
@@ -205,7 +200,6 @@ fn tests_binary_tree_contains() {
             &root,
             &[vnum!(Number::from(1))],
             &classes,
-            &cache,
             &mut engine_ctx,
         )
         .unwrap();
@@ -216,7 +210,6 @@ fn tests_binary_tree_contains() {
             &root,
             &[vnum!(Number::from(28))],
             &classes,
-            &cache,
             &mut engine_ctx,
         )
         .unwrap();
@@ -227,7 +220,6 @@ fn tests_binary_tree_contains() {
             &root,
             &[vnum!(Number::from(58))],
             &classes,
-            &cache,
             &mut engine_ctx,
         )
         .unwrap();
@@ -239,7 +231,6 @@ fn tests_binary_tree_contains() {
             &root,
             &[vnum!(Number::from(2))],
             &classes,
-            &cache,
             &mut engine_ctx,
         )
         .unwrap();
@@ -250,7 +241,6 @@ fn tests_binary_tree_contains() {
             &root,
             &[vnum!(Number::from(0))],
             &classes,
-            &cache,
             &mut engine_ctx,
         )
         .unwrap();
@@ -261,7 +251,6 @@ fn tests_binary_tree_contains() {
 struct TreeHelper<'a> {
     tree: ObjectValue,
     graphs_map: &'a GraphsMap,
-    cache: &'a Cache,
 }
 
 #[allow(dead_code)]
@@ -269,7 +258,7 @@ impl<'a> TreeHelper<'a> {
     fn value(&self) -> usize {
         let value = self
             .tree
-            .get_field_value(&str_cached!(self.cache; "_value"), self.graphs_map)
+            .get_field_value(&field_name!("_value"), self.graphs_map)
             .unwrap();
 
         value.number_value().unwrap().0 as usize
@@ -277,7 +266,7 @@ impl<'a> TreeHelper<'a> {
     fn height(&self) -> usize {
         let value = self
             .tree
-            .get_field_value(&str_cached!(self.cache; "_height"), self.graphs_map)
+            .get_field_value(&field_name!("_height"), self.graphs_map)
             .unwrap();
 
         value.number_value().unwrap().0 as usize
@@ -285,7 +274,7 @@ impl<'a> TreeHelper<'a> {
     fn size(&self) -> usize {
         let value = self
             .tree
-            .get_field_value(&str_cached!(self.cache; "_size"), self.graphs_map)
+            .get_field_value(&field_name!("_size"), self.graphs_map)
             .unwrap();
 
         value.number_value().unwrap().0 as usize
@@ -293,23 +282,21 @@ impl<'a> TreeHelper<'a> {
     fn left(&self) -> Option<Self> {
         let value = self
             .tree
-            .get_field_value(&str_cached!(self.cache; "_left"), self.graphs_map)?;
+            .get_field_value(&field_name!("_left"), self.graphs_map)?;
 
         Some(Self {
             tree: value.into_obj().unwrap(),
             graphs_map: self.graphs_map,
-            cache: self.cache,
         })
     }
     fn right(&self) -> Option<Self> {
         let value = self
             .tree
-            .get_field_value(&str_cached!(self.cache; "_right"), self.graphs_map)?;
+            .get_field_value(&field_name!("_right"), self.graphs_map)?;
 
         Some(Self {
             tree: value.into_obj().unwrap(),
             graphs_map: self.graphs_map,
-            cache: self.cache,
         })
     }
 
@@ -393,12 +380,9 @@ impl<'a> TreeHelper<'a> {
 
 #[test]
 fn auto_constructor() {
-    let cache = Arc::new(Cache::new());
     let mut builder = TsClassesBuilder::new();
-    let binary_tree_class_name = &builder
-        .add_ts_files(&BINARY_SEARCH_TREE_TS_PATH, &cache)
-        .unwrap()[0];
-    let classes = builder.finalize(&cache);
+    let binary_tree_class_name = &builder.add_ts_files(&BINARY_SEARCH_TREE_TS_PATH).unwrap()[0];
+    let classes = builder.finalize();
     let id_gen = Arc::new(GraphIdGenerator::default());
 
     let graph_id = id_gen.get_id_for_graph();
@@ -407,7 +391,7 @@ fn auto_constructor() {
     let tree_value: Value = {
         let mut boa_ctx = EngineContext::new_boa_ctx();
         let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, &classes);
-        engine_ctx.reset_with_graph(graph_id, &mut graphs_map, &classes, &id_gen, &cache);
+        engine_ctx.reset_with_graph(graph_id, &mut graphs_map, &classes, &id_gen);
 
         let binary_tree_class = classes.get_user_class(&binary_tree_class_name).unwrap();
 
@@ -422,7 +406,6 @@ fn auto_constructor() {
     let tree = TreeHelper {
         tree: tree_value.into_obj().unwrap(),
         graphs_map: &graphs_map,
-        cache: &cache,
     };
 
     tree.check_fields(5, 3, 7);
@@ -445,7 +428,6 @@ fn get_ctx(
     node_to_delete_value: usize,
     binary_tree_class: &TsUserClass,
     classes: &TsClasses,
-    cache: &Arc<Cache>,
 ) -> Box<Context> {
     let id_gen = Arc::new(GraphIdGenerator::default());
     let graph_id = id_gen.get_id_for_graph();
@@ -455,34 +437,30 @@ fn get_ctx(
     let tree_value: Value = {
         let mut boa_ctx = EngineContext::new_boa_ctx();
         let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, classes);
-        engine_ctx.reset_with_graph(graph_id, &mut graphs_map, classes, &id_gen, cache);
+        engine_ctx.reset_with_graph(graph_id, &mut graphs_map, classes, &id_gen);
 
         create_binary_tree(tree_values, classes, binary_tree_class, &mut engine_ctx)
     };
     let tree_obj = tree_value.obj().unwrap().clone();
-    graphs_map.set_as_root(str_cached!(cache; "tree"), tree_obj.graph_id, tree_obj.node);
+    graphs_map.set_as_root(root_name!("tree"), tree_obj.graph_id, tree_obj.node);
 
     let node_to_delete = {
         let initial_tree = TreeHelper {
             tree: tree_obj.clone(),
             graphs_map: &graphs_map,
-            cache: &cache,
         };
         initial_tree.find_value(node_to_delete_value).unwrap().tree
     };
     graphs_map.set_as_root(
-        str_cached!(cache; "node_to_delete"),
+        root_name!("node_to_delete"),
         node_to_delete.graph_id,
         node_to_delete.node,
     );
 
     Context::with_values(
         [
-            (str_cached!(cache; "tree"), tree_value),
-            (
-                str_cached!(cache; "node_to_delete"),
-                Value::Object(node_to_delete),
-            ),
+            (root_name!("tree"), tree_value),
+            (root_name!("node_to_delete"), Value::Object(node_to_delete)),
         ]
         .into(),
         graphs_map.into(),
@@ -499,46 +477,24 @@ fn get_predicate_js(node_to_delete_value: usize) -> String {
 
 #[test]
 fn check_delete_two_children() {
-    let cache = Arc::new(Cache::new());
     let mut builder = TsClassesBuilder::new();
-    let binary_tree_class_name = &builder
-        .add_ts_files(&BINARY_SEARCH_TREE_TS_PATH, &cache)
-        .unwrap()[0];
-    let classes = builder.finalize(&cache);
+    let binary_tree_class_name = &builder.add_ts_files(&BINARY_SEARCH_TREE_TS_PATH).unwrap()[0];
+    let classes = builder.finalize();
 
     let binary_tree_class = classes.get_user_class(&binary_tree_class_name).unwrap();
 
     let ctx = ContextArray::from(vec![
-        get_ctx(
-            &[5, 2, 1, 3, 6, 10, 11],
-            10,
-            binary_tree_class,
-            &classes,
-            &cache,
-        ),
-        get_ctx(
-            &[5, 2, 1, 3, 6, 10, 11],
-            2,
-            binary_tree_class,
-            &classes,
-            &cache,
-        ),
-        get_ctx(
-            &[5, 2, 1, 3, 6, 10, 11],
-            5,
-            binary_tree_class,
-            &classes,
-            &cache,
-        ),
+        get_ctx(&[5, 2, 1, 3, 6, 10, 11], 10, binary_tree_class, &classes),
+        get_ctx(&[5, 2, 1, 3, 6, 10, 11], 2, binary_tree_class, &classes),
+        get_ctx(&[5, 2, 1, 3, 6, 10, 11], 5, binary_tree_class, &classes),
     ]);
-    let syn_ctx =
-        SynthesizerContext::from_context_array_with_data(ctx.clone(), classes, cache.clone());
+    let syn_ctx = SynthesizerContext::from_context_array_with_data(ctx.clone(), classes);
     let classes_ref = syn_ctx.data.downcast_ref::<TsClasses>().unwrap();
     let binary_tree_class = classes_ref.get_user_class(&binary_tree_class_name).unwrap();
     let tree_objs = ctx
         .iter()
         .map(|x| {
-            x.get_var_value(&syn_ctx.cached_string("tree"))
+            x.get_var_value(&root_name!("tree"))
                 .unwrap()
                 .into_obj()
                 .unwrap()
@@ -551,12 +507,12 @@ fn check_delete_two_children() {
         .map(|(o, c)| TreeHelper {
             tree: o.clone(),
             graphs_map: &c.graphs_map,
-            cache: &cache,
         })
         .collect_vec();
     initial_trees[0].print_dot(&format!("initial_tree"));
 
     let predicate = PredicateBuilder {
+        output_type: None,
         output_array: None,
         state_array: None,
         predicate_js: Some(vec![
@@ -565,11 +521,10 @@ fn check_delete_two_children() {
             get_predicate_js(5),
         ]),
         graphs_map: Default::default(),
-        cache: cache.clone(),
     }
     .finalize();
 
-    let node_to_delete_ident_op = id_op("node_to_delete", &cache);
+    let node_to_delete_ident_op = id_op("node_to_delete");
 
     let right_op = class_method_op(&binary_tree_class, "right");
     let min_node_op = class_method_op(&binary_tree_class, "min_node");
@@ -599,7 +554,6 @@ fn check_delete_two_children() {
         .map(|(o, c)| TreeHelper {
             tree: o.clone(),
             graphs_map: &c.graphs_map,
-            cache: &cache,
         })
         .collect_vec();
     swap_trees
@@ -613,7 +567,6 @@ fn check_delete_two_children() {
         .map(|(o, c)| TreeHelper {
             tree: o.clone(),
             graphs_map: &c.graphs_map,
-            cache: &cache,
         })
         .collect_vec();
 

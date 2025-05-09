@@ -2,7 +2,7 @@ use std::collections::{HashMap, VecDeque};
 
 use crate::{error::SnythesisTaskError, parse_err, task_type::TaskType, verify_err};
 use itertools::Itertools;
-use ruse_object_graph::{graph_walk, str_cached, value::Value, Cache, GraphsMap};
+use ruse_object_graph::{field_name, graph_walk, root_name, value::Value, GraphsMap};
 use ruse_synthesizer::context::ValuesMap;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -16,20 +16,18 @@ impl VarRef {
         &self,
         values: &ValuesMap,
         graphs_map: &GraphsMap,
-        cache: &Cache,
     ) -> Result<Value, SnythesisTaskError> {
         let value = values.get(self.var.as_str()).ok_or(parse_err!(
             format!("{}", self),
             "Pointing to an uninitialized value"
         ))?;
-        self.walk_fields(value, graphs_map, cache)
+        self.walk_fields(value, graphs_map)
     }
 
     fn walk_fields(
         &self,
         value: &Value,
         graphs_map: &GraphsMap,
-        cache: &Cache,
     ) -> Result<Value, SnythesisTaskError> {
         if self.fields.is_empty() {
             Ok(value.clone())
@@ -38,7 +36,7 @@ impl VarRef {
             for field in &self.fields {
                 if let Value::Object(obj) = cur_value {
                     cur_value = obj
-                        .get_field_value(&str_cached!(cache; field), graphs_map)
+                        .get_field_value(&field_name!(field.as_str()), graphs_map)
                         .ok_or(parse_err!(
                             format!("{}", self),
                             format!("Couldn't find field {}", field)
@@ -100,7 +98,6 @@ pub(crate) fn set_var_refs(
     variables: &HashMap<String, TaskType>,
     values: &mut ValuesMap,
     graphs_map: &mut GraphsMap,
-    cache: &Cache,
 ) -> Result<(), SnythesisTaskError> {
     let mut refs = Vec::new();
     for (graph, node_id, node) in graph_walk::ObjectGraphWalker::from_graphs_map(graphs_map) {
@@ -112,10 +109,7 @@ pub(crate) fn set_var_refs(
                 if *edge_graph_id == REF_GRAPH_ID {
                     let ref_graph = graphs_map.get(&REF_GRAPH_ID).unwrap();
                     let var_ref = ref_graph
-                        .get_primitive_field(
-                            &edge.1.node,
-                            &str_cached!(cache; REF_GRAPH_FIELD_NAME),
-                        )
+                        .get_primitive_field(&edge.1.node, &field_name!(REF_GRAPH_FIELD_NAME))
                         .unwrap()
                         .value
                         .string()
@@ -135,7 +129,7 @@ pub(crate) fn set_var_refs(
         }
     }
     for (graph_id, node_id, field_name, root_name_opt, var_ref) in refs {
-        let actual_value = var_ref.create_value(values, graphs_map, cache)?;
+        let actual_value = var_ref.create_value(values, graphs_map)?;
         let actual_obj = actual_value.obj().unwrap();
 
         graphs_map.set_edge(
@@ -159,7 +153,7 @@ pub(crate) fn set_var_refs(
         .iter()
         .filter_map(|(k, var_type)| {
             if let TaskType::VarRef(var_ref) = var_type {
-                Some((str_cached!(cache; k), var_ref.clone()))
+                Some((root_name!(k.as_str()), var_ref.clone()))
             } else {
                 None
             }
@@ -172,10 +166,7 @@ pub(crate) fn set_var_refs(
                 let ref_graph = graphs_map.get(&REF_GRAPH_ID).unwrap();
                 let var_ref = VarRef::from(
                     ref_graph
-                        .get_primitive_field(
-                            &obj_val.node,
-                            &str_cached!(cache; REF_GRAPH_FIELD_NAME),
-                        )
+                        .get_primitive_field(&obj_val.node, &field_name!(REF_GRAPH_FIELD_NAME))
                         .unwrap()
                         .value
                         .string()
@@ -192,7 +183,7 @@ pub(crate) fn set_var_refs(
             var_refs.push_back((key, var_ref));
             continue;
         }
-        let value = var_ref.create_value(&values, graphs_map, cache)?;
+        let value = var_ref.create_value(&values, graphs_map)?;
         if let Value::Object(obj_val) = &value {
             graphs_map.set_as_root(key.clone(), obj_val.graph_id, obj_val.node);
         }

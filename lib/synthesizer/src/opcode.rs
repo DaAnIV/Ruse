@@ -3,10 +3,10 @@ use std::ops::Deref;
 use std::sync::Arc;
 use std::{any::Any, fmt::Debug};
 
-use crate::context::{Context, SynthesizerContext};
+use crate::context::{Context, SynthesizerContext, VariableName};
 
 use crate::location::LocValue;
-use ruse_object_graph::{CachedString, ValueType};
+use ruse_object_graph::ValueType;
 
 pub trait ExprAst: Any {
     fn to_string(&self) -> String;
@@ -16,7 +16,7 @@ pub trait ExprAst: Any {
 #[derive(Debug, Clone)]
 pub struct EvalOutput {
     pub output: LocValue,
-    pub dirty: bool
+    pub dirty: bool,
 }
 
 impl Deref for EvalOutput {
@@ -34,7 +34,7 @@ macro_rules! dirty {
     ($out:expr) => {
         Ok($crate::opcode::EvalOutput {
             output: $out,
-            dirty: true
+            dirty: true,
         })
     };
 }
@@ -43,12 +43,12 @@ macro_rules! pure {
     ($out:expr) => {
         Ok($crate::opcode::EvalOutput {
             output: $out,
-            dirty: false
+            dirty: false,
         })
     };
 }
 
-const NO_REQUIRED_VARIABLES: [CachedString; 0] = [];
+const NO_REQUIRED_VARIABLES: [VariableName; 0] = [];
 
 pub trait ExprOpcode: Debug + Sync + Send {
     fn op_name(&self) -> &str;
@@ -65,7 +65,7 @@ pub trait ExprOpcode: Debug + Sync + Send {
     ) -> EvalResult;
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst>;
 
-    fn required_variables(&self) -> &[CachedString] {
+    fn required_variables(&self) -> &[VariableName] {
         &NO_REQUIRED_VARIABLES
     }
 

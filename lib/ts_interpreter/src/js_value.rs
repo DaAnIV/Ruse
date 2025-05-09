@@ -1,5 +1,5 @@
-use ruse_object_graph::value::*;
-use ruse_object_graph::{scached, Cache, Number, PrimitiveValue};
+use ruse_object_graph::{str_cached, value::*};
+use ruse_object_graph::{Number, PrimitiveValue};
 
 use crate::engine_context::EngineContext;
 use crate::js_wrapped::JsWrapped;
@@ -39,18 +39,13 @@ pub fn js_object_to_value(
     classes: &TsClasses,
     value: &boa_engine::JsObject,
     engine_ctx: &mut EngineContext<'_>,
-    cache: &Cache,
 ) -> Value {
     if let Ok(wrapped_obj) = JsWrapped::<ObjectValue>::get_from_js_obj(value) {
         return Value::Object(wrapped_obj.clone());
     }
     for class in classes.builtin_classes() {
         if class.is_builtin_object(value) {
-            return Value::Object(
-                class
-                    .get_from_js_obj(classes, value, engine_ctx, cache)
-                    .unwrap(),
-            );
+            return Value::Object(class.get_from_js_obj(classes, value, engine_ctx).unwrap());
         }
     }
 
@@ -61,15 +56,16 @@ pub fn js_value_to_value(
     classes: &TsClasses,
     value: &boa_engine::JsValue,
     engine_ctx: &mut EngineContext<'_>,
-    cache: &Cache,
 ) -> Value {
     match value.variant() {
         boa_engine::JsVariant::Null => Value::Null,
         boa_engine::JsVariant::Undefined => Value::Null,
         boa_engine::JsVariant::Boolean(b) => Value::Primitive(PrimitiveValue::Bool(b)),
-        boa_engine::JsVariant::String(s) => Value::Primitive(PrimitiveValue::String(
-            scached!(cache; s.to_std_string().unwrap()),
-        )),
+        boa_engine::JsVariant::String(s) => {
+            Value::Primitive(PrimitiveValue::String(str_cached!(s
+                .to_std_string()
+                .unwrap())))
+        }
         boa_engine::JsVariant::Float64(n) => {
             Value::Primitive(PrimitiveValue::Number(Number::from(n)))
         }
@@ -77,22 +73,19 @@ pub fn js_value_to_value(
             Value::Primitive(PrimitiveValue::Number(Number::from(n)))
         }
         boa_engine::JsVariant::BigInt(_) => todo!(),
-        boa_engine::JsVariant::Object(o) => js_object_to_value(classes, o, engine_ctx, cache),
+        boa_engine::JsVariant::Object(o) => js_object_to_value(classes, o, engine_ctx),
         boa_engine::JsVariant::Symbol(_) => todo!(),
     }
 }
 
-pub fn js_value_to_primitive_value(
-    value: &boa_engine::JsValue,
-    cache: &Cache,
-) -> Option<PrimitiveValue> {
+pub fn js_value_to_primitive_value(value: &boa_engine::JsValue) -> Option<PrimitiveValue> {
     match value.variant() {
         boa_engine::JsVariant::Null => None,
         boa_engine::JsVariant::Undefined => None,
         boa_engine::JsVariant::Boolean(b) => Some(PrimitiveValue::Bool(b)),
-        boa_engine::JsVariant::String(s) => Some(PrimitiveValue::String(
-            scached!(cache; s.to_std_string().unwrap()),
-        )),
+        boa_engine::JsVariant::String(s) => Some(PrimitiveValue::String(str_cached!(s
+            .to_std_string()
+            .unwrap()))),
         boa_engine::JsVariant::Float64(n) => Some(PrimitiveValue::Number(Number::from(n))),
         boa_engine::JsVariant::Integer32(n) => Some(PrimitiveValue::Number(Number::from(n))),
         boa_engine::JsVariant::BigInt(_) => todo!(),

@@ -1,7 +1,6 @@
-use ruse_object_graph::CachedString;
 use ruse_synthesizer::{
     bank::ProgBank,
-    context::SynthesizerContext,
+    context::{SynthesizerContext, VariableName},
     opcode::OpcodesList,
     prog::SubProgram,
     synthesizer::{CurrentStatistics, Synthesizer, SynthesizerPredicate},
@@ -51,7 +50,7 @@ impl<P: ProgBank + 'static> TsSynthesizer<P> {
         self.inner.get_cancel_token()
     }
 
-    pub fn set_immutable(&mut self, var: &CachedString) {
+    pub fn set_immutable(&mut self, var: &VariableName) {
         Arc::get_mut(&mut self.inner).unwrap().set_immutable(var);
     }
 

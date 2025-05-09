@@ -2805,6 +2805,7 @@ dependencies = [
  "byteview",
  "criterion",
  "dashmap 6.1.0",
+ "hstr",
  "itertools 0.14.0",
  "num-traits",
  "petgraph 0.6.5",

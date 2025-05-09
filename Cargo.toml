@@ -3,6 +3,8 @@ members = ["lib/*", "benchmarks"]
 resolver = "2"
 
 [workspace.dependencies]
+hstr = "*"
+
 byteview = "*"
 
 union-find = "*"

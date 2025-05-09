@@ -1,7 +1,7 @@
 use crate::{
     bank::*,
     bank_iterator::{bank_iterator, BankIterator},
-    context::{ContextArray, SynthesizerContext},
+    context::{ContextArray, SynthesizerContext, VariableName},
     multi_programs_map_product::ProgramChildrenIterator,
     opcode::*,
     prog::SubProgram,
@@ -14,7 +14,6 @@ use ruse_object_graph::{
     dot::DotConfig,
     value::Value,
     ValueType,
-    CachedString,
 };
 use serde::ser::SerializeStruct;
 use std::{
@@ -548,7 +547,7 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
         self.statistics.current()
     }
 
-    pub fn set_immutable(&mut self, var: &CachedString) {
+    pub fn set_immutable(&mut self, var: &VariableName) {
         self.context.set_immutable(var);
     }
 

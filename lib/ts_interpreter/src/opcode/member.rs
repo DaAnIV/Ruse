@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use ruse_object_graph::CachedString;
 use ruse_object_graph::ClassName;
+use ruse_object_graph::FieldName;
 use ruse_object_graph::ObjectGraph;
 use ruse_object_graph::ValueType;
 use ruse_synthesizer::context::*;
@@ -19,12 +19,12 @@ use super::TsExprAst;
 #[derive(Debug)]
 pub struct MemberOp {
     arg_types: [ValueType; 1],
-    field_name: CachedString,
+    field_name: FieldName,
     full_op_name: String,
 }
 
 impl MemberOp {
-    pub fn new(class_name: ClassName, field_name: CachedString) -> Self {
+    pub fn new(class_name: ClassName, field_name: FieldName) -> Self {
         let full_op_name = format!("{}.{}", &class_name, &field_name);
         Self {
             arg_types: [ValueType::Object(ruse_object_graph::ObjectType::Class(
@@ -76,8 +76,8 @@ pub struct StaticMemberOp {
 
 impl StaticMemberOp {
     pub fn new(
-        obj_type: CachedString,
-        field_name: CachedString,
+        obj_type: ClassName,
+        field_name: FieldName,
         initial_graph: Arc<ObjectGraph>,
         value: LocValue,
     ) -> Self {

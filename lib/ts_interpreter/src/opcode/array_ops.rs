@@ -1,6 +1,6 @@
 use num_traits::ToPrimitive;
+use ruse_object_graph::{field_name, vnum, vobj, Number};
 use ruse_object_graph::{value::Value, ValueType};
-use ruse_object_graph::{vnum, vobj, Number};
 use ruse_synthesizer::location::*;
 use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};
 use ruse_synthesizer::{context::*, dirty, pure};
@@ -21,10 +21,7 @@ pub struct ArrayIndexOp {
 impl ArrayIndexOp {
     pub fn new(elem_type: &ValueType) -> Self {
         Self {
-            arg_types: [
-                ValueType::array_value_type(elem_type),
-                ValueType::Number,
-            ],
+            arg_types: [ValueType::array_value_type(elem_type), ValueType::Number],
         }
     }
 }
@@ -38,13 +35,13 @@ impl ExprOpcode for ArrayIndexOp {
         &self,
         args: &[&LocValue],
         post_ctx: &mut Context,
-        syn_ctx: &SynthesizerContext,
+        _syn_ctx: &SynthesizerContext,
     ) -> EvalResult {
         debug_assert_eq!(args.len(), 2);
 
         let num = args[1].val().number_value().unwrap();
         let index = num.to_usize().ok_or(())?;
-        let field_name = syn_ctx.cached_string(&index.to_string());
+        let field_name = field_name!(index.to_string().as_str());
 
         let field_value = args[0]
             .get_obj_field_loc_value(&post_ctx.graphs_map, &field_name)
@@ -125,10 +122,7 @@ pub struct ArrayPushOp {
 impl ArrayPushOp {
     pub fn new(elem_type: &ValueType) -> Self {
         Self {
-            arg_types: [
-                ValueType::array_value_type(elem_type),
-                elem_type.to_owned(),
-            ],
+            arg_types: [ValueType::array_value_type(elem_type), elem_type.to_owned()],
         }
     }
 }
@@ -142,13 +136,13 @@ impl ExprOpcode for ArrayPushOp {
         &self,
         args: &[&LocValue],
         post_ctx: &mut Context,
-        syn_ctx: &SynthesizerContext,
+        _syn_ctx: &SynthesizerContext,
     ) -> EvalResult {
         debug_assert_eq!(args.len(), 2);
 
         let arr = args[0].val().obj().unwrap();
         let new_idx = arr.total_field_count(&post_ctx.graphs_map);
-        let idx_field_name = syn_ctx.cached_string(&new_idx.to_string());
+        let idx_field_name = field_name!(new_idx.to_string().as_str());
         post_ctx.set_field(arr.graph_id, arr.node, idx_field_name, args[1].val());
 
         let result = post_ctx.temp_value(vnum!(Number::from(
@@ -190,7 +184,7 @@ impl ExprOpcode for ArrayPopOp {
         &self,
         args: &[&LocValue],
         post_ctx: &mut Context,
-        syn_ctx: &SynthesizerContext,
+        _syn_ctx: &SynthesizerContext,
     ) -> EvalResult {
         debug_assert_eq!(args.len(), 1);
 
@@ -199,7 +193,7 @@ impl ExprOpcode for ArrayPopOp {
         if arr_len == 0 {
             return Err(());
         }
-        let idx_field_name = syn_ctx.cached_string(&(arr_len - 1).to_string());
+        let idx_field_name = field_name!((arr_len - 1).to_string().as_str());
         if let Some(result) = post_ctx.delete_field(arr.graph_id, arr.node, &idx_field_name) {
             dirty!(post_ctx.temp_value(result))
         } else {
@@ -225,10 +219,7 @@ pub struct ArraySliceOp {
 
 impl ArraySliceOp {
     pub fn new(elem_type: &ValueType, with_end: bool) -> Self {
-        let mut arg_types = vec![
-            ValueType::array_value_type(elem_type),
-            ValueType::Number,
-        ];
+        let mut arg_types = vec![ValueType::array_value_type(elem_type), ValueType::Number];
         if with_end {
             arg_types.push(ValueType::Number);
         }
@@ -248,7 +239,7 @@ impl ExprOpcode for ArraySliceOp {
         &self,
         args: &[&LocValue],
         post_ctx: &mut Context,
-        syn_ctx: &SynthesizerContext,
+        _syn_ctx: &SynthesizerContext,
     ) -> EvalResult {
         let arr = args[0].val().obj().unwrap();
         let graph = arr.graph(&post_ctx.graphs_map);
@@ -260,7 +251,7 @@ impl ExprOpcode for ArraySliceOp {
         };
 
         if start >= end {
-            let empty_arr = post_ctx.create_output_array_object(&self.elem_type, [], &syn_ctx);
+            let empty_arr = post_ctx.create_output_array_object(&self.elem_type, []);
             return pure!(post_ctx.temp_value(Value::Object(empty_arr)));
         }
 
@@ -270,7 +261,7 @@ impl ExprOpcode for ArraySliceOp {
                 .skip(start)
                 .take(end - start)
                 .map(|(_, p)| p.clone());
-            post_ctx.create_output_primitive_array_from_fields(&self.elem_type, fields, &syn_ctx)
+            post_ctx.create_output_primitive_array_from_fields(&self.elem_type, fields)
         } else {
             let field_obj_type = self.elem_type.obj_type().unwrap();
             let fields = graph
@@ -284,7 +275,7 @@ impl ExprOpcode for ArraySliceOp {
                         n.node
                     )
                 });
-            post_ctx.create_output_array_object(&self.elem_type, fields, &syn_ctx)
+            post_ctx.create_output_array_object(&self.elem_type, fields)
         };
         pure!(post_ctx.temp_value(Value::Object(new_arr)))
     }
@@ -326,7 +317,7 @@ impl ExprOpcode for ArrayConcatOp {
         &self,
         args: &[&LocValue],
         post_ctx: &mut Context,
-        syn_ctx: &SynthesizerContext,
+        _syn_ctx: &SynthesizerContext,
     ) -> EvalResult {
         let arr = args[0].val().obj().unwrap();
         let graph = arr.graph(&post_ctx.graphs_map);
@@ -340,7 +331,7 @@ impl ExprOpcode for ArrayConcatOp {
                         .skip(1)
                         .map(|x| x.val().primitive().unwrap().clone().into()),
                 );
-            post_ctx.create_output_primitive_array_from_fields(&self.elem_type, values, &syn_ctx)
+            post_ctx.create_output_primitive_array_from_fields(&self.elem_type, values)
         } else {
             let field_obj_type = self.elem_type.obj_type().unwrap();
             let values = graph
@@ -353,7 +344,7 @@ impl ExprOpcode for ArrayConcatOp {
                     )
                 })
                 .chain(args.iter().skip(1).map(|x| x.val().clone()));
-            post_ctx.create_output_array_object(&self.elem_type, values, &syn_ctx)
+            post_ctx.create_output_array_object(&self.elem_type, values)
         };
 
         pure!(post_ctx.temp_value(Value::Object(new_arr)))
@@ -376,10 +367,7 @@ pub struct ArraySpliceOp {
 
 impl ArraySpliceOp {
     pub fn new(elem_type: &ValueType, with_delete: bool) -> Self {
-        let mut arg_types = vec![
-            ValueType::array_value_type(elem_type),
-            ValueType::Number,
-        ];
+        let mut arg_types = vec![ValueType::array_value_type(elem_type), ValueType::Number];
         if with_delete {
             arg_types.push(ValueType::Number);
         }
@@ -402,7 +390,7 @@ impl ExprOpcode for ArraySpliceOp {
         &self,
         args: &[&LocValue],
         post_ctx: &mut Context,
-        syn_ctx: &SynthesizerContext,
+        _syn_ctx: &SynthesizerContext,
     ) -> EvalResult {
         let arr = args[0].val().obj().unwrap();
         let graph = arr.graph(&post_ctx.graphs_map);
@@ -436,7 +424,7 @@ impl ExprOpcode for ArraySpliceOp {
                 .skip(start)
                 .take(delete_count)
                 .map(|(_, p)| p.value.clone());
-            post_ctx.create_output_primitive_array(&self.elem_type, fields, &syn_ctx)
+            post_ctx.create_output_primitive_array(&self.elem_type, fields)
         } else {
             let field_obj_type = self.elem_type.obj_type().unwrap();
             let fields = graph
@@ -450,20 +438,20 @@ impl ExprOpcode for ArraySpliceOp {
                         n.node
                     )
                 });
-            post_ctx.create_output_array_object(&self.elem_type, fields, &syn_ctx)
+            post_ctx.create_output_array_object(&self.elem_type, fields)
         };
 
         for (i, field) in fields.enumerate() {
             post_ctx.set_field(
                 graph.id,
                 arr.node,
-                syn_ctx.cached_string(&(i + start).to_string()),
+                field_name!((i + start).to_string().as_str()),
                 &field,
             );
         }
 
         for i in new_arr_len..arr_len {
-            post_ctx.delete_field(graph.id, arr.node, &syn_ctx.cached_string(&(i.to_string())));
+            post_ctx.delete_field(graph.id, arr.node, &field_name!((i.to_string()).as_str()));
         }
 
         dirty!(post_ctx.temp_value(Value::Object(deleted_items_arr)))
@@ -506,7 +494,7 @@ impl ExprOpcode for ArrayConcatArrayOp {
         &self,
         args: &[&LocValue],
         post_ctx: &mut Context,
-        syn_ctx: &SynthesizerContext,
+        _syn_ctx: &SynthesizerContext,
     ) -> EvalResult {
         let arr = args[0].val().obj().unwrap();
         let arr_to_add = args[1].val().obj().unwrap();
@@ -522,7 +510,7 @@ impl ExprOpcode for ArrayConcatArrayOp {
                         .primitive_fields(&arr_to_add.node)
                         .map(|x| x.1.value.clone()),
                 );
-            post_ctx.create_output_primitive_array(&self.elem_type, values, &syn_ctx)
+            post_ctx.create_output_primitive_array(&self.elem_type, values)
         } else {
             let field_obj_type = self.elem_type.obj_type().unwrap();
             let values = graph
@@ -541,7 +529,7 @@ impl ExprOpcode for ArrayConcatArrayOp {
                         n.node
                     )
                 }));
-            post_ctx.create_output_array_object(&self.elem_type, values, &syn_ctx)
+            post_ctx.create_output_array_object(&self.elem_type, values)
         };
 
         pure!(post_ctx.temp_value(Value::Object(new_arr)))

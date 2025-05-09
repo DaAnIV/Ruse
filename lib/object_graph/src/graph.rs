@@ -9,7 +9,7 @@ use crate::{
     graph_map_value::{GraphMapValue, GraphMapWrap},
     graph_node::*,
     node_index::{DefaultIx, NodeIndex},
-    GraphsMap, ObjectType, PrimitiveValue,
+    FieldName, GraphsMap, ObjectType, PrimitiveValue,
 };
 pub type GraphIndex = DefaultIx;
 

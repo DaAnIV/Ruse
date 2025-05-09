@@ -1,12 +1,10 @@
 use std::{
     future::Future,
     path::{Path, PathBuf},
-    sync::Arc,
     time::{Duration, Instant},
 };
 
 use byte_unit::{Byte, Unit};
-use ruse_object_graph::Cache;
 use ruse_synthesizer::bank::ProgBank;
 use ruse_task_parser::{BankConfig, SnythesisTask};
 use ruse_ts_synthesizer::TsSynthesizer;
@@ -137,11 +135,11 @@ fn init_results(task: &SnythesisTask, results: &mut BenchmarkResult) {
     );
 }
 
-pub fn run_task(path: &Path, cache: Arc<Cache>, bench_config: &BenchmarkConfig) -> BenchmarkResult {
+pub fn run_task(path: &Path, bench_config: &BenchmarkConfig) -> BenchmarkResult {
     let task_name = PathBuf::from(path.file_name().unwrap());
     let mut result = BenchmarkResult::new(path);
 
-    let task = match SnythesisTask::from_json_file(path, &cache) {
+    let task = match SnythesisTask::from_json_file(path) {
         Ok(v) => v,
         Err(e) => {
             error!(target: "ruse::runner", "Failed to run task {}. {}", task_name.display(), e);
@@ -159,7 +157,6 @@ pub fn run_task(path: &Path, cache: Arc<Cache>, bench_config: &BenchmarkConfig) 
             bank_type: bench_config.bank_type.into(),
             hash_builder: bench_config.bank_hash_builder,
         },
-        &cache,
     ) {
         Ok(v) => v,
         Err(e) => {

@@ -6,6 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+hstr.workspace = true
+
 rand.workspace = true
 dashmap.workspace = true
 itertools.workspace = true

@@ -1,9 +1,7 @@
-use std::sync::Arc;
-
 use itertools::{izip, Itertools};
 use ruse_object_graph::graph_map_value::GraphMapWrap;
+use ruse_object_graph::GraphsMap;
 use ruse_object_graph::{value::Value, ValueType};
-use ruse_object_graph::{Cache, GraphsMap};
 use ruse_synthesizer::context::ValuesMap;
 use ruse_synthesizer::{context::SynthesizerContext, prog::SubProgram};
 use ruse_ts_interpreter::engine_context::EngineContext;
@@ -19,7 +17,6 @@ pub struct PredicateBuilder {
     pub predicate_js: Option<Vec<String>>,
 
     pub graphs_map: GraphsMap,
-    pub cache: Arc<Cache>,
 }
 
 impl PredicateBuilder {
@@ -100,7 +97,7 @@ impl PredicateBuilder {
         );
 
         for (ctx, output, js) in izip!(p.post_ctx().iter(), p.out_value().iter(), predicate_js) {
-            engine_ctx.reset_with_context(ctx, classes, &self.cache);
+            engine_ctx.reset_with_context(ctx, classes);
             let mut arg_names = Vec::with_capacity(ctx.variable_count() + 1);
             let mut js_values = Vec::with_capacity(ctx.variable_count() + 1);
             for (var, value) in ctx.variables() {

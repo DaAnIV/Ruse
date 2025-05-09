@@ -10,10 +10,10 @@ use itertools::Itertools;
 
 use crate::{
     connected_components::*,
-    graph_equality, scached,
+    field_name, graph_equality,
     value::{ObjectValue, Value},
-    vobj, Cache, EdgeEndPoint, FieldName, FieldsMap, GraphIndex, NodeIndex, ObjectGraph,
-    ObjectGraphNode, ObjectType, PointersMap, PrimitiveField, PrimitiveValue, RootName, ValueType,
+    vobj, EdgeEndPoint, FieldName, FieldsMap, GraphIndex, NodeIndex, ObjectGraph, ObjectGraphNode,
+    ObjectType, PointersMap, PrimitiveField, PrimitiveValue, RootName, ValueType,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -344,7 +344,6 @@ impl GraphsMap {
         id: NodeIndex,
         elem_type: &ValueType,
         values: I,
-        cache: &Cache,
     ) -> NodeIndex
     where
         I: IntoIterator,
@@ -354,7 +353,7 @@ impl GraphsMap {
         let map = values
             .into_iter()
             .enumerate()
-            .map(|(i, v)| (scached!(cache; i.to_string()), v));
+            .map(|(i, v)| (field_name!(i.to_string()), v));
         self.add_simple_object_from_map(graph, id, obj_type, map)
     }
 
@@ -364,7 +363,6 @@ impl GraphsMap {
         id: NodeIndex,
         elem_type: &ValueType,
         values: I,
-        cache: &Cache,
     ) -> NodeIndex
     where
         I: IntoIterator,
@@ -374,7 +372,7 @@ impl GraphsMap {
         let map = values
             .into_iter()
             .enumerate()
-            .map(|(i, f)| (scached!(cache; i.to_string()), f));
+            .map(|(i, f)| (field_name!(i.to_string()), f));
         self.add_simple_object_from_fields_map(graph, id, obj_type, map)
     }
 
@@ -384,7 +382,6 @@ impl GraphsMap {
         id: NodeIndex,
         elem_type: &ValueType,
         values: I,
-        cache: &Cache,
     ) -> NodeIndex
     where
         I: IntoIterator<Item = Value>,
@@ -393,7 +390,7 @@ impl GraphsMap {
         let values_map = values
             .into_iter()
             .enumerate()
-            .map(|(i, v)| (scached!(cache; i.to_string()), v));
+            .map(|(i, v)| (field_name!(i.to_string()), v));
         self.add_object_from_map(graph, id, obj_type, values_map)
     }
 
@@ -403,7 +400,6 @@ impl GraphsMap {
         id: NodeIndex,
         elem_type: &ValueType,
         values: I,
-        cache: &Cache,
     ) -> NodeIndex
     where
         I: IntoIterator,
@@ -412,7 +408,7 @@ impl GraphsMap {
         let obj_type = ObjectType::array_obj_type(elem_type);
         let map = values.into_iter().map(|v| {
             let pv: PrimitiveValue = v.into();
-            (scached!(cache; pv.to_string()), pv)
+            (field_name!(pv.to_string()), pv)
         });
         self.add_simple_object_from_map(graph, id, obj_type, map)
     }
@@ -423,7 +419,6 @@ impl GraphsMap {
         id: NodeIndex,
         elem_type: &ValueType,
         values: I,
-        cache: &Cache,
     ) -> NodeIndex
     where
         I: IntoIterator,
@@ -432,19 +427,18 @@ impl GraphsMap {
         let obj_type = ObjectType::set_obj_type(elem_type);
         let map = values.into_iter().map(|f| {
             let pf: PrimitiveField = f.into();
-            (scached!(cache; pf.value.to_string()), pf)
+            (field_name!(pf.value.to_string()), pf)
         });
         self.add_simple_object_from_fields_map(graph, id, obj_type, map)
     }
 
-    pub fn add_primitive_map_object<I,V>(
+    pub fn add_primitive_map_object<I, V>(
         &mut self,
         graph: GraphIndex,
         id: NodeIndex,
         key_type: &ValueType,
         value_type: &ValueType,
         values: I,
-        cache: &Cache,
     ) -> NodeIndex
     where
         I: IntoIterator<Item = (PrimitiveValue, V)>,
@@ -453,7 +447,7 @@ impl GraphsMap {
         let obj_type = ObjectType::map_obj_type(key_type, value_type);
         let map = values
             .into_iter()
-            .map(|(k, v)| (scached!(cache; k.to_string()), v.into()));
+            .map(|(k, v)| (field_name!(k.to_string()), v.into()));
         self.add_simple_object_from_map(graph, id, obj_type, map)
     }
 
@@ -464,7 +458,6 @@ impl GraphsMap {
         key_type: &ValueType,
         value_type: &ValueType,
         values: I,
-        cache: &Cache,
     ) -> NodeIndex
     where
         I: IntoIterator<Item = (PrimitiveValue, Value)>,
@@ -472,7 +465,7 @@ impl GraphsMap {
         let obj_type = ObjectType::map_obj_type(key_type, value_type);
         let values_map = values
             .into_iter()
-            .map(|(k, v)| (scached!(cache; k.to_string()), v));
+            .map(|(k, v)| (field_name!(k.to_string()), v));
         self.add_object_from_map(graph, id, obj_type, values_map)
     }
 

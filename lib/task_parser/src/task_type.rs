@@ -6,10 +6,10 @@ use std::{
 };
 
 use ruse_object_graph::{
-    fields, str_cached, value::Value, vbool, vnull, vnum, vobj, vstr, Cache, GraphIndex, GraphsMap,
-    ObjectType, PrimitiveValue, ValueType,
+    class_name, field_name, fields, str_cached, value::Value, vbool, vnull, vnum, vobj, vstr,
+    GraphIndex, GraphsMap, ObjectType, PrimitiveValue, ValueType,
 };
-use ruse_synthesizer::context::{GraphIdGenerator, ValuesMap};
+use ruse_synthesizer::context::GraphIdGenerator;
 use ruse_ts_interpreter::{
     dom::{self, DomLoader},
     engine_context::EngineContext,
@@ -22,7 +22,7 @@ use serde_json::json;
 use crate::{
     error::SnythesisTaskError,
     parse_err,
-    task::{parse_json_values_array, parse_json_values_map},
+    task::parse_json_values_array,
     var_ref::{VarRef, REF_GRAPH_FIELD_NAME, REF_GRAPH_OBJ_TYPE},
     verify_err,
 };
@@ -78,10 +78,9 @@ impl TaskType {
         graphs_map: &mut GraphsMap,
         id_gen: &Arc<GraphIdGenerator>,
         refs_graph_id: Option<GraphIndex>,
-        cache: &Arc<Cache>,
     ) -> Result<Value, SnythesisTaskError> {
         if let Some(expr) = Self::get_expr_value(value) {
-            self.parse_expr_value(expr, classes, graphs_map, refs_graph_id, id_gen, cache)
+            self.parse_expr_value(expr, classes, graphs_map, refs_graph_id, id_gen)
         } else {
             let out = self.create_regular_value(
                 value,
@@ -90,7 +89,6 @@ impl TaskType {
                 graphs_map,
                 id_gen,
                 refs_graph_id,
-                cache,
             );
 
             out
@@ -115,7 +113,6 @@ impl TaskType {
         graphs_map: &mut GraphsMap,
         id_gen: &Arc<GraphIdGenerator>,
         refs_graph_id: Option<GraphIndex>,
-        cache: &Arc<Cache>,
     ) -> Result<Value, SnythesisTaskError> {
         match self {
             TaskType::Int => match value.as_i64() {
@@ -133,7 +130,7 @@ impl TaskType {
                 None => Err(parse_err!(value, "Value is not a boolean")),
             },
             TaskType::String => match value.as_str() {
-                Some(s) => Ok(vstr!(cache; Self::strip_string(s)?)),
+                Some(s) => Ok(vstr!(Self::strip_string(s)?)),
                 None => Err(parse_err!(value, "Value is not a string")),
             },
             TaskType::Array(inner_type) => {
@@ -155,7 +152,6 @@ impl TaskType {
                                     graphs_map,
                                     id_gen,
                                     refs_graph_id,
-                                    cache,
                                 )
                             })
                             .collect();
@@ -168,9 +164,8 @@ impl TaskType {
                 let node = graphs_map.add_array_object(
                     graph_id,
                     id_gen.get_id_for_node(),
-                    &inner_type.value_type(cache),
+                    &inner_type.value_type(),
                     elements,
-                    cache,
                 );
 
                 Ok(vobj!(
@@ -198,7 +193,6 @@ impl TaskType {
                                     graphs_map,
                                     id_gen,
                                     refs_graph_id,
-                                    cache,
                                 )?;
 
                                 Ok(elem.into_primitive().unwrap())
@@ -213,9 +207,8 @@ impl TaskType {
                 let node = graphs_map.add_primitive_set_object(
                     graph_id,
                     id_gen.get_id_for_node(),
-                    &inner_type.value_type(cache),
+                    &inner_type.value_type(),
                     elements,
-                    cache,
                 );
 
                 Ok(vobj!(
@@ -234,11 +227,11 @@ impl TaskType {
                 let values = value
                     .as_object()
                     .ok_or(parse_err!(value, "Value is not a map value"))?;
-                let mut parsed_values = ValuesMap::default();
+                let mut parsed_values = HashMap::new();
                 for (k, v) in values {
                     key_type.json_value_from_string(k)?;
 
-                    let key = str_cached!(cache; k);
+                    let key = field_name!(k.as_str());
                     let value = value_type.create_value(
                         v,
                         classes,
@@ -246,7 +239,6 @@ impl TaskType {
                         graphs_map,
                         id_gen,
                         refs_graph_id,
-                        cache,
                     )?;
                     parsed_values.insert(key, value);
                 }
@@ -255,24 +247,18 @@ impl TaskType {
                 let node = graphs_map.add_object_from_map(
                     graph_id,
                     id_gen.get_id_for_node(),
-                    ObjectType::map_obj_type(
-                        &key_type.value_type(cache),
-                        &value_type.value_type(cache),
-                    ),
+                    ObjectType::map_obj_type(&key_type.value_type(), &value_type.value_type()),
                     parsed_values,
                 );
 
                 Ok(vobj!(
-                    ObjectType::map_obj_type(
-                        &key_type.value_type(cache),
-                        &value_type.value_type(cache),
-                    ),
+                    ObjectType::map_obj_type(&key_type.value_type(), &value_type.value_type(),),
                     graph_id,
                     node
                 ))
             }
             TaskType::Object(s) => {
-                let class_name = str_cached!(cache; s);
+                let class_name = class_name!(s.as_str());
                 let class = classes
                     .get_user_class(&class_name)
                     .ok_or(verify_err!("object type {} is not defined", s))?;
@@ -300,7 +286,6 @@ impl TaskType {
                         classes,
                         graphs_map,
                         id_gen,
-                        cache,
                     )
                 } else {
                     self.create_object_from_fields(
@@ -311,7 +296,6 @@ impl TaskType {
                         graphs_map,
                         id_gen,
                         refs_graph_id,
-                        cache,
                     )
                 }
             }
@@ -321,7 +305,7 @@ impl TaskType {
                     None => return Err(parse_err!(value, "Value for html is not an string value")),
                 }?;
                 graphs_map.ensure_graph(graph_id);
-                self.parse_dom(html, graph_id, graphs_map, id_gen, cache)
+                self.parse_dom(html, graph_id, graphs_map, id_gen)
             }
             TaskType::VarRef(_) => Err(parse_err!(value, "Var ref is a delayed type")),
         }
@@ -336,26 +320,26 @@ impl TaskType {
         graphs_map: &mut GraphsMap,
         id_gen: &Arc<GraphIdGenerator>,
         refs_graph_id: Option<GraphIndex>,
-        cache: &Arc<Cache>,
     ) -> Result<Value, SnythesisTaskError> {
-        let fields_types = HashMap::from_iter(
+        let fields_types: HashMap<&str, TaskType> = HashMap::from_iter(
             class
                 .description
                 .fields
                 .iter()
-                .map(|(k, v)| (k.to_string(), TaskType::from(&v.value_type))),
+                .map(|(k, v)| (k.as_str(), TaskType::from(&v.value_type))),
         );
 
-        let values = parse_json_values_map(
-            fields,
-            &fields_types,
-            graph_id,
-            graphs_map,
-            id_gen,
-            refs_graph_id,
-            classes,
-            cache,
-        )?;
+        let mut values = HashMap::new();
+        for (k, v) in fields {
+            let key = field_name!(k.as_str());
+            let value_type = match fields_types.get(&k.as_str()) {
+                Some(value_type) => value_type,
+                None => return Err(verify_err!("{} type is unknown", k)),
+            };
+            let value =
+                value_type.create_value(v, classes, graph_id, graphs_map, id_gen, refs_graph_id)?;
+            values.insert(key, value);
+        }
 
         graphs_map.ensure_graph(graph_id);
         let obj = class.generate_object(values, graphs_map, graph_id, id_gen);
@@ -372,7 +356,6 @@ impl TaskType {
         classes: &TsClasses,
         graphs_map: &mut GraphsMap,
         id_gen: &Arc<GraphIdGenerator>,
-        cache: &Arc<Cache>,
     ) -> Result<Value, SnythesisTaskError> {
         let method_desc = if method_name == "constructor" {
             &class.description.constructor
@@ -398,13 +381,13 @@ impl TaskType {
         };
         let arg_types = method_desc.params.iter().map(|x| Self::from(&x.value_type));
         let args = parse_json_values_array(
-            json_args, arg_types, graph_id, graphs_map, id_gen, classes, None, cache,
+            json_args, arg_types, graph_id, graphs_map, id_gen, classes, None,
         )?;
 
         let mut boa_ctx = EngineContext::new_boa_ctx();
         let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, classes);
         graphs_map.ensure_graph(graph_id); // Make sure graph exists
-        engine_ctx.reset_with_graph(graph_id, graphs_map, classes, id_gen, cache);
+        engine_ctx.reset_with_graph(graph_id, graphs_map, classes, id_gen);
 
         if method_name == "constructor" {
             let new_obj = class
@@ -413,7 +396,7 @@ impl TaskType {
             Ok(Value::Object(new_obj))
         } else {
             class
-                .call_static_method(method_name, &args, classes, cache, &mut engine_ctx)
+                .call_static_method(method_name, &args, classes, &mut engine_ctx)
                 .map_err(|x| SnythesisTaskError::Eval(x))
         }
     }
@@ -424,15 +407,13 @@ impl TaskType {
         graph_id: GraphIndex,
         graphs_map: &mut GraphsMap,
         id_gen: &GraphIdGenerator,
-        cache: &Cache,
     ) -> Result<Value, SnythesisTaskError> {
         match self {
             TaskType::Dom => {
-                let dom_value =
-                    match dom::DomLoader::load_dom(id_gen, graph_id, graphs_map, html, cache) {
-                        Ok(v) => v,
-                        Err(e) => return Err(parse_err!(html, e)),
-                    };
+                let dom_value = match dom::DomLoader::load_dom(id_gen, graph_id, graphs_map, html) {
+                    Ok(v) => v,
+                    Err(e) => return Err(parse_err!(html, e)),
+                };
 
                 Ok(vobj!(
                     dom::DomLoader::document_obj_type(),
@@ -442,7 +423,7 @@ impl TaskType {
             }
             TaskType::DOMElement => {
                 let dom_value =
-                    match dom::DomLoader::load_element(id_gen, graph_id, graphs_map, html, cache) {
+                    match dom::DomLoader::load_element(id_gen, graph_id, graphs_map, html) {
                         Ok(v) => v,
                         Err(e) => return Err(parse_err!(html, e)),
                     };
@@ -464,10 +445,9 @@ impl TaskType {
         graphs_map: &mut GraphsMap,
         refs_graph_id_opt: Option<GraphIndex>,
         id_gen: &GraphIdGenerator,
-        cache: &Cache,
     ) -> Result<Value, SnythesisTaskError> {
         if let Some(static_ref) = ExprPrefix::StaticRef.get(value_string) {
-            self.parse_static_ref_expr_value(static_ref, value_string, classes, graphs_map, cache)
+            self.parse_static_ref_expr_value(static_ref, value_string, classes, graphs_map)
         } else if value_string == ExprPrefix::Null.as_str() {
             if self.is_object() {
                 Ok(vnull!())
@@ -486,7 +466,6 @@ impl TaskType {
                 graphs_map,
                 refs_graph_id,
                 id_gen,
-                cache,
             )
         } else {
             Err(parse_err!(
@@ -502,14 +481,13 @@ impl TaskType {
         value_string: &str,
         classes: &TsClasses,
         graphs_map: &mut GraphsMap,
-        cache: &Cache,
     ) -> Result<Value, SnythesisTaskError> {
         let (class_name, field_name) = static_ref.split_once('.').ok_or(parse_err!(
             value_string,
             format!("The static ref expr contains no '.'")
         ))?;
         let class = classes
-            .get_user_class(&str_cached!(cache; class_name))
+            .get_user_class(&class_name!(class_name))
             .ok_or(parse_err!(
                 value_string,
                 format!(
@@ -535,7 +513,7 @@ impl TaskType {
         }
         let value = class
             .static_fields
-            .get(&str_cached!(cache; field_name))
+            .get(&field_name!(field_name))
             .ok_or(parse_err!(
                 value_string,
                 format!(
@@ -543,7 +521,7 @@ impl TaskType {
                     field_name, class_name
                 )
             ))?;
-        if &field_desc.value_type != &self.value_type(cache) {
+        if &field_desc.value_type != &self.value_type() {
             return Err(parse_err!(
                 value_string,
                 format!(
@@ -563,7 +541,6 @@ impl TaskType {
         graphs_map: &mut GraphsMap,
         refs_graph_id: GraphIndex,
         id_gen: &GraphIdGenerator,
-        cache: &Cache,
     ) -> Result<Value, SnythesisTaskError> {
         if !self.is_object() {
             return Err(parse_err!(
@@ -573,37 +550,35 @@ impl TaskType {
         }
 
         graphs_map.ensure_graph(refs_graph_id);
-        let obj_type = ObjectType::class_obj_type(&REF_GRAPH_OBJ_TYPE, cache);
+        let obj_type = ObjectType::class_obj_type(&REF_GRAPH_OBJ_TYPE);
         let ref_id = graphs_map.add_simple_object_from_fields_map(
             refs_graph_id,
             id_gen.get_id_for_node(),
             obj_type.clone(),
             fields!((
-                str_cached!(cache; REF_GRAPH_FIELD_NAME),
-                PrimitiveValue::String(str_cached!(cache; field_ref))
+                field_name!(REF_GRAPH_FIELD_NAME),
+                PrimitiveValue::String(str_cached!(field_ref))
             )),
         );
 
         Ok(vobj!(obj_type, refs_graph_id, ref_id))
     }
 
-    pub fn value_type(&self, cache: &Cache) -> ValueType {
+    pub fn value_type(&self) -> ValueType {
         match self {
             TaskType::Int => ValueType::Number,
             TaskType::Double => ValueType::Number,
             TaskType::Bool => ValueType::Bool,
             TaskType::String => ValueType::String,
-            TaskType::Array(inner_type) => {
-                ValueType::array_value_type(&inner_type.value_type(cache))
-            }
-            TaskType::Set(inner_type) => ValueType::set_value_type(&inner_type.value_type(cache)),
+            TaskType::Array(inner_type) => ValueType::array_value_type(&inner_type.value_type()),
+            TaskType::Set(inner_type) => ValueType::set_value_type(&inner_type.value_type()),
             TaskType::Map(key_type, val_type) => {
-                ValueType::map_value_type(&key_type.value_type(cache), &val_type.value_type(cache))
+                ValueType::map_value_type(&key_type.value_type(), &val_type.value_type())
             }
             TaskType::Dom => ValueType::Object(DomLoader::document_obj_type()),
             TaskType::DOMElement => ValueType::Object(DomLoader::element_obj_type()),
             TaskType::VarRef(_var_ref) => todo!(),
-            TaskType::Object(o) => ValueType::Object(ObjectType::class_obj_type(&o, cache)),
+            TaskType::Object(o) => ValueType::Object(ObjectType::class_obj_type(&o)),
         }
     }
 
@@ -874,6 +849,12 @@ impl From<&ValueType> for TaskType {
             ),
             _ => unreachable!("Unsupported type"),
         }
+    }
+}
+
+impl Into<ValueType> for TaskType {
+    fn into(self) -> ValueType {
+        self.value_type()
     }
 }
 

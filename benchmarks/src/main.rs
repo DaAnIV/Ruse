@@ -13,7 +13,6 @@ use std::{
     path::PathBuf,
     process::ExitCode,
     str::FromStr,
-    sync::Arc,
     time::Duration,
 };
 use tracing::{error, info, level_filters::LevelFilter};
@@ -24,7 +23,6 @@ mod results;
 use clap::Parser;
 use config::{BankType, BenchmarkConfig};
 use results::ResultsWriter;
-use ruse_object_graph::Cache;
 
 mod config;
 mod runner;
@@ -255,13 +253,11 @@ fn run_all_benchmarks<F>(
                         && e.path().extension().map(|s| s == "sy").unwrap_or(false)
                 })
             {
-                let cache = Arc::new(Cache::new());
-                let result = runner::run_task(entry.path(), cache.clone(), &bench_config);
+                let result = runner::run_task(entry.path(), &bench_config);
                 writer.write_result(&result);
             }
         } else {
-            let cache = Arc::new(Cache::new());
-            let result = runner::run_task(benchmark.as_path(), cache.clone(), &bench_config);
+            let result = runner::run_task(benchmark.as_path(), &bench_config);
             writer.write_result(&result);
         }
     }
@@ -326,20 +322,19 @@ fn run_benchmarks(cli: &RunArgs) -> ExitCode {
 }
 
 fn print_opcodes(cli: &PrintOpcodesArgs) -> ExitCode {
-    let cache = Arc::new(Cache::new());
     let mut builder = TsClassesBuilder::new();
     let mut class_names = vec![];
 
     for full_path in cli.ts_files.iter() {
-        class_names.extend(builder.add_ts_files(&full_path, &cache).unwrap());
+        class_names.extend(builder.add_ts_files(&full_path).unwrap());
     }
 
-    let classes = builder.finalize(&cache);
+    let classes = builder.finalize();
 
     let composite_opcodes = if cli.only_ts {
         SnythesisTask::get_classes_opcodes(&classes, &class_names, true)
     } else {
-        SnythesisTask::get_composite_opcodes(&classes, &class_names, true, &cache)
+        SnythesisTask::get_composite_opcodes(&classes, &class_names, true)
     };
     let opcodes_len = composite_opcodes.len();
 

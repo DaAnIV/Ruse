@@ -4,9 +4,7 @@ mod tests {
 
     use object_graph::{str_cached, Number};
     use ruse_object_graph::{
-        self as object_graph,
-        {value::Value, ValueType},
-        vnum, vstr, GraphsMap,
+        self as object_graph, field_name, root_name, value::Value, vnum, vstr, GraphsMap, ValueType,
     };
     use ruse_synthesizer::{
         bank::SubsumptionProgBank,
@@ -26,19 +24,16 @@ mod tests {
             constructor(public name: string, 
                         public surname: string) {}
         }";
-        let cache = Arc::new(object_graph::Cache::new());
         let id_gen1 = Arc::new(GraphIdGenerator::default());
         let id_gen2 = Arc::new(GraphIdGenerator::default());
         let mut graphs_map1 = GraphsMap::default();
         let mut graphs_map2 = GraphsMap::default();
         let mut builder = TsClassesBuilder::new();
 
-        let user_class_name = builder
-            .add_classes(code, &cache)
-            .expect("Failed to add User class")[0]
-            .clone();
+        let user_class_name =
+            builder.add_classes(code).expect("Failed to add User class")[0].clone();
 
-        let classes = builder.finalize(&cache);
+        let classes = builder.finalize();
 
         let user_class = classes.get_user_class(&user_class_name).unwrap();
 
@@ -46,61 +41,53 @@ mod tests {
         graphs_map1.ensure_graph(user1_graph_id);
         let user1 = user_class.generate_object(
             HashMap::from([
-                (str_cached!(cache; "surname"), vstr!(cache; "Doe")),
-                (str_cached!(cache; "name"), vstr!(cache; "John")),
+                (field_name!("surname"), vstr!("Doe")),
+                (field_name!("name"), vstr!("John")),
             ]),
             &mut graphs_map1,
             user1_graph_id,
             &id_gen1,
         );
-        graphs_map1.set_as_root(str_cached!(cache; "x"), user1.graph_id, user1.node);
+        graphs_map1.set_as_root(root_name!("x"), user1.graph_id, user1.node);
 
         let user2_graph_id = id_gen2.get_id_for_graph();
         graphs_map2.ensure_graph(user2_graph_id);
         let user2 = user_class.generate_object(
             HashMap::from([
-                (str_cached!(cache; "surname"), vstr!(cache; "Simon")),
-                (str_cached!(cache; "name"), vstr!(cache; "Paul")),
+                (field_name!("surname"), vstr!("Simon")),
+                (field_name!("name"), vstr!("Paul")),
             ]),
             &mut graphs_map2,
             user2_graph_id,
             &id_gen2,
         );
-        graphs_map2.set_as_root(str_cached!(cache; "x"), user2.graph_id, user2.node);
+        graphs_map2.set_as_root(root_name!("x"), user2.graph_id, user2.node);
 
-        let mut opcodes = construct_opcode_list(
-            &[str_cached!(cache; "x")],
-            &[],
-            &[str_cached!(cache; " ")],
-            false,
-        );
+        let mut opcodes =
+            construct_opcode_list(&[root_name!("x")], &[], &[str_cached!(" ")], false);
         add_str_opcodes(&mut opcodes, &ALL_BIN_STR_OPCODES);
         opcodes.extend_from_slice(&user_class.member_opcodes);
 
         let ctx = ContextArray::from(vec![
             Context::with_values(
-                [(str_cached!(cache; "x"), Value::Object(user1))].into(),
+                [(root_name!("x"), Value::Object(user1))].into(),
                 graphs_map1.into(),
                 id_gen1,
             ),
             Context::with_values(
-                [(str_cached!(cache; "x"), Value::Object(user2))].into(),
+                [(root_name!("x"), Value::Object(user2))].into(),
                 graphs_map2.into(),
                 id_gen2,
             ),
         ]);
 
-        let cache_clone = cache.clone();
-        let syn_ctx = SynthesizerContext::from_context_array_with_data(ctx.clone(), classes, cache);
+        let syn_ctx = SynthesizerContext::from_context_array_with_data(ctx.clone(), classes);
         let mut synthesizer = TsSynthesizer::new(
             SubsumptionProgBank::default(),
             syn_ctx,
             opcodes,
             Box::new(move |p, _syn_ctx| {
-                let expected_outputs = [
-                    str_cached!(cache_clone; "John Doe"),
-                    str_cached!(cache_clone; "Paul Simon"),
-                ];
+                let expected_outputs = [str_cached!("John Doe"), str_cached!("Paul Simon")];
                 if p.out_type() != &ValueType::String {
                     return false;
                 }
@@ -137,16 +124,15 @@ mod tests {
             constructor(public x: number, 
                         public y: number) {}
         }";
-        let cache = Arc::new(object_graph::Cache::new());
         let id_gen1 = Arc::new(GraphIdGenerator::default());
         let id_gen2 = Arc::new(GraphIdGenerator::default());
         let mut graphs_map1 = GraphsMap::default();
         let mut graphs_map2 = GraphsMap::default();
         let mut builder = TsClassesBuilder::new();
 
-        let point_class_name = builder.add_classes(code, &cache).unwrap()[0].clone();
+        let point_class_name = builder.add_classes(code).unwrap()[0].clone();
 
-        let classes = builder.finalize(&cache);
+        let classes = builder.finalize();
 
         let point_class = classes.get_user_class(&point_class_name).unwrap();
 
@@ -154,29 +140,29 @@ mod tests {
         graphs_map1.ensure_graph(point1_graph_id);
         let point1 = point_class.generate_object(
             HashMap::from([
-                (str_cached!(cache; "x"), vnum!(Number::from(4))),
-                (str_cached!(cache; "y"), vnum!(Number::from(17))),
+                (field_name!("x"), vnum!(Number::from(4))),
+                (field_name!("y"), vnum!(Number::from(17))),
             ]),
             &mut graphs_map1,
             point1_graph_id,
             &id_gen1,
         );
-        graphs_map1.set_as_root(str_cached!(cache; "p"), point1.graph_id, point1.node);
+        graphs_map1.set_as_root(root_name!("p"), point1.graph_id, point1.node);
 
         let point2_graph_id = id_gen2.get_id_for_graph();
         graphs_map2.ensure_graph(point2_graph_id);
         let point2 = point_class.generate_object(
             HashMap::from([
-                (str_cached!(cache; "x"), vnum!(Number::from(5))),
-                (str_cached!(cache; "y"), vnum!(Number::from(3))),
+                (field_name!("x"), vnum!(Number::from(5))),
+                (field_name!("y"), vnum!(Number::from(3))),
             ]),
             &mut graphs_map2,
             point2_graph_id,
             &id_gen2,
         );
-        graphs_map2.set_as_root(str_cached!(cache; "p"), point2.graph_id, point2.node);
+        graphs_map2.set_as_root(root_name!("p"), point2.graph_id, point2.node);
 
-        let mut opcodes = construct_opcode_list(&[str_cached!(cache; "p")], &[], &[], false);
+        let mut opcodes = construct_opcode_list(&[root_name!("p")], &[], &[], false);
         add_num_opcodes(
             &mut opcodes,
             &[ast::BinaryOp::Add],
@@ -187,18 +173,18 @@ mod tests {
 
         let ctx = ContextArray::from(vec![
             Context::with_values(
-                [(str_cached!(cache; "p"), Value::Object(point1))].into(),
+                [(root_name!("p"), Value::Object(point1))].into(),
                 graphs_map1.into(),
                 id_gen1,
             ),
             Context::with_values(
-                [(str_cached!(cache; "p"), Value::Object(point2))].into(),
+                [(root_name!("p"), Value::Object(point2))].into(),
                 graphs_map2.into(),
                 id_gen2,
             ),
         ]);
 
-        let syn_ctx = SynthesizerContext::from_context_array_with_data(ctx.clone(), classes, cache);
+        let syn_ctx = SynthesizerContext::from_context_array_with_data(ctx.clone(), classes);
         let mut synthesizer = TsSynthesizer::new(
             SubsumptionProgBank::default(),
             syn_ctx,

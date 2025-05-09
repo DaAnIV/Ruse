@@ -1,5 +1,5 @@
 use ruse_object_graph::graph_map_value::GraphMapWrap;
-use ruse_object_graph::ValueType;
+use ruse_object_graph::{field_name, ValueType};
 use ruse_object_graph::{vbool, vnum};
 use ruse_synthesizer::location::*;
 use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};
@@ -71,13 +71,13 @@ impl ExprOpcode for SetHasOp {
         &self,
         args: &[&LocValue],
         post_ctx: &mut Context,
-        syn_ctx: &SynthesizerContext,
+        _syn_ctx: &SynthesizerContext,
     ) -> EvalResult {
         debug_assert_eq!(args.len(), 2);
 
         let set = args[0].val().obj().unwrap();
         let value = args[1].val();
-        let value_key = syn_ctx.cached_string(&value.wrap(&post_ctx.graphs_map).to_string());
+        let value_key = field_name!(value.wrap(&post_ctx.graphs_map).to_string().as_str());
 
         if set
             .get_field_value(&value_key, &post_ctx.graphs_map)
@@ -120,13 +120,13 @@ impl ExprOpcode for SetAddOp {
         &self,
         args: &[&LocValue],
         post_ctx: &mut Context,
-        syn_ctx: &SynthesizerContext,
+        _syn_ctx: &SynthesizerContext,
     ) -> EvalResult {
         debug_assert_eq!(args.len(), 2);
 
         let set = args[0].val().obj().unwrap();
         let value = args[1].val();
-        let value_key = syn_ctx.cached_string(&value.wrap(&post_ctx.graphs_map).to_string());
+        let value_key = field_name!(value.wrap(&post_ctx.graphs_map).to_string().as_str());
 
         if set
             .get_field_value(&value_key, &post_ctx.graphs_map)
@@ -171,13 +171,13 @@ impl ExprOpcode for SetDeleteOp {
         &self,
         args: &[&LocValue],
         post_ctx: &mut Context,
-        syn_ctx: &SynthesizerContext,
+        _syn_ctx: &SynthesizerContext,
     ) -> EvalResult {
         debug_assert_eq!(args.len(), 2);
 
         let set = args[0].val().obj().unwrap();
         let value = args[1].val();
-        let value_key = syn_ctx.cached_string(&value.wrap(&post_ctx.graphs_map).to_string());
+        let value_key = field_name!(value.wrap(&post_ctx.graphs_map).to_string().as_str());
 
         if set
             .get_field_value(&value_key, &post_ctx.graphs_map)

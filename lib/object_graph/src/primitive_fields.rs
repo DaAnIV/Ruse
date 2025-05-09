@@ -2,7 +2,7 @@ use std::fmt::Debug;
 use std::fmt::{self, Display, Formatter};
 use std::hash::{Hash, Hasher};
 
-use crate::{CachedString, ValueType};
+use crate::{StringValue, ValueType};
 
 #[derive(Clone, Copy, Debug, PartialOrd)]
 pub struct Number(pub f64);
@@ -139,7 +139,7 @@ impl Default for Number {
 pub enum PrimitiveValue {
     Number(Number),
     Bool(bool),
-    String(CachedString),
+    String(StringValue),
 }
 
 impl PrimitiveValue {
@@ -157,7 +157,7 @@ impl PrimitiveValue {
         }
     }
 
-    pub fn string(&self) -> Option<CachedString> {
+    pub fn string(&self) -> Option<StringValue> {
         match self {
             PrimitiveValue::String(s) => Some(s.clone()),
             _ => None,
@@ -173,9 +173,13 @@ impl PrimitiveValue {
     }
 }
 
-impl From<CachedString> for PrimitiveValue {
-    fn from(value: CachedString) -> Self {
-        PrimitiveValue::String(value)
+impl fmt::Display for PrimitiveValue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            PrimitiveValue::Number(n) => write!(f, "{}", n),
+            PrimitiveValue::Bool(b) => write!(f, "{}", b),
+            PrimitiveValue::String(s) => write!(f, "{}", s),
+        }
     }
 }
 
@@ -197,12 +201,14 @@ impl From<bool> for PrimitiveValue {
     }
 }
 
-impl Display for PrimitiveValue {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            PrimitiveValue::Number(n) => write!(f, "{}", n),
-            PrimitiveValue::Bool(b) => write!(f, "{}", b),
-            PrimitiveValue::String(s) => write!(f, "\"{}\"", s),
-        }
+impl From<StringValue> for PrimitiveValue {
+    fn from(value: StringValue) -> Self {
+        PrimitiveValue::String(value)
+    }
+}
+
+impl From<&str> for PrimitiveValue {
+    fn from(value: &str) -> Self {
+        PrimitiveValue::String(StringValue::new(value))
     }
 }

@@ -3,12 +3,12 @@
 pub mod ts_op_helpers {
     use std::sync::Arc;
 
-    use ruse_object_graph::{str_cached, Cache, Number};
+    use ruse_object_graph::{root_name, str_cached, Number};
 
     use crate::{opcode, ts_user_class::TsUserClass};
 
-    pub fn id_op(id: &str, cache: &Cache) -> Arc<opcode::IdentOp> {
-        Arc::new(opcode::IdentOp::new(str_cached!(cache; id)))
+    pub fn id_op(id: &str) -> Arc<opcode::IdentOp> {
+        Arc::new(opcode::IdentOp::new(root_name!(id)))
     }
 
     pub fn class_method_op(class: &TsUserClass, method_name: &str) -> Arc<opcode::ClassMethodOp> {
@@ -22,8 +22,8 @@ pub mod ts_op_helpers {
         Arc::new(opcode::LitOp::Num(Number::from(val)))
     }
 
-    pub fn lit_str_op(val: &str, cache: &Cache) -> Arc<opcode::LitOp> {
-        Arc::new(opcode::LitOp::Str(str_cached!(cache; val)))
+    pub fn lit_str_op(val: &str) -> Arc<opcode::LitOp> {
+        Arc::new(opcode::LitOp::Str(str_cached!(val)))
     }
 }
 
@@ -33,7 +33,7 @@ mod ts_simple_opcodes_tests {
 
     use context::{Context, ContextArray, GraphIdGenerator, SynthesizerContext};
     use graph_map_value::GraphMapWrap;
-    use ruse_object_graph::{value::*, *};
+    use ruse_object_graph::*;
     use ruse_synthesizer::location::{Location, VarLoc};
     use ruse_synthesizer::opcode::ExprOpcode;
     use ruse_synthesizer::test::helpers::generate_context_from_array;
@@ -42,15 +42,13 @@ mod ts_simple_opcodes_tests {
     use crate::opcode::*;
     use crate::test::ts_op_helpers::*;
     use ruse_object_graph::Number;
-    use ruse_object_graph::{str_cached, Cache};
     use ruse_synthesizer::*;
 
     #[test]
     fn add_numbers() {
-        let cache = Arc::new(Cache::new());
         let graphs_map = GraphsMap::default();
         let ctx_arr = ContextArray::default();
-        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr, cache.clone());
+        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr);
         let ctx = &syn_ctx.start_context[0].clone();
         let mut out_ctx = ctx.clone();
         let evaluator = BinOp::new(ast::BinaryOp::Add, ValueType::Number, ValueType::Number);
@@ -68,40 +66,32 @@ mod ts_simple_opcodes_tests {
 
     #[test]
     fn add_strings() {
-        let cache = Arc::new(Cache::new());
         let graphs_map = GraphsMap::default();
         let ctx_arr = ContextArray::default();
-        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr, cache.clone());
+        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr);
         let ctx = &syn_ctx.start_context[0];
         let mut out_ctx = ctx.clone();
         let evaluator = BinOp::new(ast::BinaryOp::Add, ValueType::String, ValueType::String);
 
-        let args = [
-            &ctx.temp_value(vstr!(cache; "a")),
-            &ctx.temp_value(vstr!(cache; "b")),
-        ];
+        let args = [&ctx.temp_value(vstr!("a")), &ctx.temp_value(vstr!("b"))];
 
         let out = evaluator.eval(&args, &mut out_ctx, &syn_ctx).unwrap();
-        assert_eq!(
-            out.val().wrap(&graphs_map),
-            vstr!(cache; "ab").wrap(&graphs_map)
-        );
+        assert_eq!(out.val().wrap(&graphs_map), vstr!("ab").wrap(&graphs_map));
     }
 
     #[test]
     fn ident() {
-        let cache = Arc::new(Cache::new());
         let graphs_map = GraphsMap::default();
         let id_gen = Arc::new(GraphIdGenerator::default());
         let ctx_arr = ContextArray::from(vec![Context::with_values(
-            [(str_cached!(cache; "x"), vnum!(Number::from(7u64)))].into(),
+            [(root_name!("x"), vnum!(Number::from(7u64)))].into(),
             graphs_map.into(),
             id_gen,
         )]);
-        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr, cache.clone());
+        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr);
         let ctx = &syn_ctx.start_context[0];
         let mut out_ctx = ctx.clone();
-        let evaluator = id_op("x", &cache);
+        let evaluator = id_op("x");
         let out = evaluator.eval(&[], &mut out_ctx, &syn_ctx).unwrap();
         assert_eq!(
             out.val().wrap(&out_ctx.graphs_map),
@@ -111,17 +101,16 @@ mod ts_simple_opcodes_tests {
 
     #[test]
     fn prefix_plus_plus() {
-        let cache = Arc::new(Cache::new());
         let graphs_map = GraphsMap::default();
         let id_gen = Arc::new(GraphIdGenerator::default());
         let ctx_arr = ContextArray::from(vec![Context::with_values(
-            [(str_cached!(cache; "x"), vnum!(Number::from(7u64)))].into(),
+            [(root_name!("x"), vnum!(Number::from(7u64)))].into(),
             graphs_map.into(),
             id_gen,
         )]);
-        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr, cache.clone());
+        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr);
         let ctx = &syn_ctx.start_context[0];
-        let id = id_op("x", &cache);
+        let id = id_op("x");
         let op = UpdateOp::new(ast::UpdateOp::PlusPlus, true);
         let mut id_out_ctx = ctx.clone();
         let x_val = id.eval(&[], &mut id_out_ctx, &syn_ctx).unwrap();
@@ -165,17 +154,16 @@ mod ts_simple_opcodes_tests {
 
     #[test]
     fn postfix_plus_plus() {
-        let cache = Arc::new(Cache::new());
         let graphs_map = GraphsMap::default();
         let id_gen = Arc::new(GraphIdGenerator::default());
         let ctx_arr = ContextArray::from(vec![Context::with_values(
-            [(str_cached!(cache; "x"), vnum!(Number::from(7u64)))].into(),
+            [(root_name!("x"), vnum!(Number::from(7u64)))].into(),
             graphs_map.into(),
             id_gen,
         )]);
-        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr, cache.clone());
+        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr);
         let ctx = &syn_ctx.start_context[0];
-        let id = id_op("x", &cache);
+        let id = id_op("x");
         let op = UpdateOp::new(ast::UpdateOp::PlusPlus, false);
         let mut id_out_ctx = ctx.clone();
         let x_val = id.eval(&[], &mut id_out_ctx, &syn_ctx).unwrap();
@@ -217,14 +205,12 @@ mod ts_simple_opcodes_tests {
 
     #[test]
     fn array_push() {
-        let cache = Arc::new(Cache::new());
-        let ctx =
-            generate_context_from_array(str_cached!(cache; "x"), &ValueType::Number, [], &cache);
+        let ctx = generate_context_from_array(root_name!("x"), &ValueType::Number, []);
         let ctx_arr = ContextArray::from(vec![ctx]);
-        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr, cache.clone());
+        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr);
 
         let ctx = &syn_ctx.start_context[0];
-        let id = id_op("x", &cache);
+        let id = id_op("x");
         let op = ArrayPushOp::new(&ValueType::Number);
 
         let mut id_out_ctx = ctx.clone();
@@ -262,7 +248,7 @@ mod ts_simple_opcodes_tests {
         );
         assert_eq!(
             updated_array
-                .get_primitive_field_value(&syn_ctx.cached_string("0"), &update_out_ctx.graphs_map)
+                .get_primitive_field_value(&field_name!("0"), &update_out_ctx.graphs_map)
                 .unwrap()
                 .wrap(&update_out_ctx.graphs_map),
             vnum!(Number::from(1)).wrap(&update_out_ctx.graphs_map)
@@ -283,7 +269,6 @@ mod ts_class_tests {
     use boa_engine::{js_str, JsValue};
     use boa_engine::{js_string, property::Attribute};
     use graph_map_value::GraphMapWrap;
-    use ruse_object_graph::{str_cached, Cache};
     use ruse_object_graph::{value::*, *};
     use ruse_synthesizer::context::{
         Context, ContextArray, GraphIdGenerator, SynthesizerContext, ValuesMap,
@@ -305,16 +290,13 @@ mod ts_class_tests {
             constructor(public name: string, 
                         public surname: string) {}
         }";
-        let cache = Arc::new(Cache::new());
         let mut graphs_map = GraphsMap::default();
         let id_gen = Arc::new(GraphIdGenerator::default());
         let mut builder = TsClassesBuilder::new();
 
-        let user_class_name = builder
-            .add_classes(code, &cache)
-            .expect("Failed to add User class")[0]
-            .clone();
-        let classes = builder.finalize(&cache);
+        let user_class_name =
+            builder.add_classes(code).expect("Failed to add User class")[0].clone();
+        let classes = builder.finalize();
 
         let graph_id = id_gen.get_id_for_graph();
         graphs_map.ensure_graph(graph_id);
@@ -323,8 +305,8 @@ mod ts_class_tests {
             .unwrap()
             .generate_object(
                 HashMap::from([
-                    (str_cached!(cache; "surname"), vstr!(cache; "Doe")),
-                    (str_cached!(cache; "name"), vstr!(cache; "John")),
+                    (field_name!("surname"), vstr!("Doe")),
+                    (field_name!("name"), vstr!("John")),
                 ]),
                 &mut graphs_map,
                 graph_id,
@@ -332,11 +314,11 @@ mod ts_class_tests {
             );
 
         let name_field = user
-            .get_field_value(&str_cached!(cache; "name"), &graphs_map)
+            .get_field_value(&field_name!("name"), &graphs_map)
             .unwrap();
         assert_eq!(
             name_field.wrap(&graphs_map),
-            vstr!(cache; "John").wrap(&graphs_map)
+            vstr!("John").wrap(&graphs_map)
         )
     }
 
@@ -346,15 +328,12 @@ mod ts_class_tests {
             constructor(public name: string, 
                         public surname: string) {}
         }";
-        let cache = Arc::new(Cache::new());
         let mut builder = TsClassesBuilder::new();
 
-        let user_class_name = builder
-            .add_classes(code, &cache)
-            .expect("Failed to add User class")[0]
-            .clone();
+        let user_class_name =
+            builder.add_classes(code).expect("Failed to add User class")[0].clone();
 
-        let classes = builder.finalize(&cache);
+        let classes = builder.finalize();
 
         let user_class = classes.get_user_class(&user_class_name).unwrap();
         let opcodes = &user_class.member_opcodes;
@@ -378,13 +357,12 @@ mod ts_class_tests {
             constructor(public students: Student[]) {}
         }";
 
-        let cache = Arc::new(Cache::new());
         let mut builder = TsClassesBuilder::new();
 
-        let student_class_name = builder.add_classes(code1, &cache).unwrap()[0].clone();
-        let class_class_name = builder.add_classes(code2, &cache).unwrap()[0].clone();
+        let student_class_name = builder.add_classes(code1).unwrap()[0].clone();
+        let class_class_name = builder.add_classes(code2).unwrap()[0].clone();
 
-        let classes = builder.finalize(&cache);
+        let classes = builder.finalize();
 
         let student_class = classes.get_user_class(&student_class_name).unwrap();
         let class_class = classes.get_user_class(&class_class_name).unwrap();
@@ -430,25 +408,22 @@ mod ts_class_tests {
                         public surname: string) {}
         }";
 
-        let cache = Arc::new(Cache::new());
         let mut graphs_map = GraphsMap::default();
         let id_gen = Arc::new(GraphIdGenerator::default());
         let mut builder = TsClassesBuilder::new();
 
-        let user_class_name = builder
-            .add_classes(code, &cache)
-            .expect("Failed to add User class")[0]
-            .clone();
+        let user_class_name =
+            builder.add_classes(code).expect("Failed to add User class")[0].clone();
 
-        let classes = builder.finalize(&cache);
+        let classes = builder.finalize();
 
         let user_class = classes.get_user_class(&user_class_name).unwrap();
         let graph_id = id_gen.get_id_for_graph();
         graphs_map.ensure_graph(graph_id);
         let user = user_class.generate_object(
             HashMap::from([
-                (str_cached!(cache; "surname"), vstr!(cache; "Doe")),
-                (str_cached!(cache; "name"), vstr!(cache; "John")),
+                (field_name!("surname"), vstr!("Doe")),
+                (field_name!("name"), vstr!("John")),
             ]),
             &mut graphs_map,
             graph_id,
@@ -458,7 +433,7 @@ mod ts_class_tests {
         let mut ctx = Context::with_values([].into(), graphs_map.into(), id_gen);
         let mut boa_ctx = EngineContext::new_boa_ctx();
         let mut engine_context = EngineContext::create_engine_ctx(&mut boa_ctx, &classes);
-        engine_context.reset_with_mut_context(&mut ctx, &classes, &cache);
+        engine_context.reset_with_mut_context(&mut ctx, &classes);
 
         let js_user = user_class.wrap_as_js_object(user, &mut engine_context);
         boa_ctx
@@ -485,15 +460,14 @@ mod ts_class_tests {
                         public user2: User) {}
         }";
 
-        let cache = Arc::new(Cache::new());
         let mut graphs_map = GraphsMap::default();
         let id_gen = Arc::new(GraphIdGenerator::default());
         let mut builder = TsClassesBuilder::new();
 
-        let user_class_name = builder.add_classes(code1, &cache).unwrap()[0].clone();
-        let user_pair_class_name = builder.add_classes(code2, &cache).unwrap()[0].clone();
+        let user_class_name = builder.add_classes(code1).unwrap()[0].clone();
+        let user_pair_class_name = builder.add_classes(code2).unwrap()[0].clone();
 
-        let classes = builder.finalize(&cache);
+        let classes = builder.finalize();
 
         let user_class = classes.get_user_class(&user_class_name).unwrap();
         let user_class_pair = classes.get_user_class(&user_pair_class_name).unwrap();
@@ -502,41 +476,41 @@ mod ts_class_tests {
         graphs_map.ensure_graph(user1_graph_id);
         let user1 = user_class.generate_object(
             HashMap::from([
-                (str_cached!(cache; "surname"), vstr!(cache; "Doe")),
-                (str_cached!(cache; "name"), vstr!(cache; "John")),
+                (field_name!("surname"), vstr!("Doe")),
+                (field_name!("name"), vstr!("John")),
             ]),
             &mut graphs_map,
             user1_graph_id,
             &id_gen,
         );
-        graphs_map.set_as_root(str_cached!(cache; "student1"), user1.graph_id, user1.node);
+        graphs_map.set_as_root(root_name!("student1"), user1.graph_id, user1.node);
 
         let user2_graph_id = id_gen.get_id_for_graph();
         graphs_map.ensure_graph(user2_graph_id);
         let user2 = user_class.generate_object(
             HashMap::from([
-                (str_cached!(cache; "name"), vstr!(cache; "Paul")),
-                (str_cached!(cache; "surname"), vstr!(cache; "Simon")),
+                (field_name!("name"), vstr!("Paul")),
+                (field_name!("surname"), vstr!("Simon")),
             ]),
             &mut graphs_map,
             user1_graph_id,
             &id_gen,
         );
-        graphs_map.set_as_root(str_cached!(cache; "student2"), user2.graph_id, user2.node);
+        graphs_map.set_as_root(root_name!("student2"), user2.graph_id, user2.node);
 
         let complex_user_graph_id = id_gen.get_id_for_graph();
         graphs_map.ensure_graph(complex_user_graph_id);
         let complex_user = user_class_pair.generate_object(
             HashMap::from([
-                (str_cached!(cache; "user1"), Value::Object(user1)),
-                (str_cached!(cache; "user2"), Value::Object(user2)),
+                (field_name!("user1"), Value::Object(user1)),
+                (field_name!("user2"), Value::Object(user2)),
             ]),
             &mut graphs_map,
             complex_user_graph_id,
             &id_gen,
         );
         graphs_map.set_as_root(
-            str_cached!(cache; "student_pair"),
+            root_name!("student_pair"),
             complex_user.graph_id,
             complex_user.node,
         );
@@ -544,7 +518,7 @@ mod ts_class_tests {
         let mut ctx = Context::with_values([].into(), graphs_map.into(), id_gen);
         let mut boa_ctx = EngineContext::new_boa_ctx();
         let mut engine_context = EngineContext::create_engine_ctx(&mut boa_ctx, &classes);
-        engine_context.reset_with_mut_context(&mut ctx, &classes, &cache);
+        engine_context.reset_with_mut_context(&mut ctx, &classes);
 
         let js_obj = user_class_pair.wrap_as_js_object(complex_user, &mut engine_context);
         boa_ctx
@@ -566,17 +540,14 @@ mod ts_class_tests {
             
         }";
 
-        let cache = Arc::new(Cache::new());
         let mut graphs_map = GraphsMap::default();
         let id_gen = Arc::new(GraphIdGenerator::default());
         let mut builder = TsClassesBuilder::new();
 
-        let user_class_name = builder
-            .add_classes(code, &cache)
-            .expect("Failed to add User class")[0]
-            .clone();
+        let user_class_name =
+            builder.add_classes(code).expect("Failed to add User class")[0].clone();
 
-        let classes = builder.finalize(&cache);
+        let classes = builder.finalize();
 
         let graph_id = id_gen.get_id_for_graph();
         graphs_map.ensure_graph(graph_id);
@@ -584,35 +555,34 @@ mod ts_class_tests {
             let user_class = classes.get_user_class(&user_class_name).unwrap();
             user_class.generate_object(
                 HashMap::from([
-                    (str_cached!(cache; "surname"), vstr!(cache; "Doe")),
-                    (str_cached!(cache; "name"), vstr!(cache; "John")),
+                    (field_name!("surname"), vstr!("Doe")),
+                    (field_name!("name"), vstr!("John")),
                 ]),
                 &mut graphs_map,
                 graph_id,
                 &id_gen,
             )
         };
-        graphs_map.set_as_root(str_cached!(cache; "u"), user.graph_id, user.node);
+        graphs_map.set_as_root(root_name!("u"), user.graph_id, user.node);
 
         let mut values = ValuesMap::default();
-        values.insert(str_cached!(cache; "u"), Value::Object(user.clone()));
+        values.insert(root_name!("u"), Value::Object(user.clone()));
 
         let mut ctx = Context::with_values(values, graphs_map.into(), id_gen);
         let syn_ctx = SynthesizerContext::from_context_array_with_data(
             ContextArray::from(vec![ctx.clone()]),
             classes,
-            cache,
         );
         let classes_ref = syn_ctx.data.downcast_ref::<TsClasses>().unwrap();
         let user_class = classes_ref.get_user_class(&user_class_name).unwrap();
 
         let mut boa_ctx = EngineContext::new_boa_ctx();
         let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, classes_ref);
-        engine_ctx.reset_with_mut_context(&mut ctx, classes_ref, &syn_ctx.cache);
+        engine_ctx.reset_with_mut_context(&mut ctx, classes_ref);
 
         value_to_js_value(
             &classes_ref,
-            ctx.get_var_loc_value(&syn_ctx.cached_string("u"), &syn_ctx)
+            ctx.get_var_loc_value(&root_name!("u"), &syn_ctx)
                 .unwrap()
                 .val(),
             &mut engine_ctx,
@@ -626,14 +596,12 @@ mod ts_class_tests {
         let js_code = boa_engine::Source::from_bytes("u.name = \"abc\"");
         let _res = engine_ctx.eval(js_code).unwrap();
 
-        let user_after = ctx
-            .get_var_loc_value(&syn_ctx.cached_string("u"), &syn_ctx)
-            .unwrap();
+        let user_after = ctx.get_var_loc_value(&root_name!("u"), &syn_ctx).unwrap();
         let user_name_after = user_after
             .val()
             .obj()
             .unwrap()
-            .get_field_value(&syn_ctx.cached_string("name"), &ctx.graphs_map);
+            .get_field_value(&field_name!("name"), &ctx.graphs_map);
         assert_eq!(
             user_name_after
                 .unwrap()
@@ -659,17 +627,14 @@ mod ts_class_tests {
             }
         }";
 
-        let cache = Arc::new(Cache::new());
         let mut graphs_map = GraphsMap::default();
         let id_gen = Arc::new(GraphIdGenerator::default());
         let mut builder = TsClassesBuilder::new();
 
-        let user_class_name = builder
-            .add_classes(code, &cache)
-            .expect("Failed to add User class")[0]
-            .clone();
+        let user_class_name =
+            builder.add_classes(code).expect("Failed to add User class")[0].clone();
 
-        let classes = builder.finalize(&cache);
+        let classes = builder.finalize();
 
         {
             let user_class = classes.get_user_class(&user_class_name).unwrap();
@@ -689,31 +654,30 @@ mod ts_class_tests {
             .unwrap()
             .generate_object(
                 HashMap::from([
-                    (str_cached!(cache; "surname"), vstr!(cache; "Doe")),
-                    (str_cached!(cache; "name"), vstr!(cache; "John")),
+                    (field_name!("surname"), vstr!("Doe")),
+                    (field_name!("name"), vstr!("John")),
                 ]),
                 &mut graphs_map,
                 graph_id,
                 &id_gen,
             );
-        graphs_map.set_as_root(str_cached!(cache; "user"), user.graph_id, user.node);
+        graphs_map.set_as_root(root_name!("user"), user.graph_id, user.node);
 
         let mut values = ValuesMap::default();
-        values.insert(str_cached!(cache; "user"), Value::Object(user));
+        values.insert(root_name!("user"), Value::Object(user));
 
         let ctx = Context::with_values(values, graphs_map.into(), id_gen);
         let ctx_arr = ContextArray::from(vec![ctx]);
-        let syn_ctx =
-            SynthesizerContext::from_context_array_with_data(ctx_arr.clone(), classes, cache);
+        let syn_ctx = SynthesizerContext::from_context_array_with_data(ctx_arr.clone(), classes);
 
         let classes_ref = syn_ctx.data.downcast_ref::<TsClasses>().unwrap();
         let user_class = classes_ref.get_user_class(&user_class_name).unwrap();
 
-        let user_op = id_op("user", &syn_ctx.cache);
+        let user_op = id_op("user");
         let user_prog = get_init_prog(user_op, &ctx_arr, &syn_ctx);
         println!("{}\n", user_prog);
 
-        let str_lit_op = lit_str_op("Lit", &syn_ctx.cache);
+        let str_lit_op = lit_str_op("Lit");
         let str_lit_prog = get_init_prog(str_lit_op, &ctx_arr, &syn_ctx);
         println!("{}\n", str_lit_prog);
 
@@ -725,12 +689,13 @@ mod ts_class_tests {
         );
         println!("{}\n", test_prog);
         let user_after = test_prog.post_ctx()[0]
-            .get_var_loc_value(&syn_ctx.cached_string("user"), &syn_ctx)
+            .get_var_loc_value(&root_name!("user"), &syn_ctx)
             .unwrap();
-        let user_name_after = user_after.val().obj().unwrap().get_field_value(
-            &syn_ctx.cached_string("name"),
-            &test_prog.post_ctx()[0].graphs_map,
-        );
+        let user_name_after = user_after
+            .val()
+            .obj()
+            .unwrap()
+            .get_field_value(&field_name!("name"), &test_prog.post_ctx()[0].graphs_map);
         assert_eq!(
             user_name_after
                 .unwrap()
@@ -741,10 +706,11 @@ mod ts_class_tests {
                 .as_str(),
             "Name Lit"
         );
-        let user_surname_after = user_after.val().obj().unwrap().get_field_value(
-            &syn_ctx.cached_string("surname"),
-            &test_prog.post_ctx()[0].graphs_map,
-        );
+        let user_surname_after = user_after
+            .val()
+            .obj()
+            .unwrap()
+            .get_field_value(&field_name!("surname"), &test_prog.post_ctx()[0].graphs_map);
         assert_eq!(
             user_surname_after
                 .unwrap()
@@ -768,53 +734,46 @@ mod ts_class_tests {
             }
         }";
 
-        let cache = Arc::new(Cache::new());
         let mut graphs_map = GraphsMap::default();
         let id_gen = Arc::new(GraphIdGenerator::default());
         let mut builder = TsClassesBuilder::new();
 
-        let user_class_name = builder
-            .add_classes(code, &cache)
-            .expect("Failed to add User class")[0]
-            .clone();
+        let user_class_name =
+            builder.add_classes(code).expect("Failed to add User class")[0].clone();
 
-        let classes = builder.finalize(&cache);
+        let classes = builder.finalize();
 
         let graph_id = id_gen.get_id_for_graph();
         graphs_map.ensure_graph(graph_id);
 
         let mut boa_ctx = EngineContext::new_boa_ctx();
         let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, &classes);
-        engine_ctx.reset_with_graph(graph_id, &mut graphs_map, &classes, &id_gen, &cache);
+        engine_ctx.reset_with_graph(graph_id, &mut graphs_map, &classes, &id_gen);
 
         let user_class = classes.get_user_class(&user_class_name).unwrap();
         let js_user = user_class
-            .call_constructor(
-                &[vstr!(cache; "a"), vstr!(cache; "b")],
-                &classes,
-                &mut engine_ctx,
-            )
+            .call_constructor(&[vstr!("a"), vstr!("b")], &classes, &mut engine_ctx)
             .unwrap();
-        let name_field = js_user.get_field_value(&str_cached!(cache; "name"), &graphs_map);
-        let surname_field = js_user.get_field_value(&str_cached!(cache; "surname"), &graphs_map);
-        let fullname_field = js_user.get_field_value(&str_cached!(cache; "fullname"), &graphs_map);
+        let name_field = js_user.get_field_value(&field_name!("name"), &graphs_map);
+        let surname_field = js_user.get_field_value(&field_name!("surname"), &graphs_map);
+        let fullname_field = js_user.get_field_value(&field_name!("fullname"), &graphs_map);
 
         print!("{}", js_user.wrap(&graphs_map));
 
         assert!(name_field.is_some());
         assert_eq!(
             name_field.unwrap().wrap(&graphs_map),
-            vstr!(cache; "a").wrap(&graphs_map)
+            vstr!("a").wrap(&graphs_map)
         );
         assert!(surname_field.is_some());
         assert_eq!(
             surname_field.unwrap().wrap(&graphs_map),
-            vstr!(cache; "b").wrap(&graphs_map)
+            vstr!("b").wrap(&graphs_map)
         );
         assert!(fullname_field.is_some());
         assert_eq!(
             fullname_field.unwrap().wrap(&graphs_map),
-            vstr!(cache; "ab").wrap(&graphs_map)
+            vstr!("ab").wrap(&graphs_map)
         );
     }
 
@@ -829,48 +788,45 @@ mod ts_class_tests {
             }
         }";
 
-        let cache = Arc::new(Cache::new());
         let mut graphs_map = GraphsMap::default();
         let id_gen = Arc::new(GraphIdGenerator::default());
         let mut builder = TsClassesBuilder::new();
 
-        builder
-            .add_classes(code, &cache)
-            .expect("Failed to add User class");
+        builder.add_classes(code).expect("Failed to add User class");
 
-        let classes = builder.finalize(&cache);
+        let classes = builder.finalize();
 
         let graph_id = id_gen.get_id_for_graph();
         graphs_map.ensure_graph(graph_id);
         let mut boa_ctx = EngineContext::new_boa_ctx();
         let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, &classes);
-        engine_ctx.reset_with_graph(graph_id, &mut graphs_map, &classes, &id_gen, &cache);
+        engine_ctx.reset_with_graph(graph_id, &mut graphs_map, &classes, &id_gen);
 
         let res = engine_ctx
             .eval(boa_engine::Source::from_bytes("new User(\"a\", \"b\")"))
             .unwrap();
         let js_user = JsWrapped::<ObjectValue>::get_from_js_val(&res).unwrap();
 
-        let name_field = js_user.get_field_value(&str_cached!(cache; "name"), &graphs_map);
-        let surname_field = js_user.get_field_value(&str_cached!(cache; "surname"), &graphs_map);
-        let fullname_field = js_user.get_field_value(&str_cached!(cache; "fullname"), &graphs_map);
+        let name_field = js_user.get_field_value(&field_name!("name"), &graphs_map);
+        let surname_field = js_user.get_field_value(&field_name!("surname"), &graphs_map);
+        let fullname_field = js_user.get_field_value(&field_name!("fullname"), &graphs_map);
 
         print!("{}", js_user.wrap(&graphs_map));
 
         assert!(name_field.is_some());
         assert_eq!(
             name_field.unwrap().wrap(&graphs_map),
-            vstr!(cache; "a").wrap(&graphs_map)
+            vstr!("a").wrap(&graphs_map)
         );
         assert!(surname_field.is_some());
         assert_eq!(
             surname_field.unwrap().wrap(&graphs_map),
-            vstr!(cache; "b").wrap(&graphs_map)
+            vstr!("b").wrap(&graphs_map)
         );
         assert!(fullname_field.is_some());
         assert_eq!(
             fullname_field.unwrap().wrap(&graphs_map),
-            vstr!(cache; "ab").wrap(&graphs_map)
+            vstr!("ab").wrap(&graphs_map)
         );
     }
 
@@ -952,10 +908,8 @@ mod ts_class_tests {
 mod specific_bugs_tests {
     use std::sync::Arc;
 
-    use object_graph::str_cached;
     use ruse_object_graph::{
-        self as object_graph, graph_map_value::GraphMapWrap, vnum, vstr, Cache, GraphsMap, Number,
-        ValueType,
+        graph_map_value::GraphMapWrap, root_name, vnum, vstr, GraphsMap, Number, ValueType,
     };
     use ruse_synthesizer::{
         context::{Context, ContextArray, GraphIdGenerator, SynthesizerContext, ValuesMap},
@@ -971,18 +925,15 @@ mod specific_bugs_tests {
 
     #[test]
     fn bug_1() {
-        let cache = Arc::new(Cache::new());
-
         let ctx = ruse_synthesizer::test::helpers::generate_context_from_array(
-            str_cached!(cache; "names"),
+            root_name!("names"),
             &ValueType::String,
-            ["Augusta", "Ada", "King"].iter().map(|s| vstr!(cache; s)),
-            &cache,
+            ["Augusta", "Ada", "King"].iter().map(|s| vstr!(*s)),
         );
         let ctx_arr = ContextArray::from(vec![ctx]);
-        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr.clone(), cache);
+        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr.clone());
 
-        let id_op = id_op("names", &syn_ctx.cache);
+        let id_op = id_op("names");
         let one_op = lit_number_op(1);
         let splice_op = Arc::new(ArraySpliceOp::new(&ValueType::String, false));
         let len_op = Arc::new(ArrayLengthOp::new(&ValueType::String));
@@ -1021,18 +972,15 @@ mod specific_bugs_tests {
 
     #[test]
     fn bug_2() {
-        let cache = Arc::new(Cache::new());
-
         let ctx = ruse_synthesizer::test::helpers::generate_context_from_array(
-            str_cached!(cache; "arr"),
+            root_name!("arr"),
             &ValueType::Number,
             [8, 9, 7].iter().map(|s| vnum!(Number::from(*s))),
-            &cache,
         );
         let ctx_arr = ContextArray::from(vec![ctx]);
-        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr.clone(), cache);
+        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr.clone());
 
-        let arr_op = id_op("arr", &syn_ctx.cache);
+        let arr_op = id_op("arr");
         let zero_op = lit_number_op(0);
         let one_op = lit_number_op(1);
         let push_op = Arc::new(ArrayPushOp::new(&ValueType::Number));
@@ -1057,16 +1005,15 @@ mod specific_bugs_tests {
         );
 
         let expected_ctx = ruse_synthesizer::test::helpers::generate_context_from_array(
-            syn_ctx.cached_string("arr"),
+            root_name!("arr"),
             &ValueType::Number,
             [8, 7, 9].iter().map(|s| vnum!(Number::from(*s))),
-            &syn_ctx.cache,
         );
         let final_arr = progs["final"].post_ctx()[0]
-            .get_var_loc_value(&syn_ctx.cached_string("arr"), &syn_ctx)
+            .get_var_loc_value(&root_name!("arr"), &syn_ctx)
             .unwrap();
         let expected_arr = expected_ctx
-            .get_var_loc_value(&syn_ctx.cached_string("arr"), &syn_ctx)
+            .get_var_loc_value(&root_name!("arr"), &syn_ctx)
             .unwrap();
 
         println!(
@@ -1085,7 +1032,6 @@ mod specific_bugs_tests {
 
     #[test]
     fn bug_3() {
-        let cache = Arc::new(Cache::new());
         let graph_id_gen: Arc<GraphIdGenerator> = Arc::new(GraphIdGenerator::default());
         let mut graphs_map = GraphsMap::default();
         let mut values = ValuesMap::default();
@@ -1094,19 +1040,18 @@ mod specific_bugs_tests {
             &mut values,
             &mut graphs_map,
             &graph_id_gen,
-            str_cached!(cache; "arr"),
+            root_name!("arr"),
             &ValueType::Number,
             [8, 9, 7].iter().map(|s| vnum!(Number::from(*s))),
-            &cache,
         );
-        values.insert(str_cached!(cache; "i"), vnum!(Number::from(1)));
+        values.insert(root_name!("i"), vnum!(Number::from(1)));
 
         let ctx = Context::with_values(values, graphs_map.into(), graph_id_gen);
         let ctx_arr = ContextArray::from(vec![ctx]);
-        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr.clone(), cache);
+        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr.clone());
 
-        let arr_op = id_op("arr", &syn_ctx.cache);
-        let i_op = id_op("i", &syn_ctx.cache);
+        let arr_op = id_op("arr");
+        let i_op = id_op("i");
         let zero_op = lit_number_op(0);
         let one_op = lit_number_op(1);
         let splice_op = Arc::new(ArraySpliceOp::new(&ValueType::Number, true));
@@ -1130,16 +1075,15 @@ mod specific_bugs_tests {
         );
 
         let expected_ctx = ruse_synthesizer::test::helpers::generate_context_from_array(
-            syn_ctx.cached_string("arr"),
+            root_name!("arr"),
             &ValueType::Number,
             [8, 7, 9].iter().map(|s| vnum!(Number::from(*s))),
-            &syn_ctx.cache,
         );
         let final_arr = progs["final"].post_ctx()[0]
-            .get_var_loc_value(&syn_ctx.cached_string("arr"), &syn_ctx)
+            .get_var_loc_value(&root_name!("arr"), &syn_ctx)
             .unwrap();
         let expected_arr = expected_ctx
-            .get_var_loc_value(&syn_ctx.cached_string("arr"), &syn_ctx)
+            .get_var_loc_value(&root_name!("arr"), &syn_ctx)
             .unwrap();
 
         assert_eq!(

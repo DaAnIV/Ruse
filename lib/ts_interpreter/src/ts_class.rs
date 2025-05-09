@@ -2,9 +2,9 @@ use std::{collections::HashMap, fmt::Debug, sync::Arc};
 
 use boa_engine::{context::intrinsics::StandardConstructor, JsResult, JsString};
 use ruse_object_graph::{
-    fields, scached, str_cached, vbool, vnull, vnum, vstring, Attributes, Cache, CachedString,
-    ClassName, GraphIndex, GraphsMap, NodeIndex, ObjectGraph, ObjectType, PrimitiveValue, RootName,
-    ValueType,
+    class_name, field_name, fields, root_name, str_cached, vbool, vnull, vnum, vstr, Attributes,
+    ClassName, FieldName, GraphIndex, GraphsMap, NodeIndex, ObjectGraph, ObjectType,
+    PrimitiveValue, RootName, ValueType,
 };
 use ruse_synthesizer::{
     context::GraphIdGenerator,
@@ -25,15 +25,9 @@ pub(crate) fn get_name_with_namespace(namespace: &Vec<String>, name: &str) -> St
     }
 }
 
-pub trait FromWithCache<T> {
-    /// Converts to this type from the input type.
-    #[must_use]
-    fn from_with_cache(value: T, cache: &Cache) -> Self;
-}
-
 #[derive(Debug, Clone)]
 pub struct JsFieldDescription {
-    pub name: CachedString,
+    pub name: FieldName,
     pub value_type: ValueType,
     pub is_private: bool,
     pub is_static: bool,
@@ -43,12 +37,10 @@ pub struct JsFieldDescription {
 }
 
 impl JsFieldDescription {
-    pub fn get_primitive_value(&self, cache: &Cache) -> Option<PrimitiveValue> {
+    pub fn get_primitive_value(&self) -> Option<PrimitiveValue> {
         match self.init_expr.as_ref()?.as_ref() {
             ast::Expr::Lit(lit) => match lit {
-                ast::Lit::Str(s) => {
-                    Some(PrimitiveValue::String(str_cached!(cache; s.value.as_str())))
-                }
+                ast::Lit::Str(s) => Some(PrimitiveValue::String(str_cached!(s.value.as_str()))),
                 ast::Lit::Bool(bool) => Some(PrimitiveValue::Bool(bool.value)),
                 ast::Lit::Null(_) => None,
                 ast::Lit::Num(number) => Some(PrimitiveValue::Number(number.value.into())),
@@ -59,19 +51,19 @@ impl JsFieldDescription {
     }
 }
 
-impl FromWithCache<&ast::ClassProp> for JsFieldDescription {
-    fn from_with_cache(value: &ast::ClassProp, cache: &Cache) -> Self {
+impl From<&ast::ClassProp> for JsFieldDescription {
+    fn from(value: &ast::ClassProp) -> Self {
         let ident = value.key.as_ident().unwrap();
         let field_name = ident.sym.as_str();
         let access = value.accessibility.unwrap_or(ast::Accessibility::Public);
         let value_type = if let Some(type_ann) = &value.type_ann {
-            get_value_type_from_ts_type(&type_ann.type_ann, cache)
+            get_value_type_from_ts_type(&type_ann.type_ann)
         } else {
-            get_value_type_from_expr(&value.value.as_ref().unwrap(), cache)
+            get_value_type_from_expr(&value.value.as_ref().unwrap())
         };
 
         JsFieldDescription {
-            name: str_cached!(cache; field_name),
+            name: field_name!(field_name),
             value_type,
             is_private: access != ast::Accessibility::Public,
             is_readonly: value.readonly,
@@ -81,18 +73,18 @@ impl FromWithCache<&ast::ClassProp> for JsFieldDescription {
         }
     }
 }
-impl FromWithCache<&ast::VarDeclarator> for JsFieldDescription {
-    fn from_with_cache(value: &ast::VarDeclarator, cache: &Cache) -> Self {
+impl From<&ast::VarDeclarator> for JsFieldDescription {
+    fn from(value: &ast::VarDeclarator) -> Self {
         let ident = value.name.as_ident().unwrap();
         let field_name = ident.sym.as_str();
         let value_type = if let Some(type_ann) = &ident.type_ann {
-            get_value_type_from_ts_type(&type_ann.type_ann, cache)
+            get_value_type_from_ts_type(&type_ann.type_ann)
         } else {
-            get_value_type_from_expr(&value.init.as_ref().unwrap(), cache)
+            get_value_type_from_expr(&value.init.as_ref().unwrap())
         };
 
         JsFieldDescription {
-            name: str_cached!(cache; field_name),
+            name: field_name!(field_name),
             value_type,
             is_private: true,
             is_readonly: false,
@@ -105,22 +97,22 @@ impl FromWithCache<&ast::VarDeclarator> for JsFieldDescription {
 
 #[derive(Debug, Clone)]
 pub struct ParamDescription {
-    pub name: CachedString,
+    pub name: String,
     pub value_type: ValueType,
     pub(crate) is_prop: bool,
 }
 
-impl FromWithCache<&ast::Param> for ParamDescription {
-    fn from_with_cache(value: &ast::Param, cache: &Cache) -> Self {
+impl From<&ast::Param> for ParamDescription {
+    fn from(value: &ast::Param) -> Self {
         match &value.pat {
             swc_ecma_ast::Pat::Ident(binding_ident) => {
                 let value_type = if let Some(type_ann) = &binding_ident.type_ann.as_ref() {
-                    get_value_type_from_ts_type(&type_ann.type_ann, cache)
+                    get_value_type_from_ts_type(&type_ann.type_ann)
                 } else {
                     ValueType::Null
                 };
                 ParamDescription {
-                    name: str_cached!(cache; binding_ident.id.sym.as_str()),
+                    name: binding_ident.id.sym.to_string(),
                     value_type,
                     is_prop: false,
                 }
@@ -128,12 +120,12 @@ impl FromWithCache<&ast::Param> for ParamDescription {
             swc_ecma_ast::Pat::Assign(assign_pat) => {
                 let ident = assign_pat.left.as_ident().unwrap();
                 let value_type = if let Some(type_ann) = &ident.type_ann {
-                    get_value_type_from_ts_type(&type_ann.type_ann, cache)
+                    get_value_type_from_ts_type(&type_ann.type_ann)
                 } else {
-                    get_value_type_from_expr(&assign_pat.right, cache)
+                    get_value_type_from_expr(&assign_pat.right)
                 };
                 ParamDescription {
-                    name: str_cached!(cache; ident.id.sym.as_str()),
+                    name: ident.id.sym.to_string(),
                     value_type: value_type,
                     is_prop: false,
                 }
@@ -143,26 +135,25 @@ impl FromWithCache<&ast::Param> for ParamDescription {
     }
 }
 
-impl FromWithCache<&ast::TsParamProp> for ParamDescription {
-    fn from_with_cache(value: &ast::TsParamProp, cache: &Cache) -> Self {
+impl From<&ast::TsParamProp> for ParamDescription {
+    fn from(value: &ast::TsParamProp) -> Self {
         match &value.param {
             swc_ecma_ast::TsParamPropParam::Ident(binding_ident) => ParamDescription {
-                name: str_cached!(cache; binding_ident.id.sym.as_str()),
+                name: binding_ident.id.sym.to_string(),
                 value_type: get_value_type_from_ts_type(
                     &binding_ident.type_ann.as_ref().unwrap().type_ann,
-                    cache,
                 ),
                 is_prop: true,
             },
             swc_ecma_ast::TsParamPropParam::Assign(assign_pat) => {
                 let ident = assign_pat.left.as_ident().unwrap();
                 let value_type = if let Some(type_ann) = &ident.type_ann {
-                    get_value_type_from_ts_type(&type_ann.type_ann, cache)
+                    get_value_type_from_ts_type(&type_ann.type_ann)
                 } else {
-                    get_value_type_from_expr(&assign_pat.right, cache)
+                    get_value_type_from_expr(&assign_pat.right)
                 };
                 ParamDescription {
-                    name: str_cached!(cache; ident.id.sym.as_str()),
+                    name: ident.id.sym.to_string(),
                     value_type: value_type,
                     is_prop: true,
                 }
@@ -171,13 +162,13 @@ impl FromWithCache<&ast::TsParamProp> for ParamDescription {
     }
 }
 
-impl FromWithCache<&ast::ParamOrTsParamProp> for ParamDescription {
-    fn from_with_cache(value: &ast::ParamOrTsParamProp, cache: &Cache) -> Self {
+impl From<&ast::ParamOrTsParamProp> for ParamDescription {
+    fn from(value: &ast::ParamOrTsParamProp) -> Self {
         match value {
             swc_ecma_ast::ParamOrTsParamProp::TsParamProp(ts_param_prop) => {
-                Self::from_with_cache(ts_param_prop, cache)
+                Self::from(ts_param_prop)
             }
-            swc_ecma_ast::ParamOrTsParamProp::Param(param) => Self::from_with_cache(param, cache),
+            swc_ecma_ast::ParamOrTsParamProp::Param(param) => Self::from(param),
         }
     }
 }
@@ -202,7 +193,7 @@ impl From<ast::MethodKind> for MethodKind {
 
 #[derive(Debug, Clone)]
 pub struct MethodDescription {
-    pub name: CachedString,
+    pub name: String,
     pub params: Vec<ParamDescription>,
     pub is_static: bool,
     pub is_private: bool,
@@ -210,15 +201,15 @@ pub struct MethodDescription {
     pub(crate) body: Option<String>,
 }
 
-impl FromWithCache<&ast::ClassMethod> for MethodDescription {
-    fn from_with_cache(value: &ast::ClassMethod, cache: &Cache) -> Self {
-        let name = str_cached!(cache; value.key.as_ident().unwrap().sym.as_str());
+impl From<&ast::ClassMethod> for MethodDescription {
+    fn from(value: &ast::ClassMethod) -> Self {
+        let name = value.key.as_ident().unwrap().sym.to_string();
         let mut params = vec![];
         let access = value.accessibility.unwrap_or(ast::Accessibility::Public);
         let body = value.function.body.as_ref().map(|body| get_code(body));
 
         for param in &value.function.params {
-            params.push(ParamDescription::from_with_cache(param, cache))
+            params.push(ParamDescription::from(param))
         }
 
         MethodDescription {
@@ -232,14 +223,14 @@ impl FromWithCache<&ast::ClassMethod> for MethodDescription {
     }
 }
 
-impl FromWithCache<&ast::FnDecl> for MethodDescription {
-    fn from_with_cache(value: &ast::FnDecl, cache: &Cache) -> Self {
-        let name = str_cached!(cache; value.ident.sym.as_str());
+impl From<&ast::FnDecl> for MethodDescription {
+    fn from(value: &ast::FnDecl) -> Self {
+        let name = value.ident.sym.as_str().to_string();
         let mut params = vec![];
         let body = value.function.body.as_ref().map(|body| get_code(body));
 
         for param in &value.function.params {
-            params.push(ParamDescription::from_with_cache(param, cache))
+            params.push(ParamDescription::from(param))
         }
 
         MethodDescription {
@@ -253,7 +244,7 @@ impl FromWithCache<&ast::FnDecl> for MethodDescription {
     }
 }
 
-pub(crate) fn get_value_type_from_ts_type(type_ann: &ast::TsType, cache: &Cache) -> ValueType {
+pub(crate) fn get_value_type_from_ts_type(type_ann: &ast::TsType) -> ValueType {
     match type_ann {
         ast::TsType::TsKeywordType(t) => match t.kind {
             swc_ecma_ast::TsKeywordTypeKind::TsAnyKeyword => todo!(),
@@ -278,30 +269,30 @@ pub(crate) fn get_value_type_from_ts_type(type_ann: &ast::TsType, cache: &Cache)
                 "Array" => {
                     let type_params = t.type_params.as_ref().unwrap();
                     assert!(type_params.params.len() == 1);
-                    let elem_type = get_value_type_from_ts_type(&type_params.params[0], cache);
+                    let elem_type = get_value_type_from_ts_type(&type_params.params[0]);
                     return ValueType::array_value_type(&elem_type);
                 }
                 "Set" => {
                     let type_params = t.type_params.as_ref().unwrap();
                     assert!(type_params.params.len() == 1);
-                    let elem_type = get_value_type_from_ts_type(&type_params.params[0], cache);
+                    let elem_type = get_value_type_from_ts_type(&type_params.params[0]);
                     return ValueType::set_value_type(&elem_type);
                 }
                 "Map" => {
                     let type_params = t.type_params.as_ref().unwrap();
                     assert!(type_params.params.len() == 2);
-                    let key_type = get_value_type_from_ts_type(&type_params.params[0], cache);
-                    let value_type = get_value_type_from_ts_type(&type_params.params[1], cache);
+                    let key_type = get_value_type_from_ts_type(&type_params.params[0]);
+                    let value_type = get_value_type_from_ts_type(&type_params.params[1]);
                     return ValueType::map_value_type(&key_type, &value_type);
                 }
                 _ => {}
             }
-            ValueType::class_value_type(scached!(cache; id))
+            ValueType::class_value_type(class_name!(id))
         }
         ast::TsType::TsTypeQuery(_) => todo!(),
         ast::TsType::TsTypeLit(_) => todo!(),
         ast::TsType::TsArrayType(t) => {
-            let elem_type = get_value_type_from_ts_type(t.elem_type.as_ref(), cache);
+            let elem_type = get_value_type_from_ts_type(t.elem_type.as_ref());
             ValueType::array_value_type(&elem_type)
         }
         ast::TsType::TsTupleType(_) => todo!(),
@@ -310,8 +301,8 @@ pub(crate) fn get_value_type_from_ts_type(type_ann: &ast::TsType, cache: &Cache)
         ast::TsType::TsUnionOrIntersectionType(t) => {
             if let Some(u) = t.as_ts_union_type() {
                 if u.types.len() == 2 {
-                    let left = get_value_type_from_ts_type(&u.types[0], cache);
-                    let right = get_value_type_from_ts_type(&u.types[1], cache);
+                    let left = get_value_type_from_ts_type(&u.types[0]);
+                    let right = get_value_type_from_ts_type(&u.types[1]);
                     if left == ValueType::Null && !right.is_primitive() {
                         return right;
                     } else if right == ValueType::Null && !left.is_primitive() {
@@ -357,7 +348,7 @@ pub(crate) fn get_code(body: &BlockStmt) -> String {
     c.print(body, print_args).expect("Failed to get code").code
 }
 
-pub(crate) fn get_value_type_from_expr(expr: &ast::Expr, cache: &Cache) -> ValueType {
+pub(crate) fn get_value_type_from_expr(expr: &ast::Expr) -> ValueType {
     match expr {
         ast::Expr::Lit(lit) => match lit {
             ast::Lit::Str(_) => ValueType::String,
@@ -368,7 +359,7 @@ pub(crate) fn get_value_type_from_expr(expr: &ast::Expr, cache: &Cache) -> Value
         },
         ast::Expr::New(new) => {
             let id = new.callee.as_ident().unwrap();
-            let name = str_cached!(cache; id.sym.as_str());
+            let name = class_name!(id.sym.as_str());
             ValueType::class_value_type(name)
         }
         _ => todo!("expr {:#?} value type is unknown", expr),
@@ -381,11 +372,10 @@ pub fn get_value_from_expr(
     graphs_map: &mut GraphsMap,
     classes: &TsClasses,
     id_gen: &Arc<GraphIdGenerator>,
-    cache: &Arc<Cache>,
 ) -> Value {
     match expr {
         ast::Expr::Lit(lit) => match lit {
-            ast::Lit::Str(s) => vstring!(cache; s.value.to_string()),
+            ast::Lit::Str(s) => vstr!(s.value.to_string()),
             ast::Lit::Bool(bool) => vbool!(bool.value),
             ast::Lit::Null(_) => vnull!(),
             ast::Lit::Num(number) => vnum!(number.value.into()),
@@ -400,7 +390,7 @@ pub fn get_value_from_expr(
             if let Some(args) = &new.args {
                 for arg in args {
                     params.push(get_value_from_expr(
-                        &arg.expr, graph_id, graphs_map, classes, id_gen, cache,
+                        &arg.expr, graph_id, graphs_map, classes, id_gen,
                     ));
                 }
             }
@@ -408,9 +398,9 @@ pub fn get_value_from_expr(
             let mut boa_ctx = EngineContext::new_boa_ctx();
             let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, classes);
 
-            engine_ctx.reset_with_graph(graph_id, graphs_map, classes, id_gen, cache);
+            engine_ctx.reset_with_graph(graph_id, graphs_map, classes, id_gen);
 
-            let class = classes.get_user_class(&str_cached!(cache; name)).unwrap();
+            let class = classes.get_user_class(&class_name!(name)).unwrap();
             Value::Object(
                 class
                     .call_constructor(&params, classes, &mut engine_ctx)
@@ -424,11 +414,11 @@ pub fn get_value_from_expr(
 #[derive(Debug, Clone)]
 pub struct TsClassDescription {
     pub(crate) id: u64,
-    pub class_name: CachedString,
+    pub class_name: ClassName,
     pub fields: HashMap<String, JsFieldDescription>,
     pub methods: HashMap<String, MethodDescription>,
     pub constructor: MethodDescription,
-    pub extends: Option<CachedString>,
+    pub extends: Option<ClassName>,
     pub is_abstract: bool,
 }
 
@@ -452,7 +442,6 @@ pub trait TsBuiltinClass: TsClass {
         classes: &TsClasses,
         value: &boa_engine::JsObject,
         engine_ctx: &mut EngineContext<'_>,
-        cache: &Cache,
     ) -> Result<ObjectValue, boa_engine::JsError>;
 }
 
@@ -471,17 +460,17 @@ pub trait BuiltinClassWrapper {
 
 pub(crate) struct StaticGraphBuilder<'a> {
     pub id: u64,
-    pub class_name: &'a str,
+    pub class_name: &'a ClassName,
     pub gen_id: &'a Arc<GraphIdGenerator>,
 }
 
 impl<'a> StaticGraphBuilder<'a> {
-    pub fn static_graph_obj_type(class_name: &str, cache: &Cache) -> ObjectType {
-        ObjectType::class_obj_type(&format!("{}_{}", class_name, &"Static"), cache)
+    pub fn static_graph_obj_type(class_name: &str) -> ObjectType {
+        ObjectType::class_obj_type(&format!("{}_{}", class_name, &"Static"))
     }
 
-    pub fn static_graph_root_name(class_name: &str, cache: &Cache) -> RootName {
-        scached!(cache; format!("{}_{}", class_name, &"Static"))
+    pub fn static_graph_root_name(class_name: &str) -> RootName {
+        root_name!(format!("{}_{}", class_name, &"Static"))
     }
 
     pub fn populate_static_graph<'b, I>(
@@ -490,17 +479,16 @@ impl<'a> StaticGraphBuilder<'a> {
         root_node: NodeIndex,
         graphs_map: &mut GraphsMap,
         classes: &mut TsClasses,
-        cache: &Arc<Cache>,
     ) -> Arc<ObjectGraph>
     where
         I: IntoIterator<Item = &'b JsFieldDescription>,
     {
         let graph_id = self.id as GraphIndex;
         graphs_map.new_static_graph(graph_id);
-        self.add_root_node(graphs_map, graph_id, root_node, cache);
+        self.add_root_node(graphs_map, graph_id, root_node);
 
         for field in fields.into_iter().filter(|field| field.is_static) {
-            self.add_static_field(field, graph_id, graphs_map, root_node, classes, cache);
+            self.add_static_field(field, graph_id, graphs_map, root_node, classes);
         }
 
         graphs_map.get(&graph_id).unwrap().clone()
@@ -511,16 +499,15 @@ impl<'a> StaticGraphBuilder<'a> {
         graphs_map: &mut GraphsMap,
         graph_id: GraphIndex,
         root_node: NodeIndex,
-        cache: &Cache,
     ) {
         graphs_map.construct_node(
             graph_id,
             root_node,
-            Self::static_graph_obj_type(&self.class_name, cache),
+            Self::static_graph_obj_type(&self.class_name),
             fields!(),
         );
         graphs_map.set_as_root(
-            Self::static_graph_root_name(&self.class_name, cache),
+            Self::static_graph_root_name(&self.class_name),
             graph_id,
             root_node,
         );
@@ -533,14 +520,12 @@ impl<'a> StaticGraphBuilder<'a> {
         graphs_map: &mut GraphsMap,
         root_node: NodeIndex,
         classes: &mut TsClasses,
-        cache: &Arc<Cache>,
     ) {
         let init_expr = field.init_expr.as_ref().unwrap();
-        let init_val =
-            get_value_from_expr(init_expr, graph_id, graphs_map, classes, self.gen_id, cache);
+        let init_val = get_value_from_expr(init_expr, graph_id, graphs_map, classes, self.gen_id);
 
         graphs_map.set_field(
-            str_cached!(cache; &field.name),
+            field_name!(field.name.as_str()),
             graph_id,
             root_node,
             &init_val,
@@ -553,7 +538,7 @@ impl<'a> StaticGraphBuilder<'a> {
                 loc: Location::ObjectField(ObjectFieldLoc {
                     graph: graph_id,
                     node: root_node,
-                    field: str_cached!(cache; &field.name),
+                    field: field_name!(field.name.as_str()),
                     attrs: Attributes::default(),
                 }),
                 val: init_val,
