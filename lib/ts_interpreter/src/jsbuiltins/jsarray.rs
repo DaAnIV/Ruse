@@ -45,19 +45,19 @@ impl BuiltinArrayClass {
         classes: &TsClasses,
         js_array: &boa_engine::object::builtins::JsArray,
         engine_ctx: &mut EngineContext<'_>,
-    ) -> Result<ObjectValue, boa_engine::JsError> {
+    ) -> JsResult<ObjectValue> {
         let arr_len = js_array.length(engine_ctx).unwrap() as i64;
         if arr_len == 0 {
             return engine_ctx.create_array_object(vec![], &ValueType::Null);
         }
 
-        let elements: Vec<Value> = (0..arr_len)
+        let elements = (0..arr_len)
             .map(|i| {
                 let js_elem = js_array.at(i, engine_ctx).unwrap();
-                let elem = js_value_to_value(classes, &js_elem, engine_ctx);
-                elem
+                let elem = js_value_to_value(classes, &js_elem, engine_ctx)?;
+                Ok(elem)
             })
-            .collect();
+            .collect::<JsResult<Vec<Value>>>()?;
 
         let elem_type = elements[0].val_type();
         engine_ctx.create_array_object(elements, &elem_type)
@@ -74,14 +74,14 @@ impl BuiltinArrayClass {
             return engine_ctx.create_array_object(vec![], &ValueType::Number);
         }
 
-        let elements: Vec<Value> = (0..arr_len)
+        let elements = (0..arr_len)
             .map(|i| {
                 let js_elem = js_typed_array.at(i, engine_ctx).unwrap();
-                let elem = js_value_to_value(classes, &js_elem, engine_ctx);
+                let elem = js_value_to_value(classes, &js_elem, engine_ctx)?;
                 assert!(elem.number_value().is_some());
-                elem
+                Ok(elem)
             })
-            .collect();
+            .collect::<JsResult<Vec<Value>>>()?;
 
         engine_ctx.create_array_object(elements, &ValueType::Number)
     }
@@ -98,8 +98,8 @@ impl TsClass for BuiltinArrayClass {
         &self,
         obj: ObjectValue,
         engine_ctx: &mut EngineContext<'_>,
-    ) -> boa_engine::JsObject {
-        JsArrayWrapper::wrap_object(&obj, engine_ctx).unwrap()
+    ) -> JsResult<boa_engine::JsObject> {
+        JsArrayWrapper::wrap_object(&obj, engine_ctx)
     }
 
     fn is_parametrized(&self) -> bool {
@@ -162,8 +162,6 @@ impl JsArrayWrapper {
 }
 
 impl BuiltinClassWrapper for JsArrayWrapper {
-    const NAME: boa_engine::JsString = StaticJsStrings::ARRAY;
-
     fn build_standard_constructor(
         engine_ctx: &mut EngineContext<'_>,
     ) -> JsResult<StandardConstructor> {
@@ -251,7 +249,7 @@ impl BuiltinClassWrapper for JsArrayWrapper {
             .method(jsfn_wrap!(Self::with), js_string!("with"), 2)
             .property(
                 JsSymbol::to_string_tag(),
-                Self::NAME,
+                StaticJsStrings::ARRAY,
                 Attribute::READONLY | Attribute::NON_ENUMERABLE | Attribute::CONFIGURABLE,
             )
             .property(

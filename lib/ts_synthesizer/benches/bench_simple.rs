@@ -1,5 +1,4 @@
 use criterion::*;
-use ruse_object_graph as object_graph;
 use ruse_object_graph::*;
 use ruse_synthesizer::{
     bank::SubsumptionProgBank,

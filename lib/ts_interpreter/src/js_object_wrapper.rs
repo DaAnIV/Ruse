@@ -1,14 +1,18 @@
 use std::{collections::HashMap, sync::Arc};
 
-use boa_engine::{js_string, value::JsValue};
+use boa_engine::{
+    context::intrinsics::StandardConstructor, js_string, object::PROTOTYPE, value::JsValue, JsArgs,
+    JsNativeError, JsObject, JsResult,
+};
 use itertools::Itertools;
 use ruse_object_graph::{
-    field_name, value::ObjectValue, Attributes, ClassName, FieldName, FieldsMap, ObjectType,
-    PrimitiveField,
+    class_name, field_name, value::ObjectValue, Attributes, ClassName, FieldName, FieldsMap,
+    ObjectType, PrimitiveField,
 };
 
 use crate::{
     engine_context::{EngineContext, RuseJsGlobalObject},
+    js_errors::*,
     js_value::{js_value_to_primitive_value, js_value_to_value},
     js_wrapped::JsWrapped,
     ts_class::{JsFieldDescription, MethodDescription, MethodKind, TsClassDescription},
@@ -26,13 +30,30 @@ macro_rules! jsfn_wrap {
 }
 
 #[derive(Debug, Clone)]
-pub struct JsObjectWrapper {
+pub struct JsUserClassWrapper {
     desc: Arc<TsClassDescription>,
+    constructor: StandardConstructor,
 }
 
-impl JsObjectWrapper {
-    pub fn new(desc: Arc<TsClassDescription>) -> Self {
-        JsObjectWrapper { desc }
+impl JsUserClassWrapper {
+    pub fn new(
+        desc: Arc<TsClassDescription>,
+        engine_ctx: &mut EngineContext<'_>,
+    ) -> JsResult<Self> {
+        let constructor = Self::build_standard_constructor(&desc, engine_ctx)?;
+        Ok(JsUserClassWrapper { desc, constructor })
+    }
+
+    pub fn constructor(&self) -> JsObject {
+        self.constructor.constructor()
+    }
+
+    pub fn prototype(&self) -> JsObject {
+        self.constructor.prototype()
+    }
+
+    pub fn name(&self) -> &ClassName {
+        &self.desc.class_name
     }
 
     fn getter_for_field(field: &JsFieldDescription) -> Option<boa_engine::NativeFunction> {
@@ -52,7 +73,12 @@ impl JsObjectWrapper {
         let field_name = field.name.clone();
         Some(unsafe {
             boa_engine::native_function::NativeFunction::from_closure(move |this, args, boa_ctx| {
-                RuseJsGlobalObject::set_field(this, &field_name, &args[0], &mut boa_ctx.into())?;
+                RuseJsGlobalObject::set_field(
+                    this,
+                    &field_name,
+                    args.get_or_undefined(0),
+                    &mut boa_ctx.into(),
+                )?;
                 Ok(boa_engine::JsValue::undefined())
             })
         })
@@ -86,7 +112,7 @@ impl JsObjectWrapper {
                 RuseJsGlobalObject::set_static_field(
                     &class_name,
                     &field_name,
-                    &args[0],
+                    args.get_or_undefined(0),
                     &mut boa_ctx.into(),
                 )?;
                 Ok(boa_engine::JsValue::undefined())
@@ -112,7 +138,7 @@ impl JsObjectWrapper {
         let js_source = boa_engine::Source::from_bytes(code.as_str());
         let js_func = boa_ctx.eval(js_source).unwrap();
 
-        let func = js_func.into_object().unwrap();
+        let func = js_func.to_object(boa_ctx).unwrap();
         assert!(func.is_callable());
 
         unsafe {
@@ -158,7 +184,7 @@ impl JsObjectWrapper {
 
                         let field = &self.desc.fields[param.name.as_str()];
                         let field_name = field_name!(param.name.as_str());
-                        let value = js_value_to_primitive_value(arg)?;
+                        let value = js_value_to_primitive_value(&arg).ok()?;
                         let attributes = Attributes {
                             readonly: field.is_readonly,
                         };
@@ -185,7 +211,7 @@ impl JsObjectWrapper {
             }
 
             if !arg.is_null_or_undefined() {
-                let obj_val = js_value_to_value(global_ctx.classes()?, arg, engine_ctx);
+                let obj_val = js_value_to_value(global_ctx.classes()?, arg, engine_ctx)?;
                 graphs_map.set_field(field_name!(param.name.clone()), graph_id, node_id, &obj_val);
             }
         }
@@ -197,8 +223,8 @@ impl JsObjectWrapper {
         }))
     }
 
-    pub fn constructor_name() -> &'static str {
-        "__constructor__"
+    fn constructor_body_name() -> &'static str {
+        "__constructor_body__"
     }
 
     pub fn getter_name(accessor_name: &str) -> String {
@@ -210,70 +236,76 @@ impl JsObjectWrapper {
     }
 
     fn call_constructor_body(
-        &self,
-        instance: &boa_engine::JsObject,
+        class_name: &ClassName,
+        instance: &boa_engine::JsValue,
         args: &[boa_engine::JsValue],
         engine_ctx: &mut EngineContext<'_>,
-    ) -> boa_engine::JsResult<()> {
-        self.call_method_body(
-            Self::constructor_name(),
-            &boa_engine::JsValue::new(instance.clone()),
+    ) -> boa_engine::JsResult<JsValue> {
+        Self::call_method_body(
+            class_name,
+            Self::constructor_body_name(),
+            instance,
             args,
             engine_ctx,
-        )?;
-
-        Ok(())
+        )
     }
 
     pub fn call_method_body(
-        &self,
+        class_name: &ClassName,
         method_name: &str,
         this: &boa_engine::JsValue,
         args: &[boa_engine::JsValue],
         engine_ctx: &mut EngineContext<'_>,
     ) -> boa_engine::JsResult<JsValue> {
-        let func = engine_ctx
-            .get_global_dynamic_class(self)
-            .unwrap()
-            .prototype()
-            .get(js_string!(method_name), engine_ctx)?;
+        let prototype = {
+            let global_obj = engine_ctx.global_object();
+            let global_ctx = JsWrapped::<RuseJsGlobalObject>::get_from_js_obj(&global_obj)?;
+            global_ctx.get_user_class(class_name)?.prototype()
+        };
+        let func = prototype.get(js_string!(method_name), engine_ctx)?;
 
         func.as_callable().unwrap().call(this, args, engine_ctx)
     }
 
     pub fn call_static_method_body(
-        &self,
+        class_name: &ClassName,
         method_name: &str,
-        this: &boa_engine::JsValue,
         args: &[boa_engine::JsValue],
         engine_ctx: &mut EngineContext<'_>,
     ) -> boa_engine::JsResult<JsValue> {
-        let func = engine_ctx
-            .get_global_dynamic_class(self)
-            .unwrap()
-            .constructor()
-            .get(js_string!(method_name), engine_ctx)?;
+        let constructor = {
+            let global_obj = engine_ctx.global_object();
+            let global_ctx = JsWrapped::<RuseJsGlobalObject>::get_from_js_obj(&global_obj)?;
+            global_ctx.get_user_class(class_name)?.constructor()
+        };
+        let func = constructor.get(js_string!(method_name), engine_ctx)?;
 
-        func.as_callable().unwrap().call(this, args, engine_ctx)
+        func.as_callable()
+            .unwrap()
+            .call(&constructor.into(), args, engine_ctx)
     }
 }
 
-// TODO: remove the use of the DynamicClassBuilder
-impl boa_engine::class::DynamicClassBuilder<JsWrapped<ObjectValue>> for JsObjectWrapper {
-    fn name(&self) -> &str {
-        &self.desc.class_name
-    }
+impl JsUserClassWrapper {
+    fn build_standard_constructor(
+        desc: &TsClassDescription,
+        engine_ctx: &mut EngineContext<'_>,
+    ) -> JsResult<StandardConstructor> {
+        let mut builder =
+            boa_engine::object::ConstructorBuilder::new(engine_ctx, jsfn_wrap!(Self::construct));
+        builder
+            .name(desc.class_name.as_str())
+            .length(desc.constructor.params.len())
+            .has_prototype_property(true);
 
-    fn length(&self) -> usize {
-        self.desc.constructor.params.len()
-    }
+        let constructor_body_func = Self::method_js_function(&desc.constructor, builder.context());
+        builder.method(
+            constructor_body_func,
+            js_string!(Self::constructor_body_name()),
+            desc.constructor.params.len(),
+        );
 
-    fn id(&self) -> u64 {
-        self.desc.id
-    }
-
-    fn init(&self, builder: &mut boa_engine::class::ClassBuilder<'_>) -> boa_engine::JsResult<()> {
-        for field in self.desc.fields.values() {
+        for field in desc.fields.values() {
             let key = boa_engine::js_string!(field.name.as_str());
             if !field.is_static {
                 let getter = Self::getter_for_field(field)
@@ -284,9 +316,9 @@ impl boa_engine::class::DynamicClassBuilder<JsWrapped<ObjectValue>> for JsObject
                     | boa_engine::property::Attribute::PERMANENT;
                 builder.accessor(key, getter, setter, attribute);
             } else {
-                let getter = Self::getter_for_static_field(&self.desc.class_name, field)
+                let getter = Self::getter_for_static_field(&desc.class_name, field)
                     .map(|x| x.to_js_function(builder.context().realm()));
-                let setter = Self::setter_for_static_field(&self.desc.class_name, field)
+                let setter = Self::setter_for_static_field(&desc.class_name, field)
                     .map(|x| x.to_js_function(builder.context().realm()));
                 let attribute = boa_engine::property::Attribute::WRITABLE
                     | boa_engine::property::Attribute::PERMANENT;
@@ -296,21 +328,14 @@ impl boa_engine::class::DynamicClassBuilder<JsWrapped<ObjectValue>> for JsObject
 
         let mut getter_setters = HashMap::new();
 
-        let constructor_func = Self::method_js_function(&self.desc.constructor, builder.context());
-        builder.method(
-            js_string!(Self::constructor_name()),
-            self.desc.constructor.params.len(),
-            constructor_func,
-        );
-
-        for method in self.desc.methods.values() {
+        for method in desc.methods.values() {
             let func_name = js_string!(method.name.as_str());
             let func = Self::method_js_function(method, builder.context());
             if method.kind == MethodKind::Method {
                 if method.is_static {
-                    builder.static_method(func_name, method.params.len(), func);
+                    builder.static_method(func, func_name, method.params.len());
                 } else {
-                    builder.method(func_name, method.params.len(), func);
+                    builder.method(func, func_name, method.params.len());
                 }
             } else {
                 let val = match getter_setters.entry(func_name) {
@@ -325,17 +350,17 @@ impl boa_engine::class::DynamicClassBuilder<JsWrapped<ObjectValue>> for JsObject
                 match method.kind {
                     MethodKind::Getter => {
                         builder.method(
+                            func.clone(),
                             js_string!(Self::getter_name(method.name.as_str())),
                             method.params.len(),
-                            func.clone(),
                         );
                         val.0 = Some(func.to_js_function(builder.context().realm()))
                     }
                     MethodKind::Setter => {
                         builder.method(
+                            func.clone(),
                             js_string!(Self::setter_name(method.name.as_str())),
                             method.params.len(),
-                            func.clone(),
                         );
                         val.1 = Some(func.to_js_function(builder.context().realm()))
                     }
@@ -352,27 +377,81 @@ impl boa_engine::class::DynamicClassBuilder<JsWrapped<ObjectValue>> for JsObject
             builder.accessor(key, getter, setter, attribute);
         }
 
-        Ok(())
+        Ok(builder.build())
     }
 
-    fn data_constructor(
+    pub fn wrap_object(
         &self,
-        new_target: &boa_engine::JsValue,
-        args: &[boa_engine::JsValue],
-        boa_ctx: &mut boa_engine::Context,
-    ) -> boa_engine::JsResult<JsWrapped<ObjectValue>> {
-        self.create_new_object(new_target, args, &mut boa_ctx.into())
-    }
-
-    fn object_constructor(
-        &self,
-        instance: &boa_engine::JsObject,
-        args: &[boa_engine::JsValue],
-        boa_ctx: &mut boa_engine::Context,
-    ) -> boa_engine::JsResult<()> {
-        if args.is_empty() {
-            return Ok(());
+        obj: ObjectValue,
+        engine_ctx: &mut EngineContext<'_>,
+    ) -> boa_engine::JsResult<boa_engine::JsObject> {
+        if !obj.is_class(&self.desc.class_name) {
+            return Err(js_error_not_class_value(&self.desc.class_name));
         }
-        self.call_constructor_body(instance, args, &mut boa_ctx.into())
+
+        let proto = self.constructor.prototype();
+
+        let mut builder = boa_engine::object::ObjectInitializer::with_native_data_and_proto(
+            JsWrapped(obj),
+            proto,
+            engine_ctx,
+        );
+
+        Ok(builder.build())
+    }
+}
+
+impl JsUserClassWrapper {
+    fn construct(
+        new_target: &JsValue,
+        args: &[JsValue],
+        context: &mut EngineContext,
+    ) -> JsResult<JsValue> {
+        if new_target.is_undefined() {
+            return Err(JsNativeError::typ()
+                .with_message(format!("cannot call constructor of user class without new"))
+                .into());
+        }
+        let (name, js_obj) = {
+            let global_obj = context.global_object();
+            let global_ctx = JsWrapped::<RuseJsGlobalObject>::get_from_js_obj(&global_obj)?;
+
+            let constructor = new_target.as_object().unwrap();
+            let prototype = constructor
+                .get(PROTOTYPE, context)?
+                .as_object()
+                .unwrap()
+                .clone();
+            let name = constructor
+                .get(js_string!("name"), context)?
+                .to_string(context)?;
+            let obj = global_ctx.get_user_class(&class_name!(name.to_std_string().unwrap()))?;
+
+            let data = obj.create_new_object(new_target, args, context)?;
+
+            let mut builder = boa_engine::object::ObjectInitializer::with_native_data_and_proto(
+                data, prototype, context,
+            );
+            (obj.desc.class_name.clone(), builder.build().into())
+        };
+
+        Self::call_constructor_body(&name, &js_obj, args, context)?;
+
+        Ok(js_obj)
+    }
+
+    pub fn call_constructor(
+        class_name: &ClassName,
+        args: &[JsValue],
+        context: &mut EngineContext,
+    ) -> JsResult<JsValue> {
+        let constructor = {
+            let global_obj = context.global_object();
+            let global_ctx = JsWrapped::<RuseJsGlobalObject>::get_from_js_obj(&global_obj)?;
+            global_ctx.get_user_class(class_name)?.constructor()
+        }
+        .into();
+
+        Self::construct(&constructor, args, context)
     }
 }

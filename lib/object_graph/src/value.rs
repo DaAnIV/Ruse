@@ -4,8 +4,8 @@ use crate::{
     graph_map_value::*,
     graph_node::EdgeEndPoint,
     graph_walk::ObjectGraphWalker,
-    Attributes, FieldName, GraphIndex, GraphsMap, NodeIndex, Number, ObjectGraph, ObjectType,
-    PrimitiveField, PrimitiveValue, StringValue, ValueType,
+    Attributes, ClassName, FieldName, GraphIndex, GraphsMap, NodeIndex, Number, ObjectGraph,
+    ObjectType, PrimitiveField, PrimitiveValue, StringValue, ValueType,
 };
 use core::fmt;
 use std::{
@@ -148,6 +148,10 @@ impl ObjectValue {
 
     pub fn is_set(&self) -> bool {
         self.obj_type.is_set_obj_type()
+    }
+
+    pub fn is_class(&self, class_name: &ClassName) -> bool {
+        self.obj_type.is_class_obj_type(class_name)
     }
 
     pub fn fields<'a>(

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use boa_engine::{
-    js_string, property::Attribute, string::StaticJsStrings, JsResult, JsString, JsSymbol, JsValue,
+    js_string, property::Attribute, string::StaticJsStrings, JsResult, JsSymbol, JsValue,
 };
 use ruse_object_graph::{
     class_name, field_name, value::ObjectValue, ClassName, FieldName, ObjectType, ValueType,
@@ -10,7 +10,7 @@ use ruse_object_graph::{
 use crate::{
     engine_context::{EngineContext, RuseJsGlobalObject},
     js_errors::*,
-    js_value::{js_value_to_value, value_to_js_value},
+    js_value::{js_value_to_primitive_value, js_value_to_value, value_to_js_value},
     js_wrapped::JsWrapped,
     jsfn_wrap,
     ts_class::{BuiltinClassWrapper, TsBuiltinClass, TsClass},
@@ -47,8 +47,8 @@ impl TsClass for BuiltinMapClass {
         &self,
         obj: ObjectValue,
         engine_ctx: &mut EngineContext<'_>,
-    ) -> boa_engine::JsObject {
-        JsMapWrapper::wrap_object(&obj, engine_ctx).unwrap()
+    ) -> JsResult<boa_engine::JsObject> {
+        JsMapWrapper::wrap_object(&obj, engine_ctx)
     }
 
     fn is_parametrized(&self) -> bool {
@@ -74,7 +74,7 @@ impl TsBuiltinClass for BuiltinMapClass {
         classes: &TsClasses,
         value: &boa_engine::JsObject,
         engine_ctx: &mut EngineContext<'_>,
-    ) -> Result<ObjectValue, boa_engine::JsError> {
+    ) -> JsResult<ObjectValue> {
         if let Ok(js_map) = boa_engine::object::builtins::JsMap::from_object(value.clone()) {
             if js_map.get_size(engine_ctx)? == 0.into() {
                 return engine_ctx.create_map_object(
@@ -91,10 +91,8 @@ impl TsBuiltinClass for BuiltinMapClass {
             while let Ok(js_key) = js_keys.next(engine_ctx) {
                 let js_value = js_map.get(js_key.clone(), engine_ctx)?;
 
-                let key = js_value_to_value(classes, &js_key, engine_ctx)
-                    .into_primitive()
-                    .ok_or_else(|| js_error_not_primitive_key())?;
-                let value = js_value_to_value(classes, &js_value, engine_ctx);
+                let key = js_value_to_primitive_value(&js_key)?;
+                let value = js_value_to_value(classes, &js_value, engine_ctx)?;
 
                 key_type = key.val_type();
                 value_type = value.val_type();
@@ -130,8 +128,6 @@ impl JsMapWrapper {
 }
 
 impl BuiltinClassWrapper for JsMapWrapper {
-    const NAME: JsString = StaticJsStrings::MAP;
-
     fn wrap_object(
         map_obj: &ObjectValue,
         engine_ctx: &mut EngineContext<'_>,
@@ -218,7 +214,7 @@ impl BuiltinClassWrapper for JsMapWrapper {
             )
             .property(
                 JsSymbol::to_string_tag(),
-                Self::NAME,
+                StaticJsStrings::MAP,
                 Attribute::READONLY | Attribute::NON_ENUMERABLE | Attribute::CONFIGURABLE,
             )
             .method(jsfn_wrap!(Self::clear), js_string!("clear"), 0)
@@ -286,13 +282,13 @@ impl JsMapWrapper {
 
         if let ObjectType::Map(key_type, _value_type) = &obj.obj_type {
             let js_key = args.get(0).ok_or_else(|| js_error_missing_arg(0))?;
-            let key = js_value_to_value(classes, js_key, ctx);
+            let key = js_value_to_primitive_value(js_key)?;
             if &key.val_type() != key_type.as_ref() {
                 return Err(js_error_unexpected_arg_type(0));
             }
-            let field_name = field_name!(key.primitive().unwrap().to_string());
+            let field_name = field_name!(key.to_string());
             if let Some(value) = obj.get_field_value(&field_name, graphs_map) {
-                Ok(value_to_js_value(classes, &value, ctx))
+                value_to_js_value(classes, &value, ctx)
             } else {
                 Ok(JsValue::undefined())
             }

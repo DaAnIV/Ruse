@@ -4,7 +4,6 @@ use std::{
 };
 
 use boa_engine::JsResult;
-use itertools::Itertools;
 use ruse_object_graph::{
     class_name,
     value::{ObjectValue, Value},
@@ -18,7 +17,7 @@ use ruse_synthesizer::{
 
 use crate::{
     engine_context::EngineContext,
-    js_value::{js_value_to_value, value_to_js_value},
+    js_value::{args_to_js_args, js_value_to_value},
     opcode::GlobalFunctionOp,
     ts_class::*,
     ts_classes::TsClasses,
@@ -42,21 +41,18 @@ impl TsGlobalClass {
     pub fn call_function<'a, I>(
         &self,
         method_name: &str,
-        param_values: I,
+        params: I,
         classes: &TsClasses,
         engine_ctx: &mut EngineContext<'_>,
     ) -> boa_engine::JsResult<Value>
     where
         I: IntoIterator<Item = &'a Value>,
     {
-        let args = param_values
-            .into_iter()
-            .map(|x| value_to_js_value(classes, x, engine_ctx))
-            .collect_vec();
+        let js_args = args_to_js_args(params, classes, engine_ctx)?;
 
-        let result = engine_ctx.call_global_function(method_name, &args)?;
+        let result = engine_ctx.call_global_function(method_name, &js_args)?;
 
-        Ok(js_value_to_value(classes, &result, engine_ctx))
+        js_value_to_value(classes, &result, engine_ctx)
     }
 
     pub fn static_object_value(&self) -> Option<ObjectValue> {

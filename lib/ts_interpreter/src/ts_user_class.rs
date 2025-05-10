@@ -1,8 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use anyhow::Error;
-use boa_engine::{class::DynamicClassBuilder, JsResult, JsValue};
-use itertools::Itertools;
+use boa_engine::JsResult;
 use ruse_object_graph::{
     class_name, field_name,
     value::{ObjectValue, Value},
@@ -20,10 +19,10 @@ use swc_common::{
 use swc_ecma_parser::{Syntax, TsSyntax};
 
 use crate::{
-    engine_context::EngineContext,
+    engine_context::{EngineContext, RuseJsGlobalObject},
     js_errors::*,
-    js_object_wrapper::JsObjectWrapper,
-    js_value::{js_value_to_value, value_to_js_value},
+    js_object_wrapper::JsUserClassWrapper,
+    js_value::{args_to_js_args, js_value_to_value, value_to_js_value},
     js_wrapped::JsWrapped,
     opcode::{ClassConstructorOp, ClassMethodOp, MemberOp, StaticMemberOp},
     ts_class::*,
@@ -42,7 +41,6 @@ pub struct TsUserClass {
     pub root_node: NodeIndex,
     pub static_fields: HashMap<FieldName, LocValue>,
     static_graph_obj_type: ObjectType,
-    wrapper: JsObjectWrapper,
 }
 
 impl TsUserClass {
@@ -101,25 +99,21 @@ impl TsUserClass {
     where
         I: IntoIterator<Item = &'a Value>,
     {
-        let constructor = engine_ctx.get_global_dynamic_class(&self.wrapper).unwrap();
+        let js_args = args_to_js_args(params, classes, engine_ctx)?;
 
-        let target = constructor.constructor();
-        let args = params
-            .into_iter()
-            .map(|x| value_to_js_value(classes, x, engine_ctx))
-            .collect_vec();
-        let obj = self
-            .wrapper
-            .construct(&boa_engine::JsValue::new(target), &args, engine_ctx)?;
-        let new_instance = JsWrapped::<ObjectValue>::get_from_js_obj(&obj)?;
-
-        Ok(new_instance.clone())
+        let js_obj = JsUserClassWrapper::call_constructor(
+            &self.description.class_name,
+            &js_args,
+            engine_ctx,
+        )?;
+        let obj = JsWrapped::<ObjectValue>::get_from_js_val(&js_obj)?;
+        Ok(obj.clone())
     }
 
     pub fn call_static_method<'a, I>(
         &self,
         method_name: &str,
-        param_values: I,
+        params: I,
         classes: &TsClasses,
         engine_ctx: &mut EngineContext<'_>,
     ) -> boa_engine::JsResult<Value>
@@ -128,26 +122,23 @@ impl TsUserClass {
     {
         debug_assert!(self.description.methods[method_name].is_static);
 
-        let constructor = engine_ctx.get_global_dynamic_class(&self.wrapper).unwrap();
+        let js_args = args_to_js_args(params, classes, engine_ctx)?;
 
-        let this = JsValue::new(constructor.prototype());
-        let args = param_values
-            .into_iter()
-            .map(|x| value_to_js_value(classes, x, engine_ctx))
-            .collect_vec();
+        let result = JsUserClassWrapper::call_static_method_body(
+            &self.description.class_name,
+            method_name,
+            &js_args,
+            engine_ctx,
+        )?;
 
-        let result = self
-            .wrapper
-            .call_static_method_body(method_name, &this, &args, engine_ctx)?;
-
-        Ok(js_value_to_value(classes, &result, engine_ctx))
+        js_value_to_value(classes, &result, engine_ctx)
     }
 
     pub fn call_method<'a, I>(
         &self,
         method_desc: &MethodDescription,
         this: &Value,
-        param_values: I,
+        params: I,
         classes: &TsClasses,
         engine_ctx: &mut EngineContext<'_>,
     ) -> boa_engine::JsResult<Value>
@@ -159,24 +150,25 @@ impl TsUserClass {
             return Err(js_error_null_this());
         }
 
-        let this = value_to_js_value(classes, &this, engine_ctx);
-        let args = param_values
-            .into_iter()
-            .map(|x| value_to_js_value(classes, x, engine_ctx))
-            .collect_vec();
+        let this = value_to_js_value(classes, &this, engine_ctx)?;
+        let js_args = args_to_js_args(params, classes, engine_ctx)?;
 
         let method_name = match method_desc.kind {
             MethodKind::Method => method_desc.name.as_str(),
             MethodKind::GlobalFunction => method_desc.name.as_str(),
-            MethodKind::Getter => &JsObjectWrapper::getter_name(&method_desc.name),
-            MethodKind::Setter => &JsObjectWrapper::setter_name(&method_desc.name),
+            MethodKind::Getter => &JsUserClassWrapper::getter_name(&method_desc.name),
+            MethodKind::Setter => &JsUserClassWrapper::setter_name(&method_desc.name),
         };
 
-        let result = self
-            .wrapper
-            .call_method_body(method_name, &this, &args, engine_ctx)?;
+        let result = JsUserClassWrapper::call_method_body(
+            &self.description.class_name,
+            method_name,
+            &this,
+            &js_args,
+            engine_ctx,
+        )?;
 
-        Ok(js_value_to_value(classes, &result, engine_ctx))
+        js_value_to_value(classes, &result, engine_ctx)
     }
 
     pub fn static_object_value(&self) -> Option<ObjectValue> {
@@ -189,7 +181,8 @@ impl TsUserClass {
     }
 
     pub(crate) fn register_class(&self, engine_ctx: &mut EngineContext<'_>) -> JsResult<()> {
-        engine_ctx.register_global_dynamic_class(&self.wrapper)
+        let wrapper = JsUserClassWrapper::new(self.description.clone(), engine_ctx)?;
+        engine_ctx.register_user_class(wrapper)
     }
 }
 
@@ -204,9 +197,12 @@ impl TsClass for TsUserClass {
         &self,
         obj: ObjectValue,
         engine_ctx: &mut EngineContext<'_>,
-    ) -> boa_engine::JsObject {
-        let wrapper = JsObjectWrapper::new(self.description.clone());
-        wrapper.from_data(obj.into(), engine_ctx).unwrap()
+    ) -> JsResult<boa_engine::JsObject> {
+        let global_obj = engine_ctx.global_object();
+        let global_ctx = JsWrapped::<RuseJsGlobalObject>::get_from_js_obj(&global_obj)?;
+
+        let wrapper = global_ctx.get_user_class(&self.description.class_name)?;
+        wrapper.wrap_object(obj, engine_ctx)
     }
 
     fn is_parametrized(&self) -> bool {
@@ -293,7 +289,6 @@ impl TsUserClassBuilder {
 
         let static_graph_obj_type =
             StaticGraphBuilder::static_graph_obj_type(&description.class_name);
-        let wrapper = JsObjectWrapper::new(description.clone());
 
         let class = TsUserClass {
             description,
@@ -304,7 +299,6 @@ impl TsUserClassBuilder {
             root_node: classes.static_classes_gen_id.get_id_for_node(),
             static_fields: Default::default(),
             static_graph_obj_type,
-            wrapper,
         };
         let root_node = class.root_node;
         classes.add_user_class(class.description.class_name.to_string(), class);

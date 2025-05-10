@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fmt::Debug, sync::Arc};
 
-use boa_engine::{context::intrinsics::StandardConstructor, JsResult, JsString};
+use boa_engine::{context::intrinsics::StandardConstructor, JsResult};
 use ruse_object_graph::{
     class_name, field_name, fields, root_name, str_cached, vbool, vnull, vnum, vstr, Attributes,
     ClassName, FieldName, GraphIndex, GraphsMap, NodeIndex, ObjectGraph, ObjectType,
@@ -431,7 +431,7 @@ pub trait TsClass: Send + Sync + Debug {
         &self,
         obj: ObjectValue,
         engine_ctx: &mut EngineContext<'_>,
-    ) -> boa_engine::JsObject;
+    ) -> JsResult<boa_engine::JsObject>;
 }
 
 pub trait TsBuiltinClass: TsClass {
@@ -446,8 +446,6 @@ pub trait TsBuiltinClass: TsClass {
 }
 
 pub trait BuiltinClassWrapper {
-    const NAME: JsString;
-
     fn build_standard_constructor(
         engine_ctx: &mut EngineContext<'_>,
     ) -> JsResult<StandardConstructor>;

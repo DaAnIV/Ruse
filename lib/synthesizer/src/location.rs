@@ -171,3 +171,13 @@ impl GraphMapDisplay for LocValue {
         write!(f, "{}({})", self.val.wrap(graphs_map), self.loc)
     }
 }
+
+#[macro_export]
+macro_rules! temp_value {
+    ($val:expr) => {
+        $crate::location::LocValue {
+            val: $val,
+            loc: $crate::location::Location::Temp,
+        }
+    };
+}

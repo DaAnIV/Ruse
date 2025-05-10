@@ -435,7 +435,9 @@ mod ts_class_tests {
         let mut engine_context = EngineContext::create_engine_ctx(&mut boa_ctx, &classes);
         engine_context.reset_with_mut_context(&mut ctx, &classes);
 
-        let js_user = user_class.wrap_as_js_object(user, &mut engine_context);
+        let js_user = user_class
+            .wrap_as_js_object(user, &mut engine_context)
+            .unwrap();
         boa_ctx
             .register_global_property(js_string!("u"), js_user, Attribute::all())
             .expect("Failed to register p");
@@ -520,7 +522,9 @@ mod ts_class_tests {
         let mut engine_context = EngineContext::create_engine_ctx(&mut boa_ctx, &classes);
         engine_context.reset_with_mut_context(&mut ctx, &classes);
 
-        let js_obj = user_class_pair.wrap_as_js_object(complex_user, &mut engine_context);
+        let js_obj = user_class_pair
+            .wrap_as_js_object(complex_user, &mut engine_context)
+            .unwrap();
         boa_ctx
             .register_global_property(js_string!("up"), js_obj, Attribute::all())
             .expect("Failed to register p");
@@ -586,9 +590,11 @@ mod ts_class_tests {
                 .unwrap()
                 .val(),
             &mut engine_ctx,
-        );
+        ).unwrap();
 
-        let js_user = user_class.wrap_as_js_object(user.clone(), &mut engine_ctx);
+        let js_user = user_class
+            .wrap_as_js_object(user.clone(), &mut engine_ctx)
+            .unwrap();
         engine_ctx
             .register_global_property(js_string!("u"), js_user, Attribute::all())
             .expect("Failed to register p");
@@ -846,7 +852,7 @@ mod ts_class_tests {
                 &mut boa_ctx,
             )
             .unwrap();
-        let func_res_number = func_res.as_i32().unwrap();
+        let func_res_number = func_res.to_i32(&mut boa_ctx).unwrap();
         assert_eq!(func_res_number, 1 + 2 + 3);
     }
 
@@ -866,7 +872,7 @@ mod ts_class_tests {
                 &mut boa_ctx,
             )
             .unwrap();
-        let func_res_number = func_res.as_i32().unwrap();
+        let func_res_number = func_res.to_i32(&mut boa_ctx).unwrap();
         assert_eq!(func_res_number, 5);
     }
 
@@ -892,7 +898,7 @@ mod ts_class_tests {
             BinarySearchTreeNode.prototype",
             ))
             .unwrap();
-        let p = res.into_object().unwrap();
+        let p = res.to_object(&mut boa_ctx).unwrap();
         let b = p.get(js_str!("right"), &mut boa_ctx).unwrap();
         let test = b
             .as_callable()

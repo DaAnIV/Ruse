@@ -102,10 +102,10 @@ impl PredicateBuilder {
             let mut js_values = Vec::with_capacity(ctx.variable_count() + 1);
             for (var, value) in ctx.variables() {
                 arg_names.push(var.as_str());
-                js_values.push(value_to_js_value(classes, value, &mut engine_ctx));
+                js_values.push(value_to_js_value(classes, value, &mut engine_ctx).unwrap());
             }
             arg_names.push("__output__");
-            js_values.push(value_to_js_value(classes, output.val(), &mut engine_ctx));
+            js_values.push(value_to_js_value(classes, output.val(), &mut engine_ctx).unwrap());
 
             let code = format!(
                 "function func({}) {{return {}}}\nfunc",

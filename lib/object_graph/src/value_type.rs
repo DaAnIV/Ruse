@@ -40,6 +40,13 @@ impl ObjectType {
         matches!(self, ObjectType::Map(_, _))
     }
 
+    pub fn is_class_obj_type(&self, class_name: &ClassName) -> bool {
+        match self {
+            ObjectType::Class(obj_class_name) => obj_class_name == class_name,
+            _ => false,
+        }
+    }
+
     pub fn class_name(&self) -> Option<&ClassName> {
         match self {
             ObjectType::Class(class_name) => Some(class_name),

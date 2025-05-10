@@ -9,7 +9,7 @@ byteview = "*"
 
 union-find = "*"
 
-tracing = { version = "*", features = ["release_max_level_debug"] }
+tracing = { version = "*", features = ["release_max_level_trace"] }
 tracing-subscriber = { version = "*", features = ["json"] }
 
 ruse_object_graph = { path = "./lib/object_graph" }
@@ -23,13 +23,7 @@ num-traits = "*"
 boa_ast = "*"
 boa_engine = "*"
 boa_gc = "*"
-boa_interner = "*"
-boa_interop = "*"
-boa_macros = "*"
-boa_parser = "*"
-boa_profiler = "*"
 boa_runtime = "*"
-boa_string = "*"
 
 itertools = "*"
 
@@ -70,16 +64,6 @@ downcast-rs = "*"
 criterion = { version = "*", features = ["async_tokio"] }
 
 [patch.crates-io]
-boa_ast = { git = "https://github.com/DaAnIV/boa.git" }
-boa_engine = { git = "https://github.com/DaAnIV/boa.git" }
-boa_gc = { git = "https://github.com/DaAnIV/boa.git" }
-boa_interner = { git = "https://github.com/DaAnIV/boa.git" }
-boa_interop = { git = "https://github.com/DaAnIV/boa.git" }
-boa_macros = { git = "https://github.com/DaAnIV/boa.git" }
-boa_parser = { git = "https://github.com/DaAnIV/boa.git" }
-boa_profiler = { git = "https://github.com/DaAnIV/boa.git" }
-boa_runtime = { git = "https://github.com/DaAnIV/boa.git" }
-boa_string = { git = "https://github.com/DaAnIV/boa.git" }
 union-find = { git = "https://github.com/DaAnIV/union-find-rs.git" }
 
 [profile.release]

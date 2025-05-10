@@ -5,7 +5,7 @@ use ruse_object_graph::{
     dot::{self, DotConfig, SubgraphConfig},
     field_name,
     graph_map_value::GraphMapWrap,
-    root_name, str_cached,
+    root_name,
     value::{ObjectValue, Value},
     vnull, vnum, GraphsMap, Number,
 };

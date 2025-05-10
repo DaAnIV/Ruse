@@ -91,20 +91,20 @@ impl JsObjectIterator {
         let classes = global_ctx.classes()?;
 
         if let Some(value) = self.obj.get_field_value(field_name, graphs_map) {
-            return Ok(value_to_js_value(classes, &value, context));
+            value_to_js_value(classes, &value, context)
         } else {
-            return Ok(JsValue::undefined());
+            Ok(JsValue::undefined())
         }
     }
 
     fn get_field(&self, field_name: &str) -> JsResult<JsValue> {
         match self.field_type {
-            ValueType::Number => Ok(JsValue::rational(
+            ValueType::Number => Ok(JsValue::new(
                 field_name
                     .parse::<f64>()
                     .map_err(|_e| js_error_unexpected_key_type())?,
             )),
-            ValueType::Bool => Ok(JsValue::boolean(
+            ValueType::Bool => Ok(JsValue::new(
                 field_name
                     .parse::<bool>()
                     .map_err(|_e| js_error_unexpected_key_type())?,

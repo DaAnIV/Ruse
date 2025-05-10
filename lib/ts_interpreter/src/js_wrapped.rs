@@ -1,7 +1,6 @@
 use std::ops::{Deref, DerefMut};
 
 use boa_engine::JsError;
-use ruse_object_graph::value::ObjectValue;
 
 use crate::js_errors::*;
 
@@ -12,8 +11,6 @@ unsafe impl<T> boa_engine::gc::Trace for JsWrapped<T> {
     boa_engine::gc::empty_trace!();
 }
 impl<T> boa_engine::JsData for JsWrapped<T> {}
-
-impl boa_engine::class::DynamicClassData for JsWrapped<ObjectValue> {}
 
 impl<T> JsWrapped<T> {
     pub fn get_from_js_obj(
