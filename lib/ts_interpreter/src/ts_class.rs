@@ -403,7 +403,7 @@ pub fn get_value_from_expr(
             let class = classes.get_user_class(&class_name!(name)).unwrap();
             Value::Object(
                 class
-                    .call_constructor(&params, classes, &mut engine_ctx)
+                    .call_constructor(&params, &mut engine_ctx)
                     .unwrap(),
             )
         }
@@ -439,7 +439,6 @@ pub trait TsBuiltinClass: TsClass {
 
     fn get_from_js_obj(
         &self,
-        classes: &TsClasses,
         value: &boa_engine::JsObject,
         engine_ctx: &mut EngineContext<'_>,
     ) -> Result<ObjectValue, boa_engine::JsError>;

@@ -61,7 +61,6 @@ fn create_binary_tree_inner(
                 left_tree,
                 right_tree,
             ],
-            classes,
             engine_ctx,
         )
         .unwrap()
@@ -117,7 +116,6 @@ fn tests_construct_binary_tree() {
     let left = binary_tree_class
         .call_constructor(
             &[vnum!(Number::from(58)), vnull!(), vnull!()],
-            &classes,
             &mut engine_ctx,
         )
         .unwrap();
@@ -126,7 +124,6 @@ fn tests_construct_binary_tree() {
     let right = binary_tree_class
         .call_constructor(
             &[vnum!(Number::from(28)), vnull!(), vnull!()],
-            &classes,
             &mut engine_ctx,
         )
         .unwrap();
@@ -139,7 +136,6 @@ fn tests_construct_binary_tree() {
                 Value::Object(left),
                 Value::Object(right),
             ],
-            &classes,
             &mut engine_ctx,
         )
         .unwrap();
@@ -167,7 +163,6 @@ fn tests_binary_tree_contains() {
     let left: Value = binary_tree_class
         .call_constructor(
             &[vnum!(Number::from(1)), vnull!(), vnull!()],
-            &classes,
             &mut engine_ctx,
         )
         .unwrap()
@@ -175,7 +170,6 @@ fn tests_binary_tree_contains() {
     let right: Value = binary_tree_class
         .call_constructor(
             &[vnum!(Number::from(58)), vnull!(), vnull!()],
-            &classes,
             &mut engine_ctx,
         )
         .unwrap()
@@ -184,7 +178,6 @@ fn tests_binary_tree_contains() {
     let root: Value = binary_tree_class
         .call_constructor(
             &[vnum!(Number::from(28)), left.clone(), right.clone()],
-            &classes,
             &mut engine_ctx,
         )
         .unwrap()
@@ -199,7 +192,6 @@ fn tests_binary_tree_contains() {
             &contains_method_desc,
             &root,
             &[vnum!(Number::from(1))],
-            &classes,
             &mut engine_ctx,
         )
         .unwrap();
@@ -209,7 +201,6 @@ fn tests_binary_tree_contains() {
             &contains_method_desc,
             &root,
             &[vnum!(Number::from(28))],
-            &classes,
             &mut engine_ctx,
         )
         .unwrap();
@@ -219,7 +210,6 @@ fn tests_binary_tree_contains() {
             &contains_method_desc,
             &root,
             &[vnum!(Number::from(58))],
-            &classes,
             &mut engine_ctx,
         )
         .unwrap();
@@ -230,7 +220,6 @@ fn tests_binary_tree_contains() {
             &contains_method_desc,
             &root,
             &[vnum!(Number::from(2))],
-            &classes,
             &mut engine_ctx,
         )
         .unwrap();
@@ -240,7 +229,6 @@ fn tests_binary_tree_contains() {
             &contains_method_desc,
             &root,
             &[vnum!(Number::from(0))],
-            &classes,
             &mut engine_ctx,
         )
         .unwrap();

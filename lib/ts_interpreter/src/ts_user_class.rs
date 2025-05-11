@@ -22,8 +22,7 @@ use crate::{
     engine_context::{EngineContext, RuseJsGlobalObject},
     js_errors::*,
     js_object_wrapper::JsUserClassWrapper,
-    js_value::{args_to_js_args, js_value_to_value, value_to_js_value},
-    js_wrapped::JsWrapped,
+    js_value::{args_to_js_args, TryFromJs, TryIntoJs},
     opcode::{ClassConstructorOp, ClassMethodOp, MemberOp, StaticMemberOp},
     ts_class::*,
     ts_classes::TsClasses,
@@ -93,28 +92,26 @@ impl TsUserClass {
     pub fn call_constructor<'a, I>(
         &self,
         params: I,
-        classes: &TsClasses,
         engine_ctx: &mut EngineContext<'_>,
     ) -> boa_engine::JsResult<ObjectValue>
     where
         I: IntoIterator<Item = &'a Value>,
     {
-        let js_args = args_to_js_args(params, classes, engine_ctx)?;
+        let js_args = args_to_js_args(params, engine_ctx)?;
 
         let js_obj = JsUserClassWrapper::call_constructor(
             &self.description.class_name,
             &js_args,
             engine_ctx,
         )?;
-        let obj = JsWrapped::<ObjectValue>::get_from_js_val(&js_obj)?;
-        Ok(obj.clone())
+
+        ObjectValue::try_from_js(&js_obj, engine_ctx)
     }
 
     pub fn call_static_method<'a, I>(
         &self,
         method_name: &str,
         params: I,
-        classes: &TsClasses,
         engine_ctx: &mut EngineContext<'_>,
     ) -> boa_engine::JsResult<Value>
     where
@@ -122,7 +119,7 @@ impl TsUserClass {
     {
         debug_assert!(self.description.methods[method_name].is_static);
 
-        let js_args = args_to_js_args(params, classes, engine_ctx)?;
+        let js_args = args_to_js_args(params, engine_ctx)?;
 
         let result = JsUserClassWrapper::call_static_method_body(
             &self.description.class_name,
@@ -131,7 +128,7 @@ impl TsUserClass {
             engine_ctx,
         )?;
 
-        js_value_to_value(classes, &result, engine_ctx)
+        Value::try_from_js(&result, engine_ctx)
     }
 
     pub fn call_method<'a, I>(
@@ -139,7 +136,6 @@ impl TsUserClass {
         method_desc: &MethodDescription,
         this: &Value,
         params: I,
-        classes: &TsClasses,
         engine_ctx: &mut EngineContext<'_>,
     ) -> boa_engine::JsResult<Value>
     where
@@ -150,8 +146,8 @@ impl TsUserClass {
             return Err(js_error_null_this());
         }
 
-        let this = value_to_js_value(classes, &this, engine_ctx)?;
-        let js_args = args_to_js_args(params, classes, engine_ctx)?;
+        let this = this.try_into_js(engine_ctx)?;
+        let js_args = args_to_js_args(params, engine_ctx)?;
 
         let method_name = match method_desc.kind {
             MethodKind::Method => method_desc.name.as_str(),
@@ -168,7 +164,7 @@ impl TsUserClass {
             engine_ctx,
         )?;
 
-        js_value_to_value(classes, &result, engine_ctx)
+        Value::try_from_js(&result, engine_ctx)
     }
 
     pub fn static_object_value(&self) -> Option<ObjectValue> {
@@ -199,7 +195,7 @@ impl TsClass for TsUserClass {
         engine_ctx: &mut EngineContext<'_>,
     ) -> JsResult<boa_engine::JsObject> {
         let global_obj = engine_ctx.global_object();
-        let global_ctx = JsWrapped::<RuseJsGlobalObject>::get_from_js_obj(&global_obj)?;
+        let global_ctx = RuseJsGlobalObject::from_object(&global_obj)?;
 
         let wrapper = global_ctx.get_user_class(&self.description.class_name)?;
         wrapper.wrap_object(obj, engine_ctx)

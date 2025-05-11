@@ -15,11 +15,10 @@ use ruse_object_graph::{
 use crate::{
     engine_context::{EngineContext, RuseJsGlobalObject},
     js_errors::*,
-    js_value::js_value_to_value,
-    js_wrapped::JsWrapped,
+    js_object_value::JsObjectValue,
+    js_value::TryFromJs,
     jsfn_wrap,
     ts_class::{BuiltinClassWrapper, TsBuiltinClass, TsClass},
-    ts_classes::TsClasses,
 };
 
 use super::jsiterator::{JsObjectIterator, JsObjectIteratorKind};
@@ -42,7 +41,6 @@ impl BuiltinArrayClass {
 
     fn get_from_js_array(
         &self,
-        classes: &TsClasses,
         js_array: &boa_engine::object::builtins::JsArray,
         engine_ctx: &mut EngineContext<'_>,
     ) -> JsResult<ObjectValue> {
@@ -54,7 +52,7 @@ impl BuiltinArrayClass {
         let elements = (0..arr_len)
             .map(|i| {
                 let js_elem = js_array.at(i, engine_ctx).unwrap();
-                let elem = js_value_to_value(classes, &js_elem, engine_ctx)?;
+                let elem = Value::try_from_js(&js_elem, engine_ctx)?;
                 Ok(elem)
             })
             .collect::<JsResult<Vec<Value>>>()?;
@@ -65,7 +63,6 @@ impl BuiltinArrayClass {
 
     fn get_from_js_typed_array(
         &self,
-        classes: &TsClasses,
         js_typed_array: &JsTypedArray,
         engine_ctx: &mut EngineContext<'_>,
     ) -> Result<ObjectValue, boa_engine::JsError> {
@@ -77,7 +74,7 @@ impl BuiltinArrayClass {
         let elements = (0..arr_len)
             .map(|i| {
                 let js_elem = js_typed_array.at(i, engine_ctx).unwrap();
-                let elem = js_value_to_value(classes, &js_elem, engine_ctx)?;
+                let elem = Value::try_from_js(&js_elem, engine_ctx)?;
                 assert!(elem.number_value().is_some());
                 Ok(elem)
             })
@@ -122,16 +119,15 @@ impl TsBuiltinClass for BuiltinArrayClass {
 
     fn get_from_js_obj(
         &self,
-        classes: &TsClasses,
         value: &boa_engine::JsObject,
         engine_ctx: &mut EngineContext<'_>,
-    ) -> Result<ObjectValue, boa_engine::JsError> {
+    ) -> JsResult<ObjectValue> {
         if let Ok(js_array) = boa_engine::object::builtins::JsArray::from_object(value.clone()) {
-            self.get_from_js_array(classes, &js_array, engine_ctx)
+            self.get_from_js_array(&js_array, engine_ctx)
         } else if let Ok(typed_array) =
             boa_engine::object::builtins::JsTypedArray::from_object(value.clone())
         {
-            self.get_from_js_typed_array(classes, &typed_array, engine_ctx)
+            self.get_from_js_typed_array(&typed_array, engine_ctx)
         } else {
             Err(js_error_not_builtin_array())
         }
@@ -291,12 +287,12 @@ impl BuiltinClassWrapper for JsArrayWrapper {
         }
 
         let global_obj = engine_ctx.global_object();
-        let global_ctx = JsWrapped::<RuseJsGlobalObject>::get_from_js_obj(&global_obj)?;
+        let global_ctx = RuseJsGlobalObject::from_object(&global_obj)?;
 
         let proto = global_ctx.constructors().array_prototype(engine_ctx)?;
 
         let mut builder = boa_engine::object::ObjectInitializer::with_native_data_and_proto(
-            JsWrapped(array_obj.clone()),
+            JsObjectValue::from(array_obj.clone()),
             proto,
             engine_ctx,
         );
@@ -625,14 +621,14 @@ impl JsArrayWrapper {
     pub(crate) fn values(
         this: &JsValue,
         _: &[JsValue],
-        ctx: &mut EngineContext,
+        context: &mut EngineContext,
     ) -> JsResult<JsValue> {
-        let obj = JsWrapped::<ObjectValue>::get_from_js_val(this)?;
+        let obj = ObjectValue::try_from_js(this, context)?;
         JsObjectIterator::create_object_iterator(
-            obj.clone(),
+            obj,
             JsObjectIteratorKind::Value,
             ValueType::Number,
-            ctx,
+            context,
         )
     }
 
@@ -642,11 +638,10 @@ impl JsArrayWrapper {
         context: &mut EngineContext,
     ) -> JsResult<JsValue> {
         let global_obj = context.global_object();
-        let global_ctx: boa_engine::gc::GcRef<'_, JsWrapped<RuseJsGlobalObject>> =
-            JsWrapped::<RuseJsGlobalObject>::get_from_js_obj(&global_obj)?;
+        let global_ctx = RuseJsGlobalObject::from_object(&global_obj)?;
         let graphs_map = global_ctx.graphs_map()?;
 
-        let obj = JsWrapped::<ObjectValue>::get_from_js_val(this)?;
+        let obj = ObjectValue::try_from_js(this, context)?;
         Ok(obj.total_field_count(graphs_map).into())
     }
 

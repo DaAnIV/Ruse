@@ -11,8 +11,7 @@ use ruse_object_graph::{value::ObjectValue, FieldName, ValueType};
 use crate::{
     engine_context::{EngineContext, RuseJsGlobalObject},
     js_errors::*,
-    js_value::value_to_js_value,
-    js_wrapped::JsWrapped,
+    js_value::TryIntoJs,
     jsfn_wrap,
 };
 
@@ -56,7 +55,7 @@ impl JsObjectIterator {
         );
 
         let global_obj = ctx.global_object();
-        let global_ctx = JsWrapped::<RuseJsGlobalObject>::get_from_js_obj(&global_obj)?;
+        let global_ctx = RuseJsGlobalObject::from_object(&global_obj)?;
 
         let proto = global_ctx.constructors().iter_prototype(ctx)?;
 
@@ -86,12 +85,11 @@ impl JsObjectIterator {
         context: &mut EngineContext,
     ) -> JsResult<JsValue> {
         let global_obj = context.global_object();
-        let global_ctx = JsWrapped::<RuseJsGlobalObject>::get_from_js_obj(&global_obj)?;
+        let global_ctx = RuseJsGlobalObject::from_object(&global_obj)?;
         let graphs_map = global_ctx.graphs_map()?;
-        let classes = global_ctx.classes()?;
 
         if let Some(value) = self.obj.get_field_value(field_name, graphs_map) {
-            value_to_js_value(classes, &value, context)
+            value.try_into_js(context)
         } else {
             Ok(JsValue::undefined())
         }
@@ -126,7 +124,7 @@ impl JsObjectIterator {
         let mut obj_iter = this
             .as_object()
             .and_then(JsObject::downcast_mut::<Self>)
-            .ok_or_else(|| { js_error_this_is_not_obj_iterator() })?;
+            .ok_or_else(|| js_error_this_is_not_obj_iterator())?;
 
         if let Some(name) = obj_iter.fields.next() {
             let value: JsValue = match obj_iter.kind {

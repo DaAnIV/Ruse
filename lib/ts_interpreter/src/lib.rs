@@ -9,7 +9,7 @@ pub mod engine_context;
 mod js_object_wrapper;
 mod jsbuiltins;
 mod js_errors;
-mod js_wrapped;
+mod js_object_value;
 mod js_console_logger;
 
 pub mod test;

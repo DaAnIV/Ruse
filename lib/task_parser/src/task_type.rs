@@ -391,12 +391,12 @@ impl TaskType {
 
         if method_name == "constructor" {
             let new_obj = class
-                .call_constructor(&args, classes, &mut engine_ctx)
+                .call_constructor(&args, &mut engine_ctx)
                 .map_err(|x| SnythesisTaskError::Eval(x))?;
             Ok(Value::Object(new_obj))
         } else {
             class
-                .call_static_method(method_name, &args, classes, &mut engine_ctx)
+                .call_static_method(method_name, &args, &mut engine_ctx)
                 .map_err(|x| SnythesisTaskError::Eval(x))
         }
     }
@@ -882,7 +882,7 @@ fn set_elem_type<'a>(value_str: &'a str) -> Option<TaskType> {
 fn map_types<'a>(value_str: &'a str) -> Option<(TaskType, TaskType)> {
     let types_str = strip_template_class(value_str, "Map")?;
     let elements: Vec<&str> = types_str.split(',').collect();
-    assert!(elements.len() != 2, "Map type should have two types");
+    assert!(elements.len() == 2, "Map type should have two types");
     let key_type = TaskType::from(elements[0].trim());
     let val_type = TaskType::from(elements[1].trim());
     Some((key_type, val_type))

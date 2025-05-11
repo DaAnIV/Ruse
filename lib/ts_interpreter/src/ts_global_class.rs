@@ -17,7 +17,7 @@ use ruse_synthesizer::{
 
 use crate::{
     engine_context::EngineContext,
-    js_value::{args_to_js_args, js_value_to_value},
+    js_value::{args_to_js_args, TryFromJs},
     opcode::GlobalFunctionOp,
     ts_class::*,
     ts_classes::TsClasses,
@@ -42,17 +42,16 @@ impl TsGlobalClass {
         &self,
         method_name: &str,
         params: I,
-        classes: &TsClasses,
         engine_ctx: &mut EngineContext<'_>,
     ) -> boa_engine::JsResult<Value>
     where
         I: IntoIterator<Item = &'a Value>,
     {
-        let js_args = args_to_js_args(params, classes, engine_ctx)?;
+        let js_args = args_to_js_args(params, engine_ctx)?;
 
         let result = engine_ctx.call_global_function(method_name, &js_args)?;
 
-        js_value_to_value(classes, &result, engine_ctx)
+        Value::try_from_js(&result, engine_ctx)
     }
 
     pub fn static_object_value(&self) -> Option<ObjectValue> {

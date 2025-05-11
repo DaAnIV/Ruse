@@ -4,17 +4,18 @@ use boa_engine::{
     js_string, property::Attribute, string::StaticJsStrings, JsResult, JsSymbol, JsValue,
 };
 use ruse_object_graph::{
-    class_name, field_name, value::ObjectValue, ClassName, FieldName, ObjectType, ValueType,
+    class_name, field_name,
+    value::{ObjectValue, Value},
+    ClassName, FieldName, ObjectType, PrimitiveValue, ValueType,
 };
 
 use crate::{
     engine_context::{EngineContext, RuseJsGlobalObject},
     js_errors::*,
-    js_value::{js_value_to_primitive_value, js_value_to_value, value_to_js_value},
-    js_wrapped::JsWrapped,
+    js_object_value::JsObjectValue,
+    js_value::{TryFromJs, TryIntoJs},
     jsfn_wrap,
     ts_class::{BuiltinClassWrapper, TsBuiltinClass, TsClass},
-    ts_classes::TsClasses,
 };
 
 use super::jsiterator::{JsObjectIterator, JsObjectIteratorKind};
@@ -71,7 +72,6 @@ impl TsBuiltinClass for BuiltinMapClass {
 
     fn get_from_js_obj(
         &self,
-        classes: &TsClasses,
         value: &boa_engine::JsObject,
         engine_ctx: &mut EngineContext<'_>,
     ) -> JsResult<ObjectValue> {
@@ -91,8 +91,8 @@ impl TsBuiltinClass for BuiltinMapClass {
             while let Ok(js_key) = js_keys.next(engine_ctx) {
                 let js_value = js_map.get(js_key.clone(), engine_ctx)?;
 
-                let key = js_value_to_primitive_value(&js_key)?;
-                let value = js_value_to_value(classes, &js_value, engine_ctx)?;
+                let key = PrimitiveValue::try_from_js(&js_key, engine_ctx)?;
+                let value = Value::try_from_js(&js_value, engine_ctx)?;
 
                 key_type = key.val_type();
                 value_type = value.val_type();
@@ -135,12 +135,12 @@ impl BuiltinClassWrapper for JsMapWrapper {
         assert!(map_obj.obj_type.is_map_obj_type());
 
         let global_obj = engine_ctx.global_object();
-        let global_ctx = JsWrapped::<RuseJsGlobalObject>::get_from_js_obj(&global_obj)?;
+        let global_ctx = RuseJsGlobalObject::from_object(&global_obj)?;
 
         let proto = global_ctx.constructors().map_prototype(engine_ctx)?;
 
         let mut builder = boa_engine::object::ObjectInitializer::with_native_data_and_proto(
-            JsWrapped(map_obj.clone()),
+            JsObjectValue(map_obj.clone()),
             proto,
             engine_ctx,
         );
@@ -274,21 +274,20 @@ impl JsMapWrapper {
         args: &[JsValue],
         ctx: &mut EngineContext,
     ) -> JsResult<JsValue> {
-        let obj = JsWrapped::<ObjectValue>::get_from_js_val(this)?;
+        let obj = ObjectValue::try_from_js(this, ctx)?;
         let global_obj = ctx.global_object();
-        let global_ctx = JsWrapped::<RuseJsGlobalObject>::get_from_js_obj(&global_obj)?;
+        let global_ctx = RuseJsGlobalObject::from_object(&global_obj)?;
         let graphs_map = global_ctx.graphs_map()?;
-        let classes = global_ctx.classes()?;
 
         if let ObjectType::Map(key_type, _value_type) = &obj.obj_type {
             let js_key = args.get(0).ok_or_else(|| js_error_missing_arg(0))?;
-            let key = js_value_to_primitive_value(js_key)?;
+            let key = PrimitiveValue::try_from_js(js_key, ctx)?;
             if &key.val_type() != key_type.as_ref() {
                 return Err(js_error_unexpected_arg_type(0));
             }
             let field_name = field_name!(key.to_string());
             if let Some(value) = obj.get_field_value(&field_name, graphs_map) {
-                value_to_js_value(classes, &value, ctx)
+                value.try_into_js(ctx)
             } else {
                 Ok(JsValue::undefined())
             }
@@ -310,7 +309,7 @@ impl JsMapWrapper {
         _: &[JsValue],
         ctx: &mut EngineContext,
     ) -> JsResult<JsValue> {
-        let obj = JsWrapped::<ObjectValue>::get_from_js_val(this)?;
+        let obj = ObjectValue::try_from_js(this, ctx)?;
         if let ObjectType::Map(key_type, _value_type) = &obj.obj_type {
             JsObjectIterator::create_object_iterator(
                 obj.clone(),
@@ -336,7 +335,7 @@ impl JsMapWrapper {
         _: &[JsValue],
         ctx: &mut EngineContext,
     ) -> JsResult<JsValue> {
-        let obj = JsWrapped::<ObjectValue>::get_from_js_val(this)?;
+        let obj = ObjectValue::try_from_js(this, ctx)?;
         if let ObjectType::Map(key_type, _value_type) = &obj.obj_type {
             JsObjectIterator::create_object_iterator(
                 obj.clone(),
@@ -355,11 +354,10 @@ impl JsMapWrapper {
         engine_ctx: &mut EngineContext,
     ) -> JsResult<JsValue> {
         let global_obj = engine_ctx.global_object();
-        let global_ctx: boa_engine::gc::GcRef<'_, JsWrapped<RuseJsGlobalObject>> =
-            JsWrapped::<RuseJsGlobalObject>::get_from_js_obj(&global_obj)?;
+        let global_ctx = RuseJsGlobalObject::from_object(&global_obj)?;
         let graphs_map = global_ctx.graphs_map()?;
 
-        let obj = JsWrapped::<ObjectValue>::get_from_js_val(this)?;
+        let obj = ObjectValue::try_from_js(this, engine_ctx)?;
         Ok(obj.total_field_count(graphs_map).into())
     }
 
@@ -368,7 +366,7 @@ impl JsMapWrapper {
         _: &[JsValue],
         ctx: &mut EngineContext,
     ) -> JsResult<JsValue> {
-        let obj = JsWrapped::<ObjectValue>::get_from_js_val(this)?;
+        let obj = ObjectValue::try_from_js(this, ctx)?;
         if let ObjectType::Map(key_type, _value_type) = &obj.obj_type {
             JsObjectIterator::create_object_iterator(
                 obj.clone(),

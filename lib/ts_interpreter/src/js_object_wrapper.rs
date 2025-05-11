@@ -6,15 +6,16 @@ use boa_engine::{
 };
 use itertools::Itertools;
 use ruse_object_graph::{
-    class_name, field_name, value::ObjectValue, Attributes, ClassName, FieldName, FieldsMap,
-    ObjectType, PrimitiveField,
+    class_name, field_name,
+    value::{ObjectValue, Value},
+    Attributes, ClassName, FieldName, FieldsMap, ObjectType, PrimitiveField, PrimitiveValue,
 };
 
 use crate::{
     engine_context::{EngineContext, RuseJsGlobalObject},
     js_errors::*,
-    js_value::{js_value_to_primitive_value, js_value_to_value},
-    js_wrapped::JsWrapped,
+    js_object_value::JsObjectValue,
+    js_value::TryFromJs,
     ts_class::{JsFieldDescription, MethodDescription, MethodKind, TsClassDescription},
 };
 
@@ -153,9 +154,9 @@ impl JsUserClassWrapper {
         _new_target: &boa_engine::JsValue,
         args: &[boa_engine::JsValue],
         engine_ctx: &mut EngineContext<'_>,
-    ) -> boa_engine::JsResult<JsWrapped<ObjectValue>> {
+    ) -> boa_engine::JsResult<ObjectValue> {
         let global_obj = engine_ctx.global_object();
-        let global_ctx = JsWrapped::<RuseJsGlobalObject>::get_from_js_obj(&global_obj)?;
+        let global_ctx = RuseJsGlobalObject::from_object(&global_obj)?;
 
         let id_gen = global_ctx.id_gen()?;
 
@@ -184,7 +185,7 @@ impl JsUserClassWrapper {
 
                         let field = &self.desc.fields[param.name.as_str()];
                         let field_name = field_name!(param.name.as_str());
-                        let value = js_value_to_primitive_value(&arg).ok()?;
+                        let value = PrimitiveValue::try_from_js(&arg, engine_ctx).ok()?;
                         let attributes = Attributes {
                             readonly: field.is_readonly,
                         };
@@ -211,16 +212,16 @@ impl JsUserClassWrapper {
             }
 
             if !arg.is_null_or_undefined() {
-                let obj_val = js_value_to_value(global_ctx.classes()?, arg, engine_ctx)?;
+                let obj_val = Value::try_from_js(arg, engine_ctx)?;
                 graphs_map.set_field(field_name!(param.name.clone()), graph_id, node_id, &obj_val);
             }
         }
 
-        Ok(JsWrapped(ObjectValue {
+        Ok(ObjectValue {
             obj_type: ObjectType::Class(self.desc.class_name.clone()),
             graph_id: graph_id,
             node: node_id,
-        }))
+        })
     }
 
     fn constructor_body_name() -> &'static str {
@@ -259,7 +260,7 @@ impl JsUserClassWrapper {
     ) -> boa_engine::JsResult<JsValue> {
         let prototype = {
             let global_obj = engine_ctx.global_object();
-            let global_ctx = JsWrapped::<RuseJsGlobalObject>::get_from_js_obj(&global_obj)?;
+            let global_ctx = RuseJsGlobalObject::from_object(&global_obj)?;
             global_ctx.get_user_class(class_name)?.prototype()
         };
         let func = prototype.get(js_string!(method_name), engine_ctx)?;
@@ -275,7 +276,7 @@ impl JsUserClassWrapper {
     ) -> boa_engine::JsResult<JsValue> {
         let constructor = {
             let global_obj = engine_ctx.global_object();
-            let global_ctx = JsWrapped::<RuseJsGlobalObject>::get_from_js_obj(&global_obj)?;
+            let global_ctx = RuseJsGlobalObject::from_object(&global_obj)?;
             global_ctx.get_user_class(class_name)?.constructor()
         };
         let func = constructor.get(js_string!(method_name), engine_ctx)?;
@@ -392,7 +393,7 @@ impl JsUserClassWrapper {
         let proto = self.constructor.prototype();
 
         let mut builder = boa_engine::object::ObjectInitializer::with_native_data_and_proto(
-            JsWrapped(obj),
+            JsObjectValue(obj),
             proto,
             engine_ctx,
         );
@@ -414,7 +415,7 @@ impl JsUserClassWrapper {
         }
         let (name, js_obj) = {
             let global_obj = context.global_object();
-            let global_ctx = JsWrapped::<RuseJsGlobalObject>::get_from_js_obj(&global_obj)?;
+            let global_ctx = RuseJsGlobalObject::from_object(&global_obj)?;
 
             let constructor = new_target.as_object().unwrap();
             let prototype = constructor
@@ -430,7 +431,9 @@ impl JsUserClassWrapper {
             let data = obj.create_new_object(new_target, args, context)?;
 
             let mut builder = boa_engine::object::ObjectInitializer::with_native_data_and_proto(
-                data, prototype, context,
+                JsObjectValue(data),
+                prototype,
+                context,
             );
             (obj.desc.class_name.clone(), builder.build().into())
         };
@@ -447,7 +450,7 @@ impl JsUserClassWrapper {
     ) -> JsResult<JsValue> {
         let constructor = {
             let global_obj = context.global_object();
-            let global_ctx = JsWrapped::<RuseJsGlobalObject>::get_from_js_obj(&global_obj)?;
+            let global_ctx = RuseJsGlobalObject::from_object(&global_obj)?;
             global_ctx.get_user_class(class_name)?.constructor()
         }
         .into();

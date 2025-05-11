@@ -6,9 +6,10 @@ use std::{
 };
 
 use boa_engine::{
-    context::intrinsics::StandardConstructor, js_string, property::PropertyDescriptor, JsArgs,
-    JsObject, JsResult, JsValue,
+    context::intrinsics::StandardConstructor, js_string, object::ErasedObject,
+    property::PropertyDescriptor, JsArgs, JsData, JsObject, JsResult, JsValue,
 };
+use boa_gc::{Finalize, GcRef, GcRefMut, Trace};
 use ruse_object_graph::{
     class_name,
     value::{ObjectValue, Value},
@@ -23,8 +24,7 @@ use crate::{
     js_console_logger::RuseJsConsoleLogger,
     js_errors::*,
     js_object_wrapper::JsUserClassWrapper,
-    js_value::{js_value_to_value, value_to_js_value},
-    js_wrapped::JsWrapped,
+    js_value::{TryFromJs, TryIntoJs},
     jsbuiltins::{jsarray::JsArrayWrapper, jsiterator::JsObjectIterator, jsmap::JsMapWrapper},
     ts_class::{BuiltinClassWrapper, JsFieldDescription},
     ts_classes::TsClasses,
@@ -41,7 +41,7 @@ impl boa_engine::context::HostHooks for EngineContextHooks {
     ) -> boa_engine::prelude::JsObject {
         boa_engine::JsObject::from_proto_and_data(
             intrinsics.constructors().object().prototype(),
-            JsWrapped(RuseJsGlobalObject::default()),
+            RuseJsGlobalObject::default(),
         )
     }
 }
@@ -63,6 +63,7 @@ trait GlobalObjectInner {
     fn set_dirty(&mut self);
 }
 
+#[derive(Debug)]
 struct GraphGlobalObjectInner {
     id_gen: Arc<GraphIdGenerator>,
     graph_id: GraphIndex,
@@ -112,6 +113,7 @@ impl GlobalObjectInner for GraphGlobalObjectInner {
     }
 }
 
+#[derive(Debug)]
 struct MutContextGlobalObjectInner {
     context: *mut Context,
     classes: *const TsClasses,
@@ -165,6 +167,7 @@ impl GlobalObjectInner for MutContextGlobalObjectInner {
     }
 }
 
+#[derive(Debug)]
 struct ContextGlobalObjectInner {
     context: *const Context,
     classes: *const TsClasses,
@@ -208,6 +211,7 @@ impl GlobalObjectInner for ContextGlobalObjectInner {
     fn set_dirty(&mut self) {}
 }
 
+#[derive(Debug)]
 enum RuseJsGlobalObjectInner {
     None,
     Graph(GraphGlobalObjectInner),
@@ -260,9 +264,13 @@ impl RuseJsConstructors {
     }
 }
 
+#[derive(Debug, Trace, Finalize, JsData)]
 pub(crate) struct RuseJsGlobalObject {
+    #[unsafe_ignore_trace]
     inner: RuseJsGlobalObjectInner,
+    #[unsafe_ignore_trace]
     constructors: RuseJsConstructors,
+    #[unsafe_ignore_trace]
     user_classes: HashMap<ClassName, JsUserClassWrapper>,
 }
 
@@ -285,37 +293,20 @@ impl RuseJsGlobalObject {
         }
     }
 
-    fn value_to_js_value(
-        &self,
-        value: &Value,
-        engine_ctx: &mut EngineContext<'_>,
-    ) -> boa_engine::JsResult<boa_engine::JsValue> {
-        value_to_js_value(self.classes()?, value, engine_ctx)
-    }
-
-    fn js_value_to_value(
-        &self,
-        js_value: &boa_engine::JsValue,
-        engine_ctx: &mut EngineContext<'_>,
-    ) -> boa_engine::JsResult<Value> {
-        js_value_to_value(self.classes()?, js_value, engine_ctx)
-    }
-
     pub fn get_field(
         wrapped_obj: &boa_engine::JsValue,
         field_name: &FieldName,
         engine_ctx: &mut EngineContext<'_>,
     ) -> boa_engine::JsResult<boa_engine::JsValue> {
-        let obj_val = JsWrapped::<ObjectValue>::get_from_js_val(wrapped_obj)?;
+        let obj_val = ObjectValue::try_from_js(wrapped_obj, engine_ctx)?;
         let global_obj = engine_ctx.global_object();
-        let inner: boa_engine::gc::GcRef<'_, JsWrapped<RuseJsGlobalObject>> =
-            JsWrapped::<Self>::get_from_js_obj(&global_obj)?;
+        let inner = RuseJsGlobalObject::from_object(&global_obj)?;
 
         let field = obj_val
             .get_field_value(field_name, inner.graphs_map()?)
             .unwrap_or(vnull!());
 
-        inner.value_to_js_value(&field, engine_ctx)
+        field.try_into_js(engine_ctx)
     }
 
     pub fn set_field(
@@ -324,16 +315,13 @@ impl RuseJsGlobalObject {
         new_js_value: &boa_engine::JsValue,
         engine_ctx: &mut EngineContext<'_>,
     ) -> boa_engine::JsResult<()> {
-        let obj_val = JsWrapped::<ObjectValue>::get_from_js_val(wrapped_obj)?;
+        let obj_val = ObjectValue::try_from_js(wrapped_obj, engine_ctx)?;
         let global_obj = engine_ctx.global_object();
 
-        let new_value = {
-            let inner = JsWrapped::<Self>::get_from_js_obj(&global_obj)?;
-            inner.js_value_to_value(&new_js_value, engine_ctx)
-        }?;
+        let new_value = Value::try_from_js(&new_js_value, engine_ctx)?;
 
         {
-            let mut wrapped_inner = JsWrapped::<Self>::mut_from_js_obj(&global_obj)?;
+            let mut wrapped_inner = RuseJsGlobalObject::from_object_mut(&global_obj)?;
             let inner = wrapped_inner.inner_mut()?;
 
             inner.set_field(&obj_val, field_name, &new_value)?;
@@ -348,7 +336,7 @@ impl RuseJsGlobalObject {
         engine_ctx: &mut EngineContext<'_>,
     ) -> boa_engine::JsResult<boa_engine::JsValue> {
         let global_obj = engine_ctx.global_object();
-        let inner = JsWrapped::<Self>::get_from_js_obj(&global_obj)?;
+        let inner = RuseJsGlobalObject::from_object(&global_obj)?;
         let classes = inner.classes()?;
 
         let class = classes.get_user_class(class_name).unwrap();
@@ -358,7 +346,7 @@ impl RuseJsGlobalObject {
             .get(field_name)
             .unwrap_or(&temp_value!(vnull!()));
 
-        inner.value_to_js_value(&field.val, engine_ctx)
+        field.val.try_into_js(engine_ctx)
     }
 
     pub fn set_static_field(
@@ -368,8 +356,9 @@ impl RuseJsGlobalObject {
         engine_ctx: &mut EngineContext<'_>,
     ) -> boa_engine::JsResult<()> {
         let global_obj = engine_ctx.global_object();
-        let (new_value, obj_val) = {
-            let inner = JsWrapped::<Self>::get_from_js_obj(&global_obj)?;
+        let new_value = Value::try_from_js(&new_js_value, engine_ctx)?;
+        let obj_val = {
+            let inner = RuseJsGlobalObject::from_object(&global_obj)?;
             let classes = inner.classes()?;
 
             let class = classes.get_user_class(class_name).unwrap();
@@ -377,11 +366,11 @@ impl RuseJsGlobalObject {
                 .static_object_value()
                 .ok_or_else(|| js_error_no_static_graph(class_name))?;
 
-            (inner.js_value_to_value(&new_js_value, engine_ctx)?, obj_val)
+            obj_val
         };
 
         {
-            let mut wrapped_inner = JsWrapped::<Self>::mut_from_js_obj(&global_obj)?;
+            let mut wrapped_inner = RuseJsGlobalObject::from_object_mut(&global_obj)?;
             let inner = wrapped_inner.inner_mut()?;
             inner.set_field(&obj_val, field_name, &new_value)
         }
@@ -392,7 +381,7 @@ impl RuseJsGlobalObject {
         engine_ctx: &mut EngineContext<'_>,
     ) -> boa_engine::JsResult<boa_engine::JsValue> {
         let global_obj = engine_ctx.global_object();
-        let inner = JsWrapped::<Self>::get_from_js_obj(&global_obj)?;
+        let inner = RuseJsGlobalObject::from_object(&global_obj)?;
         let classes = inner.classes()?;
 
         let class = classes
@@ -404,7 +393,7 @@ impl RuseJsGlobalObject {
             .get(field_name)
             .ok_or_else(|| js_error_global_field_not_found(field_name))?;
 
-        inner.value_to_js_value(&field.val, engine_ctx)
+        field.val.try_into_js(engine_ctx)
     }
 
     pub fn set_global_field(
@@ -413,8 +402,9 @@ impl RuseJsGlobalObject {
         engine_ctx: &mut EngineContext<'_>,
     ) -> boa_engine::JsResult<()> {
         let global_obj = engine_ctx.global_object();
-        let (new_value, obj_val) = {
-            let inner = JsWrapped::<Self>::get_from_js_obj(&global_obj)?;
+        let new_value = Value::try_from_js(&new_js_value, engine_ctx)?;
+        let obj_val = {
+            let inner = RuseJsGlobalObject::from_object(&global_obj)?;
             let classes = inner.classes()?;
 
             let class = classes
@@ -424,11 +414,11 @@ impl RuseJsGlobalObject {
                 .static_object_value()
                 .ok_or_else(|| js_error_no_global_static_graph())?;
 
-            (inner.js_value_to_value(&new_js_value, engine_ctx)?, obj_val)
+            obj_val
         };
 
         {
-            let mut wrapped_inner = JsWrapped::<Self>::mut_from_js_obj(&global_obj)?;
+            let mut wrapped_inner = RuseJsGlobalObject::from_object_mut(&global_obj)?;
             let inner = wrapped_inner.inner_mut()?;
             inner.set_field(&obj_val, field_name, &new_value)
         }
@@ -458,6 +448,18 @@ impl RuseJsGlobalObject {
         self.user_classes
             .get(class_name)
             .ok_or_else(|| js_error_user_class_not_found(class_name))
+    }
+
+    pub fn from_object(obj: &JsObject) -> JsResult<GcRef<'_, Self>> {
+        obj.downcast_ref::<RuseJsGlobalObject>()
+            .ok_or_else(|| js_error_global_object_is_not_ruse_global_object())
+    }
+
+    pub fn from_object_mut(
+        obj: &JsObject,
+    ) -> JsResult<GcRefMut<'_, ErasedObject, RuseJsGlobalObject>> {
+        obj.downcast_mut::<RuseJsGlobalObject>()
+            .ok_or_else(|| js_error_global_object_is_not_ruse_global_object())
     }
 }
 
@@ -503,9 +505,8 @@ impl<'a> EngineContext<'a> {
 
     pub fn reset_with_context(&self, post_ctx: &Context, classes: &TsClasses) {
         let global_obj = self.global_object();
-        let mut wrapped_inner =
-            JsWrapped::<RuseJsGlobalObject>::mut_from_js_obj(&global_obj).unwrap();
-        wrapped_inner.0.inner = RuseJsGlobalObjectInner::Contxt(ContextGlobalObjectInner {
+        let mut wrapped_inner = RuseJsGlobalObject::from_object_mut(&global_obj).unwrap();
+        wrapped_inner.inner = RuseJsGlobalObjectInner::Contxt(ContextGlobalObjectInner {
             context: std::ptr::from_ref(post_ctx),
             classes: std::ptr::from_ref(classes),
         });
@@ -513,9 +514,8 @@ impl<'a> EngineContext<'a> {
 
     pub fn reset_with_mut_context(&self, post_ctx: &mut Context, classes: &TsClasses) {
         let global_obj = self.global_object();
-        let mut wrapped_inner =
-            JsWrapped::<RuseJsGlobalObject>::mut_from_js_obj(&global_obj).unwrap();
-        wrapped_inner.0.inner = RuseJsGlobalObjectInner::MutContxt(MutContextGlobalObjectInner {
+        let mut wrapped_inner = RuseJsGlobalObject::from_object_mut(&global_obj).unwrap();
+        wrapped_inner.inner = RuseJsGlobalObjectInner::MutContxt(MutContextGlobalObjectInner {
             context: std::ptr::from_mut(post_ctx),
             classes: std::ptr::from_ref(classes),
             dirty: false,
@@ -530,9 +530,8 @@ impl<'a> EngineContext<'a> {
         id_gen: &Arc<GraphIdGenerator>,
     ) {
         let global_obj = self.global_object();
-        let mut wrapped_inner =
-            JsWrapped::<RuseJsGlobalObject>::mut_from_js_obj(&global_obj).unwrap();
-        wrapped_inner.0.inner = RuseJsGlobalObjectInner::Graph(GraphGlobalObjectInner {
+        let mut wrapped_inner = RuseJsGlobalObject::from_object_mut(&global_obj).unwrap();
+        wrapped_inner.inner = RuseJsGlobalObjectInner::Graph(GraphGlobalObjectInner {
             graph_id: graph_id,
             graphs_map: std::ptr::from_mut(graphs_map),
             classes: std::ptr::from_ref(classes),
@@ -550,7 +549,7 @@ impl<'a> EngineContext<'a> {
         I: IntoIterator<Item = Value>,
     {
         let global_obj = self.global_object();
-        let global_ctx = JsWrapped::<RuseJsGlobalObject>::get_from_js_obj(&global_obj)?;
+        let global_ctx = RuseJsGlobalObject::from_object(&global_obj)?;
         let inner = global_ctx.inner()?;
 
         let graph_id = inner.get_graph_id_for_new_object()?;
@@ -586,7 +585,7 @@ impl<'a> EngineContext<'a> {
         I: IntoIterator<Item = (PrimitiveValue, Value)>,
     {
         let global_obj = self.global_object();
-        let global_ctx = JsWrapped::<RuseJsGlobalObject>::get_from_js_obj(&global_obj)?;
+        let global_ctx = RuseJsGlobalObject::from_object(&global_obj)?;
         let inner = global_ctx.inner()?;
 
         let graph_id = inner.get_graph_id_for_new_object()?;
@@ -681,7 +680,7 @@ impl<'a> EngineContext<'a> {
         let property = PropertyDescriptor::builder().value(class.constructor());
 
         {
-            let mut global_ctx = JsWrapped::<RuseJsGlobalObject>::mut_from_js_obj(&global_obj)?;
+            let mut global_ctx = RuseJsGlobalObject::from_object_mut(&global_obj)?;
             global_ctx.user_classes.insert(name.clone(), class);
         }
 
@@ -713,7 +712,7 @@ impl<'a> DerefMut for EngineContext<'a> {
 impl<'a> EngineContext<'a> {
     pub fn is_dirty(&self) -> bool {
         let global_obj = self.global_object();
-        let wrapped_inner = JsWrapped::<RuseJsGlobalObject>::get_from_js_obj(&global_obj).unwrap();
+        let wrapped_inner = RuseJsGlobalObject::from_object(&global_obj).unwrap();
         if let Ok(inner) = wrapped_inner.inner() {
             inner.dirty()
         } else {

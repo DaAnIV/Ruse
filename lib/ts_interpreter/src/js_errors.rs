@@ -18,12 +18,6 @@ pub(crate) fn js_error_immutable_context() -> boa_engine::JsError {
         .into()
 }
 
-pub(crate) fn js_error_not_js_wrapped() -> boa_engine::JsError {
-    boa_engine::JsNativeError::typ()
-        .with_message(format!("JsObject is not of type JsWrapped"))
-        .into()
-}
-
 pub(crate) fn js_error_not_js_object() -> boa_engine::JsError {
     boa_engine::JsNativeError::typ()
         .with_message(format!("JsValue is not of type JsObject"))
@@ -131,5 +125,11 @@ pub(crate) fn js_error_not_primitive_value(value: &boa_engine::JsValue) -> boa_e
 pub(crate) fn js_error_global_field_not_found(field_name: &str) -> boa_engine::JsError {
     boa_engine::JsNativeError::typ()
         .with_message(format!("Global field {} not found", field_name))
+        .into()
+}
+
+pub(crate) fn js_error_global_object_is_not_ruse_global_object() -> boa_engine::JsError {
+    boa_engine::JsNativeError::typ()
+        .with_message("Global object is not a RuseJsGlobalObject")
         .into()
 }

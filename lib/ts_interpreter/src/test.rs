@@ -276,8 +276,7 @@ mod ts_class_tests {
     use ruse_synthesizer::test::helpers::{get_composite_prog, get_init_prog};
 
     use crate::engine_context::EngineContext;
-    use crate::js_value::value_to_js_value;
-    use crate::js_wrapped::JsWrapped;
+    use crate::js_value::{TryFromJs, TryIntoJs};
     use crate::test::ts_op_helpers::*;
     use crate::{
         ts_class::TsClass,
@@ -584,13 +583,11 @@ mod ts_class_tests {
         let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, classes_ref);
         engine_ctx.reset_with_mut_context(&mut ctx, classes_ref);
 
-        value_to_js_value(
-            &classes_ref,
-            ctx.get_var_loc_value(&root_name!("u"), &syn_ctx)
-                .unwrap()
-                .val(),
-            &mut engine_ctx,
-        ).unwrap();
+        ctx.get_var_loc_value(&root_name!("u"), &syn_ctx)
+            .unwrap()
+            .val()
+            .try_into_js(&mut engine_ctx)
+            .unwrap();
 
         let js_user = user_class
             .wrap_as_js_object(user.clone(), &mut engine_ctx)
@@ -758,7 +755,7 @@ mod ts_class_tests {
 
         let user_class = classes.get_user_class(&user_class_name).unwrap();
         let js_user = user_class
-            .call_constructor(&[vstr!("a"), vstr!("b")], &classes, &mut engine_ctx)
+            .call_constructor(&[vstr!("a"), vstr!("b")], &mut engine_ctx)
             .unwrap();
         let name_field = js_user.get_field_value(&field_name!("name"), &graphs_map);
         let surname_field = js_user.get_field_value(&field_name!("surname"), &graphs_map);
@@ -811,7 +808,7 @@ mod ts_class_tests {
         let res = engine_ctx
             .eval(boa_engine::Source::from_bytes("new User(\"a\", \"b\")"))
             .unwrap();
-        let js_user = JsWrapped::<ObjectValue>::get_from_js_val(&res).unwrap();
+        let js_user = ObjectValue::try_from_js(&res, &mut engine_ctx).unwrap();
 
         let name_field = js_user.get_field_value(&field_name!("name"), &graphs_map);
         let surname_field = js_user.get_field_value(&field_name!("surname"), &graphs_map);

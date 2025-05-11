@@ -5,7 +5,7 @@ use ruse_object_graph::{value::Value, ValueType};
 use ruse_synthesizer::context::ValuesMap;
 use ruse_synthesizer::{context::SynthesizerContext, prog::SubProgram};
 use ruse_ts_interpreter::engine_context::EngineContext;
-use ruse_ts_interpreter::js_value::value_to_js_value;
+use ruse_ts_interpreter::js_value::TryIntoJs;
 use ruse_ts_interpreter::ts_classes::TsClasses;
 
 pub type SynthesizerPredicate = Box<dyn Fn(&SubProgram, &SynthesizerContext) -> bool + Send + Sync>;
@@ -102,10 +102,10 @@ impl PredicateBuilder {
             let mut js_values = Vec::with_capacity(ctx.variable_count() + 1);
             for (var, value) in ctx.variables() {
                 arg_names.push(var.as_str());
-                js_values.push(value_to_js_value(classes, value, &mut engine_ctx).unwrap());
+                js_values.push(value.try_into_js(&mut engine_ctx).unwrap());
             }
             arg_names.push("__output__");
-            js_values.push(value_to_js_value(classes, output.val(), &mut engine_ctx).unwrap());
+            js_values.push(output.val().try_into_js(&mut engine_ctx).unwrap());
 
             let code = format!(
                 "function func({}) {{return {}}}\nfunc",

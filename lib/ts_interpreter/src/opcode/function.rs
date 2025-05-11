@@ -69,7 +69,6 @@ impl ExprOpcode for ClassMethodOp {
             class.call_static_method(
                 &self.desc.name,
                 args.iter().map(|x| x.val()),
-                classes,
                 &mut engine_ctx,
             )
         } else {
@@ -77,7 +76,6 @@ impl ExprOpcode for ClassMethodOp {
                 &self.desc,
                 args[0].val(),
                 args.iter().skip(1).map(|x| x.val()),
-                classes,
                 &mut engine_ctx,
             )
         };
@@ -167,7 +165,7 @@ impl ExprOpcode for ClassConstructorOp {
         engine_ctx.reset_with_mut_context(post_ctx, classes);
         let class = classes.get_user_class(&self.obj_type).unwrap();
 
-        let result = class.call_constructor(args.iter().map(|x| x.val()), classes, &mut engine_ctx);
+        let result = class.call_constructor(args.iter().map(|x| x.val()), &mut engine_ctx);
 
         match result {
             // Need to check if func changed the context
@@ -251,7 +249,6 @@ impl ExprOpcode for GlobalFunctionOp {
         let result = class.call_function(
             &self.desc.name,
             args.iter().map(|x| x.val()),
-            classes,
             &mut engine_ctx,
         );
 
