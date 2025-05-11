@@ -169,7 +169,7 @@ impl TaskType {
                 );
 
                 Ok(vobj!(
-                    ObjectType::array_obj_type(&ValueType::Number),
+                    ObjectType::array_obj_type(&inner_type.value_type()),
                     graph_id,
                     node
                 ))
@@ -178,7 +178,7 @@ impl TaskType {
                 if inner_type.is_var_ref() || inner_type.is_dom() || inner_type.is_object() {
                     return Err(parse_err!(
                         value,
-                        format!("Array of {} is not supported", inner_type)
+                        format!("Set of {} is not supported", inner_type)
                     ));
                 }
                 let elements = match value.as_array() {
@@ -201,7 +201,7 @@ impl TaskType {
 
                         result?
                     }
-                    None => return Err(parse_err!(value, "Value is not an array")),
+                    None => return Err(parse_err!(value, "Value is not a set")),
                 };
                 graphs_map.ensure_graph(graph_id);
                 let node = graphs_map.add_primitive_set_object(
@@ -212,7 +212,7 @@ impl TaskType {
                 );
 
                 Ok(vobj!(
-                    ObjectType::array_obj_type(&ValueType::Number),
+                    ObjectType::set_obj_type(&inner_type.value_type()),
                     graph_id,
                     node
                 ))
