@@ -528,8 +528,7 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
         }
 
         if iteration_map.insert_program(p.clone()) {
-            trace!(target: "ruse::synthesizer", "Inserted program \"{}\"", p.get_code());
-            trace!(target: "ruse::synthesizer", "{}", p);
+            trace!(target: "ruse::synthesizer", { prog = %p }, "Inserted program \"{}\"", p.get_code());
 
             self.statistics.inc_value(StatisticsTypes::BankSize);
             self.statistics

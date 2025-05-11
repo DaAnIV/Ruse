@@ -712,6 +712,17 @@ impl Display for Context {
                 write!(f, ", ")?;
             }
         }
+        for (i, output) in self.outputs().enumerate() {
+            write!(
+                f,
+                "; Output: {}",
+                output.dot_display_with_config(
+                    &self.graphs_map,
+                    DotConfig::subgraph_config(&format!("output_{}", i))
+                )
+            )?;
+        }
+
         write!(f, "; Hashes: ")?;
         let mut hashes_iter = self.hashes.iter();
         let mut hash_value = hashes_iter.next();
@@ -725,6 +736,53 @@ impl Display for Context {
         write!(f, "; Graphs: {:?}", self.graphs_map.keys().collect_vec())?;
 
         Ok(())
+    }
+}
+
+#[derive(serde::Serialize)]
+struct ContextJsonDisplay<'a> {
+    values: HashMap<&'a str, String>,
+    outputs: Vec<String>,
+    graphs: Vec<GraphIndex>,
+}
+
+impl Context {
+    pub fn json_display(&self) -> impl Display + '_ {
+        self.get_json_wrapper()
+    }
+
+    fn get_json_wrapper(&self) -> ContextJsonDisplay<'_> {
+        ContextJsonDisplay {
+            values: self
+                .variables()
+                .map(|(k, v)| {
+                    (
+                        k.as_str(),
+                        v.dot_display_with_config(&self.graphs_map, DotConfig::subgraph_config(&k))
+                            .to_string(),
+                    )
+                })
+                .collect(),
+            outputs: self
+                .outputs()
+                .enumerate()
+                .map(|(i, v)| {
+                    v.dot_display_with_config(
+                        &self.graphs_map,
+                        DotConfig::subgraph_config(&format!("output_{}", i)),
+                    )
+                    .to_string()
+                })
+                .collect(),
+            graphs: self.graphs_map.keys().cloned().collect(),
+        }
+    }
+}
+
+impl<'a> Display for ContextJsonDisplay<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let value = serde_json::to_string_pretty(self).unwrap();
+        write!(f, "{}", value)
     }
 }
 
@@ -861,13 +919,39 @@ impl PartialEq for ContextArray {
 
 impl Display for ContextArray {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "{{")?;
         writeln!(f, "depth: {}", self.depth)?;
         writeln!(f, "contexts: [")?;
         for ctx in &self.inner {
             writeln!(f, "{}", ctx)?;
         }
         writeln!(f, "]")?;
+        writeln!(f, "}}")?;
 
         Ok(())
+    }
+}
+
+impl ContextArray {
+    pub fn json_display(&self) -> impl Display + '_ {
+        ContextArrayJsonDisplay {
+            contexts: self
+                .inner
+                .iter()
+                .map(|ctx| ctx.get_json_wrapper())
+                .collect(),
+        }
+    }
+}
+
+#[derive(serde::Serialize)]
+struct ContextArrayJsonDisplay<'a> {
+    contexts: Vec<ContextJsonDisplay<'a>>,
+}
+
+impl<'a> Display for ContextArrayJsonDisplay<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let value = serde_json::to_string_pretty(self).unwrap();
+        write!(f, "{}", value)
     }
 }

@@ -274,7 +274,14 @@ impl ObjectGraph {
 
         let weight = self.get_node(node).unwrap();
 
-        write!(f, "{}[{}] {} ", indent_str, node, weight.obj_type())?;
+        write!(
+            f,
+            "{}[{},{}] {} ",
+            indent_str,
+            self.id,
+            node,
+            weight.obj_type()
+        )?;
         if !name.is_empty() {
             write!(f, "{} ", name)?;
         }

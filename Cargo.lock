@@ -2865,6 +2865,7 @@ dependencies = [
  "petgraph 0.6.5",
  "petgraph-gen",
  "rand",
+ "serde",
  "union-find",
 ]
 
@@ -2881,6 +2882,7 @@ dependencies = [
  "rand",
  "ruse_object_graph",
  "serde",
+ "serde_json",
  "siphasher 1.0.1",
  "tokio",
  "tokio-util",

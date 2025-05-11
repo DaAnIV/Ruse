@@ -12,13 +12,15 @@ use ruse_object_graph::{
 use itertools::Itertools;
 
 #[cfg(feature = "trace_embeddings")]
-macro_rules! embeddings_trace {
-    ($($arg:tt)+) => { tracing::trace!($($arg)+); }
+macro_rules! __embeddings_trace {
+    ($($arg:tt)+) => { tracing::trace!(target: "ruse::embedding", $($arg)+); }
 }
 #[cfg(not(feature = "trace_embeddings"))]
-macro_rules! embeddings_trace {
+macro_rules! __embeddings_trace {
     ($($arg:tt)+) => {};
 }
+
+pub(crate) use __embeddings_trace as embeddings_trace;
 
 pub fn merge_context_arrays(
     p_1_array: &ContextArray,
@@ -110,11 +112,12 @@ pub(crate) fn merge_context(
     p_2: &Context,
     q_2: &Context,
 ) -> Result<(Box<Context>, Box<Context>), ()> {
-    embeddings_trace!("Merging contexts");
-    embeddings_trace!("p_1: {}", p_1);
-    embeddings_trace!("q_1: {}", q_1);
-    embeddings_trace!("p_2: {}", p_2);
-    embeddings_trace!("q_2: {}", q_2);
+    embeddings_trace!({
+        p_1 = %p_1.json_display(),
+        q_1 = %q_1.json_display(),
+        p_2 = %p_2.json_display(),
+        q_2 = %q_2.json_display(),
+    }, "Merging contexts");
 
     if !verify_matching_primitive_values(q_1, p_2) {
         return Err(());
@@ -149,10 +152,12 @@ pub(crate) fn merge_context(
     let p_2_roots = context_reachable_graph_roots(p_2);
     let q_2_roots = context_reachable_graph_roots(q_2);
 
-    embeddings_trace!("p_1_roots: {:#?}", p_1_roots);
-    embeddings_trace!("q_1_roots: {:#?}", q_1_roots);
-    embeddings_trace!("p_2_roots: {:#?}", p_2_roots);
-    embeddings_trace!("q_2_roots: {:#?}", q_2_roots);
+    embeddings_trace!({
+        p_1_roots = ?p_1_roots,
+        q_1_roots = ?q_1_roots,
+        p_2_roots = ?p_2_roots,
+        q_2_roots = ?q_2_roots,
+    }, "Roots");
 
     let mut intersection = Vec::new();
     let mut only_p_2 = Vec::new();
@@ -171,12 +176,11 @@ pub(crate) fn merge_context(
         }
     }
 
-    embeddings_trace!(
-        "intersection: [{}]",
-        intersection.iter().map(|x| x.0).join(", "),
-    );
-    embeddings_trace!("only_p_2: [{}]", only_p_2.iter().map(|x| x.0).join(", "));
-    embeddings_trace!("only_q_1: [{}]", only_q_1.iter().map(|x| x.0).join(", "));
+    embeddings_trace!({
+        intersection = %intersection.iter().map(|x| x.0).join(", "),
+        only_p_2 = %only_p_2.iter().map(|x| x.0).join(", "),
+        only_q_1 = %only_q_1.iter().map(|x| x.0).join(", "),
+    }, "Roots sets");
 
     let new_nodes_1 = triplet_new_nodes(p_1, q_1);
     let new_nodes_2 = HashSet::default();
@@ -306,13 +310,13 @@ fn triplet_new_nodes(p_ctx: &Context, q_ctx: &Context) -> HashSet<NodeIndex> {
 }
 
 fn embed_object_value(
-    var: &VariableName,
     obj_val: &ObjectValue,
     map_hat: &mut GraphsMap,
     old_ctx: &Context,
     new_nodes: &HashSet<NodeIndex>,
     matches: &mut HashSet<NodeIndex>,
 ) -> Result<(), ()> {
+    embeddings_trace!({ value = ?obj_val }, "Embedding object");
     embed(
         map_hat,
         obj_val.graph_id,

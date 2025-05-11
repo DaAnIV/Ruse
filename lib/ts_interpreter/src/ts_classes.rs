@@ -15,6 +15,7 @@ use swc_common::{
 };
 use swc_ecma_ast::{self as ast, ClassDecl, FnDecl, VarDecl};
 use swc_ecma_parser::{Syntax, TsSyntax};
+use tracing::error;
 
 use crate::{
     engine_context::EngineContext,
@@ -233,7 +234,7 @@ impl TsClassesBuilder {
                     _ => {}
                 },
                 _ => {
-                    println!("Unknown statement {:#?}", stmt);
+                    error!("Unknown statement {:#?}", stmt);
                 }
             }
         }

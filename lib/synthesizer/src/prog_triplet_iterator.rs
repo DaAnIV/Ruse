@@ -1,11 +1,16 @@
 use std::sync::Arc;
 
 use crate::{
-    context::ContextArray, embedding::merge_context_arrays,
-    multi_programs_map_product::ProgramChildrenIterator, prog::SubProgram,
+    context::ContextArray,
+    embedding::{embeddings_trace, merge_context_arrays},
+    multi_programs_map_product::ProgramChildrenIterator,
+    prog::SubProgram,
     prog_triplet::ProgTriplet,
 };
 use Option::{self as CurrentItems, None as NotYetPopulated, Some as Populated};
+
+#[cfg(feature = "trace_embeddings")]
+use itertools::Itertools;
 
 pub struct ProgTripletIterator<I>
 where
@@ -24,6 +29,14 @@ where
         cur_progs: &Vec<Arc<SubProgram>>,
         mut from: usize,
     ) -> Option<&(ContextArray, ContextArray)> {
+        embeddings_trace!(
+            "trying to get ctxs for {}",
+            cur_progs
+                .iter()
+                .map(|p| format!("\"{}\"", p.get_code()))
+                .join(", ")
+        );
+
         if self.cur_ctxs.is_none() {
             self.cur_ctxs = Populated(vec![
                 (ContextArray::default(), ContextArray::default());
@@ -41,6 +54,11 @@ where
                     (ContextArray::default(), ContextArray::default()),
                 );
             }
+            embeddings_trace!({
+                prog = %&cur_progs[0],
+                pre_ctx = %cur_progs[0].pre_ctx().json_display(), 
+                post_ctx = %cur_progs[0].post_ctx().json_display() 
+            }, "Adding context 0 from {}", cur_progs[0].get_code());
             cur_ctxs[0] = (
                 cur_progs[0].pre_ctx().clone(),
                 cur_progs[0].post_ctx().clone(),
@@ -51,6 +69,11 @@ where
         for i in from..cur_ctxs.len() {
             let last_ctx = &cur_ctxs[i - 1];
             let p = &cur_progs[i];
+            embeddings_trace!({
+                prog = %&cur_progs[i],
+                pre_ctx = %cur_progs[i].pre_ctx().json_display(), 
+                post_ctx = %cur_progs[i].post_ctx().json_display() 
+            }, "Adding context {} from {}", i, p.get_code());
 
             if let Ok(merged_ctx) = merge_context_arrays(
                 &last_ctx.0,

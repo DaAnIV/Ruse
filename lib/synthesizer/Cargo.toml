@@ -20,6 +20,8 @@ siphasher.workspace = true
 getrandom.workspace = true
 rand.workspace = true
 
+serde_json.workspace = true
+
 [features]
 default = ["test_helpers"]
 test_helpers = []
