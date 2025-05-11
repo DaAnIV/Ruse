@@ -56,7 +56,7 @@ impl SubProgram {
     pub fn with_opcode_and_children(
         opcode: Arc<dyn ExprOpcode>,
         children: Vec<Arc<SubProgram>>,
-        pre_ctx: ContextArray,
+        mut pre_ctx: ContextArray,
         post_ctx: ContextArray,
     ) -> Arc<Self> {
         assert!(!children.is_empty());
@@ -64,6 +64,10 @@ impl SubProgram {
 
         let size = children.iter().fold(0, |acc, x| acc + x.size) + 1;
         let depth = children.iter().fold(0, |acc, x| max(acc, x.depth)) + 1;
+
+        pre_ctx.iter_mut().for_each(|ctx| {
+            ctx.clear_outputs();
+        });
 
         Arc::new(Self {
             opcode,
@@ -82,9 +86,13 @@ impl SubProgram {
 
     pub fn with_opcode(
         opcode: Arc<dyn ExprOpcode>,
-        pre_ctx: ContextArray,
+        mut pre_ctx: ContextArray,
         post_ctx: ContextArray,
     ) -> Arc<Self> {
+        pre_ctx.iter_mut().for_each(|ctx| {
+            ctx.clear_outputs();
+        });
+
         Arc::new(Self {
             opcode,
             children: Default::default(),
@@ -114,6 +122,7 @@ impl SubProgram {
             // Gather arguments
             let args: Vec<&LocValue> = self.children.iter().map(|c| &c.out_value()[i]).collect();
             let out_ctx = self.post_ctx.get_mut(i).unwrap();
+            out_ctx.clear_outputs();
             evaluate_trace!("post_ctx[{}] (before) {:?}", i, out_ctx);
             
             // Evaluate and verify the output type is consistent
@@ -121,7 +130,7 @@ impl SubProgram {
                 Ok(result) => {
                     dirty |= result.dirty;
                     result.output
-                },
+                }
                 Err(_) => return false,
             };
             evaluate_trace!("post_ctx[{}] (after) graphs: {:?}", i, out_ctx);
@@ -133,6 +142,7 @@ impl SubProgram {
             }
             out_type.get_or_insert(out_val.val.val_type());
 
+            out_ctx.add_output(out_val.val().clone());
             out_value.push(out_val);
         }
 

@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 
-use crate::context::{Context, ContextArray, VariableName};
+use crate::context::{Context, ContextArray};
 use itertools::{self, izip};
 use ruse_object_graph::{
     graph_equality, graph_walk,
@@ -26,12 +26,6 @@ pub fn merge_context_arrays(
     p_2_array: &ContextArray,
     q_2_array: &ContextArray,
 ) -> Result<(ContextArray, ContextArray), ()> {
-    if q_1_array == p_2_array {
-        let mut q_2_hat = q_2_array.clone();
-        q_2_hat.extend_graphs_map(q_1_array);
-        return Ok((p_1_array.clone(), q_2_hat));
-    }
-
     let mut merged_pre_ctx_vec = Vec::with_capacity(p_1_array.len());
     let mut merged_post_ctx_vec = Vec::with_capacity(p_1_array.len());
 
@@ -39,7 +33,7 @@ pub fn merge_context_arrays(
         p_1_array.iter(),
         q_1_array.iter(),
         p_2_array.iter(),
-        q_2_array.iter()
+        q_2_array.iter(),
     ) {
         let (merged_pre_ctx, merged_post_ctx) = merge_context(p_1, q_1, p_2, q_2)?;
         merged_pre_ctx_vec.push(merged_pre_ctx);
@@ -147,8 +141,8 @@ pub(crate) fn merge_context(
     q_2_map_hat.add_static_graphs(&q_2.graphs_map);
     q_2_map_hat.add_static_graphs(&q_1.graphs_map);
 
-    let mut p1_hat_nodes_matches = HashMap::new();
-    let mut q2_hat_nodes_matches = HashMap::new();
+    let mut p1_hat_nodes_matches = HashSet::new();
+    let mut q2_hat_nodes_matches = HashSet::new();
 
     let p_1_roots = context_reachable_graph_roots(p_1);
     let q_1_roots = context_reachable_graph_roots(q_1);
@@ -202,77 +196,104 @@ pub(crate) fn merge_context(
 
     for (var, _, _) in intersection {
         if let Some(q_2_o) = q_2_roots.get(var) {
-            embed_object_value(
+            embed_root_object_value(
                 var,
                 q_2_o,
                 &mut q_2_map_hat,
                 q_2,
                 &new_nodes_2,
                 &mut q2_hat_nodes_matches,
-            );
+            )?;
         }
 
         if let Some(p_1_o) = p_1_roots.get(var) {
-            embed_object_value(
+            embed_root_object_value(
                 var,
                 p_1_o,
                 &mut p_1_map_hat,
                 p_1,
                 &new_nodes_1,
                 &mut p1_hat_nodes_matches,
-            );
+            )?;
         }
     }
 
     for (var, o_2) in only_p_2 {
-        embed_object_value(
+        embed_root_object_value(
             var,
             o_2,
             &mut p_1_map_hat,
             p_2,
             &new_nodes_1,
             &mut p1_hat_nodes_matches,
-        );
+        )?;
         if let Some(q_o_2) = q_2_roots.get(var) {
-            embed_object_value(
+            embed_root_object_value(
                 var,
                 q_o_2,
                 &mut q_2_map_hat,
                 q_2,
                 &new_nodes_2,
                 &mut q2_hat_nodes_matches,
-            );
+            )?;
         }
     }
     for (var, o_1) in only_q_1 {
-        embed_object_value(
+        embed_root_object_value(
             var,
             o_1,
             &mut q_2_map_hat,
             q_1,
             &new_nodes_2,
             &mut q2_hat_nodes_matches,
-        );
+        )?;
         if let Some(p_o_1) = p_1_roots.get(var) {
-            embed_object_value(
+            embed_root_object_value(
                 var,
                 p_o_1,
                 &mut p_1_map_hat,
                 p_1,
                 &new_nodes_1,
                 &mut p1_hat_nodes_matches,
-            );
+            )?;
         }
     }
 
-    p_1_map_hat.extend(&p_1.graphs_map);
-    q_2_map_hat.extend(&q_2.graphs_map);
+    let mut outputs = Vec::new();
 
-    q_2_map_hat.extend(&q_1.graphs_map);
+    for output in q_1.outputs() {
+        outputs.push(output.clone());
+        if let Some(obj) = output.obj() {
+            embed_object_value(
+                obj,
+                &mut q_2_map_hat,
+                q_1,
+                &new_nodes_2,
+                &mut q2_hat_nodes_matches,
+            )?;
+        }
+    }
+    for output in q_2.outputs() {
+        outputs.push(output.clone());
+        if let Some(obj) = output.obj() {
+            embed_object_value(
+                obj,
+                &mut q_2_map_hat,
+                q_2,
+                &new_nodes_2,
+                &mut q2_hat_nodes_matches,
+            )?;
+        }
+    }
 
     Ok((
         Context::with_values(p_1_hat, p_1_map_hat.into(), p_1.graph_id_gen.clone()),
-        Context::with_values(q_2_hat, q_2_map_hat.into(), q_2.graph_id_gen.clone()),
+        Context::with_values_and_outputs(
+            q_2_hat,
+            outputs,
+            q_2_map_hat.into(),
+            q_2.graph_id_gen.clone(),
+        ),
     ))
 }
 
@@ -290,30 +311,28 @@ fn embed_object_value(
     map_hat: &mut GraphsMap,
     old_ctx: &Context,
     new_nodes: &HashSet<NodeIndex>,
-    matches: &mut HashMap<NodeIndex, (GraphIndex, NodeIndex)>,
-) -> bool {
-    // trace!(target: "ruse::embedding", "Embedding {}", var);
-
-    let new_var_value = match matches.get(&obj_val.node) {
-        Some((graph_id, node_id)) => &(*graph_id, *node_id),
-        None => {
-            map_hat.ensure_graph(obj_val.graph_id);
-            if !embed(
-                map_hat,
-                obj_val.graph_id,
-                &old_ctx.graphs_map,
-                obj_val.node,
-                new_nodes,
-                matches,
-            ) {
-                return false;
-            }
-            matches.get(&obj_val.node).unwrap()
-        }
-    };
-    map_hat.set_as_root(var.clone(), new_var_value.0, new_var_value.1);
-
-    true
+    matches: &mut HashSet<NodeIndex>,
+) -> Result<(), ()> {
+    embed(
+        map_hat,
+        obj_val.graph_id,
+        &old_ctx.graphs_map,
+        obj_val.node,
+        new_nodes,
+        matches,
+    )
+}
+fn embed_root_object_value(
+    var: &RootName,
+    obj_val: &ObjectValue,
+    map_hat: &mut GraphsMap,
+    old_ctx: &Context,
+    new_nodes: &HashSet<NodeIndex>,
+    matches: &mut HashSet<NodeIndex>,
+) -> Result<(), ()> {
+    embed_object_value(obj_val, map_hat, old_ctx, new_nodes, matches)?;
+    map_hat.set_as_root(var.clone(), obj_val.graph_id, obj_val.node);
+    Ok(())
 }
 
 fn embed(
@@ -322,52 +341,47 @@ fn embed(
     graphs_map: &GraphsMap,
     node_id: NodeIndex,
     new_nodes: &HashSet<NodeIndex>,
-    matches: &mut HashMap<NodeIndex, (GraphIndex, NodeIndex)>,
-) -> bool {
-    if matches.get(&node_id).is_some() {
-        return true;
+    matches: &mut HashSet<NodeIndex>,
+) -> Result<(), ()> {
+    if matches.contains(&node_id) {
+        return Ok(());
     }
 
     let mut edges = Vec::new();
     let mut q = VecDeque::new();
 
     q.push_back((graph_id, node_id));
+    matches.insert(node_id);
     while let Some((cur_graph_id, cur_node_id)) = q.pop_front() {
         let graph = &graphs_map[cur_graph_id];
         if graph.is_static() {
-            matches.insert(cur_node_id, (cur_graph_id, cur_node_id));
+            matches.insert(cur_node_id);
             continue;
         }
         let node = graph.get_node(&cur_node_id).unwrap();
+        map_hat.ensure_graph(cur_graph_id);
         map_hat.construct_node(
-            graph_id,
+            cur_graph_id,
             cur_node_id,
             node.obj_type().clone(),
             node.fields().clone(),
         );
 
-        matches.insert(cur_node_id, (graph_id, cur_node_id));
-        for (field_name, old_neig) in node.pointers_iter() {
-            if let Some((new_neig_graph, new_neig_id)) = matches.get(&old_neig.node) {
-                if new_nodes.contains(new_neig_id) {
-                    return false;
+        for (field_name, neig) in node.pointers_iter() {
+            edges.push((
+                field_name.clone(),
+                cur_graph_id,
+                cur_node_id,
+                neig.graph.unwrap_or(cur_graph_id),
+                neig.node,
+            ));
+            if matches.contains(&neig.node) {
+                if new_nodes.contains(&neig.node) {
+                    return Err(());
                 }
-                edges.push((
-                    field_name.clone(),
-                    graph_id,
-                    cur_node_id,
-                    *new_neig_graph,
-                    *new_neig_id,
-                ));
             } else {
-                edges.push((
-                    field_name.clone(),
-                    graph_id,
-                    cur_node_id,
-                    graph_id,
-                    old_neig.node,
-                ));
-                q.push_back((old_neig.graph.unwrap_or(cur_graph_id), old_neig.node));
+                q.push_back((neig.graph.unwrap_or(cur_graph_id), neig.node));
+                matches.insert(neig.node);
             }
         }
     }
@@ -376,5 +390,5 @@ fn embed(
         map_hat.set_edge(field, graph_a, node_a, graph_b, node_b);
     }
 
-    true
+    Ok(())
 }

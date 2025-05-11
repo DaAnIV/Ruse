@@ -51,9 +51,13 @@ where
         for i in from..cur_ctxs.len() {
             let last_ctx = &cur_ctxs[i - 1];
             let p = &cur_progs[i];
-            if let Ok(merged_ctx) =
-                merge_context_arrays(&last_ctx.0, &last_ctx.1, p.pre_ctx(), p.post_ctx())
-            {
+
+            if let Ok(merged_ctx) = merge_context_arrays(
+                &last_ctx.0,
+                &last_ctx.1,
+                p.pre_ctx(),
+                p.post_ctx(),
+            ) {
                 cur_ctxs[i] = merged_ctx;
             } else {
                 self.children_iterator.bad_children(i);

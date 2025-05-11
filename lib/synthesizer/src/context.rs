@@ -175,6 +175,7 @@ pub struct Context {
     pub(crate) values: Arc<ValuesMap>,
     pub graphs_map: Arc<GraphsMap>,
     pub graph_id_gen: Arc<GraphIdGenerator>,
+    outputs: Arc<Vec<Value>>,
 }
 
 impl Context {
@@ -183,11 +184,21 @@ impl Context {
         graphs_map: Arc<GraphsMap>,
         graph_id_gen: Arc<GraphIdGenerator>,
     ) -> Box<Self> {
+        Self::with_values_and_outputs(values, vec![], graphs_map, graph_id_gen)
+    }
+
+    pub fn with_values_and_outputs(
+        values: ValuesMap,
+        outputs: Vec<Value>,
+        graphs_map: Arc<GraphsMap>,
+        graph_id_gen: Arc<GraphIdGenerator>,
+    ) -> Box<Self> {
         let mut instance = Box::new(Self {
             hashes: Default::default(),
             values: values.into(),
             graphs_map,
             graph_id_gen,
+            outputs: outputs.into(),
         });
 
         instance.update_hash();
@@ -395,9 +406,24 @@ impl Context {
                 values: values.into(),
                 graphs_map: self.graphs_map.clone(),
                 graph_id_gen: self.graph_id_gen.clone(),
+                outputs: self.outputs.clone(),
             }
             .into(),
         )
+    }
+}
+
+impl Context {
+    pub fn add_output(&mut self, output: Value) {
+        Arc::make_mut(&mut self.outputs).push(output);
+    }
+
+    pub fn clear_outputs(&mut self) {
+        Arc::make_mut(&mut self.outputs).clear();
+    }
+
+    pub fn outputs(&self) -> impl Iterator<Item = &Value> {
+        self.outputs.iter()
     }
 }
 
@@ -723,12 +749,16 @@ impl ContextArray {
         self.inner.is_empty()
     }
 
+    pub fn get_mut(&mut self, index: usize) -> Option<&mut Box<Context>> {
+        self.inner.get_mut(index)
+    }
+
     pub fn iter(&self) -> impl Iterator<Item = &Box<Context>> {
         self.inner.iter()
     }
 
-    pub fn get_mut(&mut self, index: usize) -> Option<&mut Box<Context>> {
-        self.inner.get_mut(index)
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Box<Context>> {
+        self.inner.iter_mut()
     }
 
     pub(crate) fn subset(&self, other: &ContextArray) -> bool {
