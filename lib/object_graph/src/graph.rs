@@ -8,10 +8,8 @@ use std::{
 use crate::{
     graph_map_value::{GraphMapValue, GraphMapWrap},
     graph_node::*,
-    node_index::{DefaultIx, NodeIndex},
-    FieldName, GraphsMap, ObjectType, PrimitiveValue,
+    FieldName, GraphIndex, GraphsMap, NodeIndex, ObjectType, PrimitiveValue,
 };
-pub type GraphIndex = DefaultIx;
 
 type NodesMap = HashMap<NodeIndex, Arc<ObjectGraphNode>>;
 
@@ -136,7 +134,7 @@ impl ObjectGraph {
         id: NodeIndex,
         node: ObjectGraphNode,
     ) -> &mut ObjectGraphNode {
-        assert!(!self.nodes.contains_key(&id));
+        assert!(!self.nodes.contains_key(&id), "Node {} already exists", id);
 
         self.nodes.insert(id, node.into());
         unsafe { Arc::get_mut(self.nodes.get_mut(&id).unwrap_unchecked()).unwrap_unchecked() }

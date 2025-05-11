@@ -7,7 +7,7 @@ use boa_engine::JsResult;
 use ruse_object_graph::{
     class_name,
     value::{ObjectValue, Value},
-    FieldName, GraphsMap, NodeIndex, ObjectGraph, ObjectType, ValueType,
+    FieldName, GraphIndex, GraphsMap, NodeIndex, ObjectGraph, ObjectType, ValueType,
 };
 use ruse_synthesizer::{
     context::GraphIdGenerator,
@@ -117,7 +117,7 @@ impl TsGlobalClassBuilder {
         }
 
         let class = Self {
-            id: gen_id.get_id_for_graph() as u64,
+            id: gen_id.get_id_for_graph().0 as u64,
             fields,
             methods,
             gen_id,
@@ -133,7 +133,7 @@ impl TsGlobalClassBuilder {
 
         let static_graph = if self.fields.values().any(|field| field.is_static) {
             let static_graph_builder = StaticGraphBuilder {
-                id: self.id,
+                id: GraphIndex(self.id as usize),
                 class_name: &class_name!(Self::CLASS_NAME),
                 gen_id: &self.gen_id,
             };

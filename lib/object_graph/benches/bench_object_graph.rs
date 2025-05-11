@@ -44,7 +44,7 @@ fn get_serialized_graphs_from_range(initial_id: GraphIndex) -> Vec<GraphsMap> {
 // }
 
 fn graph_clone(c: &mut Criterion) {
-    let graphs = get_graphs_from_range(0);
+    let graphs = get_graphs_from_range(GraphIndex(0));
 
     let mut group = c.benchmark_group("clone_graph");
 
@@ -78,7 +78,7 @@ fn graph_clone(c: &mut Criterion) {
 // }
 
 fn graph_eq(c: &mut Criterion) {
-    let mut graphs1 = get_serialized_graphs_from_range(0);
+    let mut graphs1 = get_serialized_graphs_from_range(GraphIndex(0));
     let mut graphs2 = graphs1.clone();
 
     let mut group = c.benchmark_group("graph_eq");
@@ -96,12 +96,12 @@ fn graph_eq(c: &mut Criterion) {
 
 fn graph_almost_eq(c: &mut Criterion) {
     let mut rng = StdRng::seed_from_u64(SEED);
-    let map1 = random_gnp_object_graph(0, &mut rng, 1000, 1f64 / f64::sqrt(1000f64));
+    let map1 = random_gnp_object_graph(GraphIndex(0), &mut rng, 1000, 1f64 / f64::sqrt(1000f64));
     let mut map2 = map1.clone();
-    map2.ensure_graph(0);
+    map2.ensure_graph(GraphIndex(0));
 
     let mut edges = Vec::new();
-    for (node_id, node) in map2[0].nodes() {
+    for (node_id, node) in map2[GraphIndex(0)].nodes() {
         for (field, _) in node.pointers_iter() {
             edges.push((*node_id, field.clone()));
         }
@@ -110,22 +110,22 @@ fn graph_almost_eq(c: &mut Criterion) {
     let remove_amount = 10;
     let remove = edges.into_iter().choose_multiple(&mut rng, remove_amount);
     for (id, field) in remove {
-        map2.remove_edge(&field, 0, id);
+        map2.remove_edge(&field, GraphIndex(0), id);
     }
 
     let mut remaining = remove_amount;
     while remaining > 0 {
-        let chosen = zip(map2[0].node_ids().copied(), map2[0].node_ids().copied())
+        let chosen = zip(map2[GraphIndex(0)].node_ids().copied(), map2[GraphIndex(0)].node_ids().copied())
             .choose_multiple(&mut rng, remaining);
         for (s, t) in chosen {
-            if map2[0].contains_internal_edge(&s, &t) {
+            if map2[GraphIndex(0)].contains_internal_edge(&s, &t) {
                 continue;
             }
             map2.set_edge(
                 field_name!(format!("{}_{}", s.index(), t.index())),
-                0,
+                GraphIndex(0),
                 s,
-                0,
+                GraphIndex(0),
                 t,
             );
             remaining -= 1;
@@ -142,8 +142,8 @@ fn graph_almost_eq(c: &mut Criterion) {
 fn graph_ne(c: &mut Criterion) {
     let mut rng = StdRng::seed_from_u64(SEED);
 
-    let g1 = random_gnp_object_graph(0, &mut rng, 1000, 1f64 / f64::sqrt(1000f64));
-    let g2 = random_gnp_object_graph(1, &mut rng, 1000, 1f64 / f64::sqrt(1000f64));
+    let g1 = random_gnp_object_graph(GraphIndex(0), &mut rng, 1000, 1f64 / f64::sqrt(1000f64));
+    let g2 = random_gnp_object_graph(GraphIndex(1), &mut rng, 1000, 1f64 / f64::sqrt(1000f64));
 
     c.bench_function("graph_ne", |b| {
         b.iter(|| {

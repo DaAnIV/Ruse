@@ -2,7 +2,7 @@ use std::collections::{HashMap, VecDeque};
 
 use crate::{error::SnythesisTaskError, parse_err, task_type::TaskType, verify_err};
 use itertools::Itertools;
-use ruse_object_graph::{field_name, graph_walk, root_name, value::Value, GraphsMap};
+use ruse_object_graph::{field_name, graph_walk, root_name, value::Value, GraphIndex, GraphsMap};
 use ruse_synthesizer::context::ValuesMap;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -90,7 +90,7 @@ pub(crate) fn verify_no_var_ref_circle(
     Ok(())
 }
 
-pub(crate) const REF_GRAPH_ID: usize = usize::MAX;
+pub(crate) const REF_GRAPH_ID: GraphIndex = GraphIndex(usize::MAX);
 pub(crate) const REF_GRAPH_FIELD_NAME: &str = "ref";
 pub(crate) const REF_GRAPH_OBJ_TYPE: &str = "VARREF";
 

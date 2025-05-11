@@ -1,7 +1,7 @@
 use core::fmt;
 use std::collections::BTreeMap;
 
-use crate::{node_index::NodeIndex, FieldName, GraphIndex, ObjectType, PrimitiveValue};
+use crate::{FieldName, GraphIndex, NodeIndex, ObjectType, PrimitiveValue};
 
 use std::hash::{Hash, Hasher};
 

@@ -8,6 +8,8 @@ edition = "2021"
 [dependencies]
 hstr.workspace = true
 
+serde.workspace = true
+
 rand.workspace = true
 dashmap.workspace = true
 itertools.workspace = true

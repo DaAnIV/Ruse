@@ -457,7 +457,7 @@ pub trait BuiltinClassWrapper {
 }
 
 pub(crate) struct StaticGraphBuilder<'a> {
-    pub id: u64,
+    pub id: GraphIndex,
     pub class_name: &'a ClassName,
     pub gen_id: &'a Arc<GraphIdGenerator>,
 }
@@ -481,7 +481,7 @@ impl<'a> StaticGraphBuilder<'a> {
     where
         I: IntoIterator<Item = &'b JsFieldDescription>,
     {
-        let graph_id = self.id as GraphIndex;
+        let graph_id = self.id;
         graphs_map.new_static_graph(graph_id);
         self.add_root_node(graphs_map, graph_id, root_node);
 

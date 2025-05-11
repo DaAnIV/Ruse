@@ -263,7 +263,7 @@ impl TsUserClassBuilder {
         });
 
         let class = Self {
-            id: gen_id.get_id_for_graph() as u64,
+            id: gen_id.get_id_for_graph().0 as u64,
             class_name: class_name!(Self::get_class_name(namespace, decl)),
             fields,
             methods,
@@ -305,7 +305,7 @@ impl TsUserClassBuilder {
 
         if self.fields.values().any(|field| field.is_static) {
             let static_graph_builder = StaticGraphBuilder {
-                id: self.id,
+                id: GraphIndex(self.id as usize),
                 class_name: &self.class_name,
                 gen_id: &self.gen_id,
             };

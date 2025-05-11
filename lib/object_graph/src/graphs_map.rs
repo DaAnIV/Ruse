@@ -110,7 +110,7 @@ impl GraphsMap {
         self.weak_components = GraphsMapWeakComponents::from_graphs_map(self);
     }
 
-    pub fn keys(&self) -> impl std::iter::Iterator<Item = &usize> {
+    pub fn keys(&self) -> impl std::iter::Iterator<Item = &GraphIndex> {
         self.graphs.keys()
     }
 
@@ -622,7 +622,7 @@ impl ops::Index<&GraphIndex> for GraphsMap {
 
     fn index(&self, index: &GraphIndex) -> &Self::Output {
         self.get(index)
-            .expect(&format!("No entry found for key {}", index))
+            .expect(&format!("No graph found for Graph ID {}", index))
     }
 }
 
@@ -631,7 +631,7 @@ impl ops::Index<GraphIndex> for GraphsMap {
 
     fn index(&self, index: GraphIndex) -> &Self::Output {
         self.get(&index)
-            .expect(&format!("No entry found for key {}", index))
+            .expect(&format!("No graph found for Graph ID {}", index))
     }
 }
 

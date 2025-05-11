@@ -31,7 +31,7 @@ pub mod object_graph_generator {
         let mut discovered = base.visit_map();
 
         let mut map =
-            HashMap::<petgraph::graph::NodeIndex, node_index::NodeIndex>::with_capacity(n);
+            HashMap::<petgraph::graph::NodeIndex, indices::NodeIndex>::with_capacity(n);
         let mut graphs_map = GraphsMap::new();
         graphs_map.ensure_graph(graph_id);
         let root_field_string = field_name!("r");

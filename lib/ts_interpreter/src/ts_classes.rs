@@ -7,7 +7,7 @@ use std::{
 
 use anyhow::Error;
 use itertools::Itertools;
-use ruse_object_graph::{class_name, ClassName, GraphsMap, NodeIndex, ObjectType};
+use ruse_object_graph::{class_name, ClassName, GraphIndex, GraphsMap, NodeIndex, ObjectType};
 use ruse_synthesizer::context::{GraphIdGenerator, SynthesizerContextData};
 use swc_common::{
     errors::{ColorConfig, Handler},
@@ -259,7 +259,7 @@ impl TsClassesBuilder {
 
         let gen_id = Arc::new(GraphIdGenerator::with_initial_values(
             NodeIndex(0),
-            builtin_classes.len(),
+            GraphIndex(builtin_classes.len()),
         ));
 
         let mut classes = TsClasses {

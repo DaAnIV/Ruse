@@ -6,6 +6,7 @@ mod tests {
     use crate::field_name;
     use crate::generator::object_graph_generator::*;
     use crate::root_name;
+    use crate::GraphIndex;
     use crate::GraphsMap;
     use crate::ObjectType;
     use crate::{fields, NodeIndex, PrimitiveValue};
@@ -16,7 +17,7 @@ mod tests {
     fn eq_random_graphs() {
         let mut rng = StdRng::seed_from_u64(SEED);
 
-        let graphs_map_1 = random_gnp_object_graph(0, &mut rng, 10, 0.5);
+        let graphs_map_1 = random_gnp_object_graph(GraphIndex(0), &mut rng, 10, 0.5);
         let graphs_map_2 = graphs_map_1.clone();
         assert_eq!(graphs_map_1, graphs_map_2, "Graphs are not equal");
     }
@@ -34,10 +35,10 @@ mod tests {
         let field_name_b = field_name!("b");
         let field_name_c = field_name!("c");
 
-        let g1 = 0;
-        let g2 = 1;
+        let g1 = GraphIndex(0);
+        let g2 = GraphIndex(1);
 
-        graphs_map_1.ensure_graph(0);
+        graphs_map_1.ensure_graph(GraphIndex(0));
         let n11 = graphs_map_1.add_simple_object(
             g1,
             NodeIndex(0),
@@ -101,8 +102,8 @@ mod tests {
         let field_name_b2 = field_name!("b2");
         let field_name_c = field_name!("c");
 
-        let g1 = 0;
-        let g2 = 0;
+        let g1 = GraphIndex(0);
+        let g2 = GraphIndex(1);
 
         map1.ensure_graph(g1);
         let n11 = map1.add_simple_object(
@@ -167,8 +168,8 @@ mod tests {
         let field_name_b = field_name!("b");
         let field_name_c = field_name!("c");
 
-        let g1 = 0;
-        let g2 = 1;
+        let g1 = GraphIndex(0);
+        let g2 = GraphIndex(1);
 
         map1.ensure_graph(g1);
         let n11 = map1.add_simple_object(
@@ -232,8 +233,8 @@ mod tests {
         let field_name_b = field_name!("b");
         let field_name_c = field_name!("c");
 
-        let g1 = 0;
-        let g2 = 1;
+        let g1 = GraphIndex(0);
+        let g2 = GraphIndex(1);
 
         map1.ensure_graph(g1);
         let n11 = map1.add_simple_object(
@@ -279,8 +280,8 @@ mod tests {
         );
         map2.set_edge(field_name!("13"), g2, n21, g2, n23);
 
-        map1.set_as_root(root_name.clone(), 0, n11);
-        map2.set_as_root(root_name, 1, n21);
+        map1.set_as_root(root_name.clone(), g1, n11);
+        map2.set_as_root(root_name, g2, n21);
         assert_eq!(map1, map2, "Graphs are not equal");
     }
 
@@ -298,9 +299,9 @@ mod tests {
     #[test]
     fn eq_graphs_2_rng() {
         let mut rng1 = StdRng::seed_from_u64(SEED);
-        let map1 = random_gnp_object_graph(0, &mut rng1, 10, 0.5);
+        let map1 = random_gnp_object_graph(GraphIndex(0), &mut rng1, 10, 0.5);
         let mut rng2 = StdRng::seed_from_u64(SEED);
-        let map2 = random_gnp_object_graph(1, &mut rng2, 10, 0.5);
+        let map2 = random_gnp_object_graph(GraphIndex(1), &mut rng2, 10, 0.5);
 
         assert_eq!(map1, map2, "Graphs are not equal");
     }
@@ -346,7 +347,7 @@ mod tests {
     #[test]
     fn print_graph() {
         let mut graphs_map = GraphsMap::default();
-        let graph_id = 0;
+        let graph_id = GraphIndex(0);
 
         graphs_map.ensure_graph(graph_id);
 
@@ -365,7 +366,7 @@ mod tests {
             fields!((field_name.clone(), PrimitiveValue::Number(4u64.into()))),
         );
         graphs_map.set_edge(field_name!("c"), graph_id, n1, graph_id, n2);
-        graphs_map.set_as_root(root_name!("Root"), 0, n1);
+        graphs_map.set_as_root(root_name!("Root"), graph_id, n1);
 
         // ObjectGraph::set_graphs_map(graphs_map.into());
         println!("{}", dot::Dot::from_graphs_map(&graphs_map));
@@ -375,7 +376,7 @@ mod tests {
     #[test]
     fn print_rng_graph() {
         let mut rng1 = StdRng::seed_from_u64(SEED);
-        let graphs_map = random_gnp_object_graph(0, &mut rng1, 5, 0.2);
+        let graphs_map = random_gnp_object_graph(GraphIndex(0), &mut rng1, 5, 0.2);
 
         // ObjectGraph::set_graphs_map(graphs_map.into());
         println!("{}", dot::Dot::from_graphs_map(&graphs_map));
@@ -385,14 +386,14 @@ mod tests {
     #[test]
     fn print_chain_to_rng_graph() {
         let mut rng1 = StdRng::seed_from_u64(SEED);
-        let g1 = 0;
+        let g1 = GraphIndex(0);
         let mut map1 = random_gnp_object_graph(g1, &mut rng1, 5, 0.2);
 
         let obj_name_a = ObjectType::class_obj_type("A");
         let root_name = root_name!("root");
         let field_name_a = field_name!("a");
 
-        let g2 = 1;
+        let g2 = GraphIndex(1);
         map1.ensure_graph(g2);
         let n1 = map1.add_simple_object(
             g2,
@@ -404,7 +405,7 @@ mod tests {
         let chained_index = NodeIndex(0);
         map1.set_edge(field_name_a, g2, n1, g1, chained_index);
 
-        map1.set_as_root(root_name.clone(), 0, n1);
+        map1.set_as_root(root_name.clone(), g2, n1);
 
         println!("{}", dot::Dot::from_graphs_map(&map1));
     }
