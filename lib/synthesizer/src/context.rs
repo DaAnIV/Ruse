@@ -619,8 +619,8 @@ impl Context {
             return false;
         }
 
-        let mut equal_nodes: HashMap<(GraphIndex, NodeIndex), (GraphIndex, NodeIndex)> =
-            HashMap::new();
+        let mut self_object_nodes = vec![];
+        let mut other_object_nodes = vec![];
 
         for (key, self_value) in self.values.iter() {
             let other_value = &other.values[key];
@@ -634,17 +634,8 @@ impl Context {
                     }
                 }
                 (Value::Object(self_object_value), Value::Object(other_object_value)) => {
-                    if !graph_equality::sim_walk_equal(
-                        &self.graphs_map,
-                        self_object_value.graph_id,
-                        self_object_value.node,
-                        &other.graphs_map,
-                        other_object_value.graph_id,
-                        other_object_value.node,
-                        &mut equal_nodes,
-                    ) {
-                        return false;
-                    }
+                    self_object_nodes.push((self_object_value.graph_id, self_object_value.node));
+                    other_object_nodes.push((other_object_value.graph_id, other_object_value.node));
                 }
                 (_, _) => {
                     return false;
@@ -652,7 +643,12 @@ impl Context {
             }
         }
 
-        true
+        equal_graphs_by_nodes(
+            &self.graphs_map,
+            &other.graphs_map,
+            self_object_nodes,
+            other_object_nodes,
+        )
     }
 }
 
