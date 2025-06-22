@@ -133,6 +133,7 @@ fn init_results(task: &SnythesisTask, results: &mut BenchmarkResult) {
         Vec::from_iter(task.string_literals.iter().cloned()),
         Vec::from_iter(task.num_literals.iter().cloned()),
     );
+    results.opcode_count = task.opcode_count();
 }
 
 pub fn run_task(path: &Path, bench_config: &BenchmarkConfig) -> BenchmarkResult {

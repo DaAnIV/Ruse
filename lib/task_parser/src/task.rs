@@ -568,6 +568,10 @@ impl SnythesisTask {
         opcodes
     }
 
+    pub fn opcode_count(&self) -> usize {
+        self.get_opcodes().len()
+    }
+
     fn get_filter(&self) -> Box<dyn Fn(&Arc<dyn ExprOpcode>) -> bool> {
         if let Some(filter) = &self.inner.opcodes {
             let wildcard_filter = filter

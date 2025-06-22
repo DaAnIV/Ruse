@@ -22,6 +22,7 @@ pub struct BenchmarksIteration {
 #[derive(Serialize, Debug, Clone)]
 pub struct BenchmarkResult {
     path: PathBuf,
+    pub opcode_count: usize,
     string_literals: Option<Vec<String>>,
     num_literals: Option<Vec<i64>>,
     iterations: Vec<BenchmarksIteration>,
@@ -35,6 +36,7 @@ impl BenchmarkResult {
     pub fn new(path: &Path) -> Self {
         Self {
             path: PathBuf::from(path),
+            opcode_count: 0,
             iterations: vec![],
             string_literals: None,
             num_literals: None,
