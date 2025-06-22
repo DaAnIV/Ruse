@@ -4,18 +4,12 @@ use boa_engine::{
     context::intrinsics::StandardConstructor, js_string, object::PROTOTYPE, value::JsValue, JsArgs,
     JsNativeError, JsObject, JsResult,
 };
-use itertools::Itertools;
-use ruse_object_graph::{
-    class_name, field_name,
-    value::{ObjectValue, Value},
-    Attributes, ClassName, FieldName, FieldsMap, ObjectType, PrimitiveField, PrimitiveValue,
-};
+use ruse_object_graph::{class_name, value::ObjectValue, ClassName, FieldsMap, ObjectType};
 
 use crate::{
     engine_context::{EngineContext, RuseJsGlobalObject},
     js_errors::*,
     js_object_value::JsObjectValue,
-    js_value::TryFromJs,
     ts_class::{JsFieldDescription, MethodDescription, MethodKind, TsClassDescription},
 };
 
@@ -125,18 +119,12 @@ impl JsUserClassWrapper {
         method: &MethodDescription,
         boa_ctx: &mut boa_engine::Context,
     ) -> boa_engine::NativeFunction {
-        let arg_names = method
-            .params
-            .iter()
-            .map(|p| p.name.as_str())
-            .collect::<Vec<_>>()
-            .join(", ");
-        let code = format!(
-            "function func({}) {{{}}}\nfunc",
-            arg_names,
-            method.body.as_ref().unwrap()
+        let js_source_str = format!(
+            "function __func({}) {{{}}}\n__func",
+            &method.param_names.join(", "),
+            &method.body_code,
         );
-        let js_source = boa_engine::Source::from_bytes(code.as_str());
+        let js_source = boa_engine::Source::from_bytes(&js_source_str);
         let js_func = boa_ctx.eval(js_source).unwrap();
 
         let func = js_func.to_object(boa_ctx).unwrap();
@@ -152,47 +140,13 @@ impl JsUserClassWrapper {
     fn create_new_object(
         &self,
         _new_target: &boa_engine::JsValue,
-        args: &[boa_engine::JsValue],
+        _args: &[boa_engine::JsValue],
         engine_ctx: &mut EngineContext<'_>,
     ) -> boa_engine::JsResult<ObjectValue> {
         let global_obj = engine_ctx.global_object();
         let global_ctx = RuseJsGlobalObject::from_object(&global_obj)?;
 
         let id_gen = global_ctx.id_gen()?;
-
-        let primitive_fields =
-            self.desc
-                .fields
-                .values()
-                .filter_map(|field| {
-                    if field.is_static || field.is_constructor_prop {
-                        return None;
-                    }
-
-                    let field_name: FieldName = field.name.clone();
-                    let value = field.get_primitive_value()?;
-                    let attributes = Attributes {
-                        readonly: field.is_readonly,
-                    };
-                    let primitive_field = PrimitiveField { value, attributes };
-                    Some((field_name, primitive_field))
-                })
-                .chain(self.desc.constructor.params.iter().zip_eq(args).filter_map(
-                    |(param, arg)| {
-                        if !param.is_prop && !param.value_type.is_primitive() {
-                            return None;
-                        }
-
-                        let field = &self.desc.fields[param.name.as_str()];
-                        let field_name = field_name!(param.name.as_str());
-                        let value = PrimitiveValue::try_from_js(&arg, engine_ctx).ok()?;
-                        let attributes = Attributes {
-                            readonly: field.is_readonly,
-                        };
-                        let primitive_field = PrimitiveField { value, attributes };
-                        Some((field_name, primitive_field))
-                    },
-                ));
 
         let graph_id = global_ctx.get_graph_id_for_new_object()?;
         let node_id = id_gen.get_id_for_node();
@@ -203,19 +157,8 @@ impl JsUserClassWrapper {
             graph_id,
             node_id,
             ObjectType::Class(self.desc.class_name.clone()),
-            FieldsMap::from_iter(primitive_fields),
+            FieldsMap::default(),
         );
-
-        for (param, arg) in self.desc.constructor.params.iter().zip_eq(args) {
-            if !param.is_prop || param.value_type.is_primitive() {
-                continue;
-            }
-
-            if !arg.is_null_or_undefined() {
-                let obj_val = Value::try_from_js(arg, engine_ctx)?;
-                graphs_map.set_field(field_name!(param.name.clone()), graph_id, node_id, &obj_val);
-            }
-        }
 
         Ok(ObjectValue {
             obj_type: ObjectType::Class(self.desc.class_name.clone()),
@@ -296,14 +239,14 @@ impl JsUserClassWrapper {
             boa_engine::object::ConstructorBuilder::new(engine_ctx, jsfn_wrap!(Self::construct));
         builder
             .name(desc.class_name.as_str())
-            .length(desc.constructor.params.len())
+            .length(desc.constructor.param_types.len())
             .has_prototype_property(true);
 
         let constructor_body_func = Self::method_js_function(&desc.constructor, builder.context());
         builder.method(
             constructor_body_func,
             js_string!(Self::constructor_body_name()),
-            desc.constructor.params.len(),
+            desc.constructor.param_types.len(),
         );
 
         for field in desc.fields.values() {
@@ -334,9 +277,9 @@ impl JsUserClassWrapper {
             let func = Self::method_js_function(method, builder.context());
             if method.kind == MethodKind::Method {
                 if method.is_static {
-                    builder.static_method(func, func_name, method.params.len());
+                    builder.static_method(func, func_name, method.param_types.len());
                 } else {
-                    builder.method(func, func_name, method.params.len());
+                    builder.method(func, func_name, method.param_types.len());
                 }
             } else {
                 let val = match getter_setters.entry(func_name) {
@@ -353,7 +296,7 @@ impl JsUserClassWrapper {
                         builder.method(
                             func.clone(),
                             js_string!(Self::getter_name(method.name.as_str())),
-                            method.params.len(),
+                            method.param_types.len(),
                         );
                         val.0 = Some(func.to_js_function(builder.context().realm()))
                     }
@@ -361,7 +304,7 @@ impl JsUserClassWrapper {
                         builder.method(
                             func.clone(),
                             js_string!(Self::setter_name(method.name.as_str())),
-                            method.params.len(),
+                            method.param_types.len(),
                         );
                         val.1 = Some(func.to_js_function(builder.context().realm()))
                     }

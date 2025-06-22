@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+serde_json.workspace = true
+
 ruse_object_graph.workspace = true
 ruse_synthesizer.workspace = true
 
@@ -14,6 +16,12 @@ swc_common.workspace = true
 swc_ecma_codegen.workspace = true
 swc_ecma_parser.workspace = true
 swc_ecma_ast.workspace = true
+swc_ecma_transforms.workspace = true
+swc_ecma_minifier.workspace = true
+swc_ecma_visit.workspace = true
+swc_typescript.workspace = true
+swc_compiler_base.workspace = true
+swc_ecma_utils.workspace = true
 
 anyhow.workspace = true
 itertools.workspace = true

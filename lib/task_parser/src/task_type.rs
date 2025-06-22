@@ -321,23 +321,21 @@ impl TaskType {
         id_gen: &Arc<GraphIdGenerator>,
         refs_graph_id: Option<GraphIndex>,
     ) -> Result<Value, SnythesisTaskError> {
-        let fields_types: HashMap<&str, TaskType> = HashMap::from_iter(
-            class
-                .description
-                .fields
-                .iter()
-                .map(|(k, v)| (k.as_str(), TaskType::from(&v.value_type))),
-        );
-
         let mut values = HashMap::new();
         for (k, v) in fields {
             let key = field_name!(k.as_str());
-            let value_type = match fields_types.get(&k.as_str()) {
-                Some(value_type) => value_type,
-                None => return Err(verify_err!("{} type is unknown", k)),
-            };
+            let field_desc = class
+                .description
+                .fields
+                .get(k)
+                .ok_or(verify_err!("field {} is unknown", k))?;
+            let value_type = field_desc
+                .value_type
+                .as_ref()
+                .ok_or(verify_err!("field {} type is unknown", k))?;
+            let task_type = Self::from(value_type);
             let value =
-                value_type.create_value(v, classes, graph_id, graphs_map, id_gen, refs_graph_id)?;
+                task_type.create_value(v, classes, graph_id, graphs_map, id_gen, refs_graph_id)?;
             values.insert(key, value);
         }
 
@@ -379,7 +377,7 @@ impl TaskType {
                 desc
             }
         };
-        let arg_types = method_desc.params.iter().map(|x| Self::from(&x.value_type));
+        let arg_types = method_desc.param_types[0].iter().map(Self::from);
         let args = parse_json_values_array(
             json_args, arg_types, graph_id, graphs_map, id_gen, classes, None,
         )?;
@@ -521,7 +519,7 @@ impl TaskType {
                     field_name, class_name
                 )
             ))?;
-        if &field_desc.value_type != &self.value_type() {
+        if &field_desc.value_type != &Some(self.value_type()) {
             return Err(parse_err!(
                 value_string,
                 format!(

@@ -413,7 +413,6 @@ impl SnythesisTaskInner {
 pub struct SnythesisTask {
     inner: SnythesisTaskInner,
     classes: Box<TsClasses>,
-    class_names: Vec<ClassName>,
     pub string_literals: HashSet<String, BuildHasherDefault<DefaultHasher>>,
     pub num_literals: HashSet<i64, BuildHasherDefault<DefaultHasher>>,
 }
@@ -561,7 +560,7 @@ impl SnythesisTask {
         let mut opcodes =
             construct_opcode_list(&var_names, &self.num_literals, &string_literals, false);
 
-        let composite_opcodes = Self::get_composite_opcodes(&self.classes, &self.class_names, true);
+        let composite_opcodes = Self::get_composite_opcodes(&self.classes, true);
 
         opcodes.extend(composite_opcodes.into_iter().filter(self.get_filter()));
 
@@ -584,11 +583,7 @@ impl SnythesisTask {
         }
     }
 
-    pub fn get_composite_opcodes(
-        classes: &TsClasses,
-        class_names: &Vec<ClassName>,
-        add_seq: bool,
-    ) -> OpcodesList {
+    pub fn get_composite_opcodes(classes: &TsClasses, add_seq: bool) -> OpcodesList {
         let mut composite_opcodes = OpcodesList::new();
         add_num_opcodes(
             &mut composite_opcodes,
@@ -610,8 +605,8 @@ impl SnythesisTask {
         if add_seq {
             let mut value_types = vec![ValueType::Number, ValueType::String, ValueType::Null];
             value_types.extend(
-                class_names
-                    .iter()
+                classes
+                    .classes_names()
                     .map(|x| ValueType::class_value_type(x.clone())),
             );
             value_types.push(ValueType::array_value_type(&ValueType::Number));
@@ -621,20 +616,15 @@ impl SnythesisTask {
             add_seq_opcodes(&mut composite_opcodes, 2, &value_types);
         }
 
-        composite_opcodes.extend(Self::get_classes_opcodes(classes, class_names, true));
+        composite_opcodes.extend(Self::get_classes_opcodes(classes, true));
 
         composite_opcodes
     }
 
-    pub fn get_classes_opcodes(
-        classes: &TsClasses,
-        class_names: &Vec<ClassName>,
-        add_global: bool,
-    ) -> OpcodesList {
+    pub fn get_classes_opcodes(classes: &TsClasses, add_global: bool) -> OpcodesList {
         let mut composite_opcodes = OpcodesList::new();
 
-        for class_name in class_names {
-            let class = classes.get_user_class(class_name).unwrap();
+        for class in classes.user_classes() {
             composite_opcodes.extend_from_slice(&class.member_opcodes);
             composite_opcodes.extend_from_slice(&class.method_opcodes);
             composite_opcodes.extend_from_slice(&class.constructor_opcodes);
@@ -692,15 +682,9 @@ impl SnythesisTask {
         }
 
         let mut builder = TsClassesBuilder::new();
-        let mut class_names = vec![];
         if let Some(classes_code) = &inner.classes {
             for code in classes_code {
-                match builder.add_classes(code) {
-                    Ok(classes_name) => class_names.extend(classes_name),
-                    Err(e) => {
-                        return Err(parse_err!(code, e));
-                    }
-                }
+                builder.add_classes(code).map_err(|e| parse_err!(code, e))?;
             }
         }
 
@@ -710,12 +694,9 @@ impl SnythesisTask {
                     true => path.parent().unwrap().join(ts_file),
                     false => ts_file.clone(),
                 };
-                match builder.add_ts_files(&full_path) {
-                    Ok(names) => class_names.extend(names),
-                    Err(e) => {
-                        return Err(parse_err!(String::from(full_path.to_string_lossy()), e));
-                    }
-                };
+                builder
+                    .add_files(&full_path)
+                    .map_err(|e| parse_err!(String::from(full_path.to_string_lossy()), e))?;
             }
         }
 
@@ -757,7 +738,6 @@ impl SnythesisTask {
             string_literals,
             num_literals,
             classes,
-            class_names,
             inner,
         })
     }

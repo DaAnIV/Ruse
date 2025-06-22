@@ -15,6 +15,7 @@ pub mod ts_op_helpers {
         Arc::new(opcode::ClassMethodOp::new(
             class.description.class_name.clone(),
             &class.description.methods[method_name],
+            class.description.methods[method_name].param_types[0].clone()
         ))
     }
 
@@ -285,7 +286,7 @@ mod ts_class_tests {
 
     #[test]
     fn generate_object() {
-        let code = "class User {
+        let code = "export class User {
             constructor(public name: string, 
                         public surname: string) {}
         }";
@@ -293,10 +294,10 @@ mod ts_class_tests {
         let id_gen = Arc::new(GraphIdGenerator::default());
         let mut builder = TsClassesBuilder::new();
 
-        let user_class_name =
-            builder.add_classes(code).expect("Failed to add User class")[0].clone();
+        builder.add_classes(code).expect("Failed to add User class");
         let classes = builder.finalize();
 
+        let user_class_name = class_name!("User");
         let graph_id = id_gen.get_id_for_graph();
         graphs_map.ensure_graph(graph_id);
         let user = classes
@@ -323,14 +324,14 @@ mod ts_class_tests {
 
     #[test]
     fn member_opcodes() {
-        let code = "class User {
+        let code = "export class User {
             constructor(public name: string, 
                         public surname: string) {}
         }";
         let mut builder = TsClassesBuilder::new();
 
-        let user_class_name =
-            builder.add_classes(code).expect("Failed to add User class")[0].clone();
+        builder.add_classes(code).expect("Failed to add User class");
+        let user_class_name = class_name!("User");
 
         let classes = builder.finalize();
 
@@ -346,25 +347,25 @@ mod ts_class_tests {
 
     #[test]
     fn object_fields() {
-        let code1 = "class Student {
+        let code1 = "export class Student {
             constructor(public name: string, 
                         public surname: string,
                         public age: number,
                         public grades: number[]) {}
         }";
-        let code2 = "class Class {
+        let code2 = "export class Class {
             constructor(public students: Student[]) {}
         }";
 
         let mut builder = TsClassesBuilder::new();
 
-        let student_class_name = builder.add_classes(code1).unwrap()[0].clone();
-        let class_class_name = builder.add_classes(code2).unwrap()[0].clone();
+        builder.add_classes(code1).expect("Failed to add Student class");
+        builder.add_classes(code2).expect("Failed to add Class class");
 
         let classes = builder.finalize();
 
-        let student_class = classes.get_user_class(&student_class_name).unwrap();
-        let class_class = classes.get_user_class(&class_class_name).unwrap();
+        let student_class = classes.get_user_class(&class_name!("Student")).unwrap();
+        let class_class = classes.get_user_class(&class_name!("Class")).unwrap();
 
         assert!(student_class.description.fields.get("name").is_some());
         assert!(student_class.description.fields.get("surname").is_some());
@@ -374,23 +375,23 @@ mod ts_class_tests {
 
         assert_eq!(
             student_class.description.fields["name"].value_type,
-            ValueType::String
+            Some(ValueType::String)
         );
         assert_eq!(
             student_class.description.fields["surname"].value_type,
-            ValueType::String
+            Some(ValueType::String)
         );
         assert_eq!(
             student_class.description.fields["age"].value_type,
-            ValueType::Number
+            Some(ValueType::Number)
         );
         assert_eq!(
             student_class.description.fields["grades"].value_type,
-            ValueType::array_value_type(&ValueType::Number)
+            Some(ValueType::array_value_type(&ValueType::Number))
         );
         assert_eq!(
             class_class.description.fields["students"].value_type,
-            ValueType::array_value_type(&student_class.obj_type(None))
+            Some(ValueType::array_value_type(&student_class.obj_type(None)))
         );
 
         assert!(class_class
@@ -402,7 +403,7 @@ mod ts_class_tests {
 
     #[test]
     fn simple_js_object_eval() {
-        let code = "class User {
+        let code = "export class User {
             constructor(public name: string, 
                         public surname: string) {}
         }";
@@ -411,8 +412,8 @@ mod ts_class_tests {
         let id_gen = Arc::new(GraphIdGenerator::default());
         let mut builder = TsClassesBuilder::new();
 
-        let user_class_name =
-            builder.add_classes(code).expect("Failed to add User class")[0].clone();
+        builder.add_classes(code).expect("Failed to add User class");
+        let user_class_name = class_name!("User");
 
         let classes = builder.finalize();
 
@@ -449,14 +450,14 @@ mod ts_class_tests {
 
     #[test]
     fn complex_js_object_eval() {
-        let code1 = "class User {
+        let code1 = "export class User {
             constructor(public name: string, 
                         public surname: string,
                         public age: number,
                         protected is_admin: bool,
                         public grades: number[]) {}
         }";
-        let code2 = "class UserPair {
+        let code2 = "export class UserPair {
             constructor(public user1: User, 
                         public user2: User) {}
         }";
@@ -465,13 +466,13 @@ mod ts_class_tests {
         let id_gen = Arc::new(GraphIdGenerator::default());
         let mut builder = TsClassesBuilder::new();
 
-        let user_class_name = builder.add_classes(code1).unwrap()[0].clone();
-        let user_pair_class_name = builder.add_classes(code2).unwrap()[0].clone();
+        builder.add_classes(code1).expect("Failed to add User class");
+        builder.add_classes(code2).expect("Failed to add UserPair class");
 
         let classes = builder.finalize();
 
-        let user_class = classes.get_user_class(&user_class_name).unwrap();
-        let user_class_pair = classes.get_user_class(&user_pair_class_name).unwrap();
+        let user_class = classes.get_user_class(&class_name!("User")).unwrap();
+        let user_class_pair = classes.get_user_class(&class_name!("UserPair")).unwrap();
 
         let user1_graph_id = id_gen.get_id_for_graph();
         graphs_map.ensure_graph(user1_graph_id);
@@ -536,7 +537,7 @@ mod ts_class_tests {
 
     #[test]
     fn js_object_eval_set() {
-        let code = "class User {
+        let code = "export class User {
             constructor(public name: string, 
                         public surname: string) {}
 
@@ -547,8 +548,8 @@ mod ts_class_tests {
         let id_gen = Arc::new(GraphIdGenerator::default());
         let mut builder = TsClassesBuilder::new();
 
-        let user_class_name =
-            builder.add_classes(code).expect("Failed to add User class")[0].clone();
+        builder.add_classes(code).expect("Failed to add User class");
+        let user_class_name = class_name!("User");
 
         let classes = builder.finalize();
 
@@ -619,7 +620,7 @@ mod ts_class_tests {
 
     #[test]
     fn js_object_method_opcode() {
-        let code = "class User {
+        let code = "export class User {
             constructor(public name: string, 
                         public surname: string) {}
 
@@ -634,8 +635,8 @@ mod ts_class_tests {
         let id_gen = Arc::new(GraphIdGenerator::default());
         let mut builder = TsClassesBuilder::new();
 
-        let user_class_name =
-            builder.add_classes(code).expect("Failed to add User class")[0].clone();
+        builder.add_classes(code).expect("Failed to add User class");
+        let user_class_name = class_name!("User");
 
         let classes = builder.finalize();
 
@@ -728,7 +729,7 @@ mod ts_class_tests {
 
     #[test]
     fn call_constructor() {
-        let code = "class User {
+        let code = "export class User {
             public fullname: string;
 
             constructor(public name: string, 
@@ -741,8 +742,8 @@ mod ts_class_tests {
         let id_gen = Arc::new(GraphIdGenerator::default());
         let mut builder = TsClassesBuilder::new();
 
-        let user_class_name =
-            builder.add_classes(code).expect("Failed to add User class")[0].clone();
+        builder.add_classes(code).expect("Failed to add User class");
+        let user_class_name = class_name!("User");
 
         let classes = builder.finalize();
 
@@ -782,7 +783,7 @@ mod ts_class_tests {
 
     #[test]
     fn eval_new() {
-        let code = "class User {
+        let code = "export class User {
             public fullname: string;
 
             constructor(public name: string, 
@@ -871,39 +872,6 @@ mod ts_class_tests {
             .unwrap();
         let func_res_number = func_res.to_i32(&mut boa_ctx).unwrap();
         assert_eq!(func_res_number, 5);
-    }
-
-    #[test]
-    fn eval_class() {
-        let mut boa_ctx = EngineContext::new_boa_ctx();
-        let res = boa_ctx
-            .eval(boa_engine::Source::from_bytes(
-                "class BinarySearchTreeNode {
-                    
-                right() {
-                    return this + 5;
-                }
-                min_node() {
-                    let node = this;
-                    while (node.left !== null) {
-                        node = node.left;
-                    }
-
-                    return node;
-                }   
-            }
-            BinarySearchTreeNode.prototype",
-            ))
-            .unwrap();
-        let p = res.to_object(&mut boa_ctx).unwrap();
-        let b = p.get(js_str!("right"), &mut boa_ctx).unwrap();
-        let test = b
-            .as_callable()
-            .unwrap()
-            .call(&JsValue::new(5), &[], &mut boa_ctx)
-            .unwrap();
-        println!("{:?}", b);
-        println!("{:?}", test);
     }
 }
 
@@ -1095,3 +1063,158 @@ mod specific_bugs_tests {
         );
     }
 }
+
+// #[cfg(test)]
+// mod swc_parser {
+//     use std::path::Path;
+//     use std::sync::Arc;
+
+//     use swc_common::errors::{ColorConfig, Handler};
+//     use swc_common::{Mark, SourceMap};
+//     use swc_ecma_ast::{self as ast, Pass};
+//     use swc_ecma_parser::{Syntax, TsSyntax};
+//     use swc_ecma_visit::{VisitMutWith, VisitWith};
+
+//     use crate::dts_visitor::DtsVisitor;
+
+//     #[test]
+//     fn test_dts_parser_dts_file() {
+//         let cm = Arc::<SourceMap>::default();
+//         let handler = Handler::with_tty_emitter(ColorConfig::Auto, true, false, Some(cm.clone()));
+//         let fm = cm
+//             .load_file(Path::new(
+//                 "../../benchmarks/tasks/fromFrangel/classes/linear/matrix_test.d.ts",
+//             ))
+//             .expect("failed to load file");
+
+//         let c = swc::Compiler::new(cm.clone());
+
+//         for file in cm.files().iter() {
+//             println!("{}", file.name);
+//         }
+
+//         let dts_prog = swc_common::GLOBALS.set(&Default::default(), || {
+//             c.parse_js(
+//                 fm,
+//                 &handler,
+//                 ast::EsVersion::Es2022,
+//                 Syntax::Typescript(TsSyntax {
+//                     tsx: false,
+//                     decorators: false,
+//                     dts: true,
+//                     no_early_errors: false,
+//                     disallow_ambiguous_jsx_like: false,
+//                 }),
+//                 swc::config::IsModule::Bool(true),
+//                 None,
+//             ).unwrap()
+//         });
+
+//         let mut dts_visitor = DtsVisitor::default();
+//         dts_prog.visit_with(&mut dts_visitor);
+//         println!("{:#?}", dts_visitor.classes);
+//         println!("{:#?}", dts_visitor.functions);
+//         println!("{:#?}", dts_visitor.globals);
+//     }
+
+//     #[test]
+//     fn test_dts_parser() {
+//         println!("{}", std::env::current_dir().unwrap().display());
+//         let cm = Arc::<SourceMap>::default();
+//         let handler = Handler::with_tty_emitter(ColorConfig::Auto, true, false, Some(cm.clone()));
+//         let fm1 = cm
+//             .load_file(Path::new(
+//                 "../../benchmarks/tasks/fromFrangel/classes/linear/matrix.ts",
+//             ))
+//             .expect("failed to load file");
+//         let fm2 = cm
+//             .load_file(Path::new(
+//                 "../../benchmarks/tasks/fromFrangel/classes/linear/svd.ts",
+//             ))
+//             .expect("failed to load file");
+//         let fm3 = cm
+//             .load_file(Path::new(
+//                 "../../benchmarks/tasks/fromFrangel/classes/linear/matrix.d.ts",
+//             ))
+//             .expect("failed to load file");
+
+//         let c = swc::Compiler::new(cm.clone());
+
+//         for file in cm.files().iter() {
+//             println!("{}", file.name);
+//         }
+
+//         let (optimized, dts_prog) = swc_common::GLOBALS.set(&Default::default(), || {
+//             let mut program = c
+//                 .parse_js(
+//                     fm1.clone(),
+//                     &handler,
+//                     ast::EsVersion::Es2022,
+//                     Syntax::Typescript(TsSyntax {
+//                         tsx: false,
+//                         decorators: false,
+//                         dts: false,
+//                         no_early_errors: false,
+//                         disallow_ambiguous_jsx_like: false,
+//                     }),
+//                     swc::config::IsModule::Bool(true),
+//                     None,
+//                 )
+//                 .unwrap();
+
+//             let unresolved_mark = Mark::from_u32(2048);
+//             let top_level_mark = Mark::from_u32(1024);
+
+//             let mut optimized = c.run_transform(&handler, false, || {
+//                 program.mutate(&mut swc_ecma_transforms::resolver(
+//                     unresolved_mark,
+//                     top_level_mark,
+//                     true,
+//                 ));
+
+//                 program.visit_mut_with(&mut swc_ecma_transforms::hygiene::hygiene_with_config(
+//                     swc_ecma_transforms::hygiene::Config {
+//                         top_level_mark: top_level_mark,
+//                         keep_class_names: false,
+//                         ..Default::default()
+//                     },
+//                 ));
+//                 program
+//             });
+
+//             let mut dts_prog = optimized.clone();
+//             let mut fast_dts = swc_typescript::fast_dts::FastDts::new(
+//                 fm1.name.clone(),
+//                 unresolved_mark,
+//                 Default::default(),
+//             );
+//             let issues = fast_dts.transform(&mut dts_prog);
+
+//             for issue in issues {
+//                 handler
+//                     .struct_span_err(issue.range.span, &issue.message)
+//                     .emit();
+//             }
+
+//             let mut stripper =
+//                 swc_ecma_transforms::typescript::strip(unresolved_mark, top_level_mark);
+//             stripper.process(&mut optimized);
+
+//             let mut simplifier =
+//                 swc_ecma_transforms::optimization::simplifier(unresolved_mark, Default::default());
+//             simplifier.process(&mut optimized);
+
+//             (optimized, dts_prog)
+//         });
+
+//         let mut dts_visitor = DtsVisitor::default();
+//         dts_prog.visit_with(&mut dts_visitor);
+//         println!("{:#?}", dts_visitor.classes);
+//         println!("{:#?}", dts_visitor.functions);
+//         println!("{:#?}", dts_visitor.globals);
+//         // optimized.visit_with(&mut DtsVisitor);
+
+//         // println!("{}", to_code(&optimized));
+//         // println!("{}", to_code(&dts_prog));
+//     }
+// }

@@ -25,15 +25,17 @@ pub struct ClassMethodOp {
 }
 
 impl ClassMethodOp {
-    pub fn new(class_name: ClassName, method_desc: &MethodDescription) -> Self {
+    pub fn new(
+        class_name: ClassName,
+        method_desc: &MethodDescription,
+        mut arg_types: Vec<ValueType>,
+    ) -> Self {
         assert!(method_desc.kind != MethodKind::GlobalFunction);
 
         let full_method_name = format!("{}.{}", &class_name, &method_desc.name);
-        let mut arg_types = vec![];
         if !method_desc.is_static {
-            arg_types.push(ValueType::Object(ObjectType::Class(class_name.clone())));
-        };
-        arg_types.extend(method_desc.params.iter().map(|x| x.value_type.clone()));
+            arg_types.insert(0, ValueType::Object(ObjectType::Class(class_name.clone())));
+        }
 
         Self {
             class_name,
@@ -130,11 +132,8 @@ pub struct ClassConstructorOp {
 }
 
 impl ClassConstructorOp {
-    pub fn new(obj_type: ClassName, desc: MethodDescription) -> Self {
+    pub fn new(obj_type: ClassName, _desc: MethodDescription, arg_types: Vec<ValueType>) -> Self {
         let full_method_name = format!("new {}", &obj_type);
-
-        let mut arg_types = vec![];
-        arg_types.extend(desc.params.iter().map(|x| x.value_type.clone()));
 
         Self {
             obj_type,
@@ -210,12 +209,10 @@ pub struct GlobalFunctionOp {
 }
 
 impl GlobalFunctionOp {
-    pub fn new(method_desc: &MethodDescription) -> Self {
+    pub fn new(method_desc: &MethodDescription, arg_types: Vec<ValueType>) -> Self {
         assert!(method_desc.kind == MethodKind::GlobalFunction);
 
         let full_method_name = format!("{}", &method_desc.name);
-        let mut arg_types = vec![];
-        arg_types.extend(method_desc.params.iter().map(|x| x.value_type.clone()));
 
         Self {
             desc: method_desc.clone(),

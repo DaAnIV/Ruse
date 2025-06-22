@@ -2,12 +2,7 @@ use std::sync::Arc;
 
 use itertools::Itertools;
 use ruse_object_graph::{
-    dot::{self, DotConfig, SubgraphConfig},
-    field_name,
-    graph_map_value::GraphMapWrap,
-    root_name,
-    value::{ObjectValue, Value},
-    vnull, vnum, GraphsMap, Number,
+    class_name, dot::{self, DotConfig, SubgraphConfig}, field_name, graph_map_value::GraphMapWrap, root_name, value::{ObjectValue, Value}, vnull, vnum, ClassName, GraphsMap, Number
 };
 use ruse_synthesizer::{
     context::{Context, ContextArray, GraphIdGenerator, SynthesizerContext},
@@ -96,11 +91,18 @@ fn tree_dot_config(name: &str) -> DotConfig {
     dot_config
 }
 
+fn binary_tree_class_name() -> ClassName {
+    class_name!("BinarySearchTreeNode")
+}
+
 #[test]
 fn tests_construct_binary_tree() {
     let mut builder = TsClassesBuilder::new();
-    let binary_tree_class_name = &builder.add_ts_files(&BINARY_SEARCH_TREE_TS_PATH).unwrap()[0];
+    builder
+        .add_files(&BINARY_SEARCH_TREE_TS_PATH)
+        .expect("Failed to add binary search tree class");
     let classes = builder.finalize();
+    let binary_tree_class_name = binary_tree_class_name();
     let id_gen = Arc::new(GraphIdGenerator::default());
 
     let graph_id = id_gen.get_id_for_graph();
@@ -146,7 +148,10 @@ fn tests_construct_binary_tree() {
 #[test]
 fn tests_binary_tree_contains() {
     let mut builder = TsClassesBuilder::new();
-    let binary_tree_class_name = &builder.add_ts_files(&BINARY_SEARCH_TREE_TS_PATH).unwrap()[0];
+    builder
+        .add_files(&BINARY_SEARCH_TREE_TS_PATH)
+        .expect("Failed to add binary search tree class");
+    let binary_tree_class_name = binary_tree_class_name();
     let classes = builder.finalize();
     let id_gen = Arc::new(GraphIdGenerator::default());
 
@@ -369,8 +374,13 @@ impl<'a> TreeHelper<'a> {
 #[test]
 fn auto_constructor() {
     let mut builder = TsClassesBuilder::new();
-    let binary_tree_class_name = &builder.add_ts_files(&BINARY_SEARCH_TREE_TS_PATH).unwrap()[0];
+    builder
+        .add_files(&BINARY_SEARCH_TREE_TS_PATH)
+        .expect("Failed to add binary search tree class");
     let classes = builder.finalize();
+
+    let binary_tree_class_name = binary_tree_class_name();
+
     let id_gen = Arc::new(GraphIdGenerator::default());
 
     let graph_id = id_gen.get_id_for_graph();
@@ -466,9 +476,12 @@ fn get_predicate_js(node_to_delete_value: usize) -> String {
 #[test]
 fn check_delete_two_children() {
     let mut builder = TsClassesBuilder::new();
-    let binary_tree_class_name = &builder.add_ts_files(&BINARY_SEARCH_TREE_TS_PATH).unwrap()[0];
+    builder
+        .add_files(&BINARY_SEARCH_TREE_TS_PATH)
+        .expect("Failed to add binary search tree class");
     let classes = builder.finalize();
 
+    let binary_tree_class_name = binary_tree_class_name();
     let binary_tree_class = classes.get_user_class(&binary_tree_class_name).unwrap();
 
     let ctx = ContextArray::from(vec![

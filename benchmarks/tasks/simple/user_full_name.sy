@@ -1,7 +1,7 @@
 {
   "version": 2,
   "classes": [
-    "class User {\nconstructor(public name: string,\npublic surname: string) {}\n}"
+    "export class User {\nconstructor(public name: string,\npublic surname: string) {}\n}"
   ],
   "variables": {
     "a": "User"

@@ -4,7 +4,7 @@ mod tests {
 
     use object_graph::{str_cached, Number};
     use ruse_object_graph::{
-        self as object_graph, field_name, root_name, value::Value, vnum, vstr, GraphsMap, ValueType,
+        self as object_graph, class_name, field_name, root_name, value::Value, vnum, vstr, GraphsMap, ValueType
     };
     use ruse_synthesizer::{
         bank::SubsumptionProgBank,
@@ -20,7 +20,7 @@ mod tests {
 
     #[tokio::test(flavor = "multi_thread")]
     async fn add_struct_fields() {
-        let code = "class User {
+        let code = "export class User {
             constructor(public name: string, 
                         public surname: string) {}
         }";
@@ -29,12 +29,11 @@ mod tests {
         let mut graphs_map1 = GraphsMap::default();
         let mut graphs_map2 = GraphsMap::default();
         let mut builder = TsClassesBuilder::new();
-
-        let user_class_name =
-            builder.add_classes(code).expect("Failed to add User class")[0].clone();
-
+    
+        builder.add_classes(code).expect("Failed to add User class");
         let classes = builder.finalize();
 
+        let user_class_name = class_name!("User");
         let user_class = classes.get_user_class(&user_class_name).unwrap();
 
         let user1_graph_id = id_gen1.get_id_for_graph();
@@ -120,7 +119,7 @@ mod tests {
 
     #[tokio::test(flavor = "multi_thread")]
     async fn mutating_object() {
-        let code = "class Point {
+        let code = "export class Point {
             constructor(public x: number, 
                         public y: number) {}
         }";
@@ -130,10 +129,10 @@ mod tests {
         let mut graphs_map2 = GraphsMap::default();
         let mut builder = TsClassesBuilder::new();
 
-        let point_class_name = builder.add_classes(code).unwrap()[0].clone();
-
+        builder.add_classes(code).unwrap();
         let classes = builder.finalize();
 
+        let point_class_name = class_name!("Point");
         let point_class = classes.get_user_class(&point_class_name).unwrap();
 
         let point1_graph_id = id_gen1.get_id_for_graph();

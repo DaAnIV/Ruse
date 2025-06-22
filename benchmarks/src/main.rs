@@ -323,18 +323,17 @@ fn run_benchmarks(cli: &RunArgs) -> ExitCode {
 
 fn print_opcodes(cli: &PrintOpcodesArgs) -> ExitCode {
     let mut builder = TsClassesBuilder::new();
-    let mut class_names = vec![];
 
     for full_path in cli.ts_files.iter() {
-        class_names.extend(builder.add_ts_files(&full_path).unwrap());
+        builder.add_files(&full_path).unwrap();
     }
 
     let classes = builder.finalize();
 
     let composite_opcodes = if cli.only_ts {
-        SnythesisTask::get_classes_opcodes(&classes, &class_names, true)
+        SnythesisTask::get_classes_opcodes(&classes, true)
     } else {
-        SnythesisTask::get_composite_opcodes(&classes, &class_names, true)
+        SnythesisTask::get_composite_opcodes(&classes, true)
     };
     let opcodes_len = composite_opcodes.len();
 

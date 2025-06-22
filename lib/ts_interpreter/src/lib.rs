@@ -11,5 +11,7 @@ mod jsbuiltins;
 mod js_errors;
 mod js_object_value;
 mod js_console_logger;
+mod dts_visitor;
+mod program_visitor;
 
 pub mod test;

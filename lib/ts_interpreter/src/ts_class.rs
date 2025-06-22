@@ -11,28 +11,29 @@ use ruse_synthesizer::{
     location::{LocValue, Location, ObjectFieldLoc},
 };
 use swc_common::SourceMap;
-use swc_ecma_ast::{self as ast, BlockStmt};
+use swc_compiler_base::IdentCollector;
+use swc_ecma_ast::{self as ast, Ident};
 
 use ruse_object_graph::value::*;
+use swc_ecma_codegen::Node;
+use swc_ecma_utils::find_pat_ids;
+use swc_ecma_visit::VisitWith;
 
-use crate::{engine_context::EngineContext, ts_classes::TsClasses};
-
-pub(crate) fn get_name_with_namespace(namespace: &Vec<String>, name: &str) -> String {
-    if namespace.is_empty() {
-        name.to_string()
-    } else {
-        namespace.join(".") + "." + name
-    }
-}
+use crate::{
+    dts_visitor::{
+        get_value_type_from_ts_type, DtsFieldDecl, DtsFnDecl, DtsMethodDecl, DtsVarDecl,
+    },
+    engine_context::EngineContext,
+    ts_classes::TsClasses,
+};
 
 #[derive(Debug, Clone)]
 pub struct JsFieldDescription {
     pub name: FieldName,
-    pub value_type: ValueType,
+    pub value_type: Option<ValueType>,
     pub is_private: bool,
     pub is_static: bool,
     pub is_readonly: bool,
-    pub is_constructor_prop: bool,
     pub init_expr: Option<Box<ast::Expr>>,
 }
 
@@ -57,9 +58,11 @@ impl From<&ast::ClassProp> for JsFieldDescription {
         let field_name = ident.sym.as_str();
         let access = value.accessibility.unwrap_or(ast::Accessibility::Public);
         let value_type = if let Some(type_ann) = &value.type_ann {
-            get_value_type_from_ts_type(&type_ann.type_ann)
+            Some(get_value_type_from_ts_type(&type_ann.type_ann))
+        } else if let Some(init_expr) = &value.value {
+            Some(get_value_type_from_expr(init_expr))
         } else {
-            get_value_type_from_expr(&value.value.as_ref().unwrap())
+            None
         };
 
         JsFieldDescription {
@@ -68,107 +71,58 @@ impl From<&ast::ClassProp> for JsFieldDescription {
             is_private: access != ast::Accessibility::Public,
             is_readonly: value.readonly,
             is_static: value.is_static,
-            is_constructor_prop: false,
             init_expr: value.value.clone(),
         }
     }
 }
-impl From<&ast::VarDeclarator> for JsFieldDescription {
-    fn from(value: &ast::VarDeclarator) -> Self {
-        let ident = value.name.as_ident().unwrap();
+
+impl From<(&ast::ClassProp, &DtsFieldDecl)> for JsFieldDescription {
+    fn from(value: (&ast::ClassProp, &DtsFieldDecl)) -> Self {
+        let (decl, dts) = value;
+        let ident = decl.key.as_ident().unwrap();
         let field_name = ident.sym.as_str();
-        let value_type = if let Some(type_ann) = &ident.type_ann {
-            get_value_type_from_ts_type(&type_ann.type_ann)
-        } else {
-            get_value_type_from_expr(&value.init.as_ref().unwrap())
-        };
+
+        JsFieldDescription {
+            name: field_name!(field_name),
+            value_type: dts.var_type.clone(),
+            is_private: !dts.is_public,
+            is_readonly: dts.is_readonly,
+            is_static: dts.is_static,
+            init_expr: decl.value.clone(),
+        }
+    }
+}
+
+impl From<(&ast::VarDeclarator, &DtsVarDecl, bool)> for JsFieldDescription {
+    fn from(value: (&ast::VarDeclarator, &DtsVarDecl, bool)) -> Self {
+        let (decl, dts, exported) = value;
+        let ident = decl.name.as_ident().unwrap();
+        let field_name = ident.sym.as_str();
+        let value_type = if exported { dts.var_type.clone() } else { None };
 
         JsFieldDescription {
             name: field_name!(field_name),
             value_type,
+            is_private: !exported,
+            is_readonly: false,
+            is_static: true,
+            init_expr: decl.init.clone(),
+        }
+    }
+}
+
+impl From<&ast::VarDeclarator> for JsFieldDescription {
+    fn from(decl: &ast::VarDeclarator) -> Self {
+        let ident = decl.name.as_ident().unwrap();
+        let field_name = ident.sym.as_str();
+
+        JsFieldDescription {
+            name: field_name!(field_name),
+            value_type: None,
             is_private: true,
             is_readonly: false,
             is_static: true,
-            is_constructor_prop: false,
-            init_expr: value.init.clone(),
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct ParamDescription {
-    pub name: String,
-    pub value_type: ValueType,
-    pub(crate) is_prop: bool,
-}
-
-impl From<&ast::Param> for ParamDescription {
-    fn from(value: &ast::Param) -> Self {
-        match &value.pat {
-            swc_ecma_ast::Pat::Ident(binding_ident) => {
-                let value_type = if let Some(type_ann) = &binding_ident.type_ann.as_ref() {
-                    get_value_type_from_ts_type(&type_ann.type_ann)
-                } else {
-                    ValueType::Null
-                };
-                ParamDescription {
-                    name: binding_ident.id.sym.to_string(),
-                    value_type,
-                    is_prop: false,
-                }
-            }
-            swc_ecma_ast::Pat::Assign(assign_pat) => {
-                let ident = assign_pat.left.as_ident().unwrap();
-                let value_type = if let Some(type_ann) = &ident.type_ann {
-                    get_value_type_from_ts_type(&type_ann.type_ann)
-                } else {
-                    get_value_type_from_expr(&assign_pat.right)
-                };
-                ParamDescription {
-                    name: ident.id.sym.to_string(),
-                    value_type: value_type,
-                    is_prop: false,
-                }
-            }
-            _ => todo!(),
-        }
-    }
-}
-
-impl From<&ast::TsParamProp> for ParamDescription {
-    fn from(value: &ast::TsParamProp) -> Self {
-        match &value.param {
-            swc_ecma_ast::TsParamPropParam::Ident(binding_ident) => ParamDescription {
-                name: binding_ident.id.sym.to_string(),
-                value_type: get_value_type_from_ts_type(
-                    &binding_ident.type_ann.as_ref().unwrap().type_ann,
-                ),
-                is_prop: true,
-            },
-            swc_ecma_ast::TsParamPropParam::Assign(assign_pat) => {
-                let ident = assign_pat.left.as_ident().unwrap();
-                let value_type = if let Some(type_ann) = &ident.type_ann {
-                    get_value_type_from_ts_type(&type_ann.type_ann)
-                } else {
-                    get_value_type_from_expr(&assign_pat.right)
-                };
-                ParamDescription {
-                    name: ident.id.sym.to_string(),
-                    value_type: value_type,
-                    is_prop: true,
-                }
-            }
-        }
-    }
-}
-
-impl From<&ast::ParamOrTsParamProp> for ParamDescription {
-    fn from(value: &ast::ParamOrTsParamProp) -> Self {
-        match value {
-            swc_ecma_ast::ParamOrTsParamProp::TsParamProp(ts_param_prop) => {
-                Self::from(ts_param_prop)
-            }
-            swc_ecma_ast::ParamOrTsParamProp::Param(param) => Self::from(param),
+            init_expr: decl.init.clone(),
         }
     }
 }
@@ -194,138 +148,151 @@ impl From<ast::MethodKind> for MethodKind {
 #[derive(Debug, Clone)]
 pub struct MethodDescription {
     pub name: String,
-    pub params: Vec<ParamDescription>,
+    pub param_names: Vec<String>,
+    pub param_types: Vec<Vec<ValueType>>,
     pub is_static: bool,
     pub is_private: bool,
     pub kind: MethodKind,
-    pub(crate) body: Option<String>,
+    pub(crate) body_code: String,
+}
+
+impl From<(&ast::ClassMethod, &DtsMethodDecl)> for MethodDescription {
+    fn from(value: (&ast::ClassMethod, &DtsMethodDecl)) -> Self {
+        let (decl, dts) = value;
+        let name = dts.name.to_string();
+        let body_code = get_code(decl.function.body.as_ref().unwrap());
+        let param_names: Vec<String> = find_pat_ids::<_, Ident>(&decl.function.params)
+            .into_iter()
+            .map(|id| (id.sym.to_string()))
+            .collect();
+
+        MethodDescription {
+            name,
+            param_names,
+            param_types: dts.params.clone(),
+            is_static: dts.is_static,
+            is_private: !dts.is_public,
+            kind: decl.kind.into(),
+            body_code,
+        }
+    }
+}
+
+impl From<(&ast::Constructor, &DtsMethodDecl)> for MethodDescription {
+    fn from(value: (&ast::Constructor, &DtsMethodDecl)) -> Self {
+        let (decl, dts) = value;
+        let name = format!("__{}", dts.name);
+        let body_code = get_code(decl.body.as_ref().unwrap());
+        let param_names: Vec<String> = find_pat_ids::<_, Ident>(&decl.params)
+            .into_iter()
+            .map(|id| (id.sym.to_string()))
+            .collect();
+
+        MethodDescription {
+            name,
+            param_names,
+            param_types: dts.params.clone(),
+            is_static: true,
+            is_private: !dts.is_public,
+            kind: MethodKind::Method,
+            body_code,
+        }
+    }
+}
+
+impl From<&ast::Constructor> for MethodDescription {
+    fn from(decl: &ast::Constructor) -> Self {
+        let name = format!("__{}", decl.key.as_ident().unwrap().sym.to_string());
+        let body_code = get_code(decl.body.as_ref().unwrap());
+        let param_names: Vec<String> = find_pat_ids::<_, Ident>(&decl.params)
+            .into_iter()
+            .map(|id| (id.sym.to_string()))
+            .collect();
+        let access = decl.accessibility.unwrap_or(ast::Accessibility::Public);
+
+        MethodDescription {
+            name,
+            param_names,
+            param_types: vec![],
+            is_static: true,
+            is_private: access != ast::Accessibility::Public,
+            kind: MethodKind::Method,
+            body_code,
+        }
+    }
 }
 
 impl From<&ast::ClassMethod> for MethodDescription {
     fn from(value: &ast::ClassMethod) -> Self {
         let name = value.key.as_ident().unwrap().sym.to_string();
-        let mut params = vec![];
         let access = value.accessibility.unwrap_or(ast::Accessibility::Public);
-        let body = value.function.body.as_ref().map(|body| get_code(body));
-
-        for param in &value.function.params {
-            params.push(ParamDescription::from(param))
-        }
+        let body_code = get_code(value.function.body.as_ref().unwrap());
+        let param_names: Vec<String> = find_pat_ids::<_, Ident>(&value.function.params)
+            .into_iter()
+            .map(|id| (id.sym.to_string()))
+            .collect();
 
         MethodDescription {
             name,
-            params,
+            param_names,
+            param_types: vec![],
             is_static: value.is_static,
             is_private: access != ast::Accessibility::Public,
             kind: value.kind.into(),
-            body: body,
+            body_code,
+        }
+    }
+}
+
+impl From<(&ast::FnDecl, &DtsFnDecl, bool)> for MethodDescription {
+    fn from(value: (&ast::FnDecl, &DtsFnDecl, bool)) -> Self {
+        let (decl, dts, exported) = value;
+        let name = dts.name.0.to_string();
+        let body_code = get_code(decl.function.body.as_ref().unwrap());
+        let param_names: Vec<String> = find_pat_ids::<_, Ident>(&decl.function.params)
+            .into_iter()
+            .map(|id| (id.sym.to_string()))
+            .collect();
+
+        let is_private = !exported;
+
+        MethodDescription {
+            name,
+            param_names,
+            param_types: dts.params.clone(),
+            is_static: true,
+            is_private,
+            kind: MethodKind::GlobalFunction,
+            body_code,
         }
     }
 }
 
 impl From<&ast::FnDecl> for MethodDescription {
-    fn from(value: &ast::FnDecl) -> Self {
-        let name = value.ident.sym.as_str().to_string();
-        let mut params = vec![];
-        let body = value.function.body.as_ref().map(|body| get_code(body));
-
-        for param in &value.function.params {
-            params.push(ParamDescription::from(param))
-        }
+    fn from(decl: &ast::FnDecl) -> Self {
+        let name = decl.ident.sym.as_str().to_string();
+        let body_code = get_code(decl.function.body.as_ref().unwrap());
+        let param_names: Vec<String> = find_pat_ids::<_, Ident>(&decl.function.params)
+            .into_iter()
+            .map(|id| (id.sym.to_string()))
+            .collect();
 
         MethodDescription {
             name,
-            params,
+            param_names,
+            param_types: vec![],
             is_static: true,
             is_private: true,
             kind: MethodKind::GlobalFunction,
-            body: body,
+            body_code,
         }
     }
 }
 
-pub(crate) fn get_value_type_from_ts_type(type_ann: &ast::TsType) -> ValueType {
-    match type_ann {
-        ast::TsType::TsKeywordType(t) => match t.kind {
-            swc_ecma_ast::TsKeywordTypeKind::TsAnyKeyword => todo!(),
-            swc_ecma_ast::TsKeywordTypeKind::TsUnknownKeyword => todo!(),
-            swc_ecma_ast::TsKeywordTypeKind::TsNumberKeyword => ValueType::Number,
-            swc_ecma_ast::TsKeywordTypeKind::TsObjectKeyword => todo!(),
-            swc_ecma_ast::TsKeywordTypeKind::TsBooleanKeyword => ValueType::Bool,
-            swc_ecma_ast::TsKeywordTypeKind::TsBigIntKeyword => todo!(),
-            swc_ecma_ast::TsKeywordTypeKind::TsStringKeyword => ValueType::String,
-            swc_ecma_ast::TsKeywordTypeKind::TsSymbolKeyword => todo!(),
-            swc_ecma_ast::TsKeywordTypeKind::TsVoidKeyword => todo!(),
-            swc_ecma_ast::TsKeywordTypeKind::TsUndefinedKeyword => todo!(),
-            swc_ecma_ast::TsKeywordTypeKind::TsNullKeyword => ValueType::Null,
-            swc_ecma_ast::TsKeywordTypeKind::TsNeverKeyword => todo!(),
-            swc_ecma_ast::TsKeywordTypeKind::TsIntrinsicKeyword => todo!(),
-        },
-        ast::TsType::TsThisType(_) => todo!(),
-        ast::TsType::TsFnOrConstructorType(_) => todo!(),
-        ast::TsType::TsTypeRef(t) => {
-            let id = t.type_name.as_ident().unwrap().sym.to_string();
-            match id.as_str() {
-                "Array" => {
-                    let type_params = t.type_params.as_ref().unwrap();
-                    assert!(type_params.params.len() == 1);
-                    let elem_type = get_value_type_from_ts_type(&type_params.params[0]);
-                    return ValueType::array_value_type(&elem_type);
-                }
-                "Set" => {
-                    let type_params = t.type_params.as_ref().unwrap();
-                    assert!(type_params.params.len() == 1);
-                    let elem_type = get_value_type_from_ts_type(&type_params.params[0]);
-                    return ValueType::set_value_type(&elem_type);
-                }
-                "Map" => {
-                    let type_params = t.type_params.as_ref().unwrap();
-                    assert!(type_params.params.len() == 2);
-                    let key_type = get_value_type_from_ts_type(&type_params.params[0]);
-                    let value_type = get_value_type_from_ts_type(&type_params.params[1]);
-                    return ValueType::map_value_type(&key_type, &value_type);
-                }
-                _ => {}
-            }
-            ValueType::class_value_type(class_name!(id))
-        }
-        ast::TsType::TsTypeQuery(_) => todo!(),
-        ast::TsType::TsTypeLit(_) => todo!(),
-        ast::TsType::TsArrayType(t) => {
-            let elem_type = get_value_type_from_ts_type(t.elem_type.as_ref());
-            ValueType::array_value_type(&elem_type)
-        }
-        ast::TsType::TsTupleType(_) => todo!(),
-        ast::TsType::TsOptionalType(_) => todo!(),
-        ast::TsType::TsRestType(_) => todo!(),
-        ast::TsType::TsUnionOrIntersectionType(t) => {
-            if let Some(u) = t.as_ts_union_type() {
-                if u.types.len() == 2 {
-                    let left = get_value_type_from_ts_type(&u.types[0]);
-                    let right = get_value_type_from_ts_type(&u.types[1]);
-                    if left == ValueType::Null && !right.is_primitive() {
-                        return right;
-                    } else if right == ValueType::Null && !left.is_primitive() {
-                        return left;
-                    }
-                }
-            }
-
-            todo!()
-        }
-        ast::TsType::TsConditionalType(_) => todo!(),
-        ast::TsType::TsInferType(_) => todo!(),
-        ast::TsType::TsParenthesizedType(_) => todo!(),
-        ast::TsType::TsTypeOperator(_) => todo!(),
-        ast::TsType::TsIndexedAccessType(_) => todo!(),
-        ast::TsType::TsMappedType(_) => todo!(),
-        ast::TsType::TsLitType(_) => todo!(),
-        ast::TsType::TsTypePredicate(_) => todo!(),
-        ast::TsType::TsImportType(_) => todo!(),
-    }
-}
-
-pub(crate) fn get_code(body: &BlockStmt) -> String {
+pub(crate) fn get_code<T>(body: &T) -> String
+where
+    T: Node + VisitWith<IdentCollector>,
+{
     let c = swc::Compiler::new(Arc::<SourceMap>::default());
 
     let codegen_config = swc_ecma_codegen::Config::default().with_target(ast::EsVersion::Es2022);
@@ -401,11 +368,7 @@ pub fn get_value_from_expr(
             engine_ctx.reset_with_graph(graph_id, graphs_map, classes, id_gen);
 
             let class = classes.get_user_class(&class_name!(name)).unwrap();
-            Value::Object(
-                class
-                    .call_constructor(&params, &mut engine_ctx)
-                    .unwrap(),
-            )
+            Value::Object(class.call_constructor(&params, &mut engine_ctx).unwrap())
         }
         _ => todo!("Can't parse static prop value {:#?}", expr),
     }

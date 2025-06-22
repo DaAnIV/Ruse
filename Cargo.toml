@@ -20,18 +20,24 @@ ruse_task_parser = { path = "./lib/task_parser" }
 
 num-traits = "*"
 
+swc = "*"
+swc_common = { version = "*", features = ["tty-emitter"] }
+swc_ecma_codegen = "*"
+swc_ecma_parser = "*"
+swc_ecma_ast = "*"
+swc_ecma_transforms = { version = "*", features = ["typescript", "optimization", "module"] }
+swc_ecma_minifier = "*"
+swc_ecma_visit = "*"
+swc_typescript = "*"
+swc_compiler_base = "*" 
+swc_ecma_utils = "*"
+
 boa_ast = "*"
 boa_engine = "*"
 boa_gc = "*"
 boa_runtime = "*"
 
 itertools = "*"
-
-swc = "*"
-swc_common = { version = "*", features = ["tty-emitter"] }
-swc_ecma_codegen = "*"
-swc_ecma_parser = "*"
-swc_ecma_ast = "*"
 
 anyhow = "*"
 

@@ -1,4 +1,4 @@
-class BinarySearchTreeNode {
+export class BinarySearchTreeNode {
     private parent: BinarySearchTreeNode | null;
     private is_left: bool;
     private _height: number
@@ -138,4 +138,3 @@ class BinarySearchTreeNode {
         return false;
     }
 }
-

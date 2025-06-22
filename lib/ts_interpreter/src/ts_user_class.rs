@@ -1,9 +1,8 @@
 use std::{collections::HashMap, sync::Arc};
 
-use anyhow::Error;
 use boa_engine::JsResult;
 use ruse_object_graph::{
-    class_name, field_name,
+    class_name,
     value::{ObjectValue, Value},
     ClassName, FieldName, GraphIndex, GraphsMap, NodeIndex, ObjectGraph, ObjectType, ValueType,
 };
@@ -12,13 +11,11 @@ use ruse_synthesizer::{
     location::LocValue,
     opcode::{ExprOpcode, OpcodesList},
 };
-use swc_common::{
-    errors::{ColorConfig, Handler},
-    FileName, SourceMap,
-};
-use swc_ecma_parser::{Syntax, TsSyntax};
+use swc_ecma_visit::{Visit, VisitWith};
+use tracing::error;
 
 use crate::{
+    dts_visitor::DtsClassDecl,
     engine_context::{EngineContext, RuseJsGlobalObject},
     js_errors::*,
     js_object_wrapper::JsUserClassWrapper,
@@ -28,7 +25,7 @@ use crate::{
     ts_classes::TsClasses,
 };
 
-use swc_ecma_ast::{self as ast, ClassDecl};
+use swc_ecma_ast::{ClassDecl};
 
 #[derive(Debug)]
 pub struct TsUserClass {
@@ -66,26 +63,6 @@ impl TsUserClass {
             obj_type: ObjectType::Class(self.description.class_name.clone()),
             graph_id: graph_id,
             node: obj_id,
-        }
-    }
-
-    pub(crate) fn get_ast(code: &str) -> Result<ast::Program, Error> {
-        let cm = Arc::<SourceMap>::default();
-        let handler = Handler::with_tty_emitter(ColorConfig::Auto, true, false, Some(cm.clone()));
-        let c = swc::Compiler::new(cm.clone());
-
-        let fm = cm.new_source_file(FileName::Anon.into(), code.to_owned());
-
-        match c.parse_js(
-            fm,
-            &handler,
-            ast::EsVersion::Es2022,
-            Syntax::Typescript(TsSyntax::default()),
-            swc::config::IsModule::Bool(false),
-            None,
-        ) {
-            Ok(v) => Ok(v),
-            Err(e) => Err(e),
         }
     }
 
@@ -217,57 +194,88 @@ impl TsClass for TsUserClass {
 unsafe impl Send for TsUserClass {}
 unsafe impl Sync for TsUserClass {}
 
-pub(crate) struct TsUserClassBuilder {
+pub(crate) struct TsUserClassBuilder<'a> {
     id: u64,
     class_name: ClassName,
+    dts: &'a DtsClassDecl,
     fields: HashMap<String, JsFieldDescription>,
     methods: HashMap<String, MethodDescription>,
-    constructor: MethodDescription,
+    constructor: Option<MethodDescription>,
     gen_id: Arc<GraphIdGenerator>,
     super_class: Option<ClassName>,
     is_abstract: bool,
+
+    visitor_failed: bool,
+}
+
+impl<'a> Visit for TsUserClassBuilder<'a> {
+    fn visit_class_prop(&mut self, node: &swc_ecma_ast::ClassProp) {
+        let id = node.key.as_ident().unwrap().sym.clone();
+        let field_desc = if let Some(prop_dts) = self.dts.props.get(&id) {
+            JsFieldDescription::from((node, prop_dts))
+        } else {
+            JsFieldDescription::from(node)
+        };
+
+        if !field_desc.is_private && field_desc.value_type.is_none() {
+            error!(
+                "Field {} of class {} is public but has no type",
+                field_desc.name, self.class_name
+            );
+            self.visitor_failed = true;
+        }
+
+        self.fields.insert(field_desc.name.to_string(), field_desc);
+    }
+
+    fn visit_class_method(&mut self, node: &swc_ecma_ast::ClassMethod) {
+        let id = node.key.as_ident().unwrap().sym.clone();
+        let method_desc = if let Some(method_dts) = self.dts.methods.get(&id) {
+            MethodDescription::from((node, method_dts))
+        } else {
+            MethodDescription::from(node)
+        };
+
+        self.methods
+            .insert(method_desc.name.to_string(), method_desc);
+    }
+    fn visit_constructor(&mut self, node: &swc_ecma_ast::Constructor) {
+        let method_desc = if let Some(method_dts) = self.dts.constructor.as_ref() {
+            MethodDescription::from((node, method_dts))
+        } else {
+            MethodDescription::from(node)
+        };
+
+        assert!(self.constructor.replace(method_desc).is_none());
+    }
 }
 
 // Main functions
-impl TsUserClassBuilder {
-    pub fn get_class_name(namespace: &Vec<String>, decl: &ClassDecl) -> String {
-        get_name_with_namespace(namespace, decl.ident.sym.as_str())
-    }
-
+impl<'a> TsUserClassBuilder<'a> {
     pub fn from_class_decl(
-        namespace: &Vec<String>,
         decl: &ClassDecl,
+        dts: &'a DtsClassDecl,
         gen_id: Arc<GraphIdGenerator>,
     ) -> Self {
-        let mut fields = Default::default();
-        let mut methods = Default::default();
-        let mut constructor = MethodDescription {
-            name: Self::get_class_name(namespace, decl),
-            params: Default::default(),
-            kind: MethodKind::Method,
-            is_static: false,
-            is_private: false,
-            body: None,
-        };
-
-        Self::add_fields(&decl.class, &mut fields, &mut constructor);
-        Self::add_methods(&decl.class, &mut methods);
-
         let super_class = decl.class.super_class.as_deref().map(|super_class| {
             let ident = super_class.as_ident().unwrap();
             class_name!(ident.sym.as_str())
         });
 
-        let class = Self {
+        let mut class = Self {
             id: gen_id.get_id_for_graph().0 as u64,
-            class_name: class_name!(Self::get_class_name(namespace, decl)),
-            fields,
-            methods,
-            constructor,
+            class_name: class_name!(decl.ident.sym.as_str()),
+            dts,
+            fields: Default::default(),
+            methods: Default::default(),
+            constructor: Default::default(),
             gen_id,
             super_class,
             is_abstract: decl.class.is_abstract,
+            visitor_failed: false,
         };
+
+        decl.visit_children_with(&mut class);
 
         class
     }
@@ -277,7 +285,7 @@ impl TsUserClassBuilder {
             id: self.id,
             class_name: self.class_name.clone(),
             fields: self.fields.clone(),
-            constructor: self.constructor.clone(),
+            constructor: self.constructor.as_ref().unwrap().clone(),
             methods: self.methods.clone(),
             extends: self.super_class.clone(),
             is_abstract: self.is_abstract,
@@ -321,72 +329,8 @@ impl TsUserClassBuilder {
     }
 }
 
-// Field parsing
-impl TsUserClassBuilder {
-    fn add_fields(
-        class: &ast::Class,
-        fields: &mut HashMap<String, JsFieldDescription>,
-        constructor: &mut MethodDescription,
-    ) {
-        for class_prop in class.body.iter().filter_map(|x| x.as_class_prop()) {
-            let desc = JsFieldDescription::from(class_prop);
-            fields.insert(desc.name.to_string(), desc);
-        }
-
-        for constructor_ast in class.body.iter().filter_map(|x| x.as_constructor()) {
-            Self::add_fields_from_constructor(fields, constructor, constructor_ast);
-        }
-    }
-
-    fn add_fields_from_constructor(
-        fields: &mut HashMap<String, JsFieldDescription>,
-        constructor: &mut MethodDescription,
-        constructor_ast: &ast::Constructor,
-    ) {
-        constructor.is_private = constructor_ast
-            .accessibility
-            .unwrap_or(ast::Accessibility::Public)
-            != ast::Accessibility::Public;
-        for param in &constructor_ast.params {
-            let param_description = ParamDescription::from(param);
-
-            constructor.params.push(param_description.clone());
-
-            if let Some(prop) = param.as_ts_param_prop() {
-                let access = prop.accessibility.unwrap_or(ast::Accessibility::Public);
-                fields.insert(
-                    param_description.name.to_string(),
-                    JsFieldDescription {
-                        name: field_name!(param_description.name.clone()),
-                        value_type: param_description.value_type,
-                        is_private: access != ast::Accessibility::Public,
-                        is_readonly: prop.readonly,
-                        is_static: false,
-                        is_constructor_prop: true,
-                        init_expr: None,
-                    },
-                );
-            }
-        }
-        constructor.body = Some(get_code(constructor_ast.body.as_ref().unwrap()));
-    }
-
-    fn add_methods(class: &ast::Class, methods: &mut HashMap<String, MethodDescription>) {
-        for method in class.body.iter().filter_map(|x| x.as_method()) {
-            let desc = MethodDescription::from(method);
-            if !desc.is_private {
-                assert!(desc
-                    .params
-                    .iter()
-                    .all(|p| !matches!(p.value_type, ValueType::Null)));
-            }
-            methods.insert(desc.name.to_string(), desc);
-        }
-    }
-}
-
 // Opcodes
-impl TsUserClassBuilder {
+impl<'a> TsUserClassBuilder<'a> {
     fn populate_opcodes(&self, class: &mut TsUserClass) {
         for field in self.fields.values() {
             if let Some(op) = self.get_opcode_from_field(class, field) {
@@ -397,16 +341,21 @@ impl TsUserClassBuilder {
         class.method_opcodes.extend(
             self.methods
                 .values()
-                .filter_map(|m| self.get_method_opcode(m)),
+                .flat_map(|m| self.get_method_opcodes(m)),
         );
 
-        if !self.is_abstract && !self.constructor.is_private {
-            class
-                .constructor_opcodes
-                .push(Arc::new(ClassConstructorOp::new(
-                    self.class_name.clone(),
-                    self.constructor.clone(),
-                )));
+        let constructor = self.constructor.as_ref().unwrap();
+
+        if !self.is_abstract && !constructor.is_private {
+            for arg_types in constructor.param_types.iter() {
+                class
+                    .constructor_opcodes
+                    .push(Arc::new(ClassConstructorOp::new(
+                        self.class_name.clone(),
+                        constructor.clone(),
+                        arg_types.clone(),
+                    )));
+            }
         }
     }
 
@@ -434,14 +383,22 @@ impl TsUserClassBuilder {
         return Some(op);
     }
 
-    fn get_method_opcode(&self, method: &MethodDescription) -> Option<Arc<dyn ExprOpcode>> {
-        if method.is_private {
-            return None;
-        }
+    fn get_method_opcodes(&self, method: &MethodDescription) -> Vec<Arc<dyn ExprOpcode>> {
+        let params = if method.is_private {
+            &vec![]
+        } else {
+            &method.param_types
+        };
 
-        Some(Arc::new(ClassMethodOp::new(
-            self.class_name.clone(),
-            method,
-        )))
+        params
+            .iter()
+            .map(|x| {
+                Arc::new(ClassMethodOp::new(
+                    self.class_name.clone(),
+                    method,
+                    x.clone(),
+                )) as Arc<dyn ExprOpcode>
+            })
+            .collect()
     }
 }

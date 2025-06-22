@@ -1,21 +1,20 @@
-use std::{
-    collections::{HashMap, HashSet},
-    sync::Arc,
-};
+use std::{collections::{HashMap, HashSet}, sync::Arc};
 
 use boa_engine::JsResult;
 use ruse_object_graph::{
     class_name,
     value::{ObjectValue, Value},
-    FieldName, GraphIndex, GraphsMap, NodeIndex, ObjectGraph, ObjectType, ValueType,
+    FieldName, GraphIndex, GraphsMap, NodeIndex, ObjectGraph, ObjectType,
 };
 use ruse_synthesizer::{
     context::GraphIdGenerator,
     location::LocValue,
     opcode::{ExprOpcode, OpcodesList},
 };
+use swc::atoms::Atom;
 
 use crate::{
+    dts_visitor::{DtsFnDecl, DtsVarDecl},
     engine_context::EngineContext,
     js_value::{args_to_js_args, TryFromJs},
     opcode::GlobalFunctionOp,
@@ -23,7 +22,7 @@ use crate::{
     ts_classes::TsClasses,
 };
 
-use swc_ecma_ast::{FnDecl, VarDecl};
+use swc_ecma_ast::{FnDecl, Id, VarDeclarator};
 
 #[derive(Debug)]
 pub struct TsGlobalClass {
@@ -83,36 +82,37 @@ impl TsGlobalClassBuilder {
     const CLASS_NAME: &'static str = "GlobalClass";
 
     pub fn global_class(
-        functions: Vec<(Vec<String>, FnDecl)>,
-        variables: Vec<(Vec<String>, Box<VarDecl>)>,
-        exports: HashSet<String>,
+        functions: &Vec<(Id, FnDecl)>,
+        variables: &Vec<(Id, VarDeclarator)>,
+        functions_dts: &HashMap<Id, DtsFnDecl>,
+        variables_dts: &HashMap<Id, DtsVarDecl>,
+        exports: &HashSet<Atom>,
         gen_id: Arc<GraphIdGenerator>,
     ) -> Self {
         let mut fields = HashMap::default();
         let mut methods = HashMap::default();
 
-        for func in functions {
-            let func_name = get_name_with_namespace(&func.0, func.1.ident.sym.as_str());
-            let mut desc = MethodDescription::from(&func.1);
-            if exports.contains(&func_name) {
-                assert!(desc
-                    .params
-                    .iter()
-                    .all(|p| !matches!(p.value_type, ValueType::Null)));
-                desc.is_private = false;
-            }
+        for (func_id, decl) in functions {
+            let func_name = func_id.0.to_string();
+            let exported = exports.contains(&func_id.0);
+            let desc = if let Some(dts) = functions_dts.get(func_id) {
+                MethodDescription::from((decl, dts, exported))
+            } else {
+                assert!(!exported, "Exported function without DTS");
+                MethodDescription::from(decl)
+            };
             methods.insert(func_name, desc);
         }
-        for var in variables {
-            for decl in var.1.decls.iter() {
-                let var_name =
-                    get_name_with_namespace(&var.0, decl.name.as_ident().unwrap().sym.as_str());
-                let mut desc = JsFieldDescription::from(decl);
-                if exports.contains(&var_name) {
-                    desc.is_private = false;
-                }
-                fields.insert(var_name, desc);
-            }
+        for (var_id, decl) in variables {
+            let var_name = var_id.0.to_string();
+            let exported = exports.contains(&var_id.0);
+            let desc = if let Some(dts) = variables_dts.get(var_id) {
+                JsFieldDescription::from((decl, dts, exported))
+            } else {
+                assert!(!exported, "Exported global without DTS");
+                JsFieldDescription::from(decl)
+            };
+            fields.insert(var_name, desc);
         }
 
         let class = Self {
@@ -167,15 +167,25 @@ impl TsGlobalClassBuilder {
         class.function_opcodes.extend(
             self.methods
                 .values()
-                .filter_map(|m| self.get_function_opcode(m)),
+                .flat_map(|m| self.get_function_opcode(m)),
         );
     }
 
-    fn get_function_opcode(&self, method: &MethodDescription) -> Option<Arc<dyn ExprOpcode>> {
-        if method.is_private {
-            return None;
-        }
+    fn get_function_opcode(&self, method: &MethodDescription) -> Vec<Arc<dyn ExprOpcode>> {
+        let params = if method.is_private {
+            &vec![]
+        } else {
+            &method.param_types
+        };
 
-        Some(Arc::new(GlobalFunctionOp::new(method)))
+        params
+            .iter()
+            .map(|x| {
+                Arc::new(GlobalFunctionOp::new(
+                    method,
+                    x.clone(),
+                )) as Arc<dyn ExprOpcode>
+            })
+            .collect()
     }
 }

@@ -8,3 +8,8 @@ class Student {
 class Class {
     constructor(public students: Student[]) { }
 }
+
+export {
+    Student,
+    Class
+};

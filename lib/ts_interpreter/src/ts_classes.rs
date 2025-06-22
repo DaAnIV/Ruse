@@ -1,26 +1,25 @@
 use std::{
-    collections::{HashMap, HashSet},
-    io::Read,
-    path::Path,
+    collections::HashMap,
+    path::{Path, PathBuf},
     sync::Arc,
 };
 
 use anyhow::Error;
-use itertools::Itertools;
-use ruse_object_graph::{class_name, ClassName, GraphIndex, GraphsMap, NodeIndex, ObjectType};
+use ruse_object_graph::{ClassName, GraphIndex, GraphsMap, NodeIndex, ObjectType};
 use ruse_synthesizer::context::{GraphIdGenerator, SynthesizerContextData};
 use swc_common::{
     errors::{ColorConfig, Handler},
-    FileName, SourceMap,
+    Mark, SourceFile, SourceMap,
 };
-use swc_ecma_ast::{self as ast, ClassDecl, FnDecl, VarDecl};
+use swc_ecma_ast::{self as ast, Pass};
 use swc_ecma_parser::{Syntax, TsSyntax};
-use tracing::error;
+use swc_ecma_visit::{VisitMutWith, VisitWith};
 
 use crate::{
+    dts_visitor::DtsVisitor,
     engine_context::EngineContext,
-    jsbuiltins::jsarray::BuiltinArrayClass,
-    jsbuiltins::jsmap::BuiltinMapClass,
+    jsbuiltins::{jsarray::BuiltinArrayClass, jsmap::BuiltinMapClass},
+    program_visitor::ProgramVisitor,
     ts_class::{TsBuiltinClass, TsClass},
     ts_global_class::{TsGlobalClass, TsGlobalClassBuilder},
     ts_user_class::{TsUserClass, TsUserClassBuilder},
@@ -91,34 +90,76 @@ impl TsClasses {
         }
     }
 
+    pub fn user_classes(&self) -> impl Iterator<Item = &TsUserClass> {
+        self.user_classes.values()
+    }
+
     pub(crate) fn builtin_classes(&self) -> impl Iterator<Item = &dyn TsBuiltinClass> {
         self.builtin_classes.values().map(|class| class.as_ref())
+    }
+
+    pub fn classes_names(&self) -> impl Iterator<Item = &ClassName> {
+        self.user_classes
+            .values()
+            .map(|class| class.get_class_name())
+            .chain(
+                self.builtin_classes
+                    .values()
+                    .map(|class| class.get_class_name()),
+            )
     }
 }
 
 pub struct TsClassesBuilder {
-    classes: Vec<(Vec<String>, ClassDecl)>,
-    functions: Vec<(Vec<String>, FnDecl)>,
-    variables: Vec<(Vec<String>, Box<VarDecl>)>,
-    exports: HashSet<String>,
+    compiler: swc::Compiler,
+    cm: Arc<SourceMap>,
+
+    dts_visitor: DtsVisitor,
+    program_visitor: ProgramVisitor,
+}
+
+enum FileType {
+    Ts,
+    Js,
+    Dts,
+}
+
+impl TryFrom<&Path> for FileType {
+    type Error = anyhow::Error;
+
+    fn try_from(path: &Path) -> Result<Self, Self::Error> {
+        match path.extension().and_then(|x| x.to_str()) {
+            Some("js") => Ok(FileType::Js),
+            Some("ts") => Ok(FileType::Ts),
+            Some("d.ts") => Ok(FileType::Dts),
+            _ => Err(anyhow::anyhow!(
+                "Unknown file extension: {}",
+                path.display()
+            )),
+        }
+    }
 }
 
 impl TsClassesBuilder {
     pub fn new() -> Self {
+        let cm = Arc::<SourceMap>::default();
         Self {
-            classes: Default::default(),
-            functions: Default::default(),
-            variables: Default::default(),
-            exports: Default::default(),
+            compiler: swc::Compiler::new(cm.clone()),
+            cm,
+            dts_visitor: DtsVisitor::default(),
+            program_visitor: ProgramVisitor::default(),
         }
     }
 
-    pub fn add_classes(&mut self, code: &str) -> Result<Vec<ClassName>, Error> {
-        let script = TsUserClass::get_ast(code)?.script().unwrap();
-        self.parse_body(&vec![], &script.body)
+    pub fn add_classes(&mut self, code: &str) -> Result<(), Error> {
+        let file_name = PathBuf::from("temp.ts");
+        let src = self
+            .cm
+            .new_source_file(Arc::new(file_name.into()), code.into());
+        self.add_file(src, FileType::Ts)
     }
 
-    pub fn add_ts_files<P: AsRef<Path>>(&mut self, full_path: P) -> Result<Vec<ClassName>, Error> {
+    pub fn add_files<P: AsRef<Path>>(&mut self, full_path: P) -> Result<(), Error> {
         if !full_path.as_ref().exists() {
             return Err(std::io::Error::new(
                 std::io::ErrorKind::NotFound,
@@ -126,120 +167,179 @@ impl TsClassesBuilder {
             )
             .into());
         } else if full_path.as_ref().is_dir() {
-            let mut classes_names = vec![];
-
             for entry in walkdir::WalkDir::new(full_path)
                 .into_iter()
                 .filter_map(Result::ok)
                 .filter(|e| {
                     e.file_type().is_file()
-                        && e.path().extension().map(|s| s == "ts").unwrap_or(false)
+                        && e.path()
+                            .extension()
+                            .map(|s| s == "ts" || s == "js" || s == "d.ts")
+                            .unwrap_or(false)
                 })
             {
-                classes_names.extend(self.add_ts_file(entry.path())?);
+                let file_type = FileType::try_from(entry.path())?;
+                let source_file = self.cm.load_file(entry.path())?;
+                self.add_file(source_file, file_type)?;
             }
 
-            Ok(classes_names)
+            Ok(())
         } else {
-            self.add_ts_file(full_path)
+            let file_type = FileType::try_from(full_path.as_ref())?;
+            let source_file = self.cm.load_file(full_path.as_ref())?;
+            self.add_file(source_file, file_type)
         }
     }
 
-    fn add_ts_file<P: AsRef<Path>>(&mut self, full_path: P) -> Result<Vec<ClassName>, Error> {
-        let cm = Arc::<SourceMap>::default();
-        let handler = Handler::with_tty_emitter(ColorConfig::Auto, true, false, Some(cm.clone()));
-        let c = swc::Compiler::new(cm.clone());
+    fn add_file(&mut self, source_file: Arc<SourceFile>, extension: FileType) -> Result<(), Error> {
+        match extension {
+            FileType::Ts => {
+                let (program, dts) = self.parse_ts_file(source_file)?;
 
-        let mut file = std::fs::File::open(full_path.as_ref())?;
-        let mut src = String::new();
-        file.read_to_string(&mut src)?;
-        let fm = cm.new_source_file(FileName::Real(full_path.as_ref().into()).into(), src);
+                self.add_declarations(dts)?;
+                self.parse_program(program)
+            }
+            FileType::Js => {
+                let program = self.parse_js_file(source_file)?;
+                self.parse_program(program)
+            }
+            FileType::Dts => {
+                let dts = self.parse_dts_file(source_file)?;
+                self.add_declarations(dts)?;
+                Ok(())
+            }
+        }
+    }
 
-        let script = c
-            .parse_js(
-                fm,
+    fn parse_ts_file(
+        &mut self,
+        source_file: Arc<SourceFile>,
+    ) -> Result<(ast::Program, ast::Program), Error> {
+        let handler =
+            Handler::with_tty_emitter(ColorConfig::Auto, true, false, Some(self.cm.clone()));
+
+        swc_common::GLOBALS.set(&Default::default(), || {
+            let mut program = self.compiler.parse_js(
+                source_file.clone(),
                 &handler,
                 ast::EsVersion::Es2022,
-                Syntax::Typescript(TsSyntax::default()),
-                swc::config::IsModule::Bool(false),
+                Syntax::Typescript(TsSyntax {
+                    tsx: false,
+                    decorators: false,
+                    dts: false,
+                    no_early_errors: false,
+                    disallow_ambiguous_jsx_like: false,
+                }),
+                swc::config::IsModule::Bool(true),
                 None,
-            )?
-            .script()
-            .unwrap();
+            )?;
 
-        self.parse_body(&vec![], &script.body)
+            let unresolved_mark = Mark::new();
+            let top_level_mark = Mark::new();
+
+            let mut optimized = self.compiler.run_transform(&handler, false, || {
+                program.mutate(&mut swc_ecma_transforms::resolver(
+                    unresolved_mark,
+                    top_level_mark,
+                    true,
+                ));
+
+                program.visit_mut_with(&mut swc_ecma_transforms::hygiene::hygiene());
+                program
+            });
+
+            let mut dts_prog = optimized.clone();
+            let mut fast_dts = swc_typescript::fast_dts::FastDts::new(
+                source_file.name.clone(),
+                unresolved_mark,
+                Default::default(),
+            );
+            let issues = fast_dts.transform(&mut dts_prog);
+
+            for issue in issues {
+                handler
+                    .struct_span_err(issue.range.span, &issue.message)
+                    .emit();
+            }
+
+            let mut stripper =
+                swc_ecma_transforms::typescript::strip(unresolved_mark, top_level_mark);
+            stripper.process(&mut optimized);
+
+            let mut simplifier =
+                swc_ecma_transforms::optimization::simplifier(unresolved_mark, Default::default());
+            simplifier.process(&mut optimized);
+
+            Ok((optimized, dts_prog))
+        })
     }
 
-    pub fn parse_body(
-        &mut self,
-        namespace: &Vec<String>,
-        body: &Vec<ast::Stmt>,
-    ) -> Result<Vec<ClassName>, Error> {
-        let mut class_names = vec![];
+    fn parse_dts_file(&mut self, source_file: Arc<SourceFile>) -> Result<ast::Program, Error> {
+        let handler =
+            Handler::with_tty_emitter(ColorConfig::Auto, true, false, Some(self.cm.clone()));
 
-        for stmt in body {
-            match stmt {
-                ast::Stmt::Decl(ast::Decl::Class(class_decl)) => {
-                    let class_name =
-                        class_name!(TsUserClassBuilder::get_class_name(namespace, class_decl));
-                    self.classes.push((namespace.clone(), class_decl.clone()));
-                    class_names.push(class_name.clone());
-                }
-                ast::Stmt::Decl(ast::Decl::Fn(fn_decl)) => {
-                    self.functions.push((namespace.clone(), fn_decl.clone()));
-                }
-                ast::Stmt::Decl(ast::Decl::Var(var_decl)) => {
-                    self.variables.push((namespace.clone(), var_decl.clone()));
-                }
-                ast::Stmt::Decl(ast::Decl::TsModule(ts_module)) => {
-                    if let Some(ast::TsNamespaceBody::TsModuleBlock(ns_body)) =
-                        ts_module.body.clone()
-                    {
-                        let ns_name = ts_module.id.as_ident().unwrap().sym.as_str().to_string();
-                        let mut new_ns = namespace.clone();
-                        new_ns.insert(0, ns_name);
-                        let stmts = ns_body
-                            .body
-                            .into_iter()
-                            .filter_map(|x| x.stmt())
-                            .collect_vec();
-                        let ns_classes = self.parse_body(&new_ns, &stmts)?;
-                        class_names.extend(ns_classes);
-                    }
-                }
-                ast::Stmt::Expr(expr_stmt) => match expr_stmt.expr.as_ref() {
-                    ast::Expr::Assign(assign_expr) => {
-                        if let ast::AssignTarget::Simple(ast::SimpleAssignTarget::Member(
-                            member_expr,
-                        )) = &assign_expr.left
-                        {
-                            let name = member_expr.obj.as_ident().unwrap().sym.as_str();
-                            let prop = member_expr.prop.as_ident().unwrap().sym.as_str();
-                            if name == "module" && prop == "exports" {
-                                if let ast::Expr::Lit(lit) = assign_expr.right.as_ref() {
-                                    if let ast::Lit::Str(s) = lit {
-                                        self.exports.insert(s.value.to_string());
-                                    }
-                                }
-                                if let ast::Expr::Object(lit) = assign_expr.right.as_ref() {
-                                    for prop in &lit.props {
-                                        let val = prop.as_prop().unwrap();
-                                        let ident = val.as_shorthand().unwrap();
-                                        self.exports.insert(ident.sym.to_string());
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    _ => {}
-                },
-                _ => {
-                    error!("Unknown statement {:#?}", stmt);
-                }
-            }
-        }
+        swc_common::GLOBALS.set(&Default::default(), || {
+            self.compiler.parse_js(
+                source_file,
+                &handler,
+                ast::EsVersion::Es2022,
+                Syntax::Typescript(TsSyntax {
+                    tsx: false,
+                    decorators: false,
+                    dts: true,
+                    no_early_errors: false,
+                    disallow_ambiguous_jsx_like: false,
+                }),
+                swc::config::IsModule::Bool(true),
+                None,
+            )
+        })
+    }
 
-        Ok(class_names)
+    fn parse_js_file(&mut self, source_file: Arc<SourceFile>) -> Result<ast::Program, Error> {
+        let handler =
+            Handler::with_tty_emitter(ColorConfig::Auto, true, false, Some(self.cm.clone()));
+
+        swc_common::GLOBALS.set(&Default::default(), || {
+            let mut program = self.compiler.parse_js(
+                source_file,
+                &handler,
+                ast::EsVersion::Es2022,
+                Syntax::Es(Default::default()),
+                swc::config::IsModule::Bool(true),
+                None,
+            )?;
+
+            let unresolved_mark = Mark::new();
+            let top_level_mark = Mark::new();
+
+            let mut optimized = self.compiler.run_transform(&handler, false, || {
+                program.mutate(&mut swc_ecma_transforms::resolver(
+                    unresolved_mark,
+                    top_level_mark,
+                    false,
+                ));
+
+                program.visit_mut_with(&mut swc_ecma_transforms::hygiene::hygiene());
+                program
+            });
+
+            let mut simplifier =
+                swc_ecma_transforms::optimization::simplifier(unresolved_mark, Default::default());
+            simplifier.process(&mut optimized);
+
+            Ok(optimized)
+        })
+    }
+
+    fn add_declarations(&mut self, dts: ast::Program) -> Result<(), Error> {
+        dts.visit_with(&mut self.dts_visitor);
+        Ok(())
+    }
+
+    fn parse_program(&mut self, program: ast::Program) -> Result<(), Error> {
+        program.visit_with(&mut self.program_visitor);
+        Ok(())
     }
 
     fn get_builtin_classes(&self) -> HashMap<String, Box<dyn TsBuiltinClass>> {
@@ -272,17 +372,20 @@ impl TsClassesBuilder {
 
         let mut graphs_map = GraphsMap::default();
         let global_class_builder = TsGlobalClassBuilder::global_class(
-            self.functions,
-            self.variables,
-            self.exports,
+            &self.program_visitor.functions,
+            &self.program_visitor.globals,
+            &self.dts_visitor.functions,
+            &self.dts_visitor.globals,
+            &self.program_visitor.export,
             classes.static_classes_gen_id.clone(),
         );
         global_class_builder.finalize(&mut classes, &mut graphs_map);
 
-        for (namespace, class_decl) in &self.classes {
+        for (id, class_decl) in &self.program_visitor.classes {
+            let dts = self.dts_visitor.classes.get(id).unwrap();
             let builder = TsUserClassBuilder::from_class_decl(
-                namespace,
                 class_decl,
+                dts,
                 classes.static_classes_gen_id.clone(),
             );
             builder.finalize(&mut classes, &mut graphs_map);

@@ -619,7 +619,7 @@ impl<'a> EngineContext<'a> {
             let js_func = JsUserClassWrapper::method_js_function(method, self);
             self.register_global_builtin_callable(
                 js_string!(name.as_str()),
-                method.params.len(),
+                method.param_types.len(),
                 js_func,
             )?;
         }
