@@ -137,8 +137,8 @@ impl SubProgram {
             evaluate_trace!({ prog_context = ?out_ctx }, "post_ctx[{}] (after)", i);
 
             if let Some(p_out_type) = &out_type {
-                if p_out_type == &ValueType::Null {
-                    let _ = out_type.insert(out_val.val.val_type());
+                if p_out_type != &out_val.val.val_type() {
+                    return false;
                 }
             }
             out_type.get_or_insert(out_val.val.val_type());
