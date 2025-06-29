@@ -6,7 +6,7 @@ use crate::{
     opcode::*,
     prog::SubProgram,
     prog_triplet::ProgTriplet,
-    prog_triplet_iterator::{prog_triplet_iterator, ProgTripletIterator}
+    prog_triplet_iterator::{prog_triplet_iterator, ProgTripletIterator}, trace_context_array, trace_prog
 };
 use dashmap::DashSet;
 use futures::FutureExt;
@@ -210,8 +210,7 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
         iteration_map: &mut TypeMap<P::T>,
         ctx: &ContextArray,
     ) -> Option<Arc<SubProgram>> {
-        trace!(target: "ruse::synthesizer", "Initializing context");
-        trace!(target: "ruse::synthesizer", "{}", ctx);
+        trace_context_array!(target: "ruse::synthesizer", ctx, "Initializing context");
 
         let mut res = None;
 
@@ -528,7 +527,7 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
         }
 
         if iteration_map.insert_program(p.clone()) {
-            trace!(target: "ruse::synthesizer", { prog = %p }, "Inserted program \"{}\"", p.get_code());
+            trace_prog!(target: "ruse::synthesizer", p, "Inserted");
 
             self.statistics.inc_value(StatisticsTypes::BankSize);
             self.statistics

@@ -9,6 +9,7 @@ use crate::{
 };
 use core::fmt;
 use std::{
+    collections::HashMap,
     fmt::{Debug, Display},
     hash::Hash,
     sync::Arc,
@@ -517,6 +518,27 @@ impl Value {
             value: self,
             graphs_map,
             config: DotConfig::default(),
+        }
+    }
+
+    pub fn dot_display_with_name<'b>(
+        &self,
+        graphs_map: &'b GraphsMap,
+        name: &str,
+    ) -> ValueDotDispaly<'_, 'b> {
+        let config = if let Some(obj) = self.obj() {
+            DotConfig {
+                override_root_name: HashMap::from_iter([(obj.node, name.to_string())]),
+                ..Default::default()
+            }
+        } else {
+            DotConfig::default()
+        };
+
+        ValueDotDispaly {
+            value: self,
+            graphs_map,
+            config,
         }
     }
 

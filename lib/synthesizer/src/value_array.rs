@@ -1,4 +1,4 @@
-use std::{fmt::Display, hash::Hash, ops::Index};
+use std::{collections::HashMap, fmt::Display, hash::Hash, ops::Index};
 
 use itertools::izip;
 use ruse_object_graph::graph_map_value::GraphMapWrap;
@@ -63,6 +63,16 @@ impl ValueArray {
             ctx_arr,
         }
     }
+
+    pub fn json_display(&self, ctx_arr: &ContextArray) -> impl Display {
+        let values = self.iter().zip(ctx_arr.iter()).enumerate().map(|(i, (val, ctx))| {
+            (format!("{}.dot", i.to_string()), val.val().dot_display_with_name(&ctx.graphs_map, &format!("value_{}", i)).to_string())
+        }).collect();
+
+        WrappedValueArrayJsonDisplay {
+            values
+        }
+    }
 }
 
 pub struct WrappedValueArray<'a> {
@@ -84,5 +94,18 @@ impl<'a> Display for WrappedValueArray<'a> {
             write!(f, "{}", val.wrap(&ctx.graphs_map))?;
         }
         Ok(())
+    }
+}
+
+
+#[derive(serde::Serialize)]
+pub struct WrappedValueArrayJsonDisplay {
+    values: HashMap<String, String>,
+}
+
+impl Display for WrappedValueArrayJsonDisplay {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let value = serde_json::to_string_pretty(self).unwrap();
+        write!(f, "{}", value)
     }
 }

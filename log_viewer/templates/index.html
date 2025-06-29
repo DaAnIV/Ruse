@@ -106,6 +106,13 @@
         .field-value.show {
             display: block;
         }
+        .field-svg {
+            width: 40%;
+            height: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            margin: 4px 0;
+        }
         #log-container {
             height: calc(100vh - 200px);
             overflow-y: auto;
@@ -249,12 +256,20 @@
             }
         }
 
-        function formatFieldValue(value) {
+        function formatFieldValue(key, value) {
             if (typeof value === 'object') {
-                return escapeHtml(JSON.stringify(value, null, 2));
+                return formatFieldItems(value);
+            }
+            if (key.endsWith('.svg')) {
+                return `<img src="data:image/svg+xml;base64,${value}" alt="${escapeHtml(key)}" class="field-svg">`;
             }
             // Convert \n to actual newlines after escaping HTML and trim any leading whitespace
             return escapeHtml(value).replace(/\\n/g, '\n').trim();
+        }
+
+        function formatFieldItems(fields) {
+            return Object.entries(fields)
+                .map(([key, value]) => `<div class="field-item"><div class="field-key" onclick="toggleField(this)"><i class="fas fa-chevron-right"></i>${escapeHtml(key)}</div><div class="field-value">${formatFieldValue(key, value)}</div></div>`).join('');
         }
 
         function formatFields(fields) {
@@ -262,16 +277,7 @@
                 return '';
             }
 
-            const fieldItems = Object.entries(fields)
-                .map(([key, value]) => `
-                    <div class="field-item">
-                        <div class="field-key" onclick="toggleField(this)">
-                            <i class="fas fa-chevron-right"></i>
-                            ${escapeHtml(key)}
-                        </div>
-                        <div class="field-value">${formatFieldValue(value)}</div>
-                    </div>
-                `).join('');
+            const fieldItems = formatFieldItems(fields);
 
             return `
                 <div class="additional-fields">

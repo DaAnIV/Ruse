@@ -1,6 +1,6 @@
 from flask import Flask, render_template, jsonify, request
 import os
-from log_parser import get_unique_thread_ids, get_logs
+from log_parser import LogFile
 
 app = Flask(__name__)
 
@@ -30,7 +30,9 @@ def get_threads():
     if not os.path.exists(log_path):
         return jsonify({'error': 'Log file not found'}), 404
 
-    thread_ids = get_unique_thread_ids(log_path)
+    log_file = LogFile(log_path)
+
+    thread_ids = log_file.thread_ids
     return thread_ids.tolist()
 
 @app.route('/api/logs')
@@ -46,12 +48,12 @@ def get_logs_api():
     if not os.path.exists(log_path):
         return jsonify({'error': 'Log file not found'}), 404
 
-    entries = []
-    current_count = 0
+    log_file = LogFile(log_path)
+
     start_index = (page - 1) * PAGE_SIZE
     end_index = start_index + PAGE_SIZE
 
-    (log, filtered_count, total_count) = get_logs(log_path, level, thread_id, message_filter, start_index, end_index)
+    (log, filtered_count) = log_file.get_logs(level, thread_id, message_filter, start_index, end_index)
 
     return jsonify({
         'entries': log.to_dict(orient='records'),
@@ -59,8 +61,6 @@ def get_logs_api():
         'page_size': PAGE_SIZE,
         'total_count': filtered_count
     })
-
-    return jsonify(log.to_dict(orient='records'))
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

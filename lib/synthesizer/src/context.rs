@@ -3,7 +3,7 @@ use downcast_rs::{impl_downcast, DowncastSync};
 use graph_equality::equal_graphs_by_nodes;
 use itertools::Itertools;
 use ruse_object_graph::{
-    dot::DotConfig,
+    dot::{Dot, DotConfig},
     graph_map_value::*,
     value::{ObjectValue, Value},
     *,
@@ -171,11 +171,11 @@ impl GraphMapHash for ValuesMap {
 
 #[derive(Clone, Debug)]
 pub struct Context {
-    hashes: Arc<ValuesHashMap>,
+    pub(crate) hashes: Arc<ValuesHashMap>,
     pub(crate) values: Arc<ValuesMap>,
+    pub(crate) outputs: Arc<Vec<Value>>,
     pub graphs_map: Arc<GraphsMap>,
     pub graph_id_gen: Arc<GraphIdGenerator>,
-    outputs: Arc<Vec<Value>>,
 }
 
 impl Context {
@@ -741,11 +741,51 @@ impl Display for Context {
     }
 }
 
+impl Context {
+    pub fn dot_display(&self) -> Dot<'_> {
+        let mut root_names = HashMap::from_iter(
+            self.values
+                .iter()
+                .filter_map(|(k, v)| v.obj().map(|o| (o.node, k.to_string()))),
+        );
+
+        for (i, output) in self.outputs.iter().enumerate() {
+            if let Some(obj) = output.obj() {
+                if let Some(name) = root_names.get(&obj.node) {
+                    root_names.insert(obj.node, format!("output_{}, {}", i, name));
+                } else {
+                    root_names.insert(obj.node, format!("output_{}", i));
+                }
+            }
+        }
+
+        Dot::from_nodes_with_config(
+            &self.graphs_map,
+            self.values
+                .values()
+                .filter_map(|v| v.obj().map(|o| (o.graph_id, o.node)))
+                .chain(
+                    self.outputs
+                        .iter()
+                        .filter_map(|v| v.obj().map(|o| (o.graph_id, o.node))),
+                )
+                .collect(),
+            DotConfig {
+                override_root_name: root_names,
+                ..Default::default()
+            },
+        )
+    }
+}
+
 #[derive(serde::Serialize)]
-struct ContextJsonDisplay<'a> {
-    values: HashMap<&'a str, String>,
-    outputs: Vec<String>,
-    graphs: Vec<GraphIndex>,
+struct ContextJsonDisplay {
+    values: HashMap<String, String>,
+    outputs: HashMap<String, String>,
+    #[serde(rename(serialize = "ctx.dot"))]
+    ctx_dot: String,
+    graphs: String,
+    hashes: String,
 }
 
 impl Context {
@@ -753,14 +793,14 @@ impl Context {
         self.get_json_wrapper()
     }
 
-    fn get_json_wrapper(&self) -> ContextJsonDisplay<'_> {
+    fn get_json_wrapper(&self) -> ContextJsonDisplay {
         ContextJsonDisplay {
             values: self
                 .variables()
                 .map(|(k, v)| {
                     (
-                        k.as_str(),
-                        v.dot_display_with_config(&self.graphs_map, DotConfig::subgraph_config(&k))
+                        format!("{}.dot", k),
+                        v.dot_display_with_name(&self.graphs_map, &format!("{}", k))
                             .to_string(),
                     )
                 })
@@ -769,19 +809,21 @@ impl Context {
                 .outputs()
                 .enumerate()
                 .map(|(i, v)| {
-                    v.dot_display_with_config(
-                        &self.graphs_map,
-                        DotConfig::subgraph_config(&format!("output_{}", i)),
+                    (
+                        format!("output_{}.dot", i),
+                        v.dot_display_with_name(&self.graphs_map, &format!("output_{}", i))
+                            .to_string(),
                     )
-                    .to_string()
                 })
                 .collect(),
-            graphs: self.graphs_map.keys().cloned().collect(),
+            ctx_dot: self.dot_display().to_string(),
+            graphs: format!("{:?}", self.graphs_map.keys().collect_vec()),
+            hashes: format!("{:?}", self.hashes),
         }
     }
 }
 
-impl<'a> Display for ContextJsonDisplay<'a> {
+impl Display for ContextJsonDisplay {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let value = serde_json::to_string_pretty(self).unwrap();
         write!(f, "{}", value)
@@ -792,6 +834,24 @@ impl<'a> Display for ContextJsonDisplay<'a> {
 //     fn default() -> Self {
 //         Context::with_values(Default::default())
 //     }
+// }
+
+// #[macro_export]
+// macro_rules! trace_context {
+//     (target: $target:expr, $ctx:expr, $message:expr, $($arg:tt)*) => (
+//         if tracing::enabled!(tracing::Level::TRACE) {
+//             tracing::trace!(target: $target, {
+//                 .json = %$ctx.json_display()
+//             },  $message, $($arg)*);
+//         }
+//     );
+//     (target: $target:expr, $ctx:expr, $message:expr) => (
+//         if tracing::enabled!(tracing::Level::TRACE) {
+//             tracing::trace!(target: $target, {
+//                 .json = %$ctx.json_display()
+//             },  $message);
+//         }
+//     );
 // }
 
 #[derive(Clone, Debug)]
@@ -872,6 +932,28 @@ impl ContextArray {
     }
 }
 
+#[macro_export]
+macro_rules! trace_context_array {
+    (target: $target:expr, $ctx_array:expr, $message:expr) => (
+        if tracing::enabled!(tracing::Level::TRACE) {
+            tracing::trace!(target: $target, {
+                depth = %$ctx_array.depth,
+                size = %$ctx_array.len(),
+                contexts.json = %$ctx_array.json_display()
+            },  $message);
+        }
+    );
+    (target: $target:expr, $ctx_array:expr, $message:expr, $($arg:tt)*) => (
+        if tracing::enabled!(tracing::Level::TRACE) {
+            tracing::trace!(target: $target, {
+                depth = %$ctx_array.depth,
+                size = %$ctx_array.len(),
+                contexts.json = %$ctx_array.json_display()
+            },  $message, $($arg)*);
+        }
+    );
+}
+
 impl Default for ContextArray {
     fn default() -> Self {
         Self {
@@ -946,14 +1028,13 @@ impl ContextArray {
     }
 }
 
-#[derive(serde::Serialize)]
-struct ContextArrayJsonDisplay<'a> {
-    contexts: Vec<ContextJsonDisplay<'a>>,
+struct ContextArrayJsonDisplay {
+    contexts: Vec<ContextJsonDisplay>,
 }
 
-impl<'a> Display for ContextArrayJsonDisplay<'a> {
+impl Display for ContextArrayJsonDisplay {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let value = serde_json::to_string_pretty(self).unwrap();
+        let value = serde_json::to_string_pretty(&self.contexts).unwrap();
         write!(f, "{}", value)
     }
 }

@@ -1,6 +1,6 @@
 use core::fmt;
 use itertools::Itertools;
-use std::{collections::HashSet, fmt::Write};
+use std::{collections::{HashMap, HashSet}, fmt::Write};
 
 use crate::{
     graph_node::ObjectGraphNode, graph_walk::ObjectGraphWalker, FieldName, FieldsMap, GraphIndex,
@@ -23,6 +23,7 @@ pub struct DotConfig {
     pub subgraph: Option<SubgraphConfig>,
     pub exclude_fields: HashSet<String>,
     pub print_only_content: bool,
+    pub override_root_name: HashMap<NodeIndex, String>,
 }
 
 impl Default for DotConfig {
@@ -32,6 +33,7 @@ impl Default for DotConfig {
             subgraph: None,
             print_only_content: false,
             exclude_fields: Default::default(),
+            override_root_name: Default::default(),
         }
     }
 }
@@ -45,6 +47,7 @@ impl DotConfig {
             }),
             print_only_content: false,
             exclude_fields: Default::default(),
+            override_root_name: Default::default(),
         }
     }
 
@@ -56,6 +59,7 @@ impl DotConfig {
             }),
             print_only_content: false,
             exclude_fields: Default::default(),
+            override_root_name: Default::default(),
         }
     }
 }
@@ -280,6 +284,16 @@ impl<'a> Dot<'a> {
         Ok(())
     }
 
+    fn get_graph_root_names(&self, node_id: &NodeIndex) -> Option<String> {
+        if let Some(override_root_name) = self.config.override_root_name.get(node_id) {
+            Some(override_root_name.clone())
+        } else {
+            self.graphs_map
+                .node_root_names(&node_id)
+                .map(|mut names| names.join(", "))
+        }
+    }
+
     fn graph_fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         Self::write_header_with_config(f, &self.config)?;
 
@@ -289,9 +303,7 @@ impl<'a> Dot<'a> {
             ObjectGraphWalker::from_nodes(&self.graphs_map, self.nodes.iter().copied())
         {
             write!(f, "{}", INDENT)?;
-            let root_names = self.graphs_map
-                .node_root_names(&cur_node_id)
-                .map(|mut names| names.join(", "));
+            let root_names = self.get_graph_root_names(&cur_node_id);
             Self::write_node(
                 f,
                 &Self::get_dot_id(&cur_node_id, &self.config),
