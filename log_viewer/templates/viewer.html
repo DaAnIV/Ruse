@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log Viewer - {{ log_file }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .log-entry {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+        .log-entry:hover {
+            background-color: #f8f9fa;
+        }
+        .log-timestamp {
+            color: #6c757d;
+            margin-right: 10px;
+            white-space: nowrap;
+        }
+        .log-level {
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 3px;
+            margin-right: 10px;
+            white-space: nowrap;
+        }
+        .log-level.INFO { background-color: #cff4fc; color: #055160; }
+        .log-level.WARNING { background-color: #fff3cd; color: #664d03; }
+        .log-level.ERROR { background-color: #f8d7da; color: #842029; }
+        .log-level.DEBUG { background-color: #e2e3e5; color: #41464b; }
+        .log-message {
+            color: #212529;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .log-meta {
+            color: #6c757d;
+            font-size: 0.85em;
+            margin-top: 4px;
+        }
+        .log-meta span {
+            margin-right: 15px;
+        }
+        .additional-fields {
+            margin-top: 12px;
+            padding: 8px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        .field-toggle {
+            color: #0d6efd;
+            cursor: pointer;
+            user-select: none;
+            font-size: 0.85em;
+            display: inline-block;
+            margin-bottom: 8px;
+        }
+        .field-toggle:hover {
+            text-decoration: underline;
+        }
+        .field-content {
+            margin: 0;
+            padding: 0;
+            background-color: white;
+            border-radius: 4px;
+            display: none;
+        }
+        .field-content.show {
+            display: block;
+        }
+        .field-item {
+            margin: 0;
+            padding: 2px 0;
+        }
+        .field-key {
+            color: #0d6efd;
+            font-weight: 500;
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            padding: 2px 0;
+        }
+        .field-key:hover {
+            text-decoration: underline;
+        }
+        .field-key i {
+            margin-right: 5px;
+            transition: transform 0.2s;
+        }
+        .field-key.collapsed i {
+            transform: rotate(-90deg);
+        }
+        .field-value {
+            color: #212529;
+            margin-left: 20px;
+            white-space: pre-wrap;
+            word-break: break-word;
+            display: none;
+            padding: 2px 0;
+        }
+        .field-value.show {
+            display: block;
+        }
+        .field-key-inline {
+            color: #0d6efd;
+            font-weight: 500;
+            margin-right: 8px;
+        }
+        .field-value-inline {
+            color: #212529;
+        }
+        .field-svg {
+            width: 40%;
+            height: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            margin: 4px 0;
+        }
+        #log-container {
+            height: calc(100vh - 250px);
+            overflow-y: auto;
+        }
+        
+        body {
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+        .controls {
+            position: sticky;
+            top: 0;
+            background: white;
+            padding: 15px 0;
+            border-bottom: 1px solid #dee2e6;
+            z-index: 1000;
+        }
+        .meta-label {
+            color: #495057;
+            font-weight: 500;
+        }
+        .pagination {
+            margin: 15px 0;
+            justify-content: center;
+        }
+        .pagination-info {
+            text-align: center;
+            color: #6c757d;
+            margin-bottom: 10px;
+        }
+        .file-header {
+            background-color: #f8f9fa;
+            padding: 10px 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .back-btn {
+            margin-right: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="file-header">
+        <div class="container-fluid">
+            <div class="row align-items-center">
+                <div class="col">
+                    <a href="/" class="btn btn-outline-secondary back-btn">
+                        <i class="fas fa-arrow-left"></i> Back to Files
+                    </a>
+                    <span class="h5 mb-0">Viewing: {{ log_file }}</span>
+                    <small class="text-muted ms-2">(Cached)</small>
+                </div>
+                <div class="col-auto">
+                    <a href="/cache-status" class="btn btn-sm btn-outline-info" target="_blank">
+                        <i class="fas fa-database"></i> Cache Status
+                    </a>
+                    <a href="/clear-cache" class="btn btn-sm btn-outline-warning ms-1">
+                        <i class="fas fa-trash"></i> Clear Cache
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-fluid">
+        <div class="controls">
+            <form method="GET" action="/view/{{ log_file }}" id="filterForm">
+                <div class="row mb-3">
+                    <div class="col-md-2">
+                        <select name="level" class="form-select">
+                            <option value="">All Levels</option>
+                            <option value="DEBUG" {% if current_level == 'DEBUG' %}selected{% endif %}>DEBUG</option>
+                            <option value="INFO" {% if current_level == 'INFO' %}selected{% endif %}>INFO</option>
+                            <option value="WARNING" {% if current_level == 'WARNING' %}selected{% endif %}>WARNING</option>
+                            <option value="ERROR" {% if current_level == 'ERROR' %}selected{% endif %}>ERROR</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <select name="thread_id" class="form-select" id="threadIdSelect">
+                            <option value="">All Threads</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <input type="text" name="message" class="form-control" placeholder="Search in messages..." value="{{ current_message_filter }}">
+                    </div>
+                    <div class="col-md-4">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-sync-alt"></i> Apply Filters
+                        </button>
+                        <a href="/view/{{ log_file }}" class="btn btn-outline-secondary ms-2">
+                            <i class="fas fa-times"></i> Clear
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+        
+        <div class="pagination-info" id="pagination-info">
+            Loading...
+        </div>
+        
+        <div id="log-container">
+            <div class="text-center py-4">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        </div>
+        
+        <nav aria-label="Log pagination" id="pagination-nav" style="display: none;">
+            <ul class="pagination" id="pagination-ul">
+            </ul>
+        </nav>
+    </div>
+
+    <script>
+        // Global variables
+        let currentLogFile = '{{ log_file }}';
+        let currentFilters = {
+            level: '{{ current_level }}',
+            thread_id: '{{ current_thread_id }}',
+            message: '{{ current_message_filter }}'
+        };
+        let currentPage = parseInt('{{ current_page }}') || 1;
+
+        // Load log entries and thread IDs on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadContent();
+        });
+
+        async function loadContent() {
+            await loadThreadIds();
+            await loadLogEntries();
+        }
+
+        // Function to load thread IDs from API
+        async function loadThreadIds() {
+            try {
+                const response = await fetch(`/api/thread-ids/${encodeURIComponent(currentLogFile)}`);
+                if (!response.ok) {
+                    throw new Error('Failed to load thread IDs');
+                }
+
+                const data = await response.json();
+                const threadSelect = document.getElementById('threadIdSelect');
+                
+                // Clear existing options except the first one
+                threadSelect.innerHTML = '<option value="">All Threads</option>';
+                
+                // Add thread IDs
+                data.thread_ids.forEach(threadId => {
+                    const option = document.createElement('option');
+                    option.value = threadId;
+                    option.textContent = threadId;
+                    if (currentFilters.thread_id === threadId) {
+                        option.selected = true;
+                    }
+                    threadSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading thread IDs:', error);
+            }
+        }
+
+        // Function to load log entries from API
+        async function loadLogEntries() {
+            try {
+                const params = new URLSearchParams({
+                    level: currentFilters.level,
+                    thread_id: currentFilters.thread_id,
+                    message: currentFilters.message,
+                    page: currentPage
+                });
+
+                const response = await fetch(`/api/logs/${encodeURIComponent(currentLogFile)}?${params}`);
+                if (!response.ok) {
+                    throw new Error('Failed to load log entries');
+                }
+
+                const data = await response.json();
+                renderLogEntries(data.entries);
+                renderPagination(data.pagination);
+                updatePaginationInfo(data.pagination);
+            } catch (error) {
+                console.error('Error loading log entries:', error);
+                document.getElementById('log-container').innerHTML = 
+                    '<div class="alert alert-danger">Error loading log entries. Please try again.</div>';
+            }
+        }
+
+
+        function formatTimestamp(timestamp) {
+            try {
+                const date = new Date(timestamp);
+                return date.toLocaleString('en-US', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: false,
+                    timeZoneName: 'short'
+                });
+            } catch (e) {
+                return timestamp; // Return original if parsing fails
+            }
+        }
+
+        function formatLogEntry(entry) {
+            // Convert \n to actual newlines in the message
+            const message = escapeHtml(entry.message).replace(/\\n/g, '\n');
+            
+            return `
+                <div class="log-entry">
+                    <div>
+                        <span class="log-timestamp">${formatTimestamp(entry.timestamp)}</span>
+                        <span class="log-level ${escapeHtml(entry.level)}">${escapeHtml(entry.level)}</span>
+                        <span class="log-message">${message}</span>
+                    </div>
+                    <div class="log-meta">
+                        <span><span class="meta-label">Target:</span> ${escapeHtml(entry.target)}</span>
+                        <span><span class="meta-label">File:</span> ${escapeHtml(entry.filename)}:${escapeHtml(entry.line_number)}</span>
+                        <span><span class="meta-label">Thread:</span> ${escapeHtml(entry.threadId)}</span>
+                    </div>
+                    ${formatFields(entry.fields)}
+                </div>
+            `;
+        }
+
+        // Function to escape HTML special characters
+        function escapeHtml(unsafe) {
+            if (unsafe === null || unsafe === undefined) {
+                return '';
+            }
+            return unsafe
+                .toString()
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function formatFieldValue(key, value) {
+            if (typeof value === 'object') {
+                return formatFieldItems(value);
+            }
+            if (key.endsWith('.svg')) {
+                return `<img src="data:image/svg+xml;base64,${value}" alt="${escapeHtml(key)}" class="field-svg">`;
+            }
+            // Convert \n to actual newlines after escaping HTML and trim any leading whitespace
+            return escapeHtml(value).replace(/\\n/g, '\n').trim();
+        }
+
+        function formatFieldItems(fields) {
+            return Object.entries(fields)
+                .map(([key, value]) => {
+                    // For short strings (less than 50 characters), display inline without toggle
+                    if (typeof value === 'string' && value.length < 50 && !value.includes('\n')) {
+                        return `<div class="field-item"><span class="field-key-inline">${escapeHtml(key)}:</span> <span class="field-value-inline">${escapeHtml(value)}</span></div>`;
+                    }
+                    // For longer strings, objects, or multi-line content, use toggle
+                    return `<div class="field-item"><div class="field-key" onclick="toggleField(this)"><i class="fas fa-chevron-right"></i>${escapeHtml(key)}</div><div class="field-value">${formatFieldValue(key, value)}</div></div>`;
+                }).join('');
+        }
+
+        function formatFields(fields) {
+            if (!fields || Object.keys(fields).length === 0) {
+                return '';
+            }
+
+            const fieldItems = formatFieldItems(fields);
+
+            return `
+                <div class="additional-fields">
+                    <div class="field-toggle" onclick="toggleFields(this)">
+                        <i class="fas fa-chevron-right"></i> Additional Fields
+                    </div>
+                    <div class="field-content">
+                        ${fieldItems}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Function to render log entries
+        function renderLogEntries(entries) {
+            const container = document.getElementById('log-container');
+            
+            if (entries.length === 0) {
+                container.innerHTML = '<div class="text-center py-4">No log entries found.</div>';
+                return;
+            }
+
+            const entriesHtml = entries.map(formatLogEntry).join('');
+
+            container.innerHTML = entriesHtml;
+        }
+
+        // Function to render pagination
+        function renderPagination(pagination) {
+            const nav = document.getElementById('pagination-nav');
+            const ul = document.getElementById('pagination-ul');
+            
+            if (pagination.total_pages <= 1) {
+                nav.style.display = 'none';
+                return;
+            }
+
+            nav.style.display = 'block';
+            
+            const maxVisiblePages = 5;
+            const startPage = Math.max(1, pagination.current_page - Math.floor(maxVisiblePages / 2));
+            const endPage = Math.min(pagination.total_pages, startPage + maxVisiblePages - 1);
+
+            let paginationHtml = '';
+
+            // Previous button
+            paginationHtml += `
+                <li class="page-item ${pagination.current_page === 1 ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="changePage(${pagination.current_page - 1}); return false;" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+            `;
+
+            // First page
+            if (startPage > 1) {
+                paginationHtml += `
+                    <li class="page-item">
+                        <a class="page-link" href="#" onclick="changePage(1); return false;">1</a>
+                    </li>
+                `;
+                if (startPage > 2) {
+                    paginationHtml += '<li class="page-item disabled"><span class="page-link">...</span></li>';
+                }
+            }
+
+            // Page numbers
+            for (let pageNum = startPage; pageNum <= endPage; pageNum++) {
+                paginationHtml += `
+                    <li class="page-item ${pageNum === pagination.current_page ? 'active' : ''}">
+                        <a class="page-link" href="#" onclick="changePage(${pageNum}); return false;">${pageNum}</a>
+                    </li>
+                `;
+            }
+
+            // Last page
+            if (endPage < pagination.total_pages) {
+                if (endPage < pagination.total_pages - 1) {
+                    paginationHtml += '<li class="page-item disabled"><span class="page-link">...</span></li>';
+                }
+                paginationHtml += `
+                    <li class="page-item">
+                        <a class="page-link" href="#" onclick="changePage(${pagination.total_pages}); return false;">${pagination.total_pages}</a>
+                    </li>
+                `;
+            }
+
+            // Next button
+            paginationHtml += `
+                <li class="page-item ${pagination.current_page === pagination.total_pages ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="changePage(${pagination.current_page + 1}); return false;" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+            `;
+
+            ul.innerHTML = paginationHtml;
+        }
+
+        // Function to update pagination info
+        function updatePaginationInfo(pagination) {
+            const start = ((pagination.current_page - 1) * pagination.page_size) + 1;
+            const end = Math.min(pagination.current_page * pagination.page_size, pagination.total_count);
+            document.getElementById('pagination-info').textContent = 
+                `Showing ${start}-${end} of ${pagination.total_count} logs`;
+        }
+
+        // Function to change page
+        function changePage(page) {
+            currentPage = page;
+            updateURL();
+            loadLogEntries();
+        }
+
+        // Function to update URL without page reload
+        function updateURL() {
+            const params = new URLSearchParams();
+            if (currentFilters.level) params.set('level', currentFilters.level);
+            if (currentFilters.thread_id) params.set('thread_id', currentFilters.thread_id);
+            if (currentFilters.message) params.set('message', currentFilters.message);
+            if (currentPage > 1) params.set('page', currentPage);
+
+            const newURL = `/view/${encodeURIComponent(currentLogFile)}${params.toString() ? '?' + params.toString() : ''}`;
+            window.history.pushState({}, '', newURL);
+        }
+
+        // Handle form submission
+        document.getElementById('filterForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            currentFilters.level = formData.get('level') || '';
+            currentFilters.thread_id = formData.get('thread_id') || '';
+            currentFilters.message = formData.get('message') || '';
+            currentPage = 1;
+            
+            updateURL();
+            loadLogEntries();
+        });
+
+        // Handle clear filters
+        document.querySelector('a[href="/view/{{ log_file }}"]').addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            currentFilters = { level: '', thread_id: '', message: '' };
+            currentPage = 1;
+            
+            // Reset form
+            document.getElementById('filterForm').reset();
+            
+            updateURL();
+            loadLogEntries();
+        });
+
+        // Toggle functions for additional fields
+        function toggleField(element) {
+            const value = element.nextElementSibling;
+            const icon = element.querySelector('i');
+            value.classList.toggle('show');
+            element.classList.toggle('collapsed');
+        }
+
+        function toggleFields(element) {
+            const content = element.nextElementSibling;
+            const icon = element.querySelector('i');
+            content.classList.toggle('show');
+            icon.classList.toggle('fa-chevron-right');
+            icon.classList.toggle('fa-chevron-down');
+        }
+    </script>
+</body>
+</html> 

@@ -3,548 +3,93 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Log Viewer</title>
+    <title>Log Viewer - File Selection</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        .log-entry {
-            padding: 12px;
-            border-bottom: 1px solid #eee;
-            font-family: monospace;
-            font-size: 0.9em;
-        }
-        .log-entry:hover {
-            background-color: #f8f9fa;
-        }
-        .log-timestamp {
-            color: #6c757d;
-            margin-right: 10px;
-            white-space: nowrap;
-        }
-        .log-level {
-            font-weight: bold;
-            padding: 2px 6px;
-            border-radius: 3px;
-            margin-right: 10px;
-            white-space: nowrap;
-        }
-        .log-level.INFO { background-color: #cff4fc; color: #055160; }
-        .log-level.WARNING { background-color: #fff3cd; color: #664d03; }
-        .log-level.ERROR { background-color: #f8d7da; color: #842029; }
-        .log-level.DEBUG { background-color: #e2e3e5; color: #41464b; }
-        .log-message {
-            color: #212529;
-            white-space: pre-wrap;
-            word-break: break-word;
-        }
-        .log-meta {
-            color: #6c757d;
-            font-size: 0.85em;
-            margin-top: 4px;
-        }
-        .log-meta span {
-            margin-right: 15px;
-        }
-        .additional-fields {
-            margin-top: 12px;
-            padding: 8px;
-            background-color: #f8f9fa;
-            border-radius: 4px;
-        }
-        .field-toggle {
-            color: #0d6efd;
-            cursor: pointer;
-            user-select: none;
-            font-size: 0.85em;
-            display: inline-block;
-            margin-bottom: 8px;
-        }
-        .field-toggle:hover {
-            text-decoration: underline;
-        }
-        .field-content {
-            margin: 0;
-            padding: 0;
+        .file-selection-container {
+            max-width: 600px;
+            margin: 100px auto;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             background-color: white;
-            border-radius: 4px;
-            display: none;
         }
-        .field-content.show {
-            display: block;
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
         }
-        .field-item {
-            margin: 0;
-            padding: 2px 0;
-        }
-        .field-key {
+        .logo i {
+            font-size: 3rem;
             color: #0d6efd;
-            font-weight: 500;
-            cursor: pointer;
-            user-select: none;
-            display: flex;
-            align-items: center;
-            padding: 2px 0;
         }
-        .field-key:hover {
-            text-decoration: underline;
+        .form-control {
+            margin-bottom: 20px;
         }
-        .field-key i {
-            margin-right: 5px;
-            transition: transform 0.2s;
+        .btn-open {
+            width: 100%;
+            padding: 12px;
+            font-size: 1.1rem;
         }
-        .field-key.collapsed i {
-            transform: rotate(-90deg);
-        }
-        .field-value {
-            color: #212529;
-            margin-left: 20px;
-            white-space: pre-wrap;
-            word-break: break-word;
-            display: none;
-            padding: 2px 0;
-        }
-        .field-value.show {
-            display: block;
-        }
-        .field-svg {
-            width: 40%;
-            height: auto;
-            border: 1px solid #dee2e6;
-            border-radius: 4px;
-            margin: 4px 0;
-        }
-        #log-container {
-            height: calc(100vh - 200px);
-            overflow-y: auto;
-        }
-        .controls {
-            position: sticky;
-            top: 0;
-            background: white;
-            padding: 15px 0;
-            border-bottom: 1px solid #dee2e6;
-            z-index: 1000;
-        }
-        .meta-label {
-            color: #495057;
-            font-weight: 500;
-        }
-        .pagination {
-            margin: 15px 0;
-            justify-content: center;
-        }
-        .pagination-info {
+        .no-files-message {
             text-align: center;
             color: #6c757d;
-            margin-bottom: 10px;
+            font-style: italic;
         }
     </style>
 </head>
-<body>
-    <div class="container-fluid">
-        <div class="controls">
-            <div class="row mb-3">
-                <div class="col-md-2">
-                    <select id="logFile" class="form-select">
+<body class="bg-light">
+    <div class="container">
+        <div class="file-selection-container">
+            <div class="logo">
+                <i class="fas fa-file-alt"></i>
+                <h2 class="mt-3">Log Viewer</h2>
+                <p class="text-muted">Select a log file to view</p>
+            </div>
+            
+            {% if log_files %}
+            <form id="fileSelectionForm">
+                <div class="mb-3">
+                    <label for="logFile" class="form-label">Log File:</label>
+                    <select id="logFile" class="form-select form-select-lg" required>
+                        <option value="">Choose a log file...</option>
                         {% for file in log_files %}
                         <option value="{{ file }}">{{ file }}</option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <select id="logLevel" class="form-select">
-                        <option value="">All Levels</option>
-                        <option value="DEBUG">DEBUG</option>
-                        <option value="INFO">INFO</option>
-                        <option value="WARNING">WARNING</option>
-                        <option value="ERROR">ERROR</option>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <select id="threadId" class="form-select">
-                        <option value="">All Threads</option>
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <input type="text" id="messageFilter" class="form-control" placeholder="Search in messages...">
-                </div>
-                <div class="col-md-3">
-                    <button id="refreshBtn" class="btn btn-primary">
-                        <i class="fas fa-sync-alt"></i> Refresh
-                    </button>
-                    <button id="autoRefreshBtn" class="btn btn-outline-secondary ms-2" title="Toggle auto-refresh">
-                        <i class="fas fa-clock"></i> Auto-refresh
-                    </button>
-                </div>
+                <button type="submit" class="btn btn-primary btn-open" id="openBtn" disabled>
+                    <i class="fas fa-folder-open me-2"></i>Open Log File
+                </button>
+            </form>
+            {% else %}
+            <div class="no-files-message">
+                <i class="fas fa-folder-open mb-3" style="font-size: 2rem;"></i>
+                <p>No log files found in the logs directory.</p>
+                <p>Please add some .jsonl log files to the logs folder.</p>
             </div>
+            {% endif %}
         </div>
-        <div class="pagination-info" id="paginationInfo"></div>
-        <div id="log-container"></div>
-        <nav aria-label="Log pagination">
-            <ul class="pagination" id="pagination"></ul>
-        </nav>
     </div>
 
     <script>
-        // Get state from URL parameters or use defaults
-        const urlParams = new URLSearchParams(window.location.search);
-        let currentPage = parseInt(urlParams.get('page')) || 1;
-        let totalPages = 1;
-        let totalLogs = 0;
-        let autoRefreshInterval = null;
-        let isAutoRefreshEnabled = localStorage.getItem('autoRefresh') !== 'false';
+        const logFileSelect = document.getElementById('logFile');
+        const openBtn = document.getElementById('openBtn');
+        const form = document.getElementById('fileSelectionForm');
 
-        // Function to escape HTML special characters
-        function escapeHtml(unsafe) {
-            if (unsafe === null || unsafe === undefined) {
-                return '';
-            }
-            return unsafe
-                .toString()
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#039;");
-        }
-
-        // Function to update URL with current state
-        function updateURL() {
-            const logLevel = document.getElementById('logLevel').value;
-            const threadId = document.getElementById('threadId').value;
-            const logFile = document.getElementById('logFile').value;
-            const messageFilter = document.getElementById('messageFilter').value;
-            
-            const params = new URLSearchParams();
-            params.set('page', currentPage);
-            if (logLevel) params.set('level', logLevel);
-            if (threadId) params.set('thread', threadId);
-            if (logFile) params.set('file', logFile);
-            if (messageFilter) params.set('message', messageFilter);
-            
-            const newURL = `${window.location.pathname}?${params.toString()}`;
-            window.history.replaceState({}, '', newURL);
-        }
-
-        // Function to update auto-refresh button state
-        function updateAutoRefreshButton() {
-            const button = document.getElementById('autoRefreshBtn');
-            if (isAutoRefreshEnabled) {
-                button.classList.remove('btn-outline-secondary');
-                button.classList.add('btn-secondary');
-            } else {
-                button.classList.remove('btn-secondary');
-                button.classList.add('btn-outline-secondary');
-            }
-        }
-
-        // Function to toggle auto-refresh
-        function toggleAutoRefresh() {
-            isAutoRefreshEnabled = !isAutoRefreshEnabled;
-            localStorage.setItem('autoRefresh', isAutoRefreshEnabled);
-            updateAutoRefreshButton();
-
-            if (isAutoRefreshEnabled) {
-                // Start auto-refresh
-                autoRefreshInterval = setInterval(loadLogs, 5000);
-            } else {
-                // Stop auto-refresh
-                if (autoRefreshInterval) {
-                    clearInterval(autoRefreshInterval);
-                    autoRefreshInterval = null;
-                }
-            }
-        }
-
-        function formatFieldValue(key, value) {
-            if (typeof value === 'object') {
-                return formatFieldItems(value);
-            }
-            if (key.endsWith('.svg')) {
-                return `<img src="data:image/svg+xml;base64,${value}" alt="${escapeHtml(key)}" class="field-svg">`;
-            }
-            // Convert \n to actual newlines after escaping HTML and trim any leading whitespace
-            return escapeHtml(value).replace(/\\n/g, '\n').trim();
-        }
-
-        function formatFieldItems(fields) {
-            return Object.entries(fields)
-                .map(([key, value]) => `<div class="field-item"><div class="field-key" onclick="toggleField(this)"><i class="fas fa-chevron-right"></i>${escapeHtml(key)}</div><div class="field-value">${formatFieldValue(key, value)}</div></div>`).join('');
-        }
-
-        function formatFields(fields) {
-            if (!fields || Object.keys(fields).length === 0) {
-                return '';
-            }
-
-            const fieldItems = formatFieldItems(fields);
-
-            return `
-                <div class="additional-fields">
-                    <div class="field-toggle" onclick="toggleFields(this)">
-                        <i class="fas fa-chevron-right"></i> Additional Fields
-                    </div>
-                    <div class="field-content">
-                        ${fieldItems}
-                    </div>
-                </div>
-            `;
-        }
-
-        function toggleField(element) {
-            const value = element.nextElementSibling;
-            const icon = element.querySelector('i');
-            value.classList.toggle('show');
-            element.classList.toggle('collapsed');
-        }
-
-        function toggleFields(element) {
-            const content = element.nextElementSibling;
-            const icon = element.querySelector('i');
-            content.classList.toggle('show');
-            icon.classList.toggle('fa-chevron-right');
-            icon.classList.toggle('fa-chevron-down');
-        }
-
-        function formatTimestamp(timestamp) {
-            try {
-                const date = new Date(timestamp);
-                return date.toLocaleString('en-US', {
-                    year: 'numeric',
-                    month: '2-digit',
-                    day: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit',
-                    hour12: false,
-                    timeZoneName: 'short'
-                });
-            } catch (e) {
-                return timestamp; // Return original if parsing fails
-            }
-        }
-
-        function formatLogEntry(entry) {
-            // Convert \n to actual newlines in the message
-            const message = escapeHtml(entry.message).replace(/\\n/g, '\n');
-            
-            return `
-                <div class="log-entry">
-                    <div>
-                        <span class="log-timestamp">${formatTimestamp(entry.timestamp)}</span>
-                        <span class="log-level ${escapeHtml(entry.level)}">${escapeHtml(entry.level)}</span>
-                        <span class="log-message">${message}</span>
-                    </div>
-                    <div class="log-meta">
-                        <span><span class="meta-label">Target:</span> ${escapeHtml(entry.target)}</span>
-                        <span><span class="meta-label">File:</span> ${escapeHtml(entry.filename)}:${escapeHtml(entry.line_number)}</span>
-                        <span><span class="meta-label">Thread:</span> ${escapeHtml(entry.thread_id)}</span>
-                    </div>
-                    ${formatFields(entry.fields)}
-                </div>
-            `;
-        }
-
-        function loadThreadIds() {
-            const logFile = document.getElementById('logFile').value;
-            const savedThreadId = urlParams.get('thread');
-            
-            return fetch(`/api/threads?file=${logFile}`)
-                .then(response => response.json())
-                .then(threadIds => {
-                    const select = document.getElementById('threadId');
-                    select.innerHTML = '<option value="">All Threads</option>' +
-                        threadIds.map(id => `<option value="${escapeHtml(id)}">${escapeHtml(id)}</option>`).join('');
-                    
-                    // Set the saved thread ID after populating the options
-                    if (savedThreadId) {
-                        select.value = savedThreadId;
-                    }
-                })
-                .catch(error => console.error('Error loading thread IDs:', error));
-        }
-
-        function updatePagination(page, totalCount) {
-            const pageSize = 100; // Match PAGE_SIZE in backend
-            totalPages = Math.ceil(totalCount / pageSize);
-            totalLogs = totalCount;
-            
-            // Update pagination info
-            const start = (page - 1) * pageSize + 1;
-            const end = Math.min(page * pageSize, totalCount);
-            document.getElementById('paginationInfo').textContent = 
-                `Showing ${start}-${end} of ${totalCount} logs`;
-            
-            // Update pagination controls
-            const pagination = document.getElementById('pagination');
-            let html = '';
-            
-            // Previous button
-            html += `
-                <li class="page-item ${page === 1 ? 'disabled' : ''}">
-                    <a class="page-link" href="#" data-page="${page - 1}" aria-label="Previous">
-                        <span aria-hidden="true">&laquo;</span>
-                    </a>
-                </li>
-            `;
-            
-            // Page numbers
-            const maxVisiblePages = 5;
-            let startPage = Math.max(1, page - Math.floor(maxVisiblePages / 2));
-            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-            
-            if (startPage > 1) {
-                html += `
-                    <li class="page-item">
-                        <a class="page-link" href="#" data-page="1">1</a>
-                    </li>
-                    ${startPage > 2 ? '<li class="page-item disabled"><span class="page-link">...</span></li>' : ''}
-                `;
-            }
-            
-            for (let i = startPage; i <= endPage; i++) {
-                html += `
-                    <li class="page-item ${i === page ? 'active' : ''}">
-                        <a class="page-link" href="#" data-page="${i}">${i}</a>
-                    </li>
-                `;
-            }
-            
-            if (endPage < totalPages) {
-                html += `
-                    ${endPage < totalPages - 1 ? '<li class="page-item disabled"><span class="page-link">...</span></li>' : ''}
-                    <li class="page-item">
-                        <a class="page-link" href="#" data-page="${totalPages}">${totalPages}</a>
-                    </li>
-                `;
-            }
-            
-            // Next button
-            html += `
-                <li class="page-item ${page === totalPages ? 'disabled' : ''}">
-                    <a class="page-link" href="#" data-page="${page + 1}" aria-label="Next">
-                        <span aria-hidden="true">&raquo;</span>
-                    </a>
-                </li>
-            `;
-            
-            pagination.innerHTML = html;
-            
-            // Add click handlers
-            pagination.querySelectorAll('.page-link').forEach(link => {
-                link.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    const newPage = parseInt(e.target.closest('.page-link').dataset.page);
-                    if (newPage && newPage !== page && newPage >= 1 && newPage <= totalPages) {
-                        currentPage = newPage;
-                        loadLogs();
-                    }
-                });
-            });
-        }
-
-        function loadLogs() {
-            const logFile = document.getElementById('logFile').value;
-            const logLevel = document.getElementById('logLevel').value;
-            const threadId = document.getElementById('threadId').value;
-            const messageFilter = document.getElementById('messageFilter').value;
-            const container = document.getElementById('log-container');
-
-            fetch(`/api/logs?file=${logFile}&level=${logLevel}&thread_id=${threadId}&message=${messageFilter}&page=${currentPage}`)
-                .then(response => response.json())
-                .then(data => {
-                    container.innerHTML = data.entries.map(formatLogEntry).join('');
-                    updatePagination(data.page, data.total_count);
-                    updateURL();
-                })
-                .catch(error => console.error('Error loading logs:', error));
-        }
-
-        // Function to restore state from URL
-        function restoreState() {
-            const logLevel = urlParams.get('level');
-            const logFile = urlParams.get('file');
-            const messageFilter = urlParams.get('message');
-
-            if (logLevel) {
-                document.getElementById('logLevel').value = logLevel;
-            }
-            if (logFile) {
-                document.getElementById('logFile').value = logFile;
-            }
-            if (messageFilter) {
-                document.getElementById('messageFilter').value = messageFilter;
-            }
-            // Note: thread ID is handled in loadThreadIds
-        }
-
-        // Event listeners
-        document.getElementById('refreshBtn').addEventListener('click', () => {
-            currentPage = 1;
-            updateURL();
-            loadLogs();
-        });
-        document.getElementById('autoRefreshBtn').addEventListener('click', toggleAutoRefresh);
-        document.getElementById('logFile').addEventListener('change', () => {
-            currentPage = 1;
-            updateURL();
-            loadThreadIds();
-            loadLogs();
-        });
-        document.getElementById('logLevel').addEventListener('change', () => {
-            currentPage = 1;
-            updateURL();
-            loadLogs();
-        });
-        document.getElementById('threadId').addEventListener('change', () => {
-            currentPage = 1;
-            updateURL();
-            loadLogs();
-        });
-        document.getElementById('messageFilter').addEventListener('input', debounce(() => {
-            currentPage = 1;
-            updateURL();
-            loadLogs();
-        }, 300));
-
-        // Handle pagination clicks
-        document.addEventListener('click', (e) => {
-            const pageLink = e.target.closest('.page-link');
-            if (pageLink) {
-                e.preventDefault();
-                const newPage = parseInt(pageLink.dataset.page);
-                if (newPage && newPage !== currentPage && newPage >= 1 && newPage <= totalPages) {
-                    currentPage = newPage;
-                    updateURL();
-                    loadLogs();
-                }
-            }
+        // Enable/disable open button based on selection
+        logFileSelect.addEventListener('change', function() {
+            openBtn.disabled = !this.value;
         });
 
-        // Initial load
-        restoreState();
-        loadThreadIds().then(() => {
-            loadLogs();
-            updateAutoRefreshButton();
-
-            // Start auto-refresh if enabled
-            if (isAutoRefreshEnabled) {
-                autoRefreshInterval = setInterval(loadLogs, 5000);
+        // Handle form submission
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const selectedFile = logFileSelect.value;
+            if (selectedFile) {
+                window.location.href = `/view/${encodeURIComponent(selectedFile)}`;
             }
         });
-
-        // Debounce function to limit how often the search is performed
-        function debounce(func, wait) {
-            let timeout;
-            return function executedFunction(...args) {
-                const later = () => {
-                    clearTimeout(timeout);
-                    func(...args);
-                };
-                clearTimeout(timeout);
-                timeout = setTimeout(later, wait);
-            };
-        }
     </script>
 </body>
 </html> 
