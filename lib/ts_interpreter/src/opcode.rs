@@ -34,7 +34,11 @@ impl TsExprAst {
                 span: DUMMY_SP,
             }
             .into(),
-            ast::Expr::Assign(_) => todo!(),
+            ast::Expr::Assign(_) => ast::ParenExpr {
+                expr: owned_node,
+                span: DUMMY_SP,
+            }
+            .into(),
             ast::Expr::SuperProp(_) => todo!(),
             ast::Expr::Cond(_) => todo!(),
             ast::Expr::New(_) => ast::ParenExpr {
@@ -265,6 +269,7 @@ mod sequence;
 mod set_ops;
 mod string_ops;
 mod unary;
+mod assign_op;
 
 pub use array_ops::*;
 pub use bin::*;
@@ -277,3 +282,4 @@ pub use sequence::*;
 pub use set_ops::*;
 pub use string_ops::*;
 pub use unary::*;
+pub use assign_op::*;

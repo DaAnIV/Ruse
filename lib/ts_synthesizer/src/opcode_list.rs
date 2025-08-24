@@ -113,6 +113,7 @@ pub fn add_num_opcodes(
         let op = Arc::new(opcode::UpdateOp::new(*op, true));
         opcodes.push(op);
     }
+    opcodes.push(Arc::new(opcode::AssignOp::new(ast::AssignOp::Assign, ValueType::Number)));
 }
 
 pub fn add_bool_opcodes(
@@ -128,6 +129,7 @@ pub fn add_bool_opcodes(
         let op = Arc::new(opcode::UnaryOp::new(*op, ValueType::Bool));
         opcodes.push(op);
     }
+    opcodes.push(Arc::new(opcode::AssignOp::new(ast::AssignOp::Assign, ValueType::Bool)));
 }
 
 pub fn add_str_opcodes(opcodes: &mut OpcodesList, str_bool_opcodes: &[ast::BinaryOp]) {
@@ -149,6 +151,7 @@ pub fn add_str_opcodes(opcodes: &mut OpcodesList, str_bool_opcodes: &[ast::Binar
     opcodes.push(Arc::new(opcode::StringAtOp::new()));
     opcodes.push(Arc::new(opcode::StringSubstringOp::new(false)));
     opcodes.push(Arc::new(opcode::StringSubstringOp::new(true)));
+    opcodes.push(Arc::new(opcode::AssignOp::new(ast::AssignOp::Assign, ValueType::String)));
 }
 
 pub fn add_array_opcodes(opcodes: &mut OpcodesList, array_types: &[ValueType]) {
