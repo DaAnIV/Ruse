@@ -426,3 +426,72 @@ impl ExprOpcode for StringAtOp {
         &self.arg_types
     }
 }
+
+#[derive(Debug)]
+pub struct StringSubstringOp {
+    arg_types: Vec<ValueType>,
+}
+
+impl StringSubstringOp {
+    pub fn new(with_end: bool) -> Self {
+        let mut arg_types = vec![ValueType::String, ValueType::Number];
+        if with_end {
+            arg_types.push(ValueType::Number);
+        }
+        Self { arg_types }
+    }
+}
+
+impl ExprOpcode for StringSubstringOp {
+    fn op_name(&self) -> &str {
+        if self.arg_types.len() == 2 {
+            "String.prototype.substring(start)"
+        } else {
+            "String.prototype.substring(start, end)"
+        }
+    }
+
+    fn eval(&self, args: &[&LocValue], post_ctx: &mut Context, _syn_ctx: &SynthesizerContext) -> EvalResult {
+        debug_assert_eq!(args.len(), self.arg_types.len());
+
+        let string = args[0].val().string_value().unwrap();
+        let istart = args[1].val().number_value().unwrap().0 as isize;
+        let iend = match args.get(2) {
+            Some(v) => v.val().number_value().unwrap().0 as isize,
+            None => string.len() as isize,
+        };
+        let mut start = 0;
+        let mut end = 0;
+
+        if istart < 0 {
+            start = 0;
+        }
+        if istart > string.len() as isize {
+            start = string.len();
+        }
+        if iend > string.len() as isize {
+            end = string.len();
+        }
+        if iend < 0 {
+            end = 0;
+        }
+
+        if start > end {
+            let temp = start;
+            start = end;
+            end = temp;
+        }
+
+        let substring = &string[start..end];
+
+        pure!(post_ctx.temp_value(vstr!(substring)))
+    }
+    
+    fn arg_types(&self) -> &[ValueType] {
+        &self.arg_types
+    }
+    
+    fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
+        member_call_ast("substring", children)
+    }
+}
