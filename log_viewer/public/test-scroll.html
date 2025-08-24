@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scroll Test</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app">
+        <header class="header">
+            <h1>🔍 Scroll Test</h1>
+        </header>
+
+        <div class="main-content">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <div class="section">
+                    <h3>Test Sidebar Scroll</h3>
+                    <div style="height: 1500px; background: linear-gradient(to bottom, #f0f0f0, #e0e0e0);">
+                        <p>This sidebar content is very tall to test scrolling.</p>
+                        <div style="height: 100px; background: #fff; margin: 10px 0; padding: 10px;">Item 1</div>
+                        <div style="height: 100px; background: #fff; margin: 10px 0; padding: 10px;">Item 2</div>
+                        <div style="height: 100px; background: #fff; margin: 10px 0; padding: 10px;">Item 3</div>
+                        <div style="height: 100px; background: #fff; margin: 10px 0; padding: 10px;">Item 4</div>
+                        <div style="height: 100px; background: #fff; margin: 10px 0; padding: 10px;">Item 5</div>
+                        <div style="height: 100px; background: #fff; margin: 10px 0; padding: 10px;">Item 6</div>
+                        <div style="height: 100px; background: #fff; margin: 10px 0; padding: 10px;">Item 7</div>
+                        <div style="height: 100px; background: #fff; margin: 10px 0; padding: 10px;">Item 8</div>
+                        <div style="height: 100px; background: #fff; margin: 10px 0; padding: 10px;">Item 9</div>
+                        <div style="height: 100px; background: #fff; margin: 10px 0; padding: 10px;">Item 10</div>
+                        <p>Bottom of sidebar content</p>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main content area -->
+            <main class="content">
+                <div class="logs-container">
+                    <div class="logs-header">
+                        <div class="logs-info">
+                            <span>Test Main Content Scroll</span>
+                        </div>
+                    </div>
+
+                    <div class="logs-content">
+                        <div style="height: 2000px; background: linear-gradient(to bottom, #fff, #f8f9fa);">
+                            <h2>Test Content Area Scrolling</h2>
+                            <p>This content is very tall to test scrolling in the main area.</p>
+                            
+                            <div class="log-entry">
+                                <div class="log-header">
+                                    <div class="log-meta">
+                                        <span class="log-level info">INFO</span>
+                                        <span class="log-timestamp">2023-12-01T10:00:00Z</span>
+                                        <span class="log-target">test</span>
+                                    </div>
+                                </div>
+                                <div class="log-body expanded">
+                                    <div class="log-message">Test log entry 1</div>
+                                </div>
+                            </div>
+
+                            <div class="log-entry">
+                                <div class="log-header">
+                                    <div class="log-meta">
+                                        <span class="log-level debug">DEBUG</span>
+                                        <span class="log-timestamp">2023-12-01T10:00:01Z</span>
+                                        <span class="log-target">test</span>
+                                    </div>
+                                </div>
+                                <div class="log-body expanded">
+                                    <div class="log-message">Test log entry 2</div>
+                                </div>
+                            </div>
+
+                            <div class="log-entry">
+                                <div class="log-header">
+                                    <div class="log-meta">
+                                        <span class="log-level warn">WARN</span>
+                                        <span class="log-timestamp">2023-12-01T10:00:02Z</span>
+                                        <span class="log-target">test</span>
+                                    </div>
+                                </div>
+                                <div class="log-body expanded">
+                                    <div class="log-message">Test log entry 3</div>
+                                </div>
+                            </div>
+
+                            <div class="log-entry">
+                                <div class="log-header">
+                                    <div class="log-meta">
+                                        <span class="log-level error">ERROR</span>
+                                        <span class="log-timestamp">2023-12-01T10:00:03Z</span>
+                                        <span class="log-target">test</span>
+                                    </div>
+                                </div>
+                                <div class="log-body expanded">
+                                    <div class="log-message">Test log entry 4 with more content to test the layout and scrolling behavior</div>
+                                </div>
+                            </div>
+
+                            <!-- Add many more entries to test scrolling -->
+                            <div style="height: 200px; background: #e3f2fd; margin: 20px 0; padding: 20px; border-radius: 8px;">
+                                <h3>Scroll Test Block 1</h3>
+                                <p>This is a test block to add more content for scrolling.</p>
+                            </div>
+
+                            <div style="height: 200px; background: #f3e5f5; margin: 20px 0; padding: 20px; border-radius: 8px;">
+                                <h3>Scroll Test Block 2</h3>
+                                <p>This is another test block to add more content for scrolling.</p>
+                            </div>
+
+                            <div style="height: 200px; background: #e8f5e8; margin: 20px 0; padding: 20px; border-radius: 8px;">
+                                <h3>Scroll Test Block 3</h3>
+                                <p>This is yet another test block to add more content for scrolling.</p>
+                            </div>
+
+                            <div style="height: 200px; background: #fff3e0; margin: 20px 0; padding: 20px; border-radius: 8px;">
+                                <h3>Scroll Test Block 4</h3>
+                                <p>Final test block for scrolling verification.</p>
+                            </div>
+
+                            <p style="margin-top: 50px;"><strong>Bottom of main content</strong></p>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+</body>
+</html>

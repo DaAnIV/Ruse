@@ -1,0 +1,1 @@
+{"timestamp": "2023-12-01T10:00:01Z", "level": "INFO", "target": "app::test", "filename": "test.rs", "line_number": 1, "threadId": "test", "fields": {"message": "Simple nested test", "simple.json": "{\"inner\": {\"chart.mermaid\": \"graph TD; A-->B\"}}"}}

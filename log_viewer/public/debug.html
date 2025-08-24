@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Mermaid Issue</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .debug-section { margin: 20px 0; padding: 20px; border: 1px solid #ccc; background: #f9f9f9; }
+        .mermaid { border: 2px solid red; background: white; padding: 10px; min-height: 50px; }
+        pre { background: #f5f5f5; padding: 10px; white-space: pre-wrap; }
+        button { padding: 10px 20px; margin: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Mermaid Debugging Page</h1>
+    
+    <div class="debug-section">
+        <h2>Raw Data Test</h2>
+        <button onclick="loadLogData()">Load Real Log Data</button>
+        <div id="log-data-output"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h2>Manual Mermaid Test</h2>
+        <button onclick="testMermaidDirect()">Test Direct Rendering</button>
+        <div id="manual-test-result"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h2>App Simulation Test</h2>
+        <button onclick="simulateAppLogic()">Simulate App Logic</button>
+        <button onclick="renderInContainer()">Test Container Rendering</button>
+        <div id="app-simulation-result"></div>
+    </div>
+    
+    <div class="debug-section">
+        <h2>Container-specific Test</h2>
+        <button onclick="testContainerSpecific()">Test Container-Specific Rendering</button>
+        <div id="container-test-result"></div>
+    </div>
+
+    <script>
+        console.log('Debug page loaded, Mermaid version:', mermaid.version);
+        
+        // Initialize Mermaid like in our app
+        mermaid.initialize({ 
+            startOnLoad: false,
+            theme: 'default',
+            securityLevel: 'loose'
+        });
+        
+        async function loadLogData() {
+            try {
+                const response = await fetch('/api/logs/9fe00904d4047df0607b7b55675133bf.json?limit=20');
+                const data = await response.json();
+                
+                const output = document.getElementById('log-data-output');
+                output.innerHTML = '<h3>Logs with Mermaid Extensions:</h3>';
+                
+                data.logs.forEach((log, index) => {
+                    if (log._meta.extensions.mermaid) {
+                        output.innerHTML += `
+                            <div style="border: 1px solid blue; margin: 10px; padding: 10px;">
+                                <h4>Log ${index}: ${log.fields.message}</h4>
+                                <strong>Mermaid Data:</strong>
+                                <pre>${JSON.stringify(log._meta.extensions.mermaid, null, 2)}</pre>
+                            </div>
+                        `;
+                    }
+                });
+            } catch (error) {
+                console.error('Error loading log data:', error);
+                document.getElementById('log-data-output').innerHTML = '<p style="color: red;">Error: ' + error.message + '</p>';
+            }
+        }
+        
+        async function testMermaidDirect() {
+            const testDiagram = `graph TD
+    A[Start] --> B[Process]
+    B --> C[End]`;
+            
+            try {
+                const result = document.getElementById('manual-test-result');
+                result.innerHTML = '<p>Rendering...</p>';
+                
+                const { svg } = await mermaid.render('test-id-direct', testDiagram);
+                result.innerHTML = '<h3>Direct Render Result:</h3>' + svg;
+                console.log('Direct render successful');
+            } catch (error) {
+                console.error('Direct render failed:', error);
+                document.getElementById('manual-test-result').innerHTML = '<p style="color: red;">Error: ' + error.message + '</p>';
+            }
+        }
+        
+        async function simulateAppLogic() {
+            const testDiagram = `graph TD
+    A[Start] --> B[Process]
+    B --> C[End]`;
+            
+            // Simulate what our app does
+            const escapedDiagram = testDiagram.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+            const diagramId = `mermaid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            
+            const html = `
+                <div class="extension-content">
+                    <div class="extension-title">📊 Simulated Mermaid Diagram</div>
+                    <div class="mermaid-diagram">
+                        <div class="mermaid" id="${diagramId}" data-diagram-text="${escapedDiagram}">Loading diagram...</div>
+                    </div>
+                </div>
+            `;
+            
+            const result = document.getElementById('app-simulation-result');
+            result.innerHTML = html;
+            
+            // Now try to render it like our app does
+            setTimeout(async () => {
+                try {
+                    const element = document.getElementById(diagramId);
+                    let diagramText = element.getAttribute('data-diagram-text');
+                    diagramText = diagramText.replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+                    
+                    console.log('Simulated diagram text:', diagramText);
+                    
+                    element.innerHTML = '';
+                    element.setAttribute('data-processed', 'true');
+                    
+                    const { svg } = await mermaid.render(diagramId + '-rendered', diagramText);
+                    element.innerHTML = svg;
+                    
+                    console.log('App simulation successful');
+                } catch (error) {
+                    console.error('App simulation failed:', error);
+                    document.getElementById(diagramId).innerHTML = '<p style="color: red;">Simulation Error: ' + error.message + '</p>';
+                }
+            }, 100);
+        }
+        
+        async function renderInContainer() {
+            const container = document.getElementById('app-simulation-result');
+            const mermaidElements = container.querySelectorAll('.mermaid:not([data-processed])');
+            console.log('Found mermaid elements in container:', mermaidElements.length);
+            
+            for (const element of mermaidElements) {
+                try {
+                    let diagramText = element.getAttribute('data-diagram-text');
+                    if (diagramText) {
+                        diagramText = diagramText.replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+                        console.log('Rendering in container:', diagramText);
+                        
+                        const id = element.id + '-container-render';
+                        const { svg } = await mermaid.render(id, diagramText);
+                        element.innerHTML = svg;
+                        element.setAttribute('data-processed', 'true');
+                    }
+                } catch (error) {
+                    console.error('Container render error:', error);
+                    element.innerHTML = '<p style="color: red;">Container Error: ' + error.message + '</p>';
+                }
+            }
+        }
+        
+        function testContainerSpecific() {
+            const testDiagram = `sequenceDiagram
+    participant A as Client
+    participant B as Server
+    participant C as Database
+    A->>B: Request
+    B->>C: Query
+    C-->>B: Result
+    B-->>A: Response`;
+            
+            const container = document.getElementById('container-test-result');
+            const diagramId = `container-test-${Date.now()}`;
+            
+            // Create a mermaid element directly inside a container
+            container.innerHTML = `
+                <div style="border: 2px solid green; padding: 10px;">
+                    <h4>Container Test</h4>
+                    <div class="mermaid" id="${diagramId}" data-diagram-text="${testDiagram.replace(/"/g, '&quot;')}">Loading...</div>
+                </div>
+            `;
+            
+            // Render using container-specific approach
+            setTimeout(async () => {
+                try {
+                    const element = document.getElementById(diagramId);
+                    const diagramText = element.getAttribute('data-diagram-text').replace(/&quot;/g, '"');
+                    
+                    console.log('Container-specific test diagram:', diagramText);
+                    
+                    const { svg } = await mermaid.render(diagramId + '-final', diagramText);
+                    element.innerHTML = svg;
+                    element.setAttribute('data-processed', 'true');
+                    
+                    console.log('Container-specific test successful');
+                } catch (error) {
+                    console.error('Container-specific test failed:', error);
+                    document.getElementById(diagramId).innerHTML = '<p style="color: red;">Container Test Error: ' + error.message + '</p>';
+                }
+            }, 100);
+        }
+    </script>
+</body>
+</html>

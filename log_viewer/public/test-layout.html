@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Layout Test</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app">
+        <header class="header">
+            <h1>🔍 Layout Test</h1>
+            <div class="header-actions">
+                <button class="btn btn-primary">Test Button</button>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <div class="section">
+                    <h3>Test Files</h3>
+                    <div class="log-files-list">
+                        <div class="log-file-item active">
+                            <div class="log-file-name">test-file-1.log</div>
+                            <div class="log-file-meta">Processed: Now</div>
+                            <div class="log-file-stats">100 logs • 5 panics • 4 levels</div>
+                        </div>
+                        <div class="log-file-item">
+                            <div class="log-file-name">test-file-2.log</div>
+                            <div class="log-file-meta">Processed: Earlier</div>
+                            <div class="log-file-stats">200 logs • 2 panics • 3 levels</div>
+                        </div>
+                        <div class="log-file-item">
+                            <div class="log-file-name">test-file-3.log</div>
+                            <div class="log-file-meta">Processed: Yesterday</div>
+                            <div class="log-file-stats">50 logs • 0 panics • 2 levels</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3>Filters</h3>
+                    
+                    <div class="filter-group">
+                        <label for="levelFilter">Level</label>
+                        <select id="levelFilter" multiple>
+                            <option value="">All Levels</option>
+                            <option value="INFO">INFO (50)</option>
+                            <option value="DEBUG">DEBUG (20)</option>
+                            <option value="WARN">WARN (15)</option>
+                            <option value="ERROR">ERROR (10)</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="searchFilter">Search Message</label>
+                        <input type="text" id="searchFilter" placeholder="Search in messages...">
+                    </div>
+
+                    <div class="filter-actions">
+                        <button class="btn btn-primary btn-small">Apply</button>
+                        <button class="btn btn-secondary btn-small">Clear</button>
+                    </div>
+                </div>
+
+                <!-- Add more content to test sidebar scrolling -->
+                <div class="section">
+                    <h3>More Filters</h3>
+                    <div class="filter-group">
+                        <label>Extra Filter 1</label>
+                        <input type="text" placeholder="Test...">
+                    </div>
+                    <div class="filter-group">
+                        <label>Extra Filter 2</label>
+                        <input type="text" placeholder="Test...">
+                    </div>
+                    <div class="filter-group">
+                        <label>Extra Filter 3</label>
+                        <input type="text" placeholder="Test...">
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3>Statistics</h3>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-label">Total Logs</div>
+                            <div class="stat-value">1000</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">Errors</div>
+                            <div class="stat-value">25</div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main content area -->
+            <main class="content">
+                <div class="logs-container">
+                    <div class="logs-header">
+                        <div class="logs-info">
+                            <span>100 logs</span>
+                            <span>test-file-1.log</span>
+                        </div>
+                        <div class="pagination-controls">
+                            <button class="btn btn-small">Previous</button>
+                            <span>Page 1 of 5</span>
+                            <button class="btn btn-small">Next</button>
+                        </div>
+                    </div>
+
+                    <div class="logs-content">
+                        <!-- Generate many log entries to test scrolling -->
+                        <div class="log-entry info">
+                            <div class="log-header">
+                                <div class="log-meta">
+                                    <span class="log-level info">INFO</span>
+                                    <span class="log-timestamp">2023-12-01T10:00:00Z</span>
+                                    <span class="log-target">app::main</span>
+                                </div>
+                                <div class="log-location">main.rs:42 • Thread: main</div>
+                            </div>
+                            <div class="log-body expanded">
+                                <div class="log-message">Application starting up</div>
+                            </div>
+                        </div>
+
+                        <div class="log-entry debug">
+                            <div class="log-header">
+                                <div class="log-meta">
+                                    <span class="log-level debug">DEBUG</span>
+                                    <span class="log-timestamp">2023-12-01T10:00:01Z</span>
+                                    <span class="log-target">app::config</span>
+                                </div>
+                                <div class="log-location">config.rs:15 • Thread: main</div>
+                            </div>
+                            <div class="log-body expanded">
+                                <div class="log-message">Loading configuration from /etc/app.conf</div>
+                            </div>
+                        </div>
+
+                        <div class="log-entry warn">
+                            <div class="log-header">
+                                <div class="log-meta">
+                                    <span class="log-level warn">WARN</span>
+                                    <span class="log-timestamp">2023-12-01T10:00:02Z</span>
+                                    <span class="log-target">app::auth</span>
+                                </div>
+                                <div class="log-location">auth.rs:89 • Thread: worker-1</div>
+                            </div>
+                            <div class="log-body expanded">
+                                <div class="log-message">Failed login attempt from admin@192.168.1.100</div>
+                            </div>
+                        </div>
+
+                        <div class="log-entry error">
+                            <div class="log-header">
+                                <div class="log-meta">
+                                    <span class="log-level error">ERROR</span>
+                                    <span class="log-timestamp">2023-12-01T10:00:03Z</span>
+                                    <span class="log-target">app::database</span>
+                                </div>
+                                <div class="log-location">db.rs:203 • Thread: db-pool-1</div>
+                            </div>
+                            <div class="log-body expanded">
+                                <div class="log-message">Database connection failed: Connection timeout after 3 retries</div>
+                            </div>
+                        </div>
+
+                        <!-- Repeat entries to create scrollable content -->
+                        <div class="log-entry info">
+                            <div class="log-header">
+                                <div class="log-meta">
+                                    <span class="log-level info">INFO</span>
+                                    <span class="log-timestamp">2023-12-01T10:00:04Z</span>
+                                    <span class="log-target">app::server</span>
+                                </div>
+                            </div>
+                            <div class="log-body expanded">
+                                <div class="log-message">Server listening on port 8080</div>
+                            </div>
+                        </div>
+
+                        <div class="log-entry debug">
+                            <div class="log-header">
+                                <div class="log-meta">
+                                    <span class="log-level debug">DEBUG</span>
+                                    <span class="log-timestamp">2023-12-01T10:00:05Z</span>
+                                    <span class="log-target">app::cache</span>
+                                </div>
+                            </div>
+                            <div class="log-body expanded">
+                                <div class="log-message">Cache initialized with 1000 entries</div>
+                            </div>
+                        </div>
+
+                        <div class="log-entry info">
+                            <div class="log-header">
+                                <div class="log-meta">
+                                    <span class="log-level info">INFO</span>
+                                    <span class="log-timestamp">2023-12-01T10:00:06Z</span>
+                                    <span class="log-target">app::metrics</span>
+                                </div>
+                            </div>
+                            <div class="log-body expanded">
+                                <div class="log-message">Metrics collection started</div>
+                            </div>
+                        </div>
+
+                        <div class="log-entry warn">
+                            <div class="log-header">
+                                <div class="log-meta">
+                                    <span class="log-level warn">WARN</span>
+                                    <span class="log-timestamp">2023-12-01T10:00:07Z</span>
+                                    <span class="log-target">app::monitor</span>
+                                </div>
+                            </div>
+                            <div class="log-body expanded">
+                                <div class="log-message">High memory usage detected: 85%</div>
+                            </div>
+                        </div>
+
+                        <div class="log-entry error">
+                            <div class="log-header">
+                                <div class="log-meta">
+                                    <span class="log-level error">ERROR</span>
+                                    <span class="log-timestamp">2023-12-01T10:00:08Z</span>
+                                    <span class="log-target">app::panic</span>
+                                </div>
+                            </div>
+                            <div class="log-body expanded">
+                                <div class="log-message">Thread panicked at 'assertion failed'</div>
+                            </div>
+                        </div>
+
+                        <!-- Add many more entries to force scrolling -->
+                        <div style="height: 100px; background: #f0f0f0; margin: 20px 0; padding: 20px; border-radius: 8px;">
+                            <h3>Test Block 1</h3>
+                            <p>This is additional content to test scrolling.</p>
+                        </div>
+
+                        <div style="height: 100px; background: #e8f5e8; margin: 20px 0; padding: 20px; border-radius: 8px;">
+                            <h3>Test Block 2</h3>
+                            <p>More content for scrolling.</p>
+                        </div>
+
+                        <div style="height: 100px; background: #fff3e0; margin: 20px 0; padding: 20px; border-radius: 8px;">
+                            <h3>Test Block 3</h3>
+                            <p>Even more content for scrolling.</p>
+                        </div>
+
+                        <div style="height: 100px; background: #f3e5f5; margin: 20px 0; padding: 20px; border-radius: 8px;">
+                            <h3>Test Block 4</h3>
+                            <p>Final test block.</p>
+                        </div>
+
+                        <p style="margin-top: 50px; padding: 20px; background: #d4edda; border-radius: 8px;">
+                            <strong>Bottom of logs content - if you can see this, scrolling works!</strong>
+                        </p>
+                    </div>
+
+                    <div class="pagination-controls bottom-pagination">
+                        <button class="btn btn-small">Previous</button>
+                        <span>Page 1 of 5</span>
+                        <button class="btn btn-small">Next</button>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+</body>
+</html>

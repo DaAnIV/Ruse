@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minimal Scroll Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            border: 2px solid red;
+        }
+
+        .header {
+            background: #667eea;
+            color: white;
+            padding: 1rem;
+            flex-shrink: 0;
+        }
+
+        .main {
+            flex: 1;
+            display: flex;
+            min-height: 0;
+            border: 2px solid blue;
+        }
+
+        .sidebar {
+            width: 300px;
+            background: #f0f0f0;
+            overflow-y: auto;
+            border: 2px solid green;
+            padding: 1rem;
+        }
+
+        .content {
+            flex: 1;
+            background: white;
+            overflow-y: auto;
+            border: 2px solid orange;
+            padding: 1rem;
+            min-height: 0;
+        }
+
+        .tall-content {
+            height: 2000px;
+            background: linear-gradient(to bottom, #fff, #eee);
+            padding: 20px;
+        }
+
+        .item {
+            height: 100px;
+            background: #ddd;
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Minimal Scroll Test</h1>
+            <p>Header should be fixed, sidebar and content should scroll independently</p>
+        </div>
+        
+        <div class="main">
+            <div class="sidebar">
+                <h3>Sidebar (should scroll)</h3>
+                <div class="item">Item 1</div>
+                <div class="item">Item 2</div>
+                <div class="item">Item 3</div>
+                <div class="item">Item 4</div>
+                <div class="item">Item 5</div>
+                <div class="item">Item 6</div>
+                <div class="item">Item 7</div>
+                <div class="item">Item 8</div>
+                <div class="item">Item 9</div>
+                <div class="item">Item 10</div>
+                <div class="item">Item 11</div>
+                <div class="item">Item 12</div>
+                <div class="item">Item 13</div>
+                <div class="item">Item 14</div>
+                <div class="item">Item 15</div>
+                <div class="item">Item 16</div>
+                <div class="item">Item 17</div>
+                <div class="item">Item 18</div>
+                <div class="item">Item 19</div>
+                <div class="item">Item 20</div>
+            </div>
+            
+            <div class="content">
+                <h3>Main Content (should scroll)</h3>
+                <div class="tall-content">
+                    <p>This is very tall content that should scroll.</p>
+                    <p>Scroll down to see more...</p>
+                    <br><br><br><br><br><br><br><br><br><br>
+                    <p>Middle of content</p>
+                    <br><br><br><br><br><br><br><br><br><br>
+                    <p>More content...</p>
+                    <br><br><br><br><br><br><br><br><br><br>
+                    <p>Even more content...</p>
+                    <br><br><br><br><br><br><br><br><br><br>
+                    <p>Bottom of content</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

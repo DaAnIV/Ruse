@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Mermaid Test</title>
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+        
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            securityLevel: 'loose'
+        });
+        
+        window.mermaid = mermaid;
+        console.log('Mermaid loaded and initialized');
+    </script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ccc; }
+        .mermaid { background: white; border: 1px solid #e9ecef; border-radius: 4px; padding: 1rem; }
+    </style>
+</head>
+<body>
+    <h1>Simple Mermaid Test with ESM Module</h1>
+    
+    <div class="test-section">
+        <h2>Test 1: Static Diagram</h2>
+        <pre class="mermaid">
+graph TD
+    A[Start] --> B[Process]
+    B --> C[End]
+        </pre>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 2: Sequence Diagram</h2>
+        <pre class="mermaid">
+sequenceDiagram
+    participant A as Client
+    participant B as Server
+    participant C as Database
+    A->>B: Request
+    B->>C: Query
+    C-->>B: Result
+    B-->>A: Response
+        </pre>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 3: Dynamic Addition</h2>
+        <button onclick="addDiagram()">Add Dynamic Diagram</button>
+        <div id="dynamic-container"></div>
+    </div>
+
+    <script>
+        function addDiagram() {
+            const container = document.getElementById('dynamic-container');
+            container.innerHTML = `
+                <h3>Dynamically Added Diagram</h3>
+                <pre class="mermaid">
+flowchart LR
+    A[Dynamic] --> B[Diagram]
+    B --> C[Test]
+                </pre>
+            `;
+            
+            // Trigger mermaid rendering
+            setTimeout(() => {
+                if (window.mermaid) {
+                    window.mermaid.run();
+                }
+            }, 100);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+{
+  "name": "log-viewer",
+  "version": "1.0.0",
+  "description": "A web application for viewing and filtering JSON log files",
+  "main": "server.js",
+  "scripts": {
+    "start": "PATH=$HOME/nodejs/bin:$PATH node server.js",
+    "dev": "PATH=$HOME/nodejs/bin:$PATH nodemon server.js",
+    "debug": "PATH=$HOME/nodejs/bin:$PATH node --inspect server.js",
+    "preprocess": "PATH=$HOME/nodejs/bin:$PATH node scripts/preprocess_logs.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "multer": "^1.4.5-lts.1",
+    "fs-extra": "^11.1.1",
+    "path": "^0.12.7",
+    "cli-progress": "^3.12.0",
+    "mongodb": "^6.8.0",
+    "child_process": "^1.0.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "keywords": ["log", "viewer", "json", "filtering"],
+  "author": "",
+  "license": "MIT"
+}

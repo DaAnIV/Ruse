@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mermaid Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ccc; }
+        .mermaid { border: 2px solid blue; min-height: 100px; }
+        pre { background: #f5f5f5; padding: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Mermaid Rendering Test</h1>
+    
+    <div class="test-section">
+        <h2>Test 1: Direct Mermaid (should work)</h2>
+        <div class="mermaid">
+graph TD
+    A[Start] --> B[Process]
+    B --> C[End]
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 2: Programmatically inserted (like our app)</h2>
+        <div id="dynamic-mermaid" class="mermaid"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 3: Using mermaid.render() (our method)</h2>
+        <div id="rendered-mermaid"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Raw Diagram Text:</h2>
+        <pre id="diagram-text"></pre>
+    </div>
+
+    <script>
+        console.log('Mermaid version:', mermaid.version || 'unknown');
+        
+        // Initialize Mermaid
+        mermaid.initialize({ 
+            startOnLoad: false,
+            theme: 'default',
+            securityLevel: 'loose'
+        });
+        
+        // Test data from our sample
+        const diagramText = `graph TD
+    A[Start] --> B[Process]
+    B --> C[End]`;
+        
+        document.getElementById('diagram-text').textContent = diagramText;
+        
+        async function testMermaid() {
+            console.log('Starting Mermaid tests...');
+            
+            // Test 1: Run on existing elements
+            console.log('Test 1: Running mermaid.run()');
+            try {
+                await mermaid.run();
+                console.log('Test 1: Success');
+            } catch (error) {
+                console.error('Test 1 failed:', error);
+            }
+            
+            // Test 2: Insert diagram dynamically
+            console.log('Test 2: Dynamic insertion');
+            try {
+                const dynamicElement = document.getElementById('dynamic-mermaid');
+                dynamicElement.textContent = diagramText;
+                await mermaid.run();
+                console.log('Test 2: Success');
+            } catch (error) {
+                console.error('Test 2 failed:', error);
+            }
+            
+            // Test 3: Use mermaid.render() method
+            console.log('Test 3: Using mermaid.render()');
+            try {
+                const renderedElement = document.getElementById('rendered-mermaid');
+                const { svg } = await mermaid.render('test-diagram-id', diagramText);
+                renderedElement.innerHTML = svg;
+                console.log('Test 3: Success');
+            } catch (error) {
+                console.error('Test 3 failed:', error);
+            }
+        }
+        
+        // Wait for page load and run tests
+        window.addEventListener('load', () => {
+            setTimeout(testMermaid, 500);
+        });
+    </script>
+</body>
+</html>

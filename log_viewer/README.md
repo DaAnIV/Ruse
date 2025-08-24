@@ -1,89 +1,66 @@
 # Log Viewer
 
-A web-based log viewer application that allows you to view and filter application logs in real-time.
+A web application for viewing and filtering JSON log files with support for special extensions and panic handling.
 
 ## Features
 
-- View logs from multiple log files
-- Filter logs by severity level (DEBUG, INFO, WARNING, ERROR)
-- Adjust the number of lines displayed
-- Auto-refresh every 5 seconds
-- Modern, responsive UI
-- Color-coded log levels for better visibility
-- Display of detailed log metadata (file, line number, thread ID, etc.)
+- Load and parse JSON lines log files
+- Smart caching system for fast reloading
+- Advanced filtering by level, target, timestamp, and content
+- Support for special extensions (e.g., `.mermaid` for diagrams)
+- Enhanced panic log handling with backtrace filtering
+- Real-time log viewing with modern UI
 
-## Setup
+## Quick Start
 
-1. Navigate to the log_viewer directory:
+### Method 1: Using the setup script
 ```bash
-cd log_viewer
+./setup.sh
+./start.sh
 ```
 
-2. Create a virtual environment (recommended):
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
+### Method 2: Manual setup
+1. Install dependencies:
+   ```bash
+   PATH=$HOME/nodejs/bin:$PATH npm install
+   ```
 
-3. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
+2. Start the server:
+   ```bash
+   PATH=$HOME/nodejs/bin:$PATH node server.js
+   ```
 
-4. Create a `logs` directory in the project root:
-```bash
-mkdir logs
-```
+3. Open your browser to `http://localhost:3000`
 
-5. Run the application:
-```bash
-python log_viewer.py
-```
-
-6. Open your browser and navigate to `http://localhost:5000`
+4. Upload or select log files to view
 
 ## Usage
 
-1. Select a log file from the dropdown menu
-2. Choose a log level to filter (optional)
-3. Select the number of lines to display
-4. Click the refresh button or wait for auto-refresh
+### Preprocessing Logs
+To preprocess logs for faster loading:
+```bash
+PATH=$HOME/nodejs/bin:$PATH node scripts/preprocess_logs.js /path/to/logfile.log
+```
 
-## Log Format Support
+Or use the npm script:
+```bash
+PATH=$HOME/nodejs/bin:$PATH npm run preprocess -- /path/to/logfile.log
+```
 
-The application expects JSON-formatted logs where each line is a JSON object with the following structure:
-
+### Log Format
+Expected JSON lines format:
 ```json
-{
-    "timestamp": "2024-03-21T10:30:45.123Z",
-    "level": "INFO",
-    "fields": {
-        "message": "Your log message here"
-    },
-    "target": "module_name",
-    "filename": "source_file.rs",
-    "line_number": 42,
-    "threadId": "thread-1"
-}
+{"timestamp": "2023-01-01T00:00:00Z", "level": "INFO", "target": "app", "filename": "main.rs", "line_number": 42, "threadId": "main", "fields": {"message": "Hello world"}}
 ```
 
-All fields are optional, but the following are recommended for best results:
-- `timestamp`: The time when the log entry was created
-- `level`: The log level (DEBUG, INFO, WARNING, ERROR)
-- `fields.message`: The main log message
-- `target`: The module or component that generated the log
-- `filename`: The source file where the log was generated
-- `line_number`: The line number in the source file
-- `threadId`: The ID of the thread that generated the log
+### Special Extensions
+- Keys ending with `.mermaid` contain Mermaid diagrams
+- Panic logs include `panic.backtrace` and `panic.location` fields
 
-## Directory Structure
+## File Structure
 
-```
-log_viewer/
-├── log_viewer.py
-├── requirements.txt
-├── README.md
-├── logs/
-└── templates/
-    └── index.html
-``` 
+- `server.js` - Express server
+- `scripts/preprocess_logs.js` - Log preprocessing script
+- `public/` - Frontend web interface
+- `cache/` - Cached processed logs
+- `uploads/` - Uploaded log files

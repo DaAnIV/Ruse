@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log Viewer</title>
+    <link rel="stylesheet" href="styles.css">
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+        
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            themeVariables: {
+                primaryColor: '#667eea',
+                primaryTextColor: '#fff',
+                primaryBorderColor: '#667eea',
+                lineColor: '#333',
+                sectionBkgColor: '#f8f9fa',
+                altSectionBkgColor: '#ffffff',
+                gridColor: '#e9ecef',
+                secondaryColor: '#764ba2',
+                tertiaryColor: '#f8f9fa'
+            },
+            securityLevel: 'loose'
+        });
+        
+        // Make mermaid available globally for the app
+        window.mermaid = mermaid;
+
+        window.mermaid.parseError = function (err, hash) {
+            console.error('Mermaid parse error:', err);
+        };
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/date-fns/2.29.3/index.min.js"></script>
+</head>
+<body>
+    <div class="app">
+        <header class="header">
+            <h1><a href="/" class="home-link">🔍 Log Viewer</a></h1>
+            <div class="header-actions">
+                <button id="uploadBtn" class="btn btn-primary">Upload Log File</button>
+                <button id="refreshBtn" class="btn btn-secondary">Refresh</button>
+                <a href="/mongodb-admin.html" class="btn btn-secondary">🗄️ MongoDB Admin</a>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <div class="section">
+                    <h3>Log Files</h3>
+                    <div id="logFilesList" class="log-files-list">
+                        <div class="loading">Loading...</div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3>Filters</h3>
+                    
+                    <div class="filter-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="levelFilterAll" class="filter-all-checkbox">
+                            <span>All Levels</span>
+                        </label>
+                        <div id="levelFilterOptions" class="filter-options">
+                            <!-- Level checkboxes will be populated here -->
+                        </div>
+                    </div>
+
+                    <div class="filter-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="targetFilterAll" class="filter-all-checkbox">
+                            <span>All Targets</span>
+                        </label>
+                        <div id="targetFilterOptions" class="filter-options">
+                            <!-- Target checkboxes will be populated here -->
+                        </div>
+                    </div>
+
+                    <div class="filter-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="taskFilterAll" class="filter-all-checkbox">
+                            <span>All Tasks</span>
+                        </label>
+                        <div id="taskFilterOptions" class="filter-options">
+                            <!-- Task checkboxes will be populated here -->
+                        </div>
+                    </div>
+
+                    <div class="filter-group" id="iterationFilterGroup" style="display: none;">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="iterationFilterAll" class="filter-all-checkbox">
+                            <span>All Iterations</span>
+                        </label>
+                        <div id="iterationFilterOptions" class="filter-options">
+                            <!-- Iteration checkboxes will be populated here -->
+                        </div>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="searchFilter">Search Message</label>
+                        <input type="text" id="searchFilter" placeholder="Search in messages...">
+                    </div>
+
+                    <div class="filter-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="panicFilter">
+                            Show only panic logs
+                        </label>
+                    </div>
+
+                    <div class="filter-actions">
+                        <button id="applyFiltersBtn" class="btn btn-primary btn-small">Apply Filters</button>
+                        <button id="clearFiltersBtn" class="btn btn-secondary btn-small">Clear</button>
+                    </div>
+                </div>
+
+                <div class="section" id="statsSection" style="display: none;">
+                    <h3>Statistics</h3>
+                    <div id="statsContent"></div>
+                </div>
+            </aside>
+
+            <!-- Main content area -->
+            <main class="content">
+                <div id="welcomeScreen" class="welcome-screen">
+                    <div class="welcome-content">
+                        <h2>Welcome to Log Viewer</h2>
+                        <p>Select a log file from the sidebar to start viewing logs, or upload a new file.</p>
+                        <div class="features">
+                            <div class="feature">
+                                <span class="feature-icon">📄</span>
+                                <span>JSON Lines Format Support</span>
+                            </div>
+                            <div class="feature">
+                                <span class="feature-icon">🔍</span>
+                                <span>Advanced Filtering</span>
+                            </div>
+                            <div class="feature">
+                                <span class="feature-icon">⚡</span>
+                                <span>Smart Caching</span>
+                            </div>
+                            <div class="feature">
+                                <span class="feature-icon">🚨</span>
+                                <span>Panic Log Analysis</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="logsContainer" class="logs-container" style="display: none;">
+                    <div class="logs-header">
+                        <div class="logs-info">
+                            <span id="logsCount">0 logs</span>
+                            <span id="currentFileName"></span>
+                        </div>
+                        <div class="pagination-controls">
+                            <button id="prevPageBtn" class="btn btn-small" disabled>Previous</button>
+                            <span id="pageInfo">Page 1 of 1</span>
+                            <button id="nextPageBtn" class="btn btn-small" disabled>Next</button>
+                        </div>
+                    </div>
+
+                    <div id="logsContent" class="logs-content">
+                        <!-- Loading overlay -->
+                        <div id="logsLoadingOverlay" class="loading-overlay hidden">
+                            <div class="loading-spinner"></div>
+                            <div class="loading-text" id="logsLoadingText">Loading logs...</div>
+                        </div>
+                        <!-- Logs will be displayed here -->
+                    </div>
+
+                    <div class="pagination-controls bottom-pagination">
+                        <button id="prevPageBtnBottom" class="btn btn-small" disabled>Previous</button>
+                        <span id="pageInfoBottom">Page 1 of 1</span>
+                        <button id="nextPageBtnBottom" class="btn btn-small" disabled>Next</button>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Upload Modal -->
+    <div id="uploadModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Upload Log File</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📁</div>
+                    <p>Drag and drop a log file here, or click to select</p>
+                    <input type="file" id="fileInput" accept=".log,.txt,.json">
+                </div>
+                <div id="uploadProgress" class="upload-progress" style="display: none;">
+                    <div class="progress-bar">
+                        <div class="progress-fill"></div>
+                    </div>
+                    <p class="progress-text">Uploading and processing...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Log Detail Modal -->
+    <div id="logDetailModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>Log Details</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="logDetailContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
