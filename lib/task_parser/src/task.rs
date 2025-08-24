@@ -191,6 +191,9 @@ fn default_strings() -> bool {
     true
 }
 
+fn default_pure() -> bool {
+    false
+}
 
 fn default_version() -> u32 {
     1
@@ -199,13 +202,16 @@ fn default_version() -> u32 {
 #[derive(Deserialize, Serialize, Debug)]
 struct SnythesisTaskOptions {
     #[serde(default = "default_strings")]
-    strings: bool
+    strings: bool,
+    #[serde(default = "default_pure")]
+    pure: bool,
 }
 
 impl Default for SnythesisTaskOptions {
     fn default() -> Self {
         Self {
             strings: default_strings(),
+            pure: default_pure(),
         }
     }
 }
@@ -454,9 +460,12 @@ impl SnythesisTask {
         let context_array = self.get_context_array()?;
         let predicate = self.get_predicate()?;
         let valid = self.get_valid_predicate()?;
+        if self.inner.options.pure {
+            max_context_depth = 0;
+        }
         if let Some(immutable) = &self.inner.immutable {
             if immutable.len() == variables.len() {
-                max_context_depth = 1;
+                max_context_depth = 0;
             }
         }
 
