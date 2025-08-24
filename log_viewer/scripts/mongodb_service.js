@@ -303,10 +303,7 @@ class MongoDBService {
             const { _id, storedAt, ...cleanMetadata } = metadata;
             return {
                 cacheHash: cleanMetadata.cacheHash,
-                sourceFile: cleanMetadata.sourceFile,
-                processedAt: cleanMetadata.processedAt,
-                totalLogs: cleanMetadata.validLogCount,
-                stats: cleanMetadata.stats
+                metadata: cleanMetadata
             };
         });
     }

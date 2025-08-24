@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "🔍 Log Viewer Setup Script"
+echo "🔍 Ruse Viewer Setup Script"
 echo "=========================="
 
 # Set Node.js path
@@ -38,9 +38,9 @@ fi
 # Create directories if they don't exist
 mkdir -p uploads
 
-# Test preprocessor with sample log file
-echo "🧪 Testing preprocessor with sample log file..."
-node scripts/preprocess_logs.js sample_logs.jsonl
+# Test preprocessor with sample Ruse run
+echo "🧪 Testing preprocessor with sample Ruse run..."
+node scripts/preprocess_logs.js sample_logs.jsonl result.json
 
 if [ $? -eq 0 ]; then
     echo "✅ Preprocessor test successful!"
@@ -57,5 +57,5 @@ echo "  npm start"
 echo ""
 echo "Then open your browser to: http://localhost:3000"
 echo ""
-echo "To preprocess additional log files:"
-echo "  npm run preprocess -- /path/to/your/logfile.log"
+echo "To preprocess additional Ruse runs:"
+echo "  npm run preprocess -- /path/to/your/logfile.log /path/to/your/result.json"

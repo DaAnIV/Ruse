@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Log Viewer</title>
+    <title>Ruse Viewer</title>
     <link rel="stylesheet" href="styles.css">
     <script type="module">
         import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
@@ -37,7 +37,7 @@
 <body>
     <div class="app">
         <header class="header">
-            <h1><a href="/" class="home-link">🔍 Log Viewer</a></h1>
+            <h1><a href="/" class="home-link">🔍 Ruse Viewer</a></h1>
             <div class="header-actions">
                 <button id="uploadBtn" class="btn btn-primary">Upload Log File</button>
                 <button id="refreshBtn" class="btn btn-secondary">Refresh</button>
@@ -49,14 +49,14 @@
             <!-- Sidebar -->
             <aside class="sidebar">
                 <div class="section">
-                    <h3>Log Files</h3>
-                    <div id="logFilesList" class="log-files-list">
+                    <h3>Ruse Runs</h3>
+                    <div id="ruseRunsList" class="ruse-runs-list">
                         <div class="loading">Loading...</div>
                     </div>
                 </div>
 
                 <div class="section">
-                    <h3>Filters</h3>
+                    <h3>Log Filters</h3>
                     
                     <div class="filter-group">
                         <label class="checkbox-label">
@@ -126,8 +126,8 @@
             <main class="content">
                 <div id="welcomeScreen" class="welcome-screen">
                     <div class="welcome-content">
-                        <h2>Welcome to Log Viewer</h2>
-                        <p>Select a log file from the sidebar to start viewing logs, or upload a new file.</p>
+                        <h2>Welcome to Ruse Viewer</h2>
+                        <p>Select a Ruse run from the sidebar to start viewing logs and results, or upload a new run.</p>
                         <div class="features">
                             <div class="feature">
                                 <span class="feature-icon">📄</span>
@@ -149,32 +149,67 @@
                     </div>
                 </div>
 
-                <div id="logsContainer" class="logs-container" style="display: none;">
-                    <div class="logs-header">
-                        <div class="logs-info">
-                            <span id="logsCount">0 logs</span>
-                            <span id="currentFileName"></span>
+                <div id="runContainer" class="run-container" style="display: none;">
+                    <div class="run-header">
+                        <div class="run-info">
+                            <span id="runTime"></span>
+                            <span id="runStats"></span>
                         </div>
-                        <div class="pagination-controls">
-                            <button id="prevPageBtn" class="btn btn-small" disabled>Previous</button>
-                            <span id="pageInfo">Page 1 of 1</span>
-                            <button id="nextPageBtn" class="btn btn-small" disabled>Next</button>
+                        <div class="run-tabs">
+                            <button id="resultsTab" class="tab-btn active">Results</button>
+                            <button id="logsTab" class="tab-btn">Logs</button>
                         </div>
                     </div>
 
-                    <div id="logsContent" class="logs-content">
-                        <!-- Loading overlay -->
-                        <div id="logsLoadingOverlay" class="loading-overlay hidden">
-                            <div class="loading-spinner"></div>
-                            <div class="loading-text" id="logsLoadingText">Loading logs...</div>
+                    <!-- Results Tab -->
+                    <div id="resultsTabContent" class="tab-content active">
+                        <div class="results-header">
+                            <h3>Run Results</h3>
                         </div>
-                        <!-- Logs will be displayed here -->
+                        <div id="resultsContent" class="results-content">
+                            <!-- Loading overlay -->
+                            <div id="resultsLoadingOverlay" class="loading-overlay hidden">
+                                <div class="loading-spinner"></div>
+                                <div class="loading-text">Loading results...</div>
+                            </div>
+                            <!-- Results will be displayed here -->
+                            <div id="resultsEntries">
+
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="pagination-controls bottom-pagination">
-                        <button id="prevPageBtnBottom" class="btn btn-small" disabled>Previous</button>
-                        <span id="pageInfoBottom">Page 1 of 1</span>
-                        <button id="nextPageBtnBottom" class="btn btn-small" disabled>Next</button>
+                    <!-- Logs Tab -->
+                    <div id="logsTabContent" class="tab-content">
+                        <div class="logs-header">
+                            <div class="logs-info">
+                                <span id="logsCount">0 logs</span>
+                                <span id="currentFileName"></span>
+                            </div>
+                            <div class="pagination-controls">
+                                <button id="prevPageBtn" class="btn btn-small" disabled>Previous</button>
+                                <span id="pageInfo">Page 1 of 1</span>
+                                <button id="nextPageBtn" class="btn btn-small" disabled>Next</button>
+                            </div>
+                        </div>
+
+                        <div id="logsContent" class="logs-content">
+                            <!-- Loading overlay -->
+                            <div id="logsLoadingOverlay" class="loading-overlay hidden">
+                                <div class="loading-spinner"></div>
+                                <div class="loading-text" id="logsLoadingText">Loading logs...</div>
+                            </div>
+                            <!-- Logs will be displayed here -->
+                            <div id="logsEntries">
+
+                            </div>
+                        </div>
+
+                        <div class="pagination-controls bottom-pagination">
+                            <button id="prevPageBtnBottom" class="btn btn-small" disabled>Previous</button>
+                            <span id="pageInfoBottom">Page 1 of 1</span>
+                            <button id="nextPageBtnBottom" class="btn btn-small" disabled>Next</button>
+                        </div>
                     </div>
                 </div>
             </main>
@@ -185,20 +220,37 @@
     <div id="uploadModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Upload Log File</h3>
+                <h3>Upload Ruse Run</h3>
                 <button class="modal-close">&times;</button>
             </div>
             <div class="modal-body">
-                <div class="upload-area" id="uploadArea">
-                    <div class="upload-icon">📁</div>
-                    <p>Drag and drop a log file here, or click to select</p>
-                    <input type="file" id="fileInput" accept=".log,.txt,.json">
+                <div class="upload-section">
+                    <h4>Log File (Required)</h4>
+                    <div class="upload-area" id="logUploadArea">
+                        <div class="upload-icon">📁</div>
+                        <p>Drag and drop a log file here, or click to select</p>
+                        <input type="file" id="logFileInput" accept=".log,.txt,.json">
+                    </div>
+                </div>
+                
+                <div class="upload-section">
+                    <h4>Result File (Required)</h4>
+                    <div class="upload-area" id="resultUploadArea">
+                        <div class="upload-icon">📊</div>
+                        <p>Drag and drop a result file here, or click to select</p>
+                        <input type="file" id="resultFileInput" accept=".json" required>
+                    </div>
                 </div>
                 <div id="uploadProgress" class="upload-progress" style="display: none;">
                     <div class="progress-bar">
                         <div class="progress-fill"></div>
                     </div>
                     <p class="progress-text">Uploading and processing...</p>
+                </div>
+                
+                <div class="modal-actions">
+                    <button class="btn btn-secondary modal-close">Cancel</button>
+                    <button class="btn btn-primary">Upload & Process</button>
                 </div>
             </div>
         </div>

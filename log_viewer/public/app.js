@@ -4,7 +4,7 @@ class LogViewer {
         this.currentMetadata = null;
         this.currentPage = 1;
         this.currentFilters = {};
-        this.selectedCacheHash = null;
+        this.selectedRunId = null;
         
         // Restore state from URL parameters
         const urlParams = this.restoreStateFromUrl();
@@ -12,10 +12,15 @@ class LogViewer {
         this.initializeApp();
         this.bindEvents();
         this.setupUrlNavigation();
-        this.loadLogFiles();
+        this.loadRuseRuns();
         
         // Store URL params for later use (after files are loaded)
         this.pendingUrlParams = urlParams;
+        
+        // Restore tab selection if specified in URL
+        if (urlParams.tab && (urlParams.tab === 'logs' || urlParams.tab === 'results')) {
+            this.pendingTab = urlParams.tab;
+        }
     }
 
     initializeApp() {
@@ -26,7 +31,11 @@ class LogViewer {
     bindEvents() {
         // Header actions
         document.getElementById('uploadBtn').addEventListener('click', () => this.showUploadModal());
-        document.getElementById('refreshBtn').addEventListener('click', () => this.loadLogFiles());
+        document.getElementById('refreshBtn').addEventListener('click', () => this.loadRuseRuns());
+
+        // Tab switching
+        document.getElementById('logsTab').addEventListener('click', () => this.switchTab('logs'));
+        document.getElementById('resultsTab').addEventListener('click', () => this.switchTab('results'));
 
         // Filter controls
         document.getElementById('applyFiltersBtn').addEventListener('click', () => this.applyFilters());
@@ -267,34 +276,66 @@ class LogViewer {
     }
 
     bindUploadEvents() {
-        const uploadArea = document.getElementById('uploadArea');
-        const fileInput = document.getElementById('fileInput');
+        const logUploadArea = document.getElementById('logUploadArea');
+        const resultUploadArea = document.getElementById('resultUploadArea');
+        const logFileInput = document.getElementById('logFileInput');
+        const resultFileInput = document.getElementById('resultFileInput');
 
-        uploadArea.addEventListener('click', () => fileInput.click());
+        // Log file upload area
+        logUploadArea.addEventListener('click', () => logFileInput.click());
         
-        uploadArea.addEventListener('dragover', (e) => {
+        logUploadArea.addEventListener('dragover', (e) => {
             e.preventDefault();
-            uploadArea.classList.add('dragover');
+            logUploadArea.classList.add('dragover');
         });
 
-        uploadArea.addEventListener('dragleave', () => {
-            uploadArea.classList.remove('dragover');
+        logUploadArea.addEventListener('dragleave', () => {
+            logUploadArea.classList.remove('dragover');
         });
 
-        uploadArea.addEventListener('drop', (e) => {
+        logUploadArea.addEventListener('drop', (e) => {
             e.preventDefault();
-            uploadArea.classList.remove('dragover');
+            logUploadArea.classList.remove('dragover');
             const files = e.dataTransfer.files;
             if (files.length > 0) {
-                this.uploadFile(files[0]);
+                logFileInput.files = files;
             }
         });
 
-        fileInput.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) {
-                this.uploadFile(e.target.files[0]);
+        logFileInput.addEventListener('change', (e) => {
+            // File input change handled by upload button
+        });
+
+        // Result file upload area
+        resultUploadArea.addEventListener('click', () => resultFileInput.click());
+        
+        resultUploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            resultUploadArea.classList.add('dragover');
+        });
+
+        resultUploadArea.addEventListener('dragleave', () => {
+            resultUploadArea.classList.remove('dragover');
+        });
+
+        resultUploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            resultUploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                resultFileInput.files = files;
             }
         });
+
+        resultFileInput.addEventListener('change', (e) => {
+            // File input change handled by upload button
+        });
+
+        // Upload button
+        const uploadBtn = document.querySelector('#uploadModal .btn-primary');
+        if (uploadBtn) {
+            uploadBtn.addEventListener('click', () => this.uploadFiles());
+        }
     }
 
     setupUrlNavigation() {
@@ -303,16 +344,14 @@ class LogViewer {
             const params = this.getUrlParams();
             
             // Update state without pushing new history
-            if (params.file !== this.selectedCacheHash) {
-                this.selectedCacheHash = params.file;
-                if (params.file) {
-                    // Find and select the file item
-                    const targetItem = document.querySelector(`[data-cache-hash="${params.file}"]`);
+            if (params.run !== this.selectedRunId) {
+                this.selectedRunId = params.run;
+                if (params.run) {
+                    // Find and select the run item
+                    const targetItem = document.querySelector(`[data-run-id="${params.run}"]`);
                     if (targetItem) {
                         // Update UI without triggering URL update again
-                        this.updateFileSelection(targetItem, false);
-                        this.loadLogs();
-                        this.loadStats();
+                        this.selectRuseRun(params.run);
                     }
                 }
             }
@@ -321,94 +360,373 @@ class LogViewer {
                 this.currentPage = params.page;
                 this.loadLogs();
             }
+
+            // Handle tab selection from URL
+            if (params.tab && (params.tab === 'logs' || params.tab === 'results')) {
+                this.switchTab(params.tab);
+            }
         });
     }
 
-    async loadLogFiles() {
+    /**
+     * Load available Ruse runs
+     */
+    async loadRuseRuns() {
         try {
-            const response = await fetch('/api/logs');
+            const response = await fetch('/api/runs');
             const data = await response.json();
             
-            this.renderLogFilesList(data);
+            this.displayRuseRuns(data.runs);
         } catch (error) {
-            console.error('Error loading log files:', error);
-            this.showError('Failed to load log files');
+            console.error('Error loading Ruse runs:', error);
+            this.showError('Failed to load Ruse runs');
         }
     }
 
-    renderLogFilesList(data) {
-        const container = document.getElementById('logFilesList');
+    /**
+     * Display Ruse runs in the sidebar
+     */
+    displayRuseRuns(runs) {
+        const container = document.getElementById('ruseRunsList');
         
-        if (data.cached.length === 0 && data.uploaded.length === 0) {
-            container.innerHTML = '<div class="loading">No log files found</div>';
+        if (!runs || runs.length === 0) {
+            container.innerHTML = '<div class="no-runs">No Ruse runs found</div>';
             return;
         }
 
-        let html = '';
-        
-        // Render cached files
-        data.cached.forEach(file => {
-            const processedDate = new Date(file.processedAt).toLocaleString();
-            const isActive = this.selectedCacheHash === file.cacheHash;
-            
-            html += `
-                <div class="log-file-item ${isActive ? 'active' : ''}" 
-                     data-cache-hash="${file.cacheHash}">
-                    <div class="log-file-name">${this.getFileNameFromPath(file.sourceFile)}</div>
-                    <div class="log-file-meta">Processed: ${processedDate}</div>
-                    <div class="log-file-stats">
-                        ${file.totalLogs} logs • 
-                        ${file.stats.panicCount} panics •
-                        ${Object.keys(file.stats.levels).length} levels
-                    </div>
+        container.innerHTML = runs.map(run => `
+            <div class="ruse-run-item" data-run-id="${run.id}">
+                <div class="ruse-run-time">${this.formatRunTime(run.runTime)}</div>
+                <div class="ruse-run-stats">
+                    <span class="ruse-run-stat">📊 ${run.taskCount} tasks</span>
+                    <span class="ruse-run-stat">✅ ${run.passedTasks}</span>
+                    <span class="ruse-run-stat">❌ ${run.failedTasks}</span>
+                    <span class="ruse-run-stat">⏱️ ${run.totalTime.toFixed(2)}s</span>
                 </div>
-            `;
-        });
-
-        // Render uploaded files (not yet processed)
-        data.uploaded.forEach(file => {
-            html += `
-                <div class="log-file-item" data-uploaded-file="${file.path}">
-                    <div class="log-file-name">${file.filename}</div>
-                    <div class="log-file-meta">Uploaded (click to process)</div>
-                </div>
-            `;
-        });
-
-        container.innerHTML = html;
+            </div>
+        `).join('');
 
         // Bind click events
-        container.querySelectorAll('.log-file-item').forEach(item => {
-            item.addEventListener('click', () => this.selectLogFile(item));
+        container.querySelectorAll('.ruse-run-item').forEach(item => {
+            item.addEventListener('click', () => this.selectRuseRun(item.dataset.runId));
         });
         
-        // Auto-load file from URL parameters if specified
-        if (this.selectedCacheHash && this.pendingUrlParams) {
-            const targetItem = container.querySelector(`[data-cache-hash="${this.selectedCacheHash}"]`);
+        // Auto-select run from URL parameters if specified
+        if (this.pendingUrlParams && this.pendingUrlParams.run) {
+            const targetItem = container.querySelector(`[data-run-id="${this.pendingUrlParams.run}"]`);
             if (targetItem) {
-                this.selectLogFile(targetItem);
+                this.selectRuseRun(this.pendingUrlParams.run);
             }
             this.pendingUrlParams = null; // Clear after use
         }
     }
 
+    /**
+     * Format run time for display
+     */
+    formatRunTime(runTime) {
+        if (typeof runTime === 'string') {
+            try {
+                const date = new Date(runTime);
+                return date.toLocaleString("en-GB");
+            } catch (e) {
+                return runTime;
+            }
+        }
+        return 'Unknown time';
+    }
+
+    /**
+     * Select a Ruse run
+     */
+    async selectRuseRun(runId) {
+        // Update UI selection
+        document.querySelectorAll('.ruse-run-item').forEach(item => {
+            item.classList.remove('selected');
+        });
+        document.querySelector(`[data-run-id="${runId}"]`).classList.add('selected');
+
+        // Store current run ID
+        this.selectedRunId = runId;
+
+        // Update URL parameters
+        this.updateUrlParams({
+            run: runId,
+            page: 1
+        });
+
+        // Show run container and hide welcome screen
+        document.getElementById('welcomeScreen').style.display = 'none';
+        document.getElementById('runContainer').style.display = 'block';
+
+        // Load run metadata
+        await this.loadRunMetadata(runId);
+        
+        // Load the pending tab from URL or default to results
+        const tabToLoad = this.pendingTab || 'results';
+        this.pendingTab = null; // Clear after use
+        this.switchTab(tabToLoad);
+    }
+
+    /**
+     * Load metadata for a specific run
+     */
+    async loadRunMetadata(runId) {
+        try {
+            const response = await fetch(`/api/logs/${runId}`);
+            const data = await response.json();
+            
+            this.currentMetadata = data.metadata;
+            this.updateRunHeader();
+        } catch (error) {
+            console.error('Error loading run metadata:', error);
+        }
+    }
+
+    /**
+     * Update the run header with metadata
+     */
+    updateRunHeader() {
+        if (!this.currentMetadata) return;
+
+        const runTime = document.getElementById('runTime');
+        const runStats = document.getElementById('runStats');
+
+        if (this.currentMetadata.runTime) {
+            runTime.textContent = this.formatRunTime(this.currentMetadata.runTime);
+        } else {
+            runTime.textContent = 'Unknown time';
+        }
+
+        const stats = this.currentMetadata.resultMetadata;
+        runStats.innerHTML = `
+            ${stats.taskCount} tasks • 
+            ${stats.passedTasks} passed • 
+            ${stats.failedTasks} failed • 
+            ${stats.totalTime.toFixed(2)}s total
+        `;
+    }
+
+    /**
+     * Switch between logs and results tabs
+     */
+    switchTab(tabName) {
+        // Update tab buttons
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        document.getElementById(`${tabName}Tab`).classList.add('active');
+
+        // Update tab content
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.remove('active');
+        });
+        document.getElementById(`${tabName}TabContent`).classList.add('active');
+
+        // Update URL with current tab
+        if (this.selectedRunId) {
+            this.updateUrlParams({
+                run: this.selectedRunId,
+                tab: tabName,
+                page: this.currentPage
+            });
+        }
+
+        if (tabName === 'logs') {
+            this.loadLogs();
+        } else if (tabName === 'results') {
+            this.loadResults();
+        }
+    }
+
+    /**
+     * Load results for the current run
+     */
+    async loadResults() {
+        if (!this.selectedRunId) return;
+
+        const resultsContent = document.getElementById('resultsEntries');
+        const loadingOverlay = document.getElementById('resultsLoadingOverlay');
+
+        try {
+            loadingOverlay.classList.remove('hidden');
+            
+            const response = await fetch(`/api/runs/${this.selectedRunId}/results`);
+            const data = await response.json();
+            
+            this.displayResults(data);
+        } catch (error) {
+            console.error('Error loading results:', error);
+            resultsContent.innerHTML = '<div class="error">Failed to load results</div>';
+        } finally {
+            loadingOverlay.classList.add('hidden');
+        }
+    }
+
+    /**
+     * Display results data
+     */
+    displayResults(data) {
+        const resultsContent = document.getElementById('resultsEntries');
+        
+        if (!data.results || !data.results.tasks) {
+            resultsContent.innerHTML = '<div class="no-results">No results data available</div>';
+            return;
+        }
+
+        const { metadata, results, runInfo } = data;
+        
+        resultsContent.innerHTML = `
+            <div class="results-overview">
+                <div class="results-stats">
+                    <div class="stat-item">
+                        <div class="stat-label">Total Tasks</div>
+                        <div class="stat-value">${metadata.taskCount}</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Passed</div>
+                        <div class="stat-value">${metadata.passedTasks}</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Failed</div>
+                        <div class="stat-value">${metadata.failedTasks}</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Total Time</div>
+                        <div class="stat-value">${metadata.totalTime.toFixed(2)}s</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Average Time</div>
+                        <div class="stat-value">${metadata.averageTime.toFixed(2)}s</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Max Depth</div>
+                        <div class="stat-value">${metadata.maxDepth}</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Max Size</div>
+                        <div class="stat-value">${metadata.maxSize}</div>
+                    </div>
+                </div>
+                
+                <div class="system-info">
+                    <h4>System Information</h4>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="info-label">OS:</span>
+                            <span class="info-value">${results.sysinfo?.name || 'Unknown'} ${results.sysinfo?.os || ''}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Kernel:</span>
+                            <span class="info-value">${results.sysinfo?.kernel || 'Unknown'}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">CPU:</span>
+                            <span class="info-value">${results.sysinfo?.cpu || 'Unknown'}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Cores:</span>
+                            <span class="info-value">${results.sysinfo?.cpu_core_count || 'Unknown'}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="tasks-section">
+                <h4>Tasks (${results.tasks.length})</h4>
+                <div class="tasks-list">
+                    ${results.tasks.map((task, index) => `
+                        <div class="task-item" data-task-index="${index}">
+                            <div class="task-header">
+                                <div class="task-name">${task.path.split('/').pop()}</div>
+                                <div class="task-status ${task.error ? 'failed' : 'passed'}">
+                                    ${task.error ? '❌ Failed' : '✅ Passed'}
+                                </div>
+                                <div class="task-stat">${(task.iterations.length)} iterations</div>
+                                <div class="task-stat">${(task.total_statistics.Evaluated)} evaluated</div>
+                                <div class="task-time">${this.formatTaskTime(task.total_time)}</div>
+                                <button class="task-expand-btn">▼</button>
+                            </div>
+                            <div class="task-details" style="display: none;">
+                                <div class="task-info">
+                                    <div class="task-path">Path: ${task.path}</div>
+                                    <div class="task-opcodes">Opcodes: ${task.opcode_count}</div>
+                                    <div class="task-stats">
+                                        <span>Evaluated: ${task.total_statistics.Evaluated}</span>
+                                        <span>Bank Size: ${task.total_statistics.BankSize}</span>
+                                        <span>Max Depth: ${task.total_statistics.MaxDepth}</span>
+                                        <span>Max Size: ${task.total_statistics.MaxSize}</span>
+                                    </div>
+
+                                    ${task.found ? `<div class="task-found">Found: ${task.found}</div>` : ''}
+                                    ${task.error ? `<div class="task-error">Error: ${task.error}</div>` : ''}
+                                </div>
+                                <div class="task-iterations">
+                                    <h5>Iterations (${task.iterations.length})</h5>
+                                    ${task.iterations.map((iter, iterIndex) => `
+                                        <div class="iteration-item">
+                                            <div class="iteration-header">
+                                                <span class="iteration-number">#${iterIndex + 1}</span>
+                                                <span class="iteration-time">${this.formatTaskTime(iter.time)}</span>
+                                            </div>
+                                            <div class="iteration-stats">
+                                                <span>Evaluated: ${iter.statistics.Evaluated}</span>
+                                                <span>Bank Size: ${iter.statistics.BankSize}</span>
+                                                <span>Max Depth: ${iter.statistics.MaxDepth}</span>
+                                                <span>Max Size: ${iter.statistics.MaxSize}</span>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+
+        // Bind task expansion events
+        resultsContent.querySelectorAll('.task-expand-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const taskItem = btn.closest('.task-item');
+                const details = taskItem.querySelector('.task-details');
+                const isExpanded = details.style.display !== 'none';
+                
+                details.style.display = isExpanded ? 'none' : 'block';
+                btn.textContent = isExpanded ? '▼' : '▲';
+            });
+        });
+    }
+
+    /**
+     * Format task time for display
+     */
+    formatTaskTime(time) {
+        if (!time) return '0s';
+        const seconds = time.secs || 0;
+        const nanos = time.nanos || 0;
+        const totalSeconds = seconds + (nanos / 1000000000);
+        return totalSeconds.toFixed(3) + 's';
+    }
+
     async selectLogFile(item) {
-        const cacheHash = item.dataset.cacheHash;
+        const runId = item.dataset.runId;
         const uploadedFile = item.dataset.uploadedFile;
 
-        if (cacheHash) {
+        if (runId) {
             // Load cached file
-            this.selectedCacheHash = cacheHash;
+            this.selectedRunId = runId;
             
             // Only reset page to 1 if this is a user-initiated selection (not from URL)
-            const fromUrl = this.pendingUrlParams && this.pendingUrlParams.file === cacheHash;
+            const fromUrl = this.pendingUrlParams && this.pendingUrlParams.file === runId;
             if (!fromUrl) {
                 this.currentPage = 1;
             }
             
             // Update URL parameters
             this.updateUrlParams({
-                file: cacheHash,
+                run: runId,
                 page: this.currentPage
             });
             
@@ -455,7 +773,7 @@ class LogViewer {
     }
 
     async loadLogs(loadingMessage = 'Loading logs...') {
-        if (!this.selectedCacheHash) return;
+        if (!this.selectedRunId) return;
 
         try {
             // Show loading animation
@@ -467,7 +785,7 @@ class LogViewer {
                 ...this.currentFilters
             });
 
-            const response = await fetch(`/api/logs/${this.selectedCacheHash}?${params}`);
+            const response = await fetch(`/api/logs/${this.selectedRunId}?${params}`);
             const data = await response.json();
             
             this.currentLogs = data.logs;
@@ -479,7 +797,7 @@ class LogViewer {
             
             // Show logs container, hide welcome screen
             document.getElementById('welcomeScreen').style.display = 'none';
-            document.getElementById('logsContainer').style.display = 'block';
+            document.getElementById('runContainer').style.display = 'block';
             
             // Hide loading animation
             this.hideLogsLoading();
@@ -492,7 +810,7 @@ class LogViewer {
     }
 
     renderLogs(data) {
-        const container = document.getElementById('logsContent');
+        const entries = document.getElementById('logsEntries');
         const logsCount = document.getElementById('logsCount');
         const fileName = document.getElementById('currentFileName');
 
@@ -500,7 +818,7 @@ class LogViewer {
         fileName.textContent = this.getFileNameFromPath(data.metadata.sourceFile);
 
         if (data.logs.length === 0) {
-            container.innerHTML = '<div class="loading">No logs found matching the current filters</div>';
+            entries.innerHTML = '<div class="loading">No logs found matching the current filters</div>';
             return;
         }
 
@@ -509,16 +827,16 @@ class LogViewer {
             html += this.renderLogEntry(log, index);
         });
 
-        container.innerHTML = html;
+        entries.innerHTML = html;
 
         // Bind click events for log expansion
-        container.querySelectorAll('.log-header').forEach((header, index) => {
+        entries.querySelectorAll('.log-header').forEach((header, index) => {
             header.addEventListener('click', () => this.toggleLogEntry(index));
         });
     }
 
     renderLogEntry(log, index) {
-        const timestamp = new Date(log.timestamp).toLocaleString();
+        const timestamp = new Date(log.timestamp).toLocaleString("en-GB");
         const level = log.level || 'unknown';
         const message = log.fields?.message || 'No message';
         const isPanic = log._meta.isPanic;
@@ -1123,10 +1441,10 @@ class LogViewer {
     }
 
     async loadStats() {
-        if (!this.selectedCacheHash) return;
+        if (!this.selectedRunId) return;
 
         try {
-            const response = await fetch(`/api/stats/${this.selectedCacheHash}`);
+            const response = await fetch(`/api/stats/${this.selectedRunId}`);
             const data = await response.json();
             
             this.renderStats(data.stats);
@@ -1179,9 +1497,23 @@ class LogViewer {
         document.getElementById('uploadModal').classList.add('active');
     }
 
-    async uploadFile(file) {
+    async uploadFiles() {
+        const logFileInput = document.getElementById('logFileInput');
+        const resultFileInput = document.getElementById('resultFileInput');
+        
+        if (!logFileInput.files[0]) {
+            this.showError('Log file is required');
+            return;
+        }
+
+        if (!resultFileInput.files[0]) {
+            this.showError('Result file is required for a complete Ruse run');
+            return;
+        }
+
         const formData = new FormData();
-        formData.append('logFile', file);
+        formData.append('logFile', logFileInput.files[0]);
+        formData.append('resultFile', resultFileInput.files[0]);
 
         const progressContainer = document.getElementById('uploadProgress');
         const progressFill = progressContainer.querySelector('.progress-fill');
@@ -1215,14 +1547,21 @@ class LogViewer {
             setTimeout(() => {
                 document.getElementById('uploadModal').classList.remove('active');
                 progressContainer.style.display = 'none';
-                this.showSuccess('File uploaded and processed successfully!');
-                this.loadLogFiles();
+                
+                // Clear file inputs
+                logFileInput.value = '';
+                resultFileInput.value = '';
+                
+                this.showSuccess('Ruse run uploaded and processed successfully!');
+                
+                // Refresh the runs list
+                this.loadRuseRuns();
             }, 500);
 
         } catch (error) {
             console.error('Upload error:', error);
             progressContainer.style.display = 'none';
-            this.showError('Failed to upload file');
+            this.showError('Failed to upload file(s)');
         }
     }
 
@@ -1251,41 +1590,31 @@ class LogViewer {
         const overlay = document.getElementById('logsLoadingOverlay');
         const text = document.getElementById('logsLoadingText');
         
-        if (overlay && text) {
-            text.textContent = message;
-            overlay.classList.remove('hidden');
-        } else {
-            // Fallback: create a simple loading indicator
-            this.showSimpleLoading(message);
-        }
+        text.textContent = message;
+        overlay.classList.remove('hidden');
     }
 
     hideLogsLoading() {
         const overlay = document.getElementById('logsLoadingOverlay');
-        if (overlay) {
-            overlay.classList.add('hidden');
-        } else {
-            // Try to hide fallback loading
-            this.hideSimpleLoading();
-        }
+        overlay.classList.add('hidden');
     }
 
-    showSimpleLoading(message) {
-        // Fallback loading display
-        const logsContent = document.getElementById('logsContent');
-        if (logsContent) {
-            logsContent.innerHTML = `<div style="display: flex; justify-content: center; align-items: center; height: 200px; font-size: 1.2rem; color: #667eea;">
-                <div style="text-align: center;">
-                    <div style="margin-bottom: 1rem;">⟲</div>
-                    <div>${message}</div>
-                </div>
-            </div>`;
-        }
-    }
+    // showSimpleLoading(message) {
+    //     // Fallback loading display
+    //     const logsContent = document.getElementById('logsContent');
+    //     if (logsContent) {
+    //         logsContent.innerHTML = `<div style="display: flex; justify-content: center; align-items: center; height: 200px; font-size: 1.2rem; color: #667eea;">
+    //             <div style="text-align: center;">
+    //                 <div style="margin-bottom: 1rem;">⟲</div>
+    //                 <div>${message}</div>
+    //             </div>
+    //         </div>`;
+    //     }
+    // }
 
-    hideSimpleLoading() {
-        // This will be cleared when renderLogs is called
-    }
+    // hideSimpleLoading() {
+    //     // This will be cleared when renderLogs is called
+    // }
 
     getFileNameFromPath(path) {
         return path.split('/').pop() || path;
@@ -1313,7 +1642,8 @@ class LogViewer {
     getUrlParams() {
         const params = new URLSearchParams(window.location.search);
         return {
-            file: params.get('file'),
+            run: params.get('run'),
+            tab: params.get('tab'),
             page: parseInt(params.get('page')) || 1,
             expanded: params.get('expanded')?.split(',').filter(Boolean) || []
         };
@@ -1322,9 +1652,9 @@ class LogViewer {
     restoreStateFromUrl() {
         const params = this.getUrlParams();
         
-        // Restore selected file if specified
-        if (params.file) {
-            this.selectedCacheHash = params.file;
+        // Restore selected run if specified
+        if (params.run) {
+            this.selectedRunId = params.run;
         }
         
         // Restore page if specified

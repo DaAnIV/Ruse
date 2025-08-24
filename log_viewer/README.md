@@ -1,15 +1,17 @@
-# Log Viewer
+# Ruse Viewer
 
-A web application for viewing and filtering JSON log files with support for special extensions and panic handling.
+A web application for viewing and analyzing Ruse runs, including log files and result data with support for special extensions and panic handling.
 
 ## Features
 
-- Load and parse JSON lines log files
+- Load and analyze complete Ruse runs (log files + result data)
+- View individual log files or complete run results
 - Smart caching system for fast reloading
 - Advanced filtering by level, target, timestamp, and content
 - Support for special extensions (e.g., `.mermaid` for diagrams)
 - Enhanced panic log handling with backtrace filtering
 - Real-time log viewing with modern UI
+- Comprehensive run statistics and task analysis
 
 ## Quick Start
 
@@ -32,25 +34,37 @@ A web application for viewing and filtering JSON log files with support for spec
 
 3. Open your browser to `http://localhost:3000`
 
-4. Upload or select log files to view
+4. Upload or select complete Ruse runs to view
 
 ## Usage
 
-### Preprocessing Logs
-To preprocess logs for faster loading:
+### Preprocessing Ruse Runs
+To preprocess a complete Ruse run (log file + result file required):
 ```bash
-PATH=$HOME/nodejs/bin:$PATH node scripts/preprocess_logs.js /path/to/logfile.log
+PATH=$HOME/nodejs/bin:$PATH node scripts/preprocess_logs.js /path/to/logfile.log /path/to/result.json
 ```
+
+**Note**: Both log file and result file are required. The system only processes complete Ruse runs.
 
 Or use the npm script:
 ```bash
-PATH=$HOME/nodejs/bin:$PATH npm run preprocess -- /path/to/logfile.log
+PATH=$HOME/nodejs/bin:$PATH npm run preprocess -- /path/to/logfile.log /path/to/result.json
 ```
 
 ### Log Format
-Expected JSON lines format:
+Expected JSON lines format for log files:
 ```json
 {"timestamp": "2023-01-01T00:00:00Z", "level": "INFO", "target": "app", "filename": "main.rs", "line_number": 42, "threadId": "main", "fields": {"message": "Hello world"}}
+```
+
+### Result Format
+Expected JSON format for result files:
+```json
+{
+  "timestamp": 1756049822,
+  "sysinfo": {"name": "Debian GNU/Linux", "kernel": "5.10.0-32-amd64"},
+  "tasks": [{"path": "task.sy", "found": "result", "error": null}]
+}
 ```
 
 ### Special Extensions
@@ -60,7 +74,7 @@ Expected JSON lines format:
 ## File Structure
 
 - `server.js` - Express server
-- `scripts/preprocess_logs.js` - Log preprocessing script
+- `scripts/preprocess_logs.js` - Ruse run preprocessing script
 - `public/` - Frontend web interface
-- `cache/` - Cached processed logs
-- `uploads/` - Uploaded log files
+- `cache/` - Cached processed runs
+- `uploads/` - Uploaded files

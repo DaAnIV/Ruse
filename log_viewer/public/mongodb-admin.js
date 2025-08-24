@@ -218,7 +218,7 @@ class MongoDBAdmin {
                             ${collection.type}
                         </span>
                     </td>
-                    <td>${collection.count?.toLocaleString() || 'N/A'}</td>
+                    <td>${collection.count?.toLocaleString("en-GB") || 'N/A'}</td>
                     <td class="size-display">${collection.size ? this.formatBytes(collection.size) : 'N/A'}</td>
                     <td class="size-display">${collection.storageSize ? this.formatBytes(collection.storageSize) : 'N/A'}</td>
                     <td>${collection.indexes || 0}</td>
@@ -244,7 +244,7 @@ class MongoDBAdmin {
             if (collection.type === 'logs') {
                 const option = document.createElement('option');
                 option.value = collection.cacheHash;
-                option.textContent = `${collection.name} (${collection.count?.toLocaleString() || 0} logs)`;
+                option.textContent = `${collection.name} (${collection.count?.toLocaleString("en-GB") || 0} logs)`;
                 dropdown.appendChild(option);
             }
         });
@@ -280,7 +280,7 @@ class MongoDBAdmin {
                 
                 <div class="stat-grid" style="margin: 1rem 0;">
                     <div class="stat-item">
-                        <div class="stat-value">${data.count.toLocaleString()}</div>
+                        <div class="stat-value">${data.count.toLocaleString("en-GB")}</div>
                         <div class="stat-label">Total Logs</div>
                     </div>
                     <div class="stat-item">
@@ -304,7 +304,7 @@ class MongoDBAdmin {
         `;
         
         Object.entries(data.distribution.levels).forEach(([level, count]) => {
-            html += `<li><strong>${level}:</strong> ${count.toLocaleString()}</li>`;
+            html += `<li><strong>${level}:</strong> ${count.toLocaleString("en-GB")}</li>`;
         });
         
         html += `
@@ -316,7 +316,7 @@ class MongoDBAdmin {
         `;
         
         Object.entries(data.distribution.targets).slice(0, 5).forEach(([target, count]) => {
-            html += `<li><strong>${target}:</strong> ${count.toLocaleString()}</li>`;
+            html += `<li><strong>${target}:</strong> ${count.toLocaleString("en-GB")}</li>`;
         });
         
         html += `
@@ -329,8 +329,8 @@ class MongoDBAdmin {
             html += `
                 <p style="margin: 1rem 0; font-size: 0.875rem; color: #6c757d;">
                     <strong>Time Range:</strong> 
-                    ${new Date(data.timeRange.start).toLocaleString()} to 
-                    ${new Date(data.timeRange.end).toLocaleString()}
+                    ${new Date(data.timeRange.start).toLocaleString("en-GB")} to 
+                    ${new Date(data.timeRange.end).toLocaleString("en-GB")}
                 </p>
             `;
         }

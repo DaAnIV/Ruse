@@ -43,7 +43,37 @@ const upload = multer({
 // API Routes
 
 /**
- * Get list of available log files (cached and uploaded)
+ * Get list of available Ruse runs (cached and uploaded)
+ */
+app.get('/api/runs', async (req, res) => {
+    try {
+        const cached = await preprocessor.listCached();
+        
+        // Transform cached data to show as Ruse runs
+        const runs = cached.map(cache => {
+            const metadata = cache.metadata || {};
+            return {
+                id: cache.cacheHash,
+                runTime: metadata.runTime || metadata.processedAt || 'Unknown',
+                timestamp: metadata.timestamp || new Date(metadata.processedAt).getTime() / 1000,
+                sourceFile: metadata.sourceFile || 'Unknown',
+                resultFile: metadata.resultFile || 'Unknown',
+                taskCount: metadata.resultMetadata?.taskCount || 0,
+                passedTasks: metadata.resultMetadata?.passedTasks || 0,
+                failedTasks: metadata.resultMetadata?.failedTasks || 0,
+                totalTime: metadata.resultMetadata?.totalTime || 0
+            };
+        }).sort((a, b) => b.timestamp - a.timestamp); // Sort by timestamp, newest first
+        
+        res.json({ runs });
+    } catch (error) {
+        console.error('Error listing runs:', error);
+        res.status(500).json({ error: 'Failed to list Ruse runs' });
+    }
+});
+
+/**
+ * Get list of available log files (cached and uploaded) - kept for backward compatibility
  */
 app.get('/api/logs', async (req, res) => {
     try {
@@ -73,27 +103,36 @@ app.get('/api/logs', async (req, res) => {
 });
 
 /**
- * Upload and process a log file
+ * Upload and process complete Ruse runs (log file and result file required)
  */
-app.post('/api/upload', upload.single('logFile'), async (req, res) => {
+app.post('/api/upload', upload.fields([
+    { name: 'logFile', maxCount: 1 },
+    { name: 'resultFile', maxCount: 1 }
+]), async (req, res) => {
     try {
-        if (!req.file) {
-            return res.status(400).json({ error: 'No file uploaded' });
+        if (!req.files || !req.files.logFile) {
+            return res.status(400).json({ error: 'Log file is required' });
         }
         
-        const uploadedPath = req.file.path;
+        if (!req.files.resultFile) {
+            return res.status(400).json({ error: 'Result file is required for a complete Ruse run' });
+        }
         
-        // Process the uploaded file
-        const processed = await preprocessor.processLogFile(uploadedPath);
+        const logFilePath = req.files.logFile[0].path;
+        const resultFilePath = req.files.resultFile[0].path;
+        
+        // Process as complete Ruse run
+        const processed = await preprocessor.processRuseRun(logFilePath, resultFilePath);
         
         res.json({
-            message: 'File uploaded and processed successfully',
-            filename: req.file.filename,
+            message: 'Ruse run uploaded and processed successfully',
+            filename: req.files.logFile[0].filename,
+            resultFilename: req.files.resultFile[0].filename,
             metadata: processed.metadata
         });
     } catch (error) {
-        console.error('Error processing uploaded file:', error);
-        res.status(500).json({ error: 'Failed to process uploaded file' });
+        console.error('Error processing uploaded files:', error);
+        res.status(500).json({ error: 'Failed to process uploaded files' });
     }
 });
 
@@ -121,6 +160,37 @@ app.post('/api/process', async (req, res) => {
     } catch (error) {
         console.error('Error processing file:', error);
         res.status(500).json({ error: 'Failed to process file' });
+    }
+});
+
+/**
+ * Get results data for a specific Ruse run
+ */
+app.get('/api/runs/:runId/results', async (req, res) => {
+    try {
+        const { runId } = req.params;
+        
+        // Get metadata for the run
+        const metadata = await preprocessor.mongoService.getMetadata(runId);
+        
+        if (!metadata || !metadata.resultData) {
+            return res.status(404).json({ error: 'Results not found for this run' });
+        }
+        
+        res.json({
+            metadata: metadata.resultMetadata,
+            results: metadata.resultData,
+            runInfo: {
+                id: runId,
+                runTime: metadata.runTime,
+                timestamp: metadata.timestamp,
+                sourceFile: metadata.sourceFile,
+                resultFile: metadata.resultFile
+            }
+        });
+    } catch (error) {
+        console.error('Error getting run results:', error);
+        res.status(500).json({ error: 'Failed to get run results' });
     }
 });
 
@@ -683,7 +753,7 @@ app.use((error, req, res, next) => {
 
 // Start server
 app.listen(PORT, () => {
-    console.log(`Log Viewer server running on port ${PORT}`);
+    console.log(`Ruse Viewer server running on port ${PORT}`);
     console.log(`Access the web interface at: http://localhost:${PORT}`);
 });
 

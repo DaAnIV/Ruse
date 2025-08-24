@@ -27,14 +27,101 @@ class LogPreprocessor {
     }
 
     /**
-     * Generate cache filename based on file path and modification time
+     * Generate cache filename based on log file path and result file path
      */
-    getCacheFilename(logFilePath) {
-        const stats = fs.statSync(logFilePath);
+    getCacheFilename(logFilePath, resultFilePath) {
+        const logStats = fs.statSync(logFilePath);
+        const resultStats = fs.existsSync(resultFilePath) ? fs.statSync(resultFilePath) : { mtime: new Date(0) };
+        
         const hash = crypto.createHash('md5')
-            .update(logFilePath + stats.mtime.getTime())
+            .update(logFilePath + logStats.mtime.getTime() + resultFilePath + resultStats.mtime.getTime())
             .digest('hex');
         return hash;
+    }
+
+    /**
+     * Parse result file and extract metadata
+     */
+    async parseResultFile(runId, resultFilePath) {
+        if (!fs.existsSync(resultFilePath)) {
+            throw new Error(`Result file not found: ${resultFilePath}`);
+        }
+
+        console.log(`Parsing result file: ${resultFilePath}`);
+        
+        try {
+            const content = await fs.readFile(resultFilePath, 'utf8');
+            const result = JSON.parse(content);
+            
+            // Extract key information from result file
+            const metadata = {
+                timestamp: result.timestamp,
+                runTime: new Date(result.timestamp * 1000).toISOString(),
+                sysinfo: result.sysinfo || {},
+                config: result.config || {},
+                taskCount: result.tasks ? result.tasks.length : 0,
+                passedTasks: result.tasks ? result.tasks.filter(t => !t.error).length : 0,
+                failedTasks: result.tasks ? result.tasks.filter(t => t.error).length : 0,
+                totalTime: this.calculateTotalTime(result.tasks || []),
+                averageTime: this.calculateAverageTime(result.tasks || []),
+                maxDepth: this.calculateMaxDepth(result.tasks || []),
+                maxSize: this.calculateMaxSize(result.tasks || [])
+            };
+
+            return {
+                raw: result,
+                metadata: metadata
+            };
+        } catch (error) {
+            throw new Error(`Failed to parse result file: ${error.message}`);
+        }
+    }
+
+    /**
+     * Calculate total time across all tasks
+     */
+    calculateTotalTime(tasks) {
+        return tasks.reduce((total, task) => {
+            if (task.total_time) {
+                const seconds = task.total_time.secs || 0;
+                const nanos = task.total_time.nanos || 0;
+                return total + seconds + (nanos / 1000000000);
+            }
+            return total;
+        }, 0);
+    }
+
+    /**
+     * Calculate average time per task
+     */
+    calculateAverageTime(tasks) {
+        if (tasks.length === 0) return 0;
+        const total = this.calculateTotalTime(tasks);
+        return total / tasks.length;
+    }
+
+    /**
+     * Calculate maximum depth across all tasks
+     */
+    calculateMaxDepth(tasks) {
+        return Math.max(...tasks.map(task => {
+            if (task.total_statistics && task.total_statistics.MaxDepth) {
+                return task.total_statistics.MaxDepth;
+            }
+            return 0;
+        }), 0);
+    }
+
+    /**
+     * Calculate maximum size across all tasks
+     */
+    calculateMaxSize(tasks) {
+        return Math.max(...tasks.map(task => {
+            if (task.total_statistics && task.total_statistics.MaxSize) {
+                return task.total_statistics.MaxSize;
+            }
+            return 0;
+        }), 0);
     }
 
     /**
@@ -263,39 +350,22 @@ class LogPreprocessor {
     /**
      * Process log file and return processed entries
      */
-    async processLogFile(logFilePath) {
+    async processLogFile(runId, logFilePath) {
         console.log(`Processing log file: ${logFilePath}`);
-
-        const cacheHash = this.getCacheFilename(logFilePath);
-
-
-
-        // Check MongoDB first
-        try {
-            const metadata = await this.mongoService.getMetadata(cacheHash);
-            console.log(`Loading from MongoDB cache: ${cacheHash}`);
-            return {
-                metadata: metadata,
-                cacheHash: cacheHash,
-                logs: [] // Don't load logs into memory
-            };
-        } catch (error) {
-            console.log(`MongoDB cache not found...`);
-        }
-
-        // Initialize MongoDB storage if available
-        try {
-            await this.mongoService.initializeLogStorage(cacheHash);
-            console.log('Initialized MongoDB storage for streaming...');
-        } catch (error) {
-            console.warn(`Failed to initialize MongoDB storage: ${error.message}`);
-            throw new Error('Failed to initialize MongoDB storage');
-        }
 
         // Get file size for progress tracking
         const stats = fs.statSync(logFilePath);
         const fileSize = stats.size;
         const lines = child_process.execSync(`wc -l ${logFilePath}`).toString().trim().split(' ')[0];
+
+        // Initialize MongoDB storage if available
+        try {
+            await this.mongoService.initializeLogStorage(runId);
+            console.log('Initialized MongoDB storage for streaming...');
+        } catch (error) {
+            console.warn(`Failed to initialize MongoDB storage: ${error.message}`);
+            throw new Error('Failed to initialize MongoDB storage');
+        }
 
         // Create progress bar
         const progressBar = new cliProgress.SingleBar({
@@ -338,7 +408,7 @@ class LogPreprocessor {
         const processBatch = async (batch) => {
             if (batch.length > 0) {
                 try {
-                    await this.mongoService.storeLogs(cacheHash, batch, metadata);
+                    await this.mongoService.storeLogs(runId, batch, metadata);
                 } catch (error) {
                     console.warn(`Failed to store batch to MongoDB: ${error.message}`);
                 }
@@ -354,7 +424,6 @@ class LogPreprocessor {
             try {
                 const entry = JSON.parse(trimmedLine);
                 const processedEntry = this.processLogEntry(entry, lineNumber);
-
 
                 // Store for MongoDB - batch processing
                 processedLogs.push(processedEntry);
@@ -430,21 +499,85 @@ class LogPreprocessor {
             }
         }
 
+        console.log(`\nProcessed ${validLogCount} logs from ${lineNumber} total lines`);
+        console.log(`Logs stored in MongoDB for fast querying`);
+
         // Store final metadata in MongoDB
         try {
-            await this.mongoService.storeMetadata(cacheHash, metadata);
+            await this.mongoService.storeMetadata(runId, metadata);
             console.log('Stored metadata in MongoDB');
         } catch (error) {
             console.warn('Failed to store metadata in MongoDB:', error.message);
         }
 
-        console.log(`\nProcessed ${validLogCount} logs from ${lineNumber} total lines`);
-        console.log(`Logs stored in MongoDB for fast querying`);
-
         return {
             metadata: metadata,
-            cacheHash: cacheHash,
+            runId: runId,
             logs: [] // Return empty logs array since we're streaming - caller should read from cache file if needed
+        };
+    }
+
+    /**
+     * Process a complete Ruse run (log file + result file)
+     */
+    async processRuseRun(logFilePath, resultFilePath) {
+        console.log(`Processing Ruse run:`);
+        console.log(`  Log file: ${logFilePath}`);
+        console.log(`  Result file: ${resultFilePath}`);
+
+        const runId = this.getCacheFilename(logFilePath, resultFilePath);
+
+        // Check MongoDB first
+        try {
+            const metadata = await this.mongoService.getMetadata(runId);
+            console.log(`Loading from MongoDB cache: ${runId}`);
+            return {
+                metadata: metadata,
+                runId: runId,
+                logs: [] // Don't load logs into memory
+            };
+        } catch (error) {
+            console.log(`MongoDB cache not found...`);
+        }
+
+        // Initialize MongoDB storage if available
+        try {
+            await this.mongoService.initializeLogStorage(runId);
+            console.log('Initialized MongoDB storage for streaming...');
+        } catch (error) {
+            console.warn(`Failed to initialize MongoDB storage: ${error.message}`);
+            throw new Error('Failed to initialize MongoDB storage');
+        }
+
+        // Parse result file first
+        const resultData = await this.parseResultFile(runId, resultFilePath);
+        
+        // Process log file
+        const logData = await this.processLogFile(runId,logFilePath);
+        
+        // Create combined metadata for the Ruse run
+        const runMetadata = {
+            ...logData.metadata,
+            resultFile: resultFilePath,
+            resultMetadata: resultData.metadata,
+            resultData: resultData.raw,
+            runId: runId,
+            runTime: resultData.metadata.runTime,
+            timestamp: resultData.metadata.timestamp
+        };
+
+        // Store final metadata in MongoDB
+        try {
+            await this.mongoService.storeMetadata(runId, runMetadata);
+            console.log('Stored Ruse run metadata in MongoDB');
+        } catch (error) {
+            console.warn('Failed to store metadata in MongoDB:', error.message);
+        }
+
+        return {
+            metadata: runMetadata,
+            runId: runId,
+            logs: [] // Return empty logs array since we're streaming
         };
     }
 
@@ -531,24 +664,34 @@ if (require.main === module) {
     const preprocessor = new LogPreprocessor();
 
     const logFilePath = process.argv[2];
-    if (!logFilePath) {
-        console.error('Usage: node preprocess_logs.js <log_file_path>');
+    const resultFilePath = process.argv[3];
+    
+    if (!logFilePath || !resultFilePath) {
+        console.error('Usage: node preprocess_logs.js <log_file_path> <result_file_path>');
+        console.error('Both log file and result file are required for a complete Ruse run.');
         process.exit(1);
     }
 
     if (!fs.existsSync(logFilePath)) {
-        console.error(`File not found: ${logFilePath}`);
+        console.error(`Log file not found: ${logFilePath}`);
         process.exit(1);
     }
 
-    preprocessor.processLogFile(logFilePath)
+    if (!fs.existsSync(resultFilePath)) {
+        console.error(`Result file not found: ${resultFilePath}`);
+        process.exit(1);
+    }
+
+    // Process as complete Ruse run
+    preprocessor.processRuseRun(logFilePath, resultFilePath)
         .then(result => {
             console.log('\nProcessing completed!');
-            console.log(`Total logs: ${result.metadata.validLogCount}`);
-            console.log(`Panic logs: ${result.metadata.stats.panicCount}`);
-            console.log(`Tasks: [${Object.keys(result.metadata.stats.tasks).join(', ')}]`);
-            console.log('Level distribution:', result.metadata.stats.levels);
-            console.log('Target distribution:', result.metadata.stats.targets);
+            console.log(`Ruse run processed successfully!`);
+            console.log(`Run time: ${result.metadata.runTime}`);
+            console.log(`Total tasks: ${result.metadata.resultMetadata.taskCount}`);
+            console.log(`Passed tasks: ${result.metadata.resultMetadata.passedTasks}`);
+            console.log(`Failed tasks: ${result.metadata.resultMetadata.failedTasks}`);
+            console.log(`Total time: ${result.metadata.resultMetadata.totalTime.toFixed(2)}s`);
         })
         .catch(error => {
             console.error('Processing failed:', error);
