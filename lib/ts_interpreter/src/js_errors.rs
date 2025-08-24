@@ -6,6 +6,12 @@ pub(crate) fn js_error_null_this() -> boa_engine::JsError {
         .into()
 }
 
+pub(crate) fn js_error_not_function() -> boa_engine::JsError {
+    boa_engine::JsNativeError::typ()
+        .with_message("Not a function")
+        .into()
+}
+
 pub(crate) fn js_error_not_initialized() -> boa_engine::JsError {
     boa_engine::JsNativeError::typ()
         .with_message("Global object is not initialized")

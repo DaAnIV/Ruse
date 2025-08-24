@@ -8,6 +8,7 @@ use boa_engine::{
 };
 use ruse_object_graph::{
     class_name, field_name,
+    graph_map_value::GraphMapWrap,
     value::{ObjectValue, Value},
     ClassName, ValueType,
 };
@@ -16,7 +17,7 @@ use crate::{
     engine_context::{EngineContext, RuseJsGlobalObject},
     js_errors::*,
     js_object_value::JsObjectValue,
-    js_value::TryFromJs,
+    js_value::{TryFromJs, TryIntoJs},
     jsfn_wrap,
     ts_class::{BuiltinClassWrapper, TsBuiltinClass, TsClass},
 };
@@ -427,11 +428,27 @@ impl JsArrayWrapper {
     }
 
     pub(crate) fn for_each(
-        _this: &JsValue,
-        _args: &[JsValue],
-        _context: &mut EngineContext,
+        this: &JsValue,
+        args: &[JsValue],
+        context: &mut EngineContext,
     ) -> JsResult<JsValue> {
-        todo!()
+        let global_obj = context.global_object();
+        let global_ctx = RuseJsGlobalObject::from_object(&global_obj)?;
+
+        let graphs_map = global_ctx.graphs_map()?;
+
+        let obj = ObjectValue::try_from_js(this, context)?;
+        let callback = args[0]
+            .as_function()
+            .ok_or_else(|| js_error_not_function())?;
+        for (index, value) in obj.fields_values_iterator(graphs_map).enumerate() {
+            callback.call(
+                &JsValue::Null,
+                &[value.try_into_js(context)?, index.into()],
+                context,
+            )?;
+        }
+        Ok(JsValue::undefined())
     }
 
     pub(crate) fn includes_value(
@@ -475,11 +492,30 @@ impl JsArrayWrapper {
     }
 
     pub(crate) fn map(
-        _this: &JsValue,
-        _args: &[JsValue],
-        _context: &mut EngineContext,
+        this: &JsValue,
+        args: &[JsValue],
+        context: &mut EngineContext,
     ) -> JsResult<JsValue> {
-        todo!()
+        let global_obj = context.global_object();
+        let global_ctx = RuseJsGlobalObject::from_object(&global_obj)?;
+
+        let graphs_map = global_ctx.graphs_map()?;
+
+        let obj = ObjectValue::try_from_js(this, context)?;
+        let callback = args[0]
+            .as_function()
+            .ok_or_else(|| js_error_not_function())?;
+        let mut results = Vec::with_capacity(obj.total_field_count(graphs_map));
+        let mut elem_type = ValueType::Null;
+        for value in obj.fields_values_iterator(graphs_map) {
+            let js_result =
+                callback.call(&JsValue::Null, &[value.try_into_js(context)?], context)?;
+            let result = Value::try_from_js(&js_result, context)?;
+            elem_type = result.val_type();
+            results.push(result);
+        }
+        let array_obj = context.create_array_object(results, &elem_type)?;
+        array_obj.try_into_js(context)
     }
 
     pub(crate) fn pop(
@@ -491,11 +527,24 @@ impl JsArrayWrapper {
     }
 
     pub(crate) fn push(
-        _this: &JsValue,
-        _args: &[JsValue],
-        _context: &mut EngineContext,
+        this: &JsValue,
+        args: &[JsValue],
+        context: &mut EngineContext,
     ) -> JsResult<JsValue> {
-        todo!()
+        let global_obj = context.global_object();
+        let global_ctx = RuseJsGlobalObject::from_object(&global_obj)?;
+
+        let graphs_map = global_ctx.mut_graphs_map()?;
+
+        let obj = ObjectValue::try_from_js(this, context)?;
+        let value = Value::try_from_js(&args[0], context)?;
+
+        let new_idx = obj.total_field_count(&graphs_map);
+        let idx_field_name = field_name!(new_idx.to_string().as_str());
+
+        graphs_map.set_field(idx_field_name, obj.graph_id, obj.node, &value);
+
+        Ok(obj.total_field_count(&graphs_map).into())
     }
 
     pub(crate) fn reduce(
@@ -611,11 +660,18 @@ impl JsArrayWrapper {
     }
 
     pub(crate) fn to_string(
-        _this: &JsValue,
+        this: &JsValue,
         _args: &[JsValue],
-        _context: &mut EngineContext,
+        context: &mut EngineContext,
     ) -> JsResult<JsValue> {
-        todo!()
+        let global_obj = context.global_object();
+        let global_ctx = RuseJsGlobalObject::from_object(&global_obj)?;
+
+        let graphs_map = global_ctx.graphs_map()?;
+
+        let obj = ObjectValue::try_from_js(this, context)?;
+        let string = obj.wrap(graphs_map).to_string();
+        Ok(boa_engine::JsValue::new(js_string!(string)))
     }
 
     pub(crate) fn values(
