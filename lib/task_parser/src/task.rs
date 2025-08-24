@@ -187,8 +187,27 @@ impl SnythesisTaskExamples {
     }
 }
 
+fn default_strings() -> bool {
+    true
+}
+
+
 fn default_version() -> u32 {
     1
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+struct SnythesisTaskOptions {
+    #[serde(default = "default_strings")]
+    strings: bool
+}
+
+impl Default for SnythesisTaskOptions {
+    fn default() -> Self {
+        Self {
+            strings: default_strings(),
+        }
+    }
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -199,6 +218,8 @@ struct SnythesisTaskInner {
     source: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     skip: Option<String>,
+    #[serde(default)]
+    options: SnythesisTaskOptions,
     #[serde(skip_serializing_if = "Option::is_none")]
     variables: Option<HashMap<String, TaskType>>,
     #[serde(rename = "stringLiterals", skip_serializing_if = "Option::is_none")]
@@ -551,16 +572,19 @@ impl SnythesisTask {
             .map(|x| root_name!(x.as_str()))
             .collect();
 
-        let string_literals = self
-            .string_literals
-            .iter()
-            .map(|x| str_cached!(x.as_str()))
-            .collect_vec();
+        let string_literals = if self.inner.options.strings {
+            self.string_literals
+                .iter()
+                .map(|x| str_cached!(x.as_str()))
+                .collect_vec()
+        } else {
+            vec![]
+        };
 
         let mut opcodes =
             construct_opcode_list(&var_names, &self.num_literals, &string_literals, false);
 
-        let composite_opcodes = Self::get_composite_opcodes(&self.classes, true);
+        let composite_opcodes = Self::get_composite_opcodes(&self.classes, true, self.inner.options.strings);
 
         opcodes.extend(composite_opcodes.into_iter().filter(self.get_filter()));
 
@@ -583,7 +607,7 @@ impl SnythesisTask {
         }
     }
 
-    pub fn get_composite_opcodes(classes: &TsClasses, add_seq: bool) -> OpcodesList {
+    pub fn get_composite_opcodes(classes: &TsClasses, add_seq: bool, strings: bool) -> OpcodesList {
         let mut composite_opcodes = OpcodesList::new();
         add_num_opcodes(
             &mut composite_opcodes,
@@ -591,7 +615,9 @@ impl SnythesisTask {
             &ALL_UNARY_NUM_OPCODES,
             &ALL_UPDATE_NUM_OPCODES,
         );
-        add_str_opcodes(&mut composite_opcodes, &ALL_BIN_STR_OPCODES);
+        if strings {
+            add_str_opcodes(&mut composite_opcodes, &ALL_BIN_STR_OPCODES);
+        }
         add_array_opcodes(
             &mut composite_opcodes,
             &[ValueType::Number, ValueType::String],
@@ -672,13 +698,13 @@ impl SnythesisTask {
             Self::DEFAULT_STRING_LITERALS.map(|x| x.to_string()),
         );
         if let Some(user_lit) = &inner.string_literals {
-            string_literals.extend(user_lit.clone());
+            string_literals = HashSet::from_iter(user_lit.clone());
         }
 
         let mut num_literals =
             HashSet::<_, BuildHasherDefault<DefaultHasher>>::from_iter(Self::DEFAULT_NUM_LITERALS);
         if let Some(user_lit) = &inner.int_literals {
-            num_literals.extend(user_lit.clone());
+            num_literals = HashSet::from_iter(user_lit.clone());
         }
 
         let mut builder = TsClassesBuilder::new();

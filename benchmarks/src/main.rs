@@ -334,7 +334,7 @@ fn print_opcodes(cli: &PrintOpcodesArgs) -> ExitCode {
     let composite_opcodes = if cli.only_ts {
         SnythesisTask::get_classes_opcodes(&classes, true)
     } else {
-        SnythesisTask::get_composite_opcodes(&classes, true)
+        SnythesisTask::get_composite_opcodes(&classes, true, true)
     };
     let opcodes_len = composite_opcodes.len();
 
