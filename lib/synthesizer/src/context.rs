@@ -107,6 +107,36 @@ impl SynthesizerContext {
     }
 }
 
+#[derive(serde::Serialize)]
+pub struct SynthesizerContextJsonDisplay {
+    all_variables: HashMap<String, String>,
+    start_context: Vec<ContextJsonDisplay>,
+}
+
+impl SynthesizerContext {
+    pub fn json_display(&self) -> impl Display {
+        self.json_display_struct()
+    }
+
+    pub fn json_display_struct(&self) -> SynthesizerContextJsonDisplay {
+        SynthesizerContextJsonDisplay {
+            all_variables: self
+                .all_variables
+                .iter()
+                .map(|(k, v)| (k.to_string(), v.value_type.to_string()))
+                .collect(),
+            start_context: self.start_context.json_display_struct().contexts,
+        }
+    }
+}
+
+impl Display for SynthesizerContextJsonDisplay {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let value = serde_json::to_string_pretty(self).unwrap();
+        write!(f, "{}", value)
+    }
+}
+
 type ValuesHashMap = BTreeMap<VariableName, u64>;
 
 #[derive(Debug, Clone, Default)]
@@ -1054,6 +1084,10 @@ impl Display for ContextArray {
 
 impl ContextArray {
     pub fn json_display(&self) -> impl Display + '_ {
+        self.json_display_struct()
+    }
+
+    pub fn json_display_struct(&self) -> ContextArrayJsonDisplay {
         ContextArrayJsonDisplay {
             contexts: self
                 .inner
@@ -1064,7 +1098,8 @@ impl ContextArray {
     }
 }
 
-struct ContextArrayJsonDisplay {
+#[derive(serde::Serialize)]
+pub struct ContextArrayJsonDisplay {
     contexts: Vec<ContextJsonDisplay>,
 }
 

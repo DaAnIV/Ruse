@@ -1,7 +1,7 @@
 use crate::{
     bank::*,
     bank_iterator::{bank_iterator, BankIterator},
-    context::{ContextArray, SynthesizerContext, VariableName},
+    context::{ContextArray, SynthesizerContext, SynthesizerContextJsonDisplay, VariableName},
     multi_programs_map_product::ProgramChildrenIterator,
     opcode::*,
     prog::SubProgram,
@@ -552,5 +552,35 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
 
     pub fn print_all_programs(&self) {
         self.bank.print_all_programs()
+    }
+}
+
+#[derive(serde::Serialize)]
+pub struct SynthesizerJsonDisplay {
+    opcodes: Vec<String>,
+    context: SynthesizerContextJsonDisplay,
+    max_context_depth: usize,
+    worker_count: usize,
+}
+
+impl Display for SynthesizerJsonDisplay {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let value = serde_json::to_string_pretty(self).unwrap_or_else(|e| format!("Failed to serialize synthesizer: {}", e));
+        write!(f, "{}", value)
+    }
+}
+
+impl<P: ProgBank + 'static> Synthesizer<P> {
+    pub fn json_display(&self) -> impl Display {
+        self.json_display_struct()
+    }
+
+    pub(crate) fn json_display_struct(&self) -> SynthesizerJsonDisplay {
+        SynthesizerJsonDisplay {
+            opcodes: self.opcodes.values().flat_map(|ops| ops.iter().map(|op| format!("{}:{:?}", op.op_name(), op))).collect(),
+            context: self.context.json_display_struct(),
+            max_context_depth: self.max_context_depth,
+            worker_count: self.worker_count,
+        }
     }
 }

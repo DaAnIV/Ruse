@@ -7,7 +7,7 @@ use ruse_synthesizer::{
 };
 use tokio_util::sync::CancellationToken;
 
-use std::sync::Arc;
+use std::{fmt::Display, sync::Arc};
 
 pub struct TsSynthesizer<P: ProgBank> {
     inner: Arc<Synthesizer<P>>,
@@ -56,5 +56,9 @@ impl<P: ProgBank + 'static> TsSynthesizer<P> {
 
     pub fn print_all_programs(&self) {
         self.inner.print_all_programs()
+    }
+
+    pub fn json_display(&self) -> impl Display + '_ {
+        self.inner.json_display()
     }
 }

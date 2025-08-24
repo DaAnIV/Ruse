@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::{class_name, ClassName};
 
-#[derive(Clone, PartialEq, Eq, Hash, Debug, PartialOrd, Ord)]
+#[derive(Clone, PartialEq, Eq, Hash, Debug, PartialOrd, Ord, serde::Serialize)]
 pub enum ObjectType {
     Array(Box<ValueType>),
     Set(Box<ValueType>),
@@ -66,7 +66,7 @@ impl ObjectType {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Hash, Debug, PartialOrd, Ord)]
+#[derive(Clone, PartialEq, Eq, Hash, Debug, PartialOrd, Ord, serde::Serialize)]
 pub enum ValueType {
     Number,
     Bool,

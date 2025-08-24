@@ -9,7 +9,7 @@ use ruse_synthesizer::bank::ProgBank;
 use ruse_task_parser::{BankConfig, SnythesisTask};
 use ruse_ts_synthesizer::TsSynthesizer;
 use tokio_util::sync::CancellationToken;
-use tracing::{error, info, info_span};
+use tracing::{debug, error, info, info_span};
 
 use crate::{config::BenchmarkConfig, results::BenchmarkResult};
 
@@ -173,6 +173,9 @@ pub fn run_task(path: &Path, bench_config: &BenchmarkConfig) -> BenchmarkResult 
         }
     };
     info!(target: "ruse::runner", "Running {}", path.display());
+    debug!(target: "ruse::runner", { 
+        synthesizer.json = %synthesizer.json_display()
+    }, "Benchmark {} Synthesizer", path.display());
 
     let runtime = get_tokio_runtime(bench_config);
 
