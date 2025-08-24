@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use itertools::Itertools;
 use swc::atoms::Atom;
 use swc_ecma_visit::{Visit, VisitWith};
 
@@ -386,7 +387,17 @@ impl DtsVisitor {
                 let elem_type = self.value_type_from_ts_type(t.elem_type.as_ref());
                 ValueType::array_value_type(&elem_type)
             }
-            ast::TsType::TsTupleType(_) => todo!(),
+            ast::TsType::TsTupleType(t) => {
+                let value_types = t
+                    .elem_types
+                    .iter()
+                    .map(|x| self.value_type_from_ts_type(&x.ty.as_ref()))
+                    .collect_vec();
+                if value_types.iter().all_equal() {
+                    return ValueType::array_value_type(&value_types[0]);
+                }
+                todo!("Tuple type with different element types is not yet supported")
+            }
             ast::TsType::TsOptionalType(_) => todo!(),
             ast::TsType::TsRestType(_) => todo!(),
             ast::TsType::TsUnionOrIntersectionType(t) => {
