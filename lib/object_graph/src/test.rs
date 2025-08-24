@@ -3,6 +3,7 @@ mod tests {
     use rand::{rngs::StdRng, SeedableRng};
 
     use crate::dot;
+    use crate::mermaid;
     use crate::field_name;
     use crate::generator::object_graph_generator::*;
     use crate::root_name;
@@ -370,6 +371,7 @@ mod tests {
 
         // ObjectGraph::set_graphs_map(graphs_map.into());
         println!("{}", dot::Dot::from_graphs_map(&graphs_map));
+        println!("{}", mermaid::Mermaid::from_graphs_map(&graphs_map));
     }
 
     #[ignore]
@@ -408,6 +410,7 @@ mod tests {
         map1.set_as_root(root_name.clone(), g2, n1);
 
         println!("{}", dot::Dot::from_graphs_map(&map1));
+        println!("{}", mermaid::Mermaid::from_graphs_map(&map1));
     }
 
     // #[test]

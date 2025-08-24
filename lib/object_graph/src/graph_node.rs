@@ -1,7 +1,7 @@
 use core::fmt;
 use std::collections::BTreeMap;
 
-use crate::{FieldName, GraphIndex, NodeIndex, ObjectType, PrimitiveValue};
+use crate::{FieldName, GraphIndex, NodeIndex, ObjectType, PrimitiveValue, ValueType};
 
 use std::hash::{Hash, Hasher};
 
@@ -104,6 +104,10 @@ impl ObjectGraphNode {
 
     pub fn obj_type(&self) -> &ObjectType {
         &self.obj_type
+    }
+
+    pub fn val_type(&self) -> ValueType {
+        ValueType::Object(self.obj_type.clone())
     }
 
     pub fn pointers_len(&self) -> usize {

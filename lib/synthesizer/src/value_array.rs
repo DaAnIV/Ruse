@@ -65,13 +65,21 @@ impl ValueArray {
     }
 
     pub fn json_display(&self, ctx_arr: &ContextArray) -> impl Display {
-        let values = self.iter().zip(ctx_arr.iter()).enumerate().map(|(i, (val, ctx))| {
-            (format!("{}.dot", i.to_string()), val.val().dot_display_with_name(&ctx.graphs_map, &format!("value_{}", i)).to_string())
-        }).collect();
+        let values = self
+            .iter()
+            .zip(ctx_arr.iter())
+            .enumerate()
+            .map(|(i, (val, ctx))| {
+                (
+                    format!("{}.mermaid", i.to_string()),
+                    val.val()
+                        .mermaid_display_with_name(&ctx.graphs_map, &format!("value_{}", i))
+                        .to_string(),
+                )
+            })
+            .collect();
 
-        WrappedValueArrayJsonDisplay {
-            values
-        }
+        WrappedValueArrayJsonDisplay { values }
     }
 }
 
@@ -96,7 +104,6 @@ impl<'a> Display for WrappedValueArray<'a> {
         Ok(())
     }
 }
-
 
 #[derive(serde::Serialize)]
 pub struct WrappedValueArrayJsonDisplay {

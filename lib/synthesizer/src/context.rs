@@ -5,6 +5,7 @@ use itertools::Itertools;
 use ruse_object_graph::{
     dot::{Dot, DotConfig},
     graph_map_value::*,
+    mermaid::{Mermaid, MermaidConfig},
     value::{ObjectValue, Value},
     *,
 };
@@ -707,7 +708,7 @@ impl Display for Context {
                 f,
                 "{} -> {}",
                 k,
-                v.dot_display_with_config(&self.graphs_map, DotConfig::subgraph_config(&k))
+                v.mermaid_display_with_config(&self.graphs_map, MermaidConfig::subgraph_config(&k))
             )?;
             value = iter.next();
             if value.is_some() {
@@ -718,9 +719,9 @@ impl Display for Context {
             write!(
                 f,
                 "; Output: {}",
-                output.dot_display_with_config(
+                output.mermaid_display_with_config(
                     &self.graphs_map,
-                    DotConfig::subgraph_config(&format!("output_{}", i))
+                    MermaidConfig::subgraph_config(&format!("output_{}", i))
                 )
             )?;
         }
@@ -776,14 +777,49 @@ impl Context {
             },
         )
     }
+
+    pub fn mermaid_display(&self) -> Mermaid<'_> {
+        let mut root_names = HashMap::from_iter(
+            self.values
+                .iter()
+                .filter_map(|(k, v)| v.obj().map(|o| (o.node, k.to_string()))),
+        );
+
+        for (i, output) in self.outputs.iter().enumerate() {
+            if let Some(obj) = output.obj() {
+                if let Some(name) = root_names.get(&obj.node) {
+                    root_names.insert(obj.node, format!("output_{}, {}", i, name));
+                } else {
+                    root_names.insert(obj.node, format!("output_{}", i));
+                }
+            }
+        }
+
+        Mermaid::from_nodes_with_config(
+            &self.graphs_map,
+            self.values
+                .values()
+                .filter_map(|v| v.obj().map(|o| (o.graph_id, o.node)))
+                .chain(
+                    self.outputs
+                        .iter()
+                        .filter_map(|v| v.obj().map(|o| (o.graph_id, o.node))),
+                )
+                .collect(),
+            MermaidConfig {
+                override_root_name: root_names,
+                ..Default::default()
+            },
+        )
+    }
 }
 
 #[derive(serde::Serialize)]
 struct ContextJsonDisplay {
     values: HashMap<String, String>,
     outputs: HashMap<String, String>,
-    #[serde(rename(serialize = "ctx.dot"))]
-    ctx_dot: String,
+    #[serde(rename(serialize = "ctx.mermaid"))]
+    ctx_mermaid: String,
     graphs: String,
     hashes: String,
 }
@@ -799,8 +835,8 @@ impl Context {
                 .variables()
                 .map(|(k, v)| {
                     (
-                        format!("{}.dot", k),
-                        v.dot_display_with_name(&self.graphs_map, &format!("{}", k))
+                        format!("{}.mermaid", k),
+                        v.mermaid_display_with_name(&self.graphs_map, &format!("{}", k))
                             .to_string(),
                     )
                 })
@@ -810,13 +846,13 @@ impl Context {
                 .enumerate()
                 .map(|(i, v)| {
                     (
-                        format!("output_{}.dot", i),
-                        v.dot_display_with_name(&self.graphs_map, &format!("output_{}", i))
+                        format!("output_{}.mermaid", i),
+                        v.mermaid_display_with_name(&self.graphs_map, &format!("output_{}", i))
                             .to_string(),
                     )
                 })
                 .collect(),
-            ctx_dot: self.dot_display().to_string(),
+            ctx_mermaid: self.mermaid_display().to_string(),
             graphs: format!("{:?}", self.graphs_map.keys().collect_vec()),
             hashes: format!("{:?}", self.hashes),
         }

@@ -4,6 +4,7 @@ use crate::{
     graph_map_value::*,
     graph_node::EdgeEndPoint,
     graph_walk::ObjectGraphWalker,
+    mermaid::{Mermaid, MermaidConfig},
     Attributes, ClassName, FieldName, GraphIndex, GraphsMap, NodeIndex, Number, ObjectGraph,
     ObjectType, PrimitiveField, PrimitiveValue, StringValue, ValueType,
 };
@@ -189,6 +190,18 @@ impl ObjectValue {
         }
     }
 
+    pub fn mermaid_display_with_config<'b>(
+        &self,
+        graphs_map: &'b GraphsMap,
+        config: MermaidConfig,
+    ) -> ObjectValueMermaidDispaly<'_, 'b> {
+        ObjectValueMermaidDispaly {
+            value: self,
+            graphs_map,
+            config,
+        }
+    }
+
     pub fn val_type(&self) -> ValueType {
         ValueType::Object(self.obj_type.clone())
     }
@@ -296,6 +309,26 @@ impl<'a, 'b> Display for ObjectValueDotDispaly<'a, 'b> {
             f,
             "{}",
             Dot::from_nodes_with_config(
+                self.graphs_map,
+                vec![(self.value.graph_id, self.value.node)],
+                self.config.clone()
+            )
+        )
+    }
+}
+
+pub struct ObjectValueMermaidDispaly<'a, 'b> {
+    value: &'a ObjectValue,
+    graphs_map: &'b GraphsMap,
+    config: MermaidConfig,
+}
+
+impl<'a, 'b> Display for ObjectValueMermaidDispaly<'a, 'b> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            Mermaid::from_nodes_with_config(
                 self.graphs_map,
                 vec![(self.value.graph_id, self.value.node)],
                 self.config.clone()
@@ -548,6 +581,93 @@ impl Value {
         config: DotConfig,
     ) -> ValueDotDispaly<'_, 'b> {
         ValueDotDispaly {
+            value: self,
+            graphs_map,
+            config,
+        }
+    }
+}
+
+pub struct ValueMermaidDispaly<'a, 'b> {
+    value: &'a Value,
+    graphs_map: &'b GraphsMap,
+    config: MermaidConfig,
+}
+
+impl<'a, 'b> Display for ValueMermaidDispaly<'a, 'b> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.value {
+            Value::Primitive(p) => {
+                Mermaid::write_header_with_config(f, &self.config)?;
+                Mermaid::write_node(
+                    f,
+                    "p",
+                    None,
+                    &p.val_type(),
+                    &format!("{}", p),
+                    self.config.subgraph.as_ref().map(|s| s.name.to_string()),
+                )?;
+                Mermaid::write_footer_with_config(f, &self.config)?;
+                Ok(())
+            }
+            Value::Object(o) => write!(
+                f,
+                "{}",
+                o.mermaid_display_with_config(self.graphs_map, self.config.clone())
+            ),
+            Value::Null => {
+                Mermaid::write_header_with_config(f, &self.config)?;
+                Mermaid::write_node(
+                    f,
+                    "Null",
+                    None,
+                    &ValueType::Null,
+                    "",
+                    self.config.subgraph.as_ref().map(|s| s.name.to_string()),
+                )?;
+                Mermaid::write_footer_with_config(f, &self.config)?;
+                Ok(())
+            }
+        }
+    }
+}
+
+impl Value {
+    pub fn mermaid_display<'b>(&self, graphs_map: &'b GraphsMap) -> ValueMermaidDispaly<'_, 'b> {
+        ValueMermaidDispaly {
+            value: self,
+            graphs_map,
+            config: MermaidConfig::default(),
+        }
+    }
+
+    pub fn mermaid_display_with_name<'b>(
+        &self,
+        graphs_map: &'b GraphsMap,
+        name: &str,
+    ) -> ValueMermaidDispaly<'_, 'b> {
+        let config = if let Some(obj) = self.obj() {
+            MermaidConfig {
+                override_root_name: HashMap::from_iter([(obj.node, name.to_string())]),
+                ..Default::default()
+            }
+        } else {
+            MermaidConfig::default()
+        };
+
+        ValueMermaidDispaly {
+            value: self,
+            graphs_map,
+            config,
+        }
+    }
+
+    pub fn mermaid_display_with_config<'b>(
+        &self,
+        graphs_map: &'b GraphsMap,
+        config: MermaidConfig,
+    ) -> ValueMermaidDispaly<'_, 'b> {
+        ValueMermaidDispaly {
             value: self,
             graphs_map,
             config,

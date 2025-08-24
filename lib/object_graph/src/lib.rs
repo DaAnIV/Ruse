@@ -1,5 +1,6 @@
 mod connected_components;
 pub mod dot;
+pub mod mermaid;
 pub mod generator;
 mod graph;
 pub mod graph_equality;

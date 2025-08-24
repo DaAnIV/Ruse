@@ -11,7 +11,7 @@ use crate::{
 use dashmap::DashSet;
 use futures::FutureExt;
 use ruse_object_graph::{
-    dot::DotConfig,
+    mermaid::MermaidConfig,
     value::Value,
     ValueType,
 };
@@ -310,18 +310,18 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
             for (name, value) in pre_ctx.variables() {
                 debug!(target: "ruse::synthesizer", "pre_ctx[{}] {}:\n{}", i,
                     name, 
-                    value.dot_display_with_config(&pre_ctx.graphs_map, 
-                    DotConfig::subgraph_config(&format!("{}[{}]_{}", "pre", i, name))));
+                    value.mermaid_display_with_config(&pre_ctx.graphs_map, 
+                    MermaidConfig::subgraph_config(&format!("{}[{}]_{}", "pre", i, name))));
             }
             for (name, value) in post_ctx.variables() {
                 debug!(target: "ruse::synthesizer", "post_ctx[{}] {}:\n{}", i,
                     name, 
-                    value.dot_display_with_config(&post_ctx.graphs_map, 
-                    DotConfig::subgraph_config(&format!("{}[{}]_{}", "post", i, name))))
+                    value.mermaid_display_with_config(&post_ctx.graphs_map, 
+                    MermaidConfig::subgraph_config(&format!("{}[{}]_{}", "post", i, name))))
             }
             debug!(target: "ruse::synthesizer", "output[{}]: {}", i ,
-                out_value.val().dot_display_with_config(&post_ctx.graphs_map, 
-                DotConfig::subgraph_config(&format!("output[{}]", i))));
+                out_value.val().mermaid_display_with_config(&post_ctx.graphs_map, 
+                MermaidConfig::subgraph_config(&format!("output[{}]", i))));
         }
     }
 
