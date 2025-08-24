@@ -21,7 +21,7 @@ use std::{
 };
 use tokio::task::JoinSet;
 use tokio_util::sync::CancellationToken;
-use tracing::{debug, trace};
+use tracing::{debug, info_span, trace, Instrument};
 
 const ALLOW_NON_FINITE_NUMBER: bool = false;
 
@@ -246,6 +246,7 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
     }
 
     pub async fn run_iteration(self: &mut Arc<Self>) -> Option<Arc<SubProgram>> {
+        let _span = info_span!(target: "ruse::synthesizer", "run_iteration", iteration = self.bank.iteration_count()).entered();
         let (current_iteration_map, found_prog) = Self::run_iteration_inner(self.clone()).await;
 
         Self::insert_iteration(self, current_iteration_map);
@@ -268,14 +269,14 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
             panic::AssertUnwindSafe(async move {
                 let mut current_iteration_map = self_clone.bank.new_type_map();
                 let found = if self_clone.bank.iteration_count() == 0 {
-                    tokio::task::block_in_place(|| self_clone.run_init_iteration(&mut current_iteration_map))
+                    tokio::task::block_in_place(|| self_clone.run_init_iteration(&mut current_iteration_map).in_current_span()).into_inner()
                 } else {
                     self_clone.run_composite_iteration(&mut current_iteration_map)
                         .await
                 };
                 (current_iteration_map, found)
             })
-            .catch_unwind(),
+            .catch_unwind().in_current_span(),
         )
         .await;
 
@@ -389,7 +390,7 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
                 if self.should_end_worker().await {
                     return (type_map, None);
                 }
-                let found = tokio::task::block_in_place(|| self.composite_iter_batch(&triple, &ops, &mut type_map));
+                let found = tokio::task::block_in_place(|| self.composite_iter_batch(&triple, &ops, &mut type_map).in_current_span()).into_inner();
                 if found.is_some() {
                     self.found_token.cancel();
                     return (type_map, found);
@@ -423,7 +424,7 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
         let mut workers = JoinSet::new();
         for i in 0..self.worker_count {
             workers.spawn(
-                panic::AssertUnwindSafe(Self::composite_iteration_worker(self.clone(), i))
+                panic::AssertUnwindSafe(Self::composite_iteration_worker(self.clone(), i).in_current_span())
                     .catch_unwind(),
             );
         }

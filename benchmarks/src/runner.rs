@@ -9,7 +9,7 @@ use ruse_synthesizer::bank::ProgBank;
 use ruse_task_parser::{BankConfig, SnythesisTask};
 use ruse_ts_synthesizer::TsSynthesizer;
 use tokio_util::sync::CancellationToken;
-use tracing::{error, info};
+use tracing::{error, info, info_span};
 
 use crate::{config::BenchmarkConfig, results::BenchmarkResult};
 
@@ -87,6 +87,8 @@ async fn run_synthesizer<P: ProgBank + 'static>(
     max_iterations: u32,
     cancel_token: CancellationToken,
 ) {
+    let _span = info_span!(target: "ruse::runner", "synthesizer_run").entered();
+
     let start = Instant::now();
     let mut found = None;
     for _ in 0..max_iterations {
@@ -139,6 +141,10 @@ fn init_results(task: &SnythesisTask, results: &mut BenchmarkResult) {
 pub fn run_task(path: &Path, bench_config: &BenchmarkConfig) -> BenchmarkResult {
     let task_name = PathBuf::from(path.file_name().unwrap());
     let mut result = BenchmarkResult::new(path);
+
+    let _span =
+        info_span!(target: "ruse::runner", "task", task_name = task_name.display().to_string())
+            .entered();
 
     let task = match SnythesisTask::from_json_file(path) {
         Ok(v) => v,
