@@ -97,8 +97,8 @@ impl TsGlobalClassBuilder {
             let exported = exports.contains(&func_id.0);
             let desc = if let Some(dts) = functions_dts.get(func_id) {
                 MethodDescription::from((decl, dts, exported))
-            } else {
-                assert!(!exported, "Exported function without DTS");
+            } else {    
+                assert!(!exported, "Exported function {} without DTS", func_name);
                 MethodDescription::from(decl)
             };
             methods.insert(func_name, desc);
@@ -109,7 +109,7 @@ impl TsGlobalClassBuilder {
             let desc = if let Some(dts) = variables_dts.get(var_id) {
                 JsFieldDescription::from((decl, dts, exported))
             } else {
-                assert!(!exported, "Exported global without DTS");
+                assert!(!exported, "Exported global {} without DTS", var_name);
                 JsFieldDescription::from(decl)
             };
             fields.insert(var_name, desc);

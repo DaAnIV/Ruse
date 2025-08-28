@@ -237,7 +237,7 @@ impl<'a> Visit for TsUserClassBuilder<'a> {
 
     fn visit_class_method(&mut self, node: &swc_ecma_ast::ClassMethod) {
         let id = node.key.as_ident().unwrap().sym.clone();
-        let method_desc = if let Some(method_dts) = self.dts.methods.get(&id) {
+        let method_desc = if let Some(method_dts) = self.dts.methods.get(&(id, node.kind)) {
             MethodDescription::from((node, method_dts))
         } else {
             MethodDescription::from(node)

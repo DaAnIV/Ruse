@@ -14,6 +14,7 @@ use swc_common::{
 use swc_ecma_ast::{self as ast, Pass};
 use swc_ecma_parser::{Syntax, TsSyntax};
 use swc_ecma_visit::{VisitMutWith, VisitWith};
+use tracing::info_span;
 
 use crate::{
     dts_visitor::DtsVisitor,
@@ -192,6 +193,8 @@ impl TsClassesBuilder {
     }
 
     fn add_file(&mut self, source_file: Arc<SourceFile>, extension: FileType) -> Result<(), Error> {
+        let _span = info_span!(target: "ruse:TsClassesBuilder", "Parsing file", file_name = source_file.name.to_string()).entered();
+
         match extension {
             FileType::Ts => {
                 let (program, dts) = self.parse_ts_file(source_file)?;

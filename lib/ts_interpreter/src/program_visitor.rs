@@ -1,13 +1,14 @@
 use std::collections::HashSet;
 
 use swc::atoms::Atom;
+use swc_common::DUMMY_SP;
 use swc_ecma_utils::find_pat_ids;
 use swc_ecma_visit::{Visit, VisitWith};
 
 use swc_ecma_ast::{
-    ClassDecl, Decl, ExportAll, ExportDecl, ExportDefaultDecl, ExportDefaultExpr,
-    ExportNamedSpecifier, ExportSpecifier, FnDecl, Id, Ident, ModuleExportName, NamedExport, Str,
-    VarDeclarator,
+    BlockStmt, BlockStmtOrExpr, ClassDecl, Decl, ExportAll, ExportDecl, ExportDefaultDecl,
+    ExportDefaultExpr, ExportNamedSpecifier, ExportSpecifier, Expr, ExprStmt, FnDecl, Function, Id,
+    Ident, ModuleExportName, NamedExport, Param, Str, VarDeclarator,
 };
 
 #[derive(Default)]
@@ -21,11 +22,65 @@ pub(crate) struct ProgramVisitor {
 impl Visit for ProgramVisitor {
     fn visit_var_declarator(&mut self, node: &VarDeclarator) {
         let ident = node.name.as_ident().unwrap();
+        if let Some(init) = &node.init {
+            match init.as_ref() {
+                Expr::Fn(fn_expr) => {
+                    self.functions.push((
+                        ident.id.clone().into(),
+                        FnDecl {
+                            ident: ident.id.clone(),
+                            declare: false,
+                            function: fn_expr.function.clone(),
+                        },
+                    ));
+                    return;
+                }
+                Expr::Arrow(arrow_expr) => {
+                    self.functions.push((
+                        ident.id.clone().into(),
+                        FnDecl {
+                            ident: ident.id.clone(),
+                            declare: false,
+                            function: Box::new(Function {
+                                params: arrow_expr
+                                    .params
+                                    .iter()
+                                    .cloned()
+                                    .map(Param::from)
+                                    .collect(),
+                                decorators: vec![],
+                                span: arrow_expr.span,
+                                ctxt: arrow_expr.ctxt,
+                                body: Some(match arrow_expr.body.as_ref() {
+                                    BlockStmtOrExpr::BlockStmt(block) => block.clone(),
+                                    BlockStmtOrExpr::Expr(expr) => BlockStmt {
+                                        span: DUMMY_SP,
+                                        ctxt: Default::default(),
+                                        stmts: vec![ExprStmt {
+                                            span: DUMMY_SP,
+                                            expr: expr.clone(),
+                                        }
+                                        .into()],
+                                    },
+                                }),
+                                is_async: arrow_expr.is_async,
+                                is_generator: arrow_expr.is_generator,
+                                type_params: arrow_expr.type_params.clone(),
+                                return_type: arrow_expr.return_type.clone(),
+                            }),
+                        },
+                    ));
+                    return;
+                }
+                _ => {}
+            }
+        }
         self.globals.push((ident.id.clone().into(), node.clone()));
     }
 
     fn visit_fn_decl(&mut self, node: &FnDecl) {
-        self.functions.push((node.ident.clone().into(), node.clone()));
+        self.functions
+            .push((node.ident.clone().into(), node.clone()));
     }
 
     fn visit_class_decl(&mut self, node: &ClassDecl) {

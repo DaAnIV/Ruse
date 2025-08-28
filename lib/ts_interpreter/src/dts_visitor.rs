@@ -5,7 +5,7 @@ use swc::atoms::Atom;
 use swc_ecma_visit::{Visit, VisitWith};
 
 use ruse_object_graph::{class_name, ObjectType, ValueType};
-use swc_ecma_ast::{self as ast, Accessibility, ClassDecl, FnDecl, Id};
+use swc_ecma_ast::{self as ast, Accessibility, ClassDecl, FnDecl, Id, MethodKind};
 
 pub(crate) fn get_value_type_from_ts_type(type_ann: &ast::TsType) -> ValueType {
     match type_ann {
@@ -112,6 +112,7 @@ pub(crate) struct DtsFieldDecl {
 #[derive(Debug)]
 pub(crate) struct DtsMethodDecl {
     pub name: Atom,
+    pub kind: MethodKind,
     pub params: Vec<Vec<ValueType>>,
     pub is_public: bool,
     pub is_static: bool,
@@ -122,7 +123,7 @@ pub(crate) struct DtsClassDecl {
     pub name: Id,
     pub obj_type: ObjectType,
     pub props: HashMap<Atom, DtsFieldDecl>,
-    pub methods: HashMap<Atom, DtsMethodDecl>,
+    pub methods: HashMap<(Atom, MethodKind), DtsMethodDecl>,
     pub constructor: Option<DtsMethodDecl>,
 }
 
@@ -134,9 +135,87 @@ pub(crate) struct DtsVisitor {
     current_class: Option<Id>,
 }
 
+impl DtsVisitor {
+    fn get_params_types_from_pat<'a, I>(&self, params: I) -> Option<Vec<ValueType>>
+    where
+        I: Iterator<Item = &'a ast::Pat>,
+    {
+        params
+            .map(|param| match param {
+                ast::Pat::Ident(binding_ident) => {
+                    Some(self.value_type_from_ts_type(&binding_ident.type_ann.as_ref()?.type_ann))
+                }
+                ast::Pat::Array(_array_pat) => todo!(),
+                ast::Pat::Rest(rest_pat) => {
+                    Some(self.value_type_from_ts_type(&rest_pat.type_ann.as_ref()?.type_ann))
+                }
+                ast::Pat::Object(_object_pat) => todo!(),
+                ast::Pat::Assign(_assign_pat) => todo!(),
+                ast::Pat::Invalid(_invalid) => todo!(),
+                ast::Pat::Expr(_expr) => todo!(),
+            })
+            .collect()
+    }
+
+    fn get_params_types_from_ts_fn_param<'a, I>(&self, params: I) -> Option<Vec<ValueType>>
+    where
+        I: Iterator<Item = &'a ast::TsFnParam>,
+    {
+        params
+            .map(|param| match param {
+                ast::TsFnParam::Ident(binding_ident) => {
+                    Some(self.value_type_from_ts_type(&binding_ident.type_ann.as_ref()?.type_ann))
+                }
+                ast::TsFnParam::Array(_array_pat) => todo!(),
+                ast::TsFnParam::Rest(rest_pat) => {
+                    Some(self.value_type_from_ts_type(&rest_pat.type_ann.as_ref()?.type_ann))
+                }
+                ast::TsFnParam::Object(_object_pat) => todo!(),
+            })
+            .collect()
+    }
+
+    fn update_fn_decl(&mut self, id: Id, params: Option<Vec<ValueType>>) {
+        match self.functions.entry(id.clone()) {
+            std::collections::hash_map::Entry::Occupied(mut e) => {
+                let desc: &mut DtsFnDecl = e.get_mut();
+                if let Some(params) = params {
+                    desc.params.push(params);
+                }
+            }
+            std::collections::hash_map::Entry::Vacant(e) => {
+                e.insert(DtsFnDecl {
+                    name: id,
+                    params: params.map_or_else(Vec::new, |params| vec![params]),
+                });
+            }
+        }
+    }
+}
+
 impl Visit for DtsVisitor {
     fn visit_var_declarator(&mut self, node: &swc_ecma_ast::VarDeclarator) {
         let ident = node.name.as_ident().unwrap();
+
+        if let Some(type_ann) = ident.type_ann.as_ref() {
+            if let Some(fn_or_constructor_type_ann) =
+                type_ann.type_ann.as_ts_fn_or_constructor_type()
+            {
+                match fn_or_constructor_type_ann {
+                    swc_ecma_ast::TsFnOrConstructorType::TsFnType(ts_fn_type) => {
+                        let params =
+                            self.get_params_types_from_ts_fn_param(ts_fn_type.params.iter());
+                        self.update_fn_decl(ident.id.clone().into(), params);
+
+                        return;
+                    }
+                    swc_ecma_ast::TsFnOrConstructorType::TsConstructorType(
+                        _ts_constructor_type,
+                    ) => todo!("Var declarator constructor type"),
+                }
+            }
+        }
+
         self.globals.insert(
             ident.id.clone().into(),
             DtsVarDecl {
@@ -150,42 +229,8 @@ impl Visit for DtsVisitor {
     }
 
     fn visit_fn_decl(&mut self, node: &FnDecl) {
-        let params = if node
-            .function
-            .params
-            .iter()
-            .all(|param| param.pat.as_ident().unwrap().type_ann.is_some())
-        {
-            Some(
-                node.function
-                    .params
-                    .iter()
-                    .map(|param| {
-                        let ident = param.pat.as_ident().unwrap();
-                        self.value_type_from_ts_type(&ident.type_ann.as_ref().unwrap().type_ann)
-                    })
-                    .collect(),
-            )
-        } else {
-            None
-        };
-
-        let id = node.ident.clone().into();
-
-        match self.functions.entry(id) {
-            std::collections::hash_map::Entry::Occupied(mut e) => {
-                let desc: &mut DtsFnDecl = e.get_mut();
-                if let Some(params) = params {
-                    desc.params.push(params);
-                }
-            }
-            std::collections::hash_map::Entry::Vacant(e) => {
-                e.insert(DtsFnDecl {
-                    name: node.ident.clone().into(),
-                    params: params.map_or_else(Vec::new, |params| vec![params]),
-                });
-            }
-        }
+        let params = self.get_params_types_from_pat(node.function.params.iter().map(|x| &x.pat));
+        self.update_fn_decl(node.ident.clone().into(), params);
     }
 
     fn visit_class_decl(&mut self, node: &ClassDecl) {
@@ -257,7 +302,7 @@ impl Visit for DtsVisitor {
         let is_public =
             node.accessibility.unwrap_or(Accessibility::Public) == Accessibility::Public;
 
-        match class.methods.entry(id.clone()) {
+        match class.methods.entry((id.clone(), node.kind.clone())) {
             std::collections::hash_map::Entry::Occupied(mut e) => {
                 let desc: &mut DtsMethodDecl = e.get_mut();
                 if let Some(params) = params {
@@ -269,6 +314,7 @@ impl Visit for DtsVisitor {
             std::collections::hash_map::Entry::Vacant(e) => {
                 e.insert(DtsMethodDecl {
                     name: id,
+                    kind: node.kind.clone(),
                     params: params.map_or_else(Vec::new, |params| vec![params]),
                     is_public,
                     is_static: node.is_static,
@@ -324,6 +370,7 @@ impl Visit for DtsVisitor {
             None => {
                 class.constructor = Some(DtsMethodDecl {
                     name: id,
+                    kind: MethodKind::Method,
                     params: params.map_or_else(Vec::new, |params| vec![params]),
                     is_public,
                     is_static: true,

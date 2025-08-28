@@ -273,52 +273,51 @@ impl JsUserClassWrapper {
         let mut getter_setters = HashMap::new();
 
         for method in desc.methods.values() {
-            let func_name = js_string!(method.name.as_str());
+            let func_name = match method.kind {
+                MethodKind::GlobalFunction => unreachable!(),
+                MethodKind::Method => js_string!(method.name.as_str()),
+                MethodKind::Getter => js_string!(Self::getter_name(method.name.as_str())),
+                MethodKind::Setter => js_string!(Self::setter_name(method.name.as_str())),
+            };
             let func = Self::method_js_function(method, builder.context());
-            if method.kind == MethodKind::Method {
-                if method.is_static {
-                    builder.static_method(func, func_name, method.param_types.len());
-                } else {
-                    builder.method(func, func_name, method.param_types.len());
-                }
+            if method.is_static {
+                builder.static_method(func.clone(), func_name, method.param_types.len());
             } else {
-                let val = match getter_setters.entry(func_name) {
+                builder.method(func.clone(), func_name, method.param_types.len());
+            }
+
+            if method.kind == MethodKind::Getter || method.kind == MethodKind::Setter {
+                let val = match getter_setters.entry(js_string!(method.name.as_str())) {
                     std::collections::hash_map::Entry::Occupied(occupied_entry) => {
                         occupied_entry.into_mut()
                     }
                     std::collections::hash_map::Entry::Vacant(vacant_entry) => {
-                        vacant_entry.insert((None, None))
+                        vacant_entry.insert((method.is_static, None, None))
                     }
                 };
 
                 match method.kind {
                     MethodKind::Getter => {
-                        builder.method(
-                            func.clone(),
-                            js_string!(Self::getter_name(method.name.as_str())),
-                            method.param_types.len(),
-                        );
-                        val.0 = Some(func.to_js_function(builder.context().realm()))
+                        val.1 = Some(func.to_js_function(builder.context().realm()))
                     }
                     MethodKind::Setter => {
-                        builder.method(
-                            func.clone(),
-                            js_string!(Self::setter_name(method.name.as_str())),
-                            method.param_types.len(),
-                        );
-                        val.1 = Some(func.to_js_function(builder.context().realm()))
+                        val.2 = Some(func.to_js_function(builder.context().realm()))
                     }
                     _ => unreachable!(),
                 }
             }
         }
 
-        for (key, (getter, setter)) in getter_setters {
+        for (key, (is_static, getter, setter)) in getter_setters {
             let attribute = match setter.is_none() {
                 true => boa_engine::property::Attribute::READONLY,
                 false => boa_engine::property::Attribute::WRITABLE,
             };
-            builder.accessor(key, getter, setter, attribute);
+            if is_static {
+                builder.static_accessor(key, getter, setter, attribute);
+            } else {
+                builder.accessor(key, getter, setter, attribute);
+            }
         }
 
         Ok(builder.build())
