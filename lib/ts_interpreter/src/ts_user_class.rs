@@ -25,7 +25,7 @@ use crate::{
     ts_classes::TsClasses,
 };
 
-use swc_ecma_ast::{ClassDecl};
+use swc_ecma_ast::ClassDecl;
 
 #[derive(Debug)]
 pub struct TsUserClass {
@@ -87,16 +87,23 @@ impl TsUserClass {
 
     pub fn call_static_method<'a, I>(
         &self,
-        method_name: &str,
+        method_desc: &MethodDescription,
         params: I,
         engine_ctx: &mut EngineContext<'_>,
     ) -> boa_engine::JsResult<Value>
     where
         I: IntoIterator<Item = &'a Value>,
     {
-        debug_assert!(self.description.methods[method_name].is_static);
+        debug_assert!(method_desc.is_static);
 
         let js_args = args_to_js_args(params, engine_ctx)?;
+
+        let method_name = match method_desc.kind {
+            MethodKind::Method => method_desc.name.as_str(),
+            MethodKind::GlobalFunction => method_desc.name.as_str(),
+            MethodKind::Getter => &JsUserClassWrapper::getter_name(&method_desc.name),
+            MethodKind::Setter => &JsUserClassWrapper::setter_name(&method_desc.name),
+        };
 
         let result = JsUserClassWrapper::call_static_method_body(
             &self.description.class_name,

@@ -68,11 +68,7 @@ impl ExprOpcode for ClassMethodOp {
         let class = classes.get_user_class(&self.class_name).unwrap();
 
         let result = if self.desc.is_static {
-            class.call_static_method(
-                &self.desc.name,
-                args.iter().map(|x| x.val()),
-                &mut engine_ctx,
-            )
+            class.call_static_method(&self.desc, args.iter().map(|x| x.val()), &mut engine_ctx)
         } else {
             class.call_method(
                 &self.desc,

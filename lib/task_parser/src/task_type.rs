@@ -394,7 +394,7 @@ impl TaskType {
             Ok(Value::Object(new_obj))
         } else {
             class
-                .call_static_method(method_name, &args, &mut engine_ctx)
+                .call_static_method(method_desc, &args, &mut engine_ctx)
                 .map_err(|x| SnythesisTaskError::Eval(x))
         }
     }
