@@ -9,7 +9,7 @@ use std::cmp::min;
 use swc_common::DUMMY_SP;
 use swc_ecma_ast as ast;
 
-use crate::opcode::{get_end_index, get_start_index, member_call_ast, member_field_ast};
+use crate::opcode::{get_end_index, get_start_index, member_call_ast, member_expr};
 
 use super::TsExprAst;
 
@@ -106,7 +106,8 @@ impl ExprOpcode for ArrayLengthOp {
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
         debug_assert_eq!(children.len(), 1);
-        member_field_ast(&children[0], "length")
+        let member = member_expr(&children[0], "length");
+        TsExprAst::create(ast::Expr::Member(member))
     }
 
     fn arg_types(&self) -> &[ValueType] {

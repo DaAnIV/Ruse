@@ -83,14 +83,26 @@ impl Default for TsExprAst {
     }
 }
 
-fn member_field_ast(obj: &Box<dyn ExprAst>, field_name: &str) -> Box<dyn ExprAst> {
-    let field_expr = ast::MemberExpr {
+fn static_member_expr(obj_type: &str, field_name: &str) -> ast::MemberExpr {
+    let obj_ident = ast::Ident {
+        span: DUMMY_SP,
+        sym: obj_type.into(),
+        optional: false,
+        ctxt: Default::default(),
+    };
+    ast::MemberExpr {
+        span: DUMMY_SP,
+        obj: ast::Expr::Ident(obj_ident).into(),
+        prop: ast::MemberProp::Ident(ast::IdentName::from(field_name)),
+    }
+}
+
+fn member_expr(obj: &Box<dyn ExprAst>, field_name: &str) -> ast::MemberExpr {
+    ast::MemberExpr {
         span: DUMMY_SP,
         obj: TsExprAst::from(obj.as_ref()).get_paren_expr(),
         prop: ast::MemberProp::Ident(ast::IdentName::from(field_name)),
-    };
-
-    TsExprAst::create(ast::Expr::Member(field_expr))
+    }
 }
 
 fn new_obj_ast(obj_type: &str, args: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
@@ -193,11 +205,7 @@ fn static_member_call_ast(
     TsExprAst::create(ast::Expr::Call(expr))
 }
 
-
-fn function_call_ast(
-    callee_name: &str,
-    children: &[Box<dyn ExprAst>],
-) -> Box<dyn ExprAst> {
+fn function_call_ast(callee_name: &str, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
     let callee_ident = ast::Ident {
         span: DUMMY_SP,
         sym: callee_name.into(),
@@ -226,7 +234,6 @@ fn function_call_ast(
 
     TsExprAst::create(ast::Expr::Call(expr))
 }
-
 
 fn get_start_index(value: &Number, len: usize) -> Result<usize, ()> {
     let ilen = len as isize;
@@ -259,6 +266,7 @@ fn get_end_index(value: &Number, len: usize) -> Result<usize, ()> {
 }
 
 mod array_ops;
+mod assign_op;
 mod bin;
 mod dom_ops;
 mod function;
@@ -269,9 +277,9 @@ mod sequence;
 mod set_ops;
 mod string_ops;
 mod unary;
-mod assign_op;
 
 pub use array_ops::*;
+pub use assign_op::*;
 pub use bin::*;
 pub use dom_ops::*;
 pub use function::*;
@@ -282,4 +290,3 @@ pub use sequence::*;
 pub use set_ops::*;
 pub use string_ops::*;
 pub use unary::*;
-pub use assign_op::*;

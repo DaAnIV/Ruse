@@ -6,12 +6,16 @@ use ruse_synthesizer::{
     opcode::{EvalResult, ExprAst, ExprOpcode},
     pure,
 };
+use swc_common::DUMMY_SP;
+use swc_ecma_ast as ast;
+
 use tracing::trace;
 
 use crate::{
     engine_context::EngineContext,
     opcode::{
-        function_call_ast, member_call_ast, member_field_ast, new_obj_ast, static_member_call_ast,
+        function_call_ast, member_call_ast, member_expr, new_obj_ast, static_member_call_ast,
+        static_member_expr, TsExprAst,
     },
     ts_class::{MethodDescription, MethodKind},
     ts_classes::TsClasses,
@@ -101,10 +105,24 @@ impl ExprOpcode for ClassMethodOp {
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
         debug_assert_eq!(children.len(), self.arg_types.len());
-        if self.desc.kind == MethodKind::Getter {
-            member_field_ast(&children[0], &self.desc.name)
-        } else if self.desc.kind == MethodKind::Setter {
-            todo!()
+        if self.desc.kind == MethodKind::Getter || self.desc.kind == MethodKind::Setter {
+            let member = if self.desc.is_static {
+                static_member_expr(&self.class_name.as_str(), &self.desc.name)
+            } else {
+                member_expr(&children[0], &self.desc.name)
+            };
+
+            if self.desc.kind == MethodKind::Getter {
+                TsExprAst::create(ast::Expr::Member(member))
+            } else {
+                let expr = ast::AssignExpr {
+                    span: DUMMY_SP,
+                    op: ast::AssignOp::Assign,
+                    left: ast::AssignTarget::Simple(ast::SimpleAssignTarget::Member(member)),
+                    right: TsExprAst::from(children[1].as_ref()).get_paren_expr(),
+                };
+                TsExprAst::create(ast::Expr::Assign(expr))
+            }
         } else if self.desc.is_static {
             static_member_call_ast(&self.class_name.as_str(), self.desc.name.as_str(), children)
         } else {

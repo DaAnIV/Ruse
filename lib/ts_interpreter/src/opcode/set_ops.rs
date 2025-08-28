@@ -5,7 +5,9 @@ use ruse_synthesizer::location::*;
 use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};
 use ruse_synthesizer::{context::*, dirty, pure};
 
-use crate::opcode::{member_call_ast, member_field_ast};
+use crate::opcode::{member_call_ast, member_expr, TsExprAst};
+
+use swc_ecma_ast as ast;
 
 #[derive(Debug)]
 pub struct SetSizeOp {
@@ -41,7 +43,8 @@ impl ExprOpcode for SetSizeOp {
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
         debug_assert_eq!(children.len(), 1);
-        member_field_ast(&children[0], "size")
+        let member = member_expr(&children[0], "size");
+        TsExprAst::create(ast::Expr::Member(member))
     }
 
     fn arg_types(&self) -> &[ValueType] {

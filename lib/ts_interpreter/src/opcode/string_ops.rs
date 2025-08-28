@@ -7,7 +7,7 @@ use ruse_synthesizer::{context::*, pure};
 use swc_common::DUMMY_SP;
 use swc_ecma_ast as ast;
 
-use crate::opcode::{get_end_index, get_start_index, member_call_ast, member_field_ast, TsExprAst};
+use crate::opcode::{get_end_index, get_start_index, member_call_ast, member_expr, TsExprAst};
 
 #[derive(Debug)]
 pub struct StringSplitOp {
@@ -201,7 +201,8 @@ impl ExprOpcode for StringLengthOp {
     }
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
-        member_field_ast(&children[0], "length")
+        let member = member_expr(&children[0], "length");
+        TsExprAst::create(ast::Expr::Member(member))
     }
 
     fn arg_types(&self) -> &[ValueType] {
@@ -451,7 +452,12 @@ impl ExprOpcode for StringSubstringOp {
         }
     }
 
-    fn eval(&self, args: &[&LocValue], post_ctx: &mut Context, _syn_ctx: &SynthesizerContext) -> EvalResult {
+    fn eval(
+        &self,
+        args: &[&LocValue],
+        post_ctx: &mut Context,
+        _syn_ctx: &SynthesizerContext,
+    ) -> EvalResult {
         debug_assert_eq!(args.len(), self.arg_types.len());
 
         let string = args[0].val().string_value().unwrap();
@@ -486,11 +492,11 @@ impl ExprOpcode for StringSubstringOp {
 
         pure!(post_ctx.temp_value(vstr!(substring)))
     }
-    
+
     fn arg_types(&self) -> &[ValueType] {
         &self.arg_types
     }
-    
+
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
         member_call_ast("substring", children)
     }
