@@ -278,9 +278,14 @@ impl TaskType {
                         value,
                         "@ Static method args field is not an array"
                     ))?;
+                    let variant = fields.get("variant").map(|v| v.as_u64().ok_or(parse_err!(
+                        value,
+                        "@ Static method variant field is not an int"
+                    ))).unwrap_or(Ok(0))? as usize;
                     self.create_object_from_method(
                         class,
                         method_name,
+                        variant,
                         json_args,
                         graph_id,
                         classes,
@@ -349,6 +354,7 @@ impl TaskType {
         &self,
         class: &TsUserClass,
         method_name: &str,
+        variant: usize,
         json_args: &Vec<serde_json::Value>,
         graph_id: GraphIndex,
         classes: &TsClasses,
@@ -377,7 +383,15 @@ impl TaskType {
                 desc
             }
         };
-        let arg_types = method_desc.param_types[0].iter().map(Self::from);
+        if variant >= method_desc.param_types.len() {
+            return Err(verify_err!(
+                "Class {} method {} has no variant {}",
+                &class.description.class_name,
+                method_name,
+                variant
+            ));
+        }
+        let arg_types = method_desc.param_types[variant].iter().map(Self::from);
         let args = parse_json_values_array(
             json_args, arg_types, graph_id, graphs_map, id_gen, classes, None,
         )?;
