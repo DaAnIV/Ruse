@@ -24,11 +24,7 @@ impl AssignOp {
         }
     }
 
-    fn eval_assign_num(
-        &self,
-        lhs: Number,
-        rhs: Number,
-    ) -> Result<Value, ()> {
+    fn eval_assign_num(&self, lhs: Number, rhs: Number) -> Result<Value, ()> {
         let new_num = match self.op {
             ast::AssignOp::Assign => rhs,
             ast::AssignOp::AddAssign => Number::from(lhs.0 + rhs.0),
@@ -67,11 +63,7 @@ impl AssignOp {
         Ok(vnum!(new_num))
     }
 
-    fn eval_assign_str(
-        &self,
-        lhs: &str,
-        rhs: &str,
-    ) -> Result<Value, ()> {
+    fn eval_assign_str(&self, lhs: &str, rhs: &str) -> Result<Value, ()> {
         match self.op {
             ast::AssignOp::Assign => Ok(vstr!(rhs)),
             ast::AssignOp::AddAssign => {
@@ -84,11 +76,7 @@ impl AssignOp {
         }
     }
 
-    fn eval_assign_bool(
-        &self,
-        lhs: bool,
-        rhs: bool,
-    ) -> Result<Value, ()> {
+    fn eval_assign_bool(&self, lhs: bool, rhs: bool) -> Result<Value, ()> {
         let new_bool = match self.op {
             ast::AssignOp::AndAssign => lhs && rhs,
             ast::AssignOp::OrAssign => lhs || rhs,
@@ -165,7 +153,7 @@ impl ExprOpcode for AssignOp {
     }
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
-        debug_assert_eq!(children.len(), 1);
+        debug_assert_eq!(children.len(), 2);
 
         let left = ast::ParenExpr {
             expr: TsExprAst::from(children[0].as_ref()).node.to_owned(),
