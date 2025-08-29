@@ -449,7 +449,8 @@ pub mod helpers {
 #[cfg(test)]
 mod bank_iterator_tests {
     use crate::{
-        bank::{ProgramsMap, SubsumptionProgramsMap},
+        bank::ProgramsMap,
+        subsumption_bank::SubsumptionProgramsMap,
         bank_hasher::BankHasherBuilder,
         bank_iterator::bank_iterator,
         context::GraphIdGenerator,
@@ -465,7 +466,8 @@ mod bank_iterator_tests {
     use ruse_object_graph::{value::Value, vnum, Number, ValueType};
 
     use crate::{
-        bank::{ProgBank, SubsumptionProgBank},
+        bank::ProgBank,
+        subsumption_bank::SubsumptionProgBank,
         context::{ContextArray, SynthesizerContext},
         location::{LocValue, Location},
         opcode::ExprOpcode,

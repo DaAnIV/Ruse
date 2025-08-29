@@ -11,5 +11,6 @@ mod bank_iterator;
 mod value_array;
 mod prog_triplet;
 mod prog_triplet_iterator;
+pub mod subsumption_bank;
 
 pub mod test;

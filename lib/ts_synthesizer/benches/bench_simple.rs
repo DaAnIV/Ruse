@@ -1,7 +1,7 @@
 use criterion::*;
 use ruse_object_graph::*;
 use ruse_synthesizer::{
-    bank::SubsumptionProgBank,
+    subsumption_bank::SubsumptionProgBank,
     context::{Context, ContextArray, GraphIdGenerator, SynthesizerContext},
 };
 use ruse_ts_synthesizer::*;

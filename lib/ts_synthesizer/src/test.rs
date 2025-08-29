@@ -7,7 +7,7 @@ mod tests {
         self as object_graph, class_name, field_name, root_name, value::Value, vnum, vstr, GraphsMap, ValueType
     };
     use ruse_synthesizer::{
-        bank::SubsumptionProgBank,
+        subsumption_bank::SubsumptionProgBank,
         context::{Context, ContextArray, GraphIdGenerator, SynthesizerContext},
         location::Location,
     };

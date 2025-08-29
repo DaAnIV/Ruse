@@ -1,5 +1,6 @@
 use ruse_synthesizer::{
-    bank::{ProgBank, SubsumptionProgBank},
+    bank::ProgBank,
+    subsumption_bank::SubsumptionProgBank,
     bank_hasher::BankHasherBuilder,
 };
 
