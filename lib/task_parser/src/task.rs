@@ -32,7 +32,7 @@ use crate::{
     skip_err,
     task_type::{JsonValuesMap, TaskType},
     var_ref::{set_var_refs, verify_no_var_ref_circle, REF_GRAPH_ID},
-    verify_err, BankConfig,
+    verify_err,
 };
 
 fn upgrade_values_map(
@@ -438,6 +438,8 @@ impl SnythesisTaskInner {
 
 #[derive(Debug)]
 pub struct SnythesisTask {
+    pub path: PathBuf,
+    pub name: String,
     inner: SnythesisTaskInner,
     classes: Box<TsClasses>,
     pub string_literals: HashSet<String, BuildHasherDefault<DefaultHasher>>,
@@ -448,12 +450,12 @@ impl SnythesisTask {
     const DEFAULT_STRING_LITERALS: [&str; 2] = ["", " "];
     const DEFAULT_NUM_LITERALS: [i64; 2] = [0, 1];
 
-    pub fn get_synthesizer(
+    pub fn get_synthesizer<P: ProgBank + 'static>(
         self,
         mut max_context_depth: usize,
         iteration_workers_count: usize,
-        bank_config: BankConfig,
-    ) -> Result<TsSynthesizer<impl ProgBank>, SnythesisTaskError> {
+        bank: P,
+    ) -> Result<TsSynthesizer<P>, SnythesisTaskError> {
         let variables = self.inner.variables.as_ref().unwrap();
 
         let opcodes = self.get_opcodes();
@@ -468,8 +470,6 @@ impl SnythesisTask {
                 max_context_depth = 0;
             }
         }
-
-        let bank = bank_config.new_bank();
 
         let immutable_opt = self.inner.immutable;
         let syn_ctx = SynthesizerContext::from_context_array_with_data(context_array, self.classes);
@@ -593,7 +593,8 @@ impl SnythesisTask {
         let mut opcodes =
             construct_opcode_list(&var_names, &self.num_literals, &string_literals, false);
 
-        let composite_opcodes = Self::get_composite_opcodes(&self.classes, true, self.inner.options.strings);
+        let composite_opcodes =
+            Self::get_composite_opcodes(&self.classes, true, self.inner.options.strings);
 
         opcodes.extend(composite_opcodes.into_iter().filter(self.get_filter()));
 
@@ -687,6 +688,12 @@ impl SnythesisTask {
         Ok(values.into())
     }
 
+    pub fn task_name(path: &Path) -> String {
+        PathBuf::from(path.file_name().unwrap())
+            .display()
+            .to_string()
+    }
+
     pub fn from_json_file(path: &Path) -> Result<SnythesisTask, SnythesisTaskError> {
         let reader = std::fs::File::open(path).map_err(|e| SnythesisTaskError::IO(e))?;
         let mut inner: SnythesisTaskInner = match serde_json::from_reader(reader) {
@@ -770,6 +777,8 @@ impl SnythesisTask {
         }
 
         Ok(Self {
+            path: path.into(),
+            name: Self::task_name(path),
             string_literals,
             num_literals,
             classes,

@@ -1,12 +1,13 @@
 use std::{
     future::Future,
-    path::{Path, PathBuf},
+    path::Path,
     time::{Duration, Instant},
 };
 
 use byte_unit::{Byte, Unit};
 use ruse_synthesizer::bank::ProgBank;
-use ruse_task_parser::{BankConfig, SnythesisTask};
+use ruse_task_parser::bank_factory::Bank;
+use ruse_task_parser::SnythesisTask;
 use ruse_ts_synthesizer::TsSynthesizer;
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, error, info, info_span};
@@ -138,44 +139,31 @@ fn init_results(task: &SnythesisTask, results: &mut BenchmarkResult) {
     results.opcode_count = task.opcode_count();
 }
 
-pub fn run_task(path: &Path, bench_config: &BenchmarkConfig) -> BenchmarkResult {
-    let task_name = PathBuf::from(path.file_name().unwrap());
-    let mut result = BenchmarkResult::new(path);
-
-    let _span =
-        info_span!(target: "ruse::runner", "task", task_name = task_name.display().to_string())
-            .entered();
-
-    let task = match SnythesisTask::from_json_file(path) {
-        Ok(v) => v,
-        Err(e) => {
-            error!(target: "ruse::runner", "Failed to run task {}. {}", task_name.display(), e);
-            result.error(&e);
-            return result;
-        }
-    };
-
-    init_results(&task, &mut result);
+fn run_task_with_bank<P: ProgBank + 'static>(
+    task: SnythesisTask,
+    bench_config: &BenchmarkConfig,
+    result: &mut BenchmarkResult,
+    bank: P,
+) {
+    let task_name = task.name.clone();
+    let task_path = task.path.clone();
 
     let mut synthesizer = match task.get_synthesizer(
         bench_config.max_context_depth,
         bench_config.iteration_workers_count,
-        BankConfig {
-            bank_type: bench_config.bank_type.into(),
-            hash_builder: bench_config.bank_hash_builder,
-        },
+        bank,
     ) {
         Ok(v) => v,
         Err(e) => {
-            error!(target: "ruse::runner", "Failed to get synthesizer for task {}. {}", task_name.display(), e);
+            error!(target: "ruse::runner", "Failed to get synthesizer for task {}. {}", task_name, e);
             result.error(&e);
-            return result;
+            return;
         }
     };
-    info!(target: "ruse::runner", "Running {}", path.display());
+    info!(target: "ruse::runner", "Running {}", task_path.display());
     debug!(target: "ruse::runner", { 
         synthesizer.json = %synthesizer.json_display()
-    }, "Benchmark {} Synthesizer", path.display());
+    }, "Benchmark {} Synthesizer", task_path.display());
 
     let runtime = get_tokio_runtime(bench_config);
 
@@ -185,7 +173,7 @@ pub fn run_task(path: &Path, bench_config: &BenchmarkConfig) -> BenchmarkResult 
             bench_config.timeout,
             run_synthesizer(
                 &mut synthesizer,
-                &mut result,
+                result,
                 bench_config.max_iterations,
                 cancel_token.child_token(),
             ),
@@ -199,6 +187,30 @@ pub fn run_task(path: &Path, bench_config: &BenchmarkConfig) -> BenchmarkResult 
     });
 
     drop(runtime);
+}
+
+pub fn run_task(path: &Path, bench_config: &BenchmarkConfig) -> BenchmarkResult {
+    let task_name = SnythesisTask::task_name(path);
+    let mut result = BenchmarkResult::new(path);
+
+    let _span = info_span!(target: "ruse::runner", "task", task_name = task_name).entered();
+
+    let task = match SnythesisTask::from_json_file(path) {
+        Ok(v) => v,
+        Err(e) => {
+            error!(target: "ruse::runner", "Failed to run task {}. {}", task_name, e);
+            result.error(&e);
+            return result;
+        }
+    };
+
+    init_results(&task, &mut result);
+
+    match bench_config.bank_config.new_bank() {
+        Bank::SubsumptionBank(bank) => {
+            run_task_with_bank(task, bench_config, &mut result, bank);
+        }
+    }
 
     result
 }

@@ -7,6 +7,7 @@ pub mod helpers {
         sync::Arc,
     };
 
+    use itertools::Either;
     use rand::{seq::IteratorRandom, Rng};
     use ruse_object_graph::{
         field_name,
@@ -18,6 +19,7 @@ pub mod helpers {
     };
 
     use crate::{
+        bank::*,
         context::{
             Context, ContextArray, GraphIdGenerator, SynthesizerContext, ValuesMap, VariableName,
         },
@@ -444,13 +446,117 @@ pub mod helpers {
 
         tracing_subscriber::registry().with(console_layer).init();
     }
+
+    #[derive(Default, Debug, Clone)]
+    pub struct TestBankConfig {}
+    impl BankConfig for TestBankConfig {}
+
+    #[derive(Default, Debug, Clone)]
+    pub struct TestBank {
+        bank: Vec<Vec<Arc<SubProgram>>>,
+    }
+
+    pub struct TestBankBuilder {
+        batch: Vec<Arc<SubProgram>>,
+    }
+
+    impl BatchBuilder for TestBankBuilder {
+        fn add_program(&mut self, p: &Arc<SubProgram>) -> bool {
+            self.batch.push(p.clone());
+            true
+        }
+    }
+
+    impl BankIterationBuilder for TestBankBuilder {
+        type BatchBuilderType = TestBankBuilder;
+
+        fn create_batch_builder(&self) -> Self::BatchBuilderType {
+            TestBankBuilder { batch: vec![] }
+        }
+
+        fn add_batch(&mut self, batch: Self::BatchBuilderType) {
+            self.batch.extend(batch.batch);
+        }
+
+        fn iter_programs(&self) -> impl Iterator<Item = &Arc<SubProgram>> {
+            self.batch.iter()
+        }
+    }
+
+    impl ProgBank for TestBank {
+        type IterationBuilderType = TestBankBuilder;
+        type BankConfigType = TestBankConfig;
+
+        fn new_with_config(_config: Self::BankConfigType) -> Self {
+            TestBank { bank: vec![] }
+        }
+
+        fn output_exists(&self, p: &Arc<SubProgram>) -> bool {
+            self.bank.iter().any(|iteration| {
+                iteration.iter().any(|existing_program| {
+                    existing_program.out_value().eq(
+                        existing_program.post_ctx(),
+                        p.out_value(),
+                        p.post_ctx(),
+                    )
+                })
+            })
+        }
+
+        fn iteration_count(&self) -> usize {
+            self.bank.len()
+        }
+
+        fn total_number_of_programs(&self) -> usize {
+            self.bank.iter().map(|iteration| iteration.len()).sum()
+        }
+
+        fn number_of_programs(
+            &self,
+            iteration: usize,
+            output_type: &ruse_object_graph::ValueType,
+        ) -> usize {
+            if iteration >= self.bank.len() {
+                return 0;
+            }
+            self.bank[iteration]
+                .iter()
+                .filter(|p| p.out_type() == output_type)
+                .count()
+        }
+
+        fn iter_programs<'a, 'b>(
+            &'a self,
+            iteration: usize,
+            output_type: &'b ruse_object_graph::ValueType,
+        ) -> impl Iterator<Item = &'a Arc<SubProgram>> + Send + 'a {
+            let iter: Either<_, _> = if iteration >= self.bank.len() {
+                Either::Left(std::iter::empty::<&Arc<SubProgram>>())
+            } else {
+                let output_type_clone = output_type.clone();
+                Either::Right(
+                    self.bank[iteration]
+                        .iter()
+                        .filter(move |p| p.out_type() == &output_type_clone),
+                )
+            };
+            iter.into_iter()
+        }
+
+        fn create_iteration_builder(&self) -> Self::IterationBuilderType {
+            TestBankBuilder { batch: vec![] }
+        }
+
+        fn end_iteration(&mut self, iteration: Self::IterationBuilderType) {
+            self.bank.push(iteration.batch);
+        }
+    }
 }
 
 #[cfg(test)]
 mod bank_iterator_tests {
     use crate::{
-        bank::ProgramsMap,
-        subsumption_bank::SubsumptionProgramsMap,
+        bank::*,
         bank_hasher::BankHasherBuilder,
         bank_iterator::bank_iterator,
         context::GraphIdGenerator,
@@ -467,7 +573,6 @@ mod bank_iterator_tests {
 
     use crate::{
         bank::ProgBank,
-        subsumption_bank::SubsumptionProgBank,
         context::{ContextArray, SynthesizerContext},
         location::{LocValue, Location},
         opcode::ExprOpcode,
@@ -475,7 +580,7 @@ mod bank_iterator_tests {
     };
 
     async fn run_gatherer(
-        bank: &SubsumptionProgBank,
+        bank: &TestBank,
         op: &Arc<dyn ExprOpcode>,
         skip: Option<usize>,
         take: Option<usize>,
@@ -529,63 +634,29 @@ mod bank_iterator_tests {
         }
     }
 
-    fn add_iteration(bank: &mut SubsumptionProgBank, n: usize, syn_ctx: &SynthesizerContext) {
+    fn add_iteration(bank: &mut impl ProgBank, n: usize, syn_ctx: &SynthesizerContext) {
         let iteration = bank.iteration_count();
-        let mut type_map = bank.new_type_map();
+        let mut iteration_builder = bank.create_iteration_builder();
+        let mut batch_builder = iteration_builder.create_batch_builder();
         for i in 0..n {
             let value = Number::from(iteration << 32 | i);
             let p = get_prog_for_bank(vnum!(value), syn_ctx);
-            type_map.insert_program(p.clone());
+            batch_builder.add_program(&p);
         }
-        bank.insert(type_map);
-    }
-
-    fn create_programs_map(
-        prefix: u32,
-        n: u32,
-        syn_ctx: &SynthesizerContext,
-    ) -> SubsumptionProgramsMap {
-        let mut map = SubsumptionProgramsMap::new_with_hasher(Default::default());
-        for i in 0..n {
-            let full_value = (prefix as u64) << 32 | i as u64;
-            let value = Number::from(full_value);
-            let p = get_prog_for_bank(vnum!(value), syn_ctx);
-            map.insert(p);
-        }
-        map
-    }
-
-    #[test]
-    fn programs_map_ref_iterator() {
-        let _id_gen = GraphIdGenerator::default();
-        let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default());
-        let map = create_programs_map(0, 5, &syn_ctx);
-        for p in map.iter() {
-            println!("{}", p.out_value()[0].val.number_value().unwrap());
-        }
-    }
-
-    #[test]
-    fn programs_map_ref_2_iterator() {
-        let _id_gen = GraphIdGenerator::default();
-        let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default());
-        let map = create_programs_map(0, 5, &syn_ctx);
-        for (p1, p2) in map.iter().zip(map.iter()) {
-            let n1 = p1.out_value()[0].val.number_value().unwrap();
-            let n2 = p2.out_value()[0].val.number_value().unwrap();
-            println!("({}, {})", n1, n2);
-        }
+        iteration_builder.add_batch(batch_builder);
+        bank.end_iteration(iteration_builder);
     }
 
     #[test]
     fn programs_map_multi_iter() {
         let _id_gen = GraphIdGenerator::default();
         let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default());
-        let map = create_programs_map(0, 2, &syn_ctx);
-        let map_ptr = std::ptr::from_ref(&map);
-        for triplet in
-            prog_triplet_iterator(multi_programs_map_product([map_ptr, map_ptr].into_iter()))
-        {
+        let mut bank = TestBank::default();
+        add_iteration(&mut bank, 2, &syn_ctx);
+        for triplet in prog_triplet_iterator(multi_programs_map_product(
+            &bank,
+            [(0, ValueType::Number), (0, ValueType::Number)].into_iter(),
+        )) {
             println!(
                 "{:#?}",
                 triplet
@@ -601,13 +672,15 @@ mod bank_iterator_tests {
     fn programs_map_multi_iter_skip() {
         let _id_gen = GraphIdGenerator::default();
         let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default());
-        let map_1 = create_programs_map(1, 3, &syn_ctx);
-        let map_2 = create_programs_map(2, 4, &syn_ctx);
-        let map_1_ptr = std::ptr::from_ref(&map_1);
-        let map_2_ptr = std::ptr::from_ref(&map_2);
+        let mut bank = TestBank::default();
+        add_iteration(&mut bank, 3, &syn_ctx);
+        add_iteration(&mut bank, 4, &syn_ctx);
 
         for i in 0..(3 * 4) {
-            let mut children_iter = multi_programs_map_product([map_1_ptr, map_2_ptr].into_iter());
+            let mut children_iter = multi_programs_map_product(
+                &bank,
+                [(0, ValueType::Number), (1, ValueType::Number)].into_iter(),
+            );
             if i > 0 {
                 children_iter.skip(i)
             }
@@ -637,13 +710,15 @@ mod bank_iterator_tests {
     fn programs_map_multi_iter_take() {
         let _id_gen = GraphIdGenerator::default();
         let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default());
-        let map_1 = create_programs_map(1, 3, &syn_ctx);
-        let map_2 = create_programs_map(2, 4, &syn_ctx);
-        let map_1_ptr = std::ptr::from_ref(&map_1);
-        let map_2_ptr = std::ptr::from_ref(&map_2);
+        let mut bank = TestBank::default();
+        add_iteration(&mut bank, 3, &syn_ctx);
+        add_iteration(&mut bank, 4, &syn_ctx);
 
         for i in 0..(3 * 4) {
-            let mut children_iter = multi_programs_map_product([map_1_ptr, map_2_ptr].into_iter());
+            let mut children_iter = multi_programs_map_product(
+                &bank,
+                [(0, ValueType::Number), (1, ValueType::Number)].into_iter(),
+            );
             if i > 0 {
                 children_iter.take(3 * 4 - i)
             }
@@ -673,12 +748,14 @@ mod bank_iterator_tests {
     fn programs_map_multi_iter_skip_take() {
         let _id_gen = GraphIdGenerator::default();
         let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default());
-        let map_1 = create_programs_map(1, 3, &syn_ctx);
-        let map_2 = create_programs_map(2, 4, &syn_ctx);
-        let map_1_ptr = std::ptr::from_ref(&map_1);
-        let map_2_ptr = std::ptr::from_ref(&map_2);
+        let mut bank = TestBank::default();
+        add_iteration(&mut bank, 3, &syn_ctx);
+        add_iteration(&mut bank, 4, &syn_ctx);
 
-        let mut children_iter = multi_programs_map_product([map_1_ptr, map_2_ptr].into_iter());
+        let mut children_iter = multi_programs_map_product(
+            &bank,
+            [(0, ValueType::Number), (1, ValueType::Number)].into_iter(),
+        );
         children_iter.skip(5);
         children_iter.take(3);
 
@@ -706,7 +783,7 @@ mod bank_iterator_tests {
     async fn one_iteration_one_program() {
         let _id_gen = GraphIdGenerator::default();
         let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default());
-        let mut bank = SubsumptionProgBank::default();
+        let mut bank = TestBank::default();
         let bin_op: Arc<dyn ExprOpcode> = Arc::new(TestOpcode {
             arg_types: vec![ValueType::Number, ValueType::Number],
             returns: pure!(LocValue {
@@ -726,7 +803,7 @@ mod bank_iterator_tests {
     async fn two_iterations() {
         let _id_gen = GraphIdGenerator::default();
         let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default());
-        let mut bank = SubsumptionProgBank::default();
+        let mut bank = TestBank::default();
         let bin_op: Arc<dyn ExprOpcode> = Arc::new(TestOpcode {
             arg_types: vec![ValueType::Number, ValueType::Number],
             returns: pure!(LocValue {
@@ -754,7 +831,7 @@ mod bank_iterator_tests {
     async fn three_iterations_binary() {
         let _id_gen = GraphIdGenerator::default();
         let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default());
-        let mut bank = SubsumptionProgBank::default();
+        let mut bank = TestBank::default();
         let bin_op: Arc<dyn ExprOpcode> = Arc::new(TestOpcode {
             arg_types: vec![ValueType::Number, ValueType::Number],
             returns: pure!(LocValue {
@@ -783,7 +860,7 @@ mod bank_iterator_tests {
     async fn three_iterations_trinary() {
         let _id_gen = GraphIdGenerator::default();
         let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default());
-        let mut bank = SubsumptionProgBank::default();
+        let mut bank = TestBank::default();
         let tri_op: Arc<dyn ExprOpcode> = Arc::new(TestOpcode {
             arg_types: vec![ValueType::Number, ValueType::Number, ValueType::Number],
             returns: pure!(LocValue {
@@ -812,7 +889,7 @@ mod bank_iterator_tests {
     async fn three_iterations_binary_skip() {
         let _id_gen = GraphIdGenerator::default();
         let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default());
-        let mut bank = SubsumptionProgBank::default();
+        let mut bank = TestBank::default();
         let bin_op: Arc<dyn ExprOpcode> = Arc::new(TestOpcode {
             arg_types: vec![ValueType::Number, ValueType::Number],
             returns: pure!(LocValue {
@@ -845,7 +922,7 @@ mod bank_iterator_tests {
     async fn three_iterations_binary_take() {
         let _id_gen = GraphIdGenerator::default();
         let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default());
-        let mut bank = SubsumptionProgBank::default();
+        let mut bank = TestBank::default();
         let bin_op: Arc<dyn ExprOpcode> = Arc::new(TestOpcode {
             arg_types: vec![ValueType::Number, ValueType::Number],
             returns: pure!(LocValue {
@@ -877,7 +954,7 @@ mod bank_iterator_tests {
     async fn three_iterations_binary_skip_take() {
         let _id_gen = GraphIdGenerator::default();
         let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default());
-        let mut bank = SubsumptionProgBank::default();
+        let mut bank = TestBank::default();
         let bin_op: Arc<dyn ExprOpcode> = Arc::new(TestOpcode {
             arg_types: vec![ValueType::Number, ValueType::Number],
             returns: pure!(LocValue {
@@ -907,7 +984,7 @@ mod bank_iterator_tests {
     async fn three_iterations_binary_split() {
         let _id_gen = GraphIdGenerator::default();
         let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default());
-        let mut bank = SubsumptionProgBank::default();
+        let mut bank = TestBank::default();
         let bin_op: Arc<dyn ExprOpcode> = Arc::new(TestOpcode {
             arg_types: vec![ValueType::Number, ValueType::Number],
             returns: pure!(LocValue {

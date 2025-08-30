@@ -54,10 +54,6 @@ impl<P: ProgBank + 'static> TsSynthesizer<P> {
         Arc::get_mut(&mut self.inner).unwrap().set_immutable(var);
     }
 
-    pub fn print_all_programs(&self) {
-        self.inner.print_all_programs()
-    }
-
     pub fn json_display(&self) -> impl Display + '_ {
         self.inner.json_display()
     }

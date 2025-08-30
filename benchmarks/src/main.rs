@@ -1,7 +1,7 @@
 use byte_unit::Byte;
 use clap_verbosity_flag::{InfoLevel, Verbosity};
 use itertools::Itertools;
-use ruse_synthesizer::{bank_hasher::BankHasherBuilder, opcode::sort_opcodes};
+use ruse_synthesizer::opcode::sort_opcodes;
 use ruse_task_parser::SnythesisTask;
 use ruse_ts_interpreter::ts_classes::TsClassesBuilder;
 use serde_json::ser::Formatter;
@@ -12,7 +12,6 @@ use std::{
     panic::PanicHookInfo,
     path::PathBuf,
     process::ExitCode,
-    str::FromStr,
     time::Duration,
 };
 use tracing::{error, info, level_filters::LevelFilter};
@@ -21,7 +20,7 @@ use tracing_subscriber::{filter::Targets, prelude::*};
 
 mod results;
 use clap::Parser;
-use config::{BankType, BenchmarkConfig};
+use config::BenchmarkConfig;
 use results::ResultsWriter;
 
 mod config;
@@ -29,6 +28,8 @@ mod runner;
 
 #[cfg(not(target_env = "msvc"))]
 use jemallocator::Jemalloc;
+
+use crate::config::{BankArgs, BankTypeArg};
 
 #[cfg(not(target_env = "msvc"))]
 #[global_allocator]
@@ -63,32 +64,6 @@ enum RuseCommands {
     PrintOpcodes(PrintOpcodesArgs),
 }
 
-#[derive(Clone, Copy, Debug)]
-struct BankKeys(u64, u64);
-
-impl FromStr for BankKeys {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut parts = s.split(',');
-
-        let first = parts.next().unwrap().to_owned();
-        let second = parts.next().map(|x| x.to_owned());
-        if parts.next().is_some() {
-            return Err(anyhow::Error::msg("Value contains more then two ','"));
-        }
-
-        let k0: u64 = first.parse()?;
-        let k1: u64 = if let Some(next) = second {
-            next.parse()?
-        } else {
-            0
-        };
-
-        Ok(Self(k0, k1))
-    }
-}
-
 #[derive(clap::Args, Debug)]
 struct RunArgs {
     /// An .sy benchmark file or directory containing benchmark files
@@ -116,9 +91,6 @@ struct RunArgs {
     #[arg(long, default_value_t = 16)]
     workers_count: usize,
 
-    #[arg(long, default_value_t = BankType::SubsumptionBank)]
-    bank_type: BankType,
-
     #[arg(long, default_value_t = false)]
     print_all_programs: bool,
 
@@ -139,8 +111,11 @@ struct RunArgs {
     #[arg(long, default_value_t = false)]
     pretty: bool,
 
-    #[arg(long, value_parser = clap::value_parser!(BankKeys))]
-    bank_keys: Option<BankKeys>,
+    #[arg(long, value_enum, default_value_t = BankTypeArg::SubsumptionBank)]
+    bank_type: BankTypeArg,
+
+    #[arg(long, action = clap::ArgAction::Append, allow_hyphen_values = true)]
+    bank_arg: Vec<String>,
 }
 
 #[derive(clap::Args, Debug)]
@@ -264,10 +239,7 @@ fn run_all_benchmarks<F>(
 }
 
 fn construct_config(cli: &RunArgs) -> BenchmarkConfig {
-    let bank_hash_builder = match cli.bank_keys {
-        Some(keys) => BankHasherBuilder::new_with_keys(keys.0, keys.1),
-        None => BankHasherBuilder::new_with_random_keys(),
-    };
+    let bank_args = BankArgs::parse_by_bank_type(cli.bank_type, &cli.bank_arg);
 
     BenchmarkConfig {
         timeout: Duration::from_secs(cli.timeout),
@@ -277,8 +249,7 @@ fn construct_config(cli: &RunArgs) -> BenchmarkConfig {
         iteration_workers_count: cli.workers_count,
         benchmarks: cli.benchmarks.clone(),
         max_task_mem: Byte::parse_str(&cli.max_task_mem, true).unwrap(),
-        bank_type: cli.bank_type,
-        bank_hash_builder,
+        bank_config: bank_args.into(),
     }
 }
 
@@ -295,7 +266,7 @@ fn run_benchmarks(cli: &RunArgs) -> ExitCode {
     info!(target: "ruse::runner", "Max iterations: {}", bench_config.max_iterations);
     info!(target: "ruse::runner", "Max context depth: {}", bench_config.max_context_depth);
     info!(target: "ruse::runner", "Workers count: {}", bench_config.iteration_workers_count);
-    info!(target: "ruse::runner", "Bank hash keys: {}", bench_config.bank_hash_builder);
+    info!(target: "ruse::runner", "Bank config {}", bench_config.bank_config);
 
     if cli.tokio_console {
         console_subscriber::init();

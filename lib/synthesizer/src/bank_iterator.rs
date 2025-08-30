@@ -12,28 +12,28 @@ use crate::{
     multi_programs_map_product::{multi_programs_map_end, multi_programs_map_product},
 };
 
-pub struct BankIterator<'a, P: ProgBank> {
-    inner: State<BankIteratorInner<'a, P>>,
+pub struct BankIterator<'a, B: ProgBank> {
+    inner: State<BankIteratorInner<'a, B>>,
     remaining: usize,
 }
 
 /// Internals for `MultiProduct`.
-struct BankIteratorInner<'a, P: ProgBank> {
-    bank: &'a P,
+struct BankIteratorInner<'a, B: ProgBank> {
+    bank: &'a B,
     arg_types: &'a [ValueType],
 
     cutoff: usize,
     iterations_iter: MultiProduct<RangeInclusive<usize>>,
 
     /// Holds the iterators.
-    iter: MultiProgramsMaps<'a, P::T>,
+    iter: MultiProgramsMaps<'a, B>,
 
     total_size: usize,
 }
 
-impl<'a, P: ProgBank> BankIteratorInner<'a, P> {
+impl<'a, B: ProgBank> BankIteratorInner<'a, B> {
     fn get_iterations_iter(
-        bank: &'a P,
+        bank: &'a B,
         arg_types: &'a [ValueType],
         cutoff: usize,
     ) -> MultiProduct<RangeInclusive<usize>> {
@@ -47,7 +47,7 @@ impl<'a, P: ProgBank> BankIteratorInner<'a, P> {
             .multi_cartesian_product()
     }
 
-    fn calculate_size(bank: &'a P, arg_types: &'a [ValueType]) -> usize {
+    fn calculate_size(bank: &'a B, arg_types: &'a [ValueType]) -> usize {
         let mut size = 0;
 
         let n = if bank.iteration_count() == 1 {
@@ -86,22 +86,19 @@ impl<'a, P: ProgBank> BankIteratorInner<'a, P> {
     fn set_programs_iter(&mut self, iterations: &[usize]) -> bool {
         if (0..self.arg_types.len()).any(|i| {
             self.bank
-                .iteration(iterations[i])
-                .get(&self.arg_types[i])
-                .is_none()
+                .number_of_programs(iterations[i], &self.arg_types[i])
+                == 0
         }) {
             return false;
         }
-        let program_maps = (0..self.arg_types.len()).map(|i| {
-            let map_ref = self
-                .bank
-                .iteration(iterations[i])
-                .get(&self.arg_types[i])
-                .unwrap();
-            std::ptr::from_ref(map_ref)
-        });
 
-        self.iter = multi_programs_map_product(program_maps);
+        self.iter = multi_programs_map_product(
+            self.bank,
+            iterations
+                .iter()
+                .zip(self.arg_types.iter())
+                .map(|(iteration, output_type)| (*iteration, output_type.clone())),
+        );
         true
     }
 

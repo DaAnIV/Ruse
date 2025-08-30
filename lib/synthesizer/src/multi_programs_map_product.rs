@@ -5,15 +5,15 @@ use std::sync::Arc;
 use itertools::Itertools;
 use Option::{self as State, None as ProductEnded, Some as ProductInProgress};
 use Option::{self as CurrentItems, None as NotYetPopulated, Some as Populated};
+use ruse_object_graph::ValueType;
 
-use crate::bank::ProgramsMap;
+use crate::bank::ProgBank;
 use crate::prog::SubProgram;
 
-type ProgramsMapRef<'a, T> = &'a T;
 type ProgramsMapIter<'a> = Box<dyn Iterator<Item = &'a Arc<SubProgram>> + Send + 'a>;
 
-pub struct MultiProgramsMaps<'a, T: ProgramsMap> {
-    inner: State<MultiProgramsMapsInner<'a, T>>,
+pub struct MultiProgramsMaps<'a, B: ProgBank> {
+    inner: State<MultiProgramsMapsInner<'a, B>>,
     remaining: usize,
 }
 
@@ -26,9 +26,10 @@ pub trait ProgramChildrenIterator {
 }
 
 /// Internals for `MultiProduct`.
-struct MultiProgramsMapsInner<'a, T: ProgramsMap> {
+struct MultiProgramsMapsInner<'a, B: ProgBank> {
+    bank: &'a B,
     /// Holds the iterators.
-    iters: Vec<MultiProgramsMapsIter<'a, T>>,
+    iters: Vec<MultiProgramsMapsIter<'a>>,
     /// Not populated at the beginning then it holds the current item of each iterator.
     cur: CurrentItems<Cell<Vec<Arc<SubProgram>>>>,
 
@@ -36,21 +37,32 @@ struct MultiProgramsMapsInner<'a, T: ProgramsMap> {
 }
 
 /// Holds the state of a single iterator within a `MultiProduct`.
-struct MultiProgramsMapsIter<'a, T: ProgramsMap> {
+struct MultiProgramsMapsIter<'a> {
+    iteration: usize,
+    output_type: ValueType,
+    number_of_programs: usize,
     iter: ProgramsMapIter<'a>,
-    map_ref: ProgramsMapRef<'a, T>,
     i: usize,
     restart: bool,
 }
 
-impl<'a, T: ProgramsMap> MultiProgramsMapsIter<'a, T> {
-    fn new(map_ref: ProgramsMapRef<'a, T>) -> Self {
+impl<'a> MultiProgramsMapsIter<'a> {
+    fn new<B: ProgBank>(bank: &'a B, iteration: usize, output_type: ValueType) -> Self {
+        let iter = Box::new(bank.iter_programs(iteration, &output_type));
+        let number_of_programs = bank.number_of_programs(iteration, &output_type);
         Self {
-            iter: Box::new(map_ref.iter()),
-            map_ref,
+            iteration,
+            output_type,
+            number_of_programs,
+            iter,
             i: 0,
             restart: false,
         }
+    }
+
+    fn reset_iter<B: ProgBank>(&mut self, bank: &'a B) {
+        self.iter = Box::new(bank.iter_programs(self.iteration, &self.output_type));
+        self.restart = false;
     }
 }
 
@@ -58,20 +70,22 @@ impl<'a, T: ProgramsMap> MultiProgramsMapsIter<'a, T> {
 /// of iterators of the same type.
 ///
 /// Iterator element is of type `Vec<H::Item::Item>`.
-pub fn multi_programs_map_product<'a, T: ProgramsMap, I>(maps: I) -> MultiProgramsMaps<'a, T>
+pub fn multi_programs_map_product<'a, I, B>(bank: &'a B, maps: I) -> MultiProgramsMaps<'a, B>
 where
-    I: Iterator<Item = *const T>,
+    B: ProgBank,
+    I: Iterator<Item = (usize, ValueType)>,
 {
     let mut total_size = 1;
     let iters = maps
-        .map(|i| {
-            let map_ref = unsafe { &*i };
-            total_size *= map_ref.len();
-            MultiProgramsMapsIter::new(map_ref)
+        .map(|(iteration, output_type)| {
+            let iter = MultiProgramsMapsIter::new(bank, iteration, output_type);
+            total_size *= iter.number_of_programs;
+            iter
         })
         .collect();
 
     let inner = MultiProgramsMapsInner {
+        bank,
         iters,
         cur: NotYetPopulated,
         total_size,
@@ -82,16 +96,16 @@ where
     }
 }
 
-pub fn multi_programs_map_end<'a, T: ProgramsMap>(
+pub fn multi_programs_map_end<'a, B: ProgBank>(
     _marker: PhantomData<&'a bool>,
-) -> MultiProgramsMaps<'a, T> {
+) -> MultiProgramsMaps<'a, B> {
     MultiProgramsMaps {
         remaining: 0,
         inner: ProductEnded,
     }
 }
 
-impl<'a, T: ProgramsMap> MultiProgramsMapsInner<'a, T> {
+impl<'a, B: ProgBank> MultiProgramsMapsInner<'a, B> {
     fn advance_progs(&mut self) -> Option<usize> {
         match &mut self.cur {
             Populated(cur_progs) => {
@@ -107,9 +121,8 @@ impl<'a, T: ProgramsMap> MultiProgramsMapsInner<'a, T> {
                         }
                     }
 
-                    iter.iter = Box::new(iter.map_ref.iter());
+                    iter.reset_iter(self.bank);
                     iter.i = 0;
-                    iter.restart = false;
                     cur_progs.get_mut()[i] = (*iter.iter.next().unwrap()).clone();
                 }
                 None
@@ -154,18 +167,17 @@ impl<'a, T: ProgramsMap> MultiProgramsMapsInner<'a, T> {
             // Can unsafe unwrap because of the assert!(n < (self.total_size - self.i))
             let (i, iter) = rev_iterators.next().unwrap();
 
-            let remainder = remaining % iter.map_ref.len();
-            remaining /= iter.map_ref.len();
+            let remainder = remaining % iter.number_of_programs;
+            remaining /= iter.number_of_programs;
 
             if remainder == 0 {
                 continue;
             }
-            if iter.i + remainder > iter.map_ref.len() {
-                let cur_iter_n = iter.i + remainder - iter.map_ref.len();
+            if iter.i + remainder > iter.number_of_programs {
+                let cur_iter_n = iter.i + remainder - iter.number_of_programs;
                 remaining += 1;
-                iter.iter = Box::new(iter.map_ref.iter());
+                iter.reset_iter(self.bank);
                 iter.i = cur_iter_n;
-                iter.restart = false;
                 cur_progs.get_mut()[i] = (*iter.iter.nth(cur_iter_n).unwrap()).clone();
             } else {
                 iter.i = remainder;
@@ -175,7 +187,7 @@ impl<'a, T: ProgramsMap> MultiProgramsMapsInner<'a, T> {
     }
 }
 
-impl<'a, T: ProgramsMap> ProgramChildrenIterator for MultiProgramsMaps<'a, T> {
+impl<'a, B: ProgBank> ProgramChildrenIterator for MultiProgramsMaps<'a, B> {
     fn next(&mut self) -> Option<(usize, *const Vec<Arc<SubProgram>>)> {
         if self.remaining == 0 {
             self.inner = ProductEnded;

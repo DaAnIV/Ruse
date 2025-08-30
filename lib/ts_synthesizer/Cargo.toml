@@ -17,6 +17,7 @@ tokio-util.workspace = true
 [dev-dependencies]
 criterion.workspace = true
 tokio.workspace = true
+ruse_prog_bank_in_mem.workspace = true
 
 [[bench]]
 name = "benches"

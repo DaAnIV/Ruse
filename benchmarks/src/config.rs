@@ -1,30 +1,52 @@
-use core::fmt;
 use std::{path::PathBuf, time::Duration};
 
 use byte_unit::Byte;
-use ruse_synthesizer::bank_hasher::BankHasherBuilder;
+use clap::Parser;
+use ruse_prog_bank_in_mem::args::SubsumptionBankArgs;
+use ruse_task_parser::BankConfig;
 use serde_with::{serde_as, DurationSeconds};
 
 #[derive(
     Copy, Clone, serde::Deserialize, serde::Serialize, Debug, clap::ValueEnum, PartialEq, Eq,
 )]
 #[serde(rename_all = "kebab-case")]
-pub enum BankType {
+pub enum BankTypeArg {
     SubsumptionBank,
 }
 
-impl fmt::Display for BankType {
+impl Default for BankTypeArg {
+    fn default() -> Self {
+        BankTypeArg::SubsumptionBank
+    }
+}
+
+impl std::fmt::Display for BankTypeArg {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            BankType::SubsumptionBank => write!(f, "subsumption-bank"),
+            BankTypeArg::SubsumptionBank => write!(f, "subsumption-bank"),
         }
     }
 }
 
-impl Into<ruse_task_parser::BankType> for BankType {
-    fn into(self) -> ruse_task_parser::BankType {
+#[derive(Clone, Debug)]
+pub enum BankArgs {
+    SubsumptionBankArgs(SubsumptionBankArgs),
+}
+
+impl BankArgs {
+    pub fn parse_by_bank_type(bank_type: BankTypeArg, bank_args: &[String]) -> Self {
+        match bank_type {
+            BankTypeArg::SubsumptionBank => {
+                BankArgs::SubsumptionBankArgs(SubsumptionBankArgs::parse_from(bank_args.iter()))
+            }
+        }
+    }
+}
+
+impl Into<BankConfig> for BankArgs {
+    fn into(self) -> BankConfig {
         match self {
-            BankType::SubsumptionBank => ruse_task_parser::BankType::SubsumptionBank,
+            BankArgs::SubsumptionBankArgs(args) => BankConfig::SubsumptionBank(args.into()),
         }
     }
 }
@@ -40,6 +62,5 @@ pub struct BenchmarkConfig {
     pub iteration_workers_count: usize,
     pub benchmarks: Vec<PathBuf>,
     pub max_task_mem: Byte,
-    pub bank_type: BankType,
-    pub bank_hash_builder: BankHasherBuilder,
+    pub bank_config: BankConfig,
 }

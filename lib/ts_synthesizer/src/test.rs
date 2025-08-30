@@ -4,10 +4,11 @@ mod tests {
 
     use object_graph::{str_cached, Number};
     use ruse_object_graph::{
-        self as object_graph, class_name, field_name, root_name, value::Value, vnum, vstr, GraphsMap, ValueType
+        self as object_graph, class_name, field_name, root_name, value::Value, vnum, vstr,
+        GraphsMap, ValueType,
     };
+    use ruse_prog_bank_in_mem::subsumption_bank::SubsumptionProgBank;
     use ruse_synthesizer::{
-        subsumption_bank::SubsumptionProgBank,
         context::{Context, ContextArray, GraphIdGenerator, SynthesizerContext},
         location::Location,
     };
@@ -29,7 +30,7 @@ mod tests {
         let mut graphs_map1 = GraphsMap::default();
         let mut graphs_map2 = GraphsMap::default();
         let mut builder = TsClassesBuilder::new();
-    
+
         builder.add_classes(code).expect("Failed to add User class");
         let classes = builder.finalize();
 

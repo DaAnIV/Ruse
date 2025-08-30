@@ -947,7 +947,7 @@ impl ContextArray {
         self.inner.iter_mut()
     }
 
-    pub(crate) fn subset(&self, other: &ContextArray) -> bool {
+    pub fn subset(&self, other: &ContextArray) -> bool {
         self.inner
             .iter()
             .zip_eq(other.inner.iter())
