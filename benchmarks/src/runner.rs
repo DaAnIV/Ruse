@@ -139,7 +139,7 @@ fn init_results(task: &SnythesisTask, results: &mut BenchmarkResult) {
     results.opcode_count = task.opcode_count();
 }
 
-fn run_task_with_bank<P: ProgBank + 'static>(
+async fn run_task_with_bank<P: ProgBank + 'static>(
     task: SnythesisTask,
     bench_config: &BenchmarkConfig,
     result: &mut BenchmarkResult,
@@ -165,33 +165,26 @@ fn run_task_with_bank<P: ProgBank + 'static>(
         synthesizer.json = %synthesizer.json_display()
     }, "Benchmark {} Synthesizer", task_path.display());
 
-    let runtime = get_tokio_runtime(bench_config);
-
-    runtime.block_on(async {
-        let cancel_token = synthesizer.get_cancel_token();
-        let timeout = tokio::time::timeout(
-            bench_config.timeout,
-            run_synthesizer(
-                &mut synthesizer,
-                result,
-                bench_config.max_iterations,
-                cancel_token.child_token(),
-            ),
-        );
-        if let Err(e) = watch_for_error(timeout, bench_config).await {
-            cancel_token.cancel();
-            result.error(&e);
-            result.add_iteration(Duration::from_secs(0), synthesizer.statistics());
-            result.finish(None, bench_config.timeout, synthesizer.statistics());
-        }
-    });
-
-    drop(runtime);
+    let cancel_token = synthesizer.get_cancel_token();
+    let timeout = tokio::time::timeout(
+        bench_config.timeout,
+        run_synthesizer(
+            &mut synthesizer,
+            result,
+            bench_config.max_iterations,
+            cancel_token.child_token(),
+        ),
+    );
+    if let Err(e) = watch_for_error(timeout, bench_config).await {
+        cancel_token.cancel();
+        result.error(&e);
+        result.add_iteration(Duration::from_secs(0), synthesizer.statistics());
+        result.finish(None, bench_config.timeout, synthesizer.statistics());
+    }
 }
 
-pub fn run_task(path: &Path, bench_config: &BenchmarkConfig) -> BenchmarkResult {
+async fn run_task_async(path: &Path, bench_config: &BenchmarkConfig, result: &mut BenchmarkResult) {
     let task_name = SnythesisTask::task_name(path);
-    let mut result = BenchmarkResult::new(path);
 
     let _span = info_span!(target: "ruse::runner", "task", task_name = task_name).entered();
 
@@ -200,17 +193,29 @@ pub fn run_task(path: &Path, bench_config: &BenchmarkConfig) -> BenchmarkResult 
         Err(e) => {
             error!(target: "ruse::runner", "Failed to run task {}. {}", task_name, e);
             result.error(&e);
-            return result;
+            return;
         }
     };
 
-    init_results(&task, &mut result);
+    init_results(&task, result);
 
     match bench_config.bank_config.new_bank() {
         Bank::SubsumptionBank(bank) => {
-            run_task_with_bank(task, bench_config, &mut result, bank);
+            run_task_with_bank(task, bench_config, result, bank).await;
         }
     }
+}
+
+pub fn run_task(path: &Path, bench_config: &BenchmarkConfig) -> BenchmarkResult {
+    let runtime = get_tokio_runtime(bench_config);
+
+    let mut result = BenchmarkResult::new(path);
+
+    runtime.block_on(async {
+        tokio::task::block_in_place(|| run_task_async(path, bench_config, &mut result)).await
+    });
+
+    drop(runtime);
 
     result
 }
