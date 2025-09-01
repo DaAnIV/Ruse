@@ -428,10 +428,10 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
             let self_clone = self.clone();
             workers.spawn(
                 panic::AssertUnwindSafe(async move {
-                    let found = Self::composite_iteration_worker(self_clone, &mut batch_builder, i).in_current_span().await;
+                    let found = Self::composite_iteration_worker(self_clone, &mut batch_builder, i).await;
                     (batch_builder, found)
                 })
-                    .catch_unwind(),
+                    .catch_unwind().in_current_span(),
             );
         }
 
