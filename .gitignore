@@ -13,3 +13,4 @@ benchmarks_output/
 __pycache__
 results/
 failed/
+node_modules
