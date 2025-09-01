@@ -2,10 +2,9 @@ use std::sync::Arc;
 
 use itertools::Itertools;
 use ruse_object_graph::{
-    class_name,
-    mermaid::{self, MermaidConfig, SubgraphConfig},
-    field_name,
+    class_name, field_name,
     graph_map_value::GraphMapWrap,
+    mermaid::{self, MermaidConfig, SubgraphConfig},
     root_name,
     value::{ObjectValue, Value},
     vnull, vnum, ClassName, GraphsMap, Number,
