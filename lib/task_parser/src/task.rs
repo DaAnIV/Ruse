@@ -195,6 +195,10 @@ fn default_pure() -> bool {
     false
 }
 
+fn default_expression() -> bool {
+    false
+}
+
 fn default_version() -> u32 {
     1
 }
@@ -205,6 +209,8 @@ struct SnythesisTaskOptions {
     strings: bool,
     #[serde(default = "default_pure")]
     pure: bool,
+    #[serde(default = "default_expression")]
+    expression: bool,
 }
 
 impl Default for SnythesisTaskOptions {
@@ -212,6 +218,7 @@ impl Default for SnythesisTaskOptions {
         Self {
             strings: default_strings(),
             pure: default_pure(),
+            expression: default_expression(),
         }
     }
 }
@@ -594,7 +601,7 @@ impl SnythesisTask {
             construct_opcode_list(&var_names, &self.num_literals, &string_literals, false);
 
         let composite_opcodes =
-            Self::get_composite_opcodes(&self.classes, true, self.inner.options.strings);
+            Self::get_composite_opcodes(&self.classes, !self.inner.options.expression, self.inner.options.strings);
 
         opcodes.extend(composite_opcodes.into_iter().filter(self.get_filter()));
 
