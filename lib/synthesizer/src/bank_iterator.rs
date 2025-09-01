@@ -47,20 +47,21 @@ impl<'a, B: ProgBank> BankIteratorInner<'a, B> {
             .multi_cartesian_product()
     }
 
-    fn calculate_size(bank: &'a B, arg_types: &'a [ValueType]) -> usize {
-        let mut size = 0;
-
+    async fn calculate_size(bank: &'a B, arg_types: &'a [ValueType]) -> usize {
         let n = if bank.iteration_count() == 1 {
             1
         } else {
             arg_types.len()
         };
 
+        let mut size: usize = 0;
         for i in 0..n {
             for iterations in Self::get_iterations_iter(bank, arg_types, i) {
-                size += iterations.into_iter().enumerate().fold(1, |acc, (i, x)| {
-                    acc * bank.number_of_programs(x, &arg_types[i])
-                });
+                let mut acc = 1;
+                for i in 0..iterations.len() {
+                    acc *= bank.number_of_programs(iterations[i], &arg_types[i]).await;
+                }
+                size += acc;
             }
         }
 
@@ -69,7 +70,7 @@ impl<'a, B: ProgBank> BankIteratorInner<'a, B> {
 }
 
 impl<'a, P: ProgBank> BankIteratorInner<'a, P> {
-    fn new(bank: &'a P, arg_types: &'a [ValueType]) -> Self {
+    async fn new(bank: &'a P, arg_types: &'a [ValueType]) -> Self {
         Self {
             bank,
             arg_types,
@@ -79,17 +80,20 @@ impl<'a, P: ProgBank> BankIteratorInner<'a, P> {
 
             iter: multi_programs_map_end(PhantomData),
 
-            total_size: BankIteratorInner::calculate_size(bank, arg_types),
+            total_size: BankIteratorInner::calculate_size(bank, arg_types).await,
         }
     }
 
-    fn set_programs_iter(&mut self, iterations: &[usize]) -> bool {
-        if (0..self.arg_types.len()).any(|i| {
-            self.bank
+    async fn set_programs_iter(&mut self, iterations: &[usize]) -> bool {
+        for i in 0..self.arg_types.len() {
+            let num = self
+                .bank
                 .number_of_programs(iterations[i], &self.arg_types[i])
-                == 0
-        }) {
-            return false;
+                .await;
+
+            if num == 0 {
+                return false;
+            }
         }
 
         self.iter = multi_programs_map_product(
@@ -98,7 +102,7 @@ impl<'a, P: ProgBank> BankIteratorInner<'a, P> {
                 .iter()
                 .zip(self.arg_types.iter())
                 .map(|(iteration, output_type)| (*iteration, output_type.clone())),
-        );
+        ).await;
         true
     }
 
@@ -113,10 +117,10 @@ impl<'a, P: ProgBank> BankIteratorInner<'a, P> {
         true
     }
 
-    fn get_next_programs_iter(&mut self) -> bool {
+    async fn get_next_programs_iter(&mut self) -> bool {
         loop {
             while let Some(iterations) = self.iterations_iter.next() {
-                if self.set_programs_iter(&iterations) {
+                if self.set_programs_iter(&iterations).await {
                     return true;
                 }
             }
@@ -129,25 +133,25 @@ impl<'a, P: ProgBank> BankIteratorInner<'a, P> {
         false
     }
 
-    fn skip(&mut self, n: usize) {
+    async fn skip(&mut self, n: usize) {
         let mut remaining_to_skip = n;
         while remaining_to_skip > 0 {
             if remaining_to_skip > self.iter.remaining() {
                 remaining_to_skip -= self.iter.remaining();
-                self.get_next_programs_iter();
+                self.get_next_programs_iter().await;
             } else {
-                self.iter.skip(remaining_to_skip);
+                self.iter.skip(remaining_to_skip).await;
                 break;
             }
         }
     }
 }
 
-pub fn bank_iterator<'a, P: ProgBank>(
+pub async fn bank_iterator<'a, P: ProgBank>(
     bank: &'a P,
     arg_types: &'a [ValueType],
 ) -> BankIterator<'a, P> {
-    let inner = BankIteratorInner::new(bank, arg_types);
+    let inner = BankIteratorInner::new(bank, arg_types).await;
     BankIterator {
         remaining: inner.total_size,
         inner: ProductInProgress(inner),
@@ -155,18 +159,18 @@ pub fn bank_iterator<'a, P: ProgBank>(
 }
 
 impl<'a, P: ProgBank> ProgramChildrenIterator for BankIterator<'a, P> {
-    fn next(&mut self) -> Option<(usize, *const Vec<Arc<SubProgram>>)> {
+    async fn next(&mut self) -> Option<(usize, *const Vec<Arc<SubProgram>>)> {
         if self.remaining == 0 {
             self.inner = ProductEnded;
         }
         let inner = self.inner.as_mut()?;
         loop {
-            if let Some(children) = inner.iter.next() {
+            if let Some(children) = inner.iter.next().await {
                 self.remaining -= 1;
                 return Some(children);
             }
 
-            if !inner.get_next_programs_iter() {
+            if !inner.get_next_programs_iter().await {
                 break;
             }
         }
@@ -192,7 +196,7 @@ impl<'a, P: ProgBank> ProgramChildrenIterator for BankIterator<'a, P> {
         self.remaining
     }
 
-    fn skip(&mut self, n: usize) {
+    async fn skip(&mut self, n: usize) {
         if n >= self.remaining {
             self.inner = ProductEnded;
             return;
@@ -202,7 +206,7 @@ impl<'a, P: ProgBank> ProgramChildrenIterator for BankIterator<'a, P> {
             ProductInProgress(inner) => inner,
             ProductEnded => return,
         };
-        inner.skip(n);
+        inner.skip(n).await;
         self.remaining -= n;
     }
 }

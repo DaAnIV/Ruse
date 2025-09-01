@@ -199,7 +199,7 @@ async fn run_task_async(path: &Path, bench_config: &BenchmarkConfig, result: &mu
 
     init_results(&task, result);
 
-    match bench_config.bank_config.new_bank() {
+    match bench_config.bank_config.new_bank().await {
         Bank::SubsumptionBank(bank) => {
             run_task_with_bank(task, bench_config, result, bank).await;
         }

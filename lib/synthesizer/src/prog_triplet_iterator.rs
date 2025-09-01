@@ -102,14 +102,12 @@ where
     }
 }
 
-impl<I> Iterator for ProgTripletIterator<I>
+impl<I> ProgTripletIterator<I>
 where
     I: ProgramChildrenIterator,
 {
-    type Item = ProgTriplet;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        while let Some((i, cur_progs_ptr)) = self.children_iterator.next() {
+    pub async fn next(&mut self) -> Option<ProgTriplet> {
+        while let Some((i, cur_progs_ptr)) = self.children_iterator.next().await {
             let cur_progs = unsafe { cur_progs_ptr.as_ref().unwrap_unchecked() };
             if let Some((pre_ctx, post_ctx)) = self.get_ctxs(cur_progs, i) {
                 return Some(ProgTriplet::new(

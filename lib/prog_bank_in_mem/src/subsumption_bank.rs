@@ -212,7 +212,7 @@ impl SubsumptionTypeMap {
 }
 
 impl BatchBuilder for SubsumptionTypeMap {
-    fn add_program(&mut self, p: &Arc<SubProgram>) -> bool {
+    async fn add_program(&mut self, p: &Arc<SubProgram>) -> bool {
         self.insert_program(p.clone())
     }
 }
@@ -224,7 +224,7 @@ impl BankIterationBuilder for SubsumptionTypeMap {
         SubsumptionTypeMap::new_with_hasher(self.hash_builder)
     }
 
-    fn add_batch(&mut self, batch: Self::BatchBuilderType) {
+    async fn add_batch(&mut self, batch: Self::BatchBuilderType) {
         for (value_type, programs_map) in batch.maps.into_iter() {
             if let Some(cur_map) = self.maps.get_mut(&value_type) {
                 cur_map.take_minimal_prog(programs_map);
@@ -234,7 +234,7 @@ impl BankIterationBuilder for SubsumptionTypeMap {
         }
     }
 
-    fn iter_programs(&self) -> impl Iterator<Item = &Arc<SubProgram>> {
+    async fn iter_programs(&self) -> impl Iterator<Item = &Arc<SubProgram>> {
         self.iter().flat_map(|(_, map)| map.iter())
     }
 }
@@ -249,14 +249,14 @@ impl ProgBank for SubsumptionProgBank {
     type IterationBuilderType = SubsumptionTypeMap;
     type BankConfigType = SubsumptionBankConfig;
 
-    fn new_with_config(config: Self::BankConfigType) -> Self {
+    async fn new_with_config(config: Self::BankConfigType) -> Self {
         Self {
             hash_builder: config.hash_builder,
             iterations: Vec::new(),
         }
     }
 
-    fn output_exists(&self, p: &Arc<SubProgram>) -> bool {
+    async fn output_exists(&self, p: &Arc<SubProgram>) -> bool {
         self.iterations.iter().any(|i| i.contains(p))
     }
 
@@ -268,7 +268,7 @@ impl ProgBank for SubsumptionProgBank {
         self.iterations.iter().map(|i| i.len()).sum()
     }
 
-    fn number_of_programs(
+    async fn number_of_programs(
         &self,
         iteration: usize,
         output_type: &ruse_object_graph::ValueType,
@@ -279,7 +279,7 @@ impl ProgBank for SubsumptionProgBank {
         }
     }
 
-    fn iter_programs<'a, 'b>(
+    async fn iter_programs<'a, 'b>(
         &'a self,
         iteration: usize,
         output_type: &'b ruse_object_graph::ValueType,
@@ -300,7 +300,7 @@ impl ProgBank for SubsumptionProgBank {
         SubsumptionTypeMap::new_with_hasher(self.hash_builder)
     }
 
-    fn end_iteration(&mut self, iteration: Self::IterationBuilderType) {
+    async fn end_iteration(&mut self, iteration: Self::IterationBuilderType) {
         self.iterations.push(iteration);
     }
 }

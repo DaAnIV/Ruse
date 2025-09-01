@@ -461,7 +461,7 @@ pub mod helpers {
     }
 
     impl BatchBuilder for TestBankBuilder {
-        fn add_program(&mut self, p: &Arc<SubProgram>) -> bool {
+        async fn add_program(&mut self, p: &Arc<SubProgram>) -> bool {
             self.batch.push(p.clone());
             true
         }
@@ -474,11 +474,11 @@ pub mod helpers {
             TestBankBuilder { batch: vec![] }
         }
 
-        fn add_batch(&mut self, batch: Self::BatchBuilderType) {
+        async fn add_batch(&mut self, batch: Self::BatchBuilderType) {
             self.batch.extend(batch.batch);
         }
 
-        fn iter_programs(&self) -> impl Iterator<Item = &Arc<SubProgram>> {
+        async fn iter_programs(&self) -> impl Iterator<Item = &Arc<SubProgram>> {
             self.batch.iter()
         }
     }
@@ -487,11 +487,11 @@ pub mod helpers {
         type IterationBuilderType = TestBankBuilder;
         type BankConfigType = TestBankConfig;
 
-        fn new_with_config(_config: Self::BankConfigType) -> Self {
+        async fn new_with_config(_config: Self::BankConfigType) -> Self {
             TestBank { bank: vec![] }
         }
 
-        fn output_exists(&self, p: &Arc<SubProgram>) -> bool {
+        async fn output_exists(&self, p: &Arc<SubProgram>) -> bool {
             self.bank.iter().any(|iteration| {
                 iteration.iter().any(|existing_program| {
                     existing_program.out_value().eq(
@@ -511,7 +511,7 @@ pub mod helpers {
             self.bank.iter().map(|iteration| iteration.len()).sum()
         }
 
-        fn number_of_programs(
+        async fn number_of_programs(
             &self,
             iteration: usize,
             output_type: &ruse_object_graph::ValueType,
@@ -525,7 +525,7 @@ pub mod helpers {
                 .count()
         }
 
-        fn iter_programs<'a, 'b>(
+        async fn iter_programs<'a, 'b>(
             &'a self,
             iteration: usize,
             output_type: &'b ruse_object_graph::ValueType,
@@ -547,7 +547,7 @@ pub mod helpers {
             TestBankBuilder { batch: vec![] }
         }
 
-        fn end_iteration(&mut self, iteration: Self::IterationBuilderType) {
+        async fn end_iteration(&mut self, iteration: Self::IterationBuilderType) {
             self.bank.push(iteration.batch);
         }
     }
@@ -587,15 +587,16 @@ mod bank_iterator_tests {
     ) -> Vec<Vec<Arc<SubProgram>>> {
         let all_children =
             Arc::new(DashMap::<usize, Vec<Arc<SubProgram>>, BankHasherBuilder>::default());
-        let mut children_iterator = bank_iterator(bank, op.arg_types());
+        let mut children_iterator = bank_iterator(bank, op.arg_types()).await;
         if let Some(skip_count) = skip {
-            children_iterator.skip(skip_count);
+            children_iterator.skip(skip_count).await;
         }
         if let Some(take_count) = take {
             children_iterator.take(take_count);
         }
 
-        for triplet in prog_triplet_iterator(children_iterator) {
+        let mut iter = prog_triplet_iterator(children_iterator);
+        while let Some(triplet) = iter.next().await {
             all_children.insert(all_children.len(), triplet.children);
         }
 
@@ -634,29 +635,30 @@ mod bank_iterator_tests {
         }
     }
 
-    fn add_iteration(bank: &mut impl ProgBank, n: usize, syn_ctx: &SynthesizerContext) {
+    async fn add_iteration(bank: &mut impl ProgBank, n: usize, syn_ctx: &SynthesizerContext) {
         let iteration = bank.iteration_count();
         let mut iteration_builder = bank.create_iteration_builder();
         let mut batch_builder = iteration_builder.create_batch_builder();
         for i in 0..n {
             let value = Number::from(iteration << 32 | i);
             let p = get_prog_for_bank(vnum!(value), syn_ctx);
-            batch_builder.add_program(&p);
+            batch_builder.add_program(&p).await;
         }
-        iteration_builder.add_batch(batch_builder);
-        bank.end_iteration(iteration_builder);
+        iteration_builder.add_batch(batch_builder).await;
+        bank.end_iteration(iteration_builder).await;
     }
 
-    #[test]
-    fn programs_map_multi_iter() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn programs_map_multi_iter() {
         let _id_gen = GraphIdGenerator::default();
         let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default());
         let mut bank = TestBank::default();
-        add_iteration(&mut bank, 2, &syn_ctx);
-        for triplet in prog_triplet_iterator(multi_programs_map_product(
+        add_iteration(&mut bank, 2, &syn_ctx).await;
+        let mut iter = prog_triplet_iterator(multi_programs_map_product(
             &bank,
             [(0, ValueType::Number), (0, ValueType::Number)].into_iter(),
-        )) {
+        ).await);
+        while let Some(triplet) = iter.next().await {
             println!(
                 "{:#?}",
                 triplet
@@ -668,25 +670,26 @@ mod bank_iterator_tests {
         }
     }
 
-    #[test]
-    fn programs_map_multi_iter_skip() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn programs_map_multi_iter_skip() {
         let _id_gen = GraphIdGenerator::default();
         let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default());
         let mut bank = TestBank::default();
-        add_iteration(&mut bank, 3, &syn_ctx);
-        add_iteration(&mut bank, 4, &syn_ctx);
+        add_iteration(&mut bank, 3, &syn_ctx).await;
+        add_iteration(&mut bank, 4, &syn_ctx).await;
 
         for i in 0..(3 * 4) {
             let mut children_iter = multi_programs_map_product(
                 &bank,
                 [(0, ValueType::Number), (1, ValueType::Number)].into_iter(),
-            );
+            ).await;
             if i > 0 {
-                children_iter.skip(i)
+                children_iter.skip(i).await;
             }
 
             let mut count = 0;
-            for triplet in prog_triplet_iterator(children_iter) {
+            let mut triplet_iter = prog_triplet_iterator(children_iter);
+            while let Some(triplet) = triplet_iter.next().await {
                 count += 1;
                 println!(
                     "{}",
@@ -706,25 +709,26 @@ mod bank_iterator_tests {
         }
     }
 
-    #[test]
-    fn programs_map_multi_iter_take() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn programs_map_multi_iter_take() {
         let _id_gen = GraphIdGenerator::default();
         let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default());
         let mut bank = TestBank::default();
-        add_iteration(&mut bank, 3, &syn_ctx);
-        add_iteration(&mut bank, 4, &syn_ctx);
+        add_iteration(&mut bank, 3, &syn_ctx).await;
+        add_iteration(&mut bank, 4, &syn_ctx).await;
 
         for i in 0..(3 * 4) {
             let mut children_iter = multi_programs_map_product(
                 &bank,
                 [(0, ValueType::Number), (1, ValueType::Number)].into_iter(),
-            );
+            ).await;
             if i > 0 {
                 children_iter.take(3 * 4 - i)
             }
 
             let mut count = 0;
-            for triplet in prog_triplet_iterator(children_iter) {
+            let mut triplet_iter = prog_triplet_iterator(children_iter);
+            while let Some(triplet) = triplet_iter.next().await {
                 count += 1;
                 println!(
                     "{}",
@@ -744,23 +748,24 @@ mod bank_iterator_tests {
         }
     }
 
-    #[test]
-    fn programs_map_multi_iter_skip_take() {
+    #[tokio::test(flavor = "current_thread")]
+    async fn programs_map_multi_iter_skip_take() {
         let _id_gen = GraphIdGenerator::default();
         let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default());
         let mut bank = TestBank::default();
-        add_iteration(&mut bank, 3, &syn_ctx);
-        add_iteration(&mut bank, 4, &syn_ctx);
+        add_iteration(&mut bank, 3, &syn_ctx).await;
+        add_iteration(&mut bank, 4, &syn_ctx).await;
 
         let mut children_iter = multi_programs_map_product(
             &bank,
             [(0, ValueType::Number), (1, ValueType::Number)].into_iter(),
-        );
-        children_iter.skip(5);
+        ).await;
+        children_iter.skip(5).await;
         children_iter.take(3);
 
         let mut count = 0;
-        for triplet in prog_triplet_iterator(children_iter) {
+        let mut triplet_iter = prog_triplet_iterator(children_iter);
+        while let Some(triplet) = triplet_iter.next().await {
             count += 1;
             println!(
                 "{}",
@@ -792,7 +797,7 @@ mod bank_iterator_tests {
             }),
         });
 
-        add_iteration(&mut bank, 1, &syn_ctx);
+        add_iteration(&mut bank, 1, &syn_ctx).await;
 
         let all_children = run_gatherer(&bank, &bin_op, None, None).await;
         assert_eq!(all_children.len(), 1);
@@ -812,8 +817,8 @@ mod bank_iterator_tests {
             }),
         });
 
-        add_iteration(&mut bank, 2, &syn_ctx);
-        add_iteration(&mut bank, 3, &syn_ctx);
+        add_iteration(&mut bank, 2, &syn_ctx).await;
+        add_iteration(&mut bank, 3, &syn_ctx).await;
 
         let all_children = run_gatherer(&bank, &bin_op, None, None).await;
         assert_eq!(all_children.len(), 5usize.pow(2) - 2usize.pow(2));
@@ -840,9 +845,9 @@ mod bank_iterator_tests {
             }),
         });
 
-        add_iteration(&mut bank, 2, &syn_ctx);
-        add_iteration(&mut bank, 3, &syn_ctx);
-        add_iteration(&mut bank, 4, &syn_ctx);
+        add_iteration(&mut bank, 2, &syn_ctx).await;
+        add_iteration(&mut bank, 3, &syn_ctx).await;
+        add_iteration(&mut bank, 4, &syn_ctx).await;
 
         let all_children = run_gatherer(&bank, &bin_op, None, None).await;
         assert_eq!(all_children.len(), 9usize.pow(2) - 5usize.pow(2));
@@ -869,9 +874,9 @@ mod bank_iterator_tests {
             }),
         });
 
-        add_iteration(&mut bank, 2, &syn_ctx);
-        add_iteration(&mut bank, 3, &syn_ctx);
-        add_iteration(&mut bank, 4, &syn_ctx);
+        add_iteration(&mut bank, 2, &syn_ctx).await;
+        add_iteration(&mut bank, 3, &syn_ctx).await;
+        add_iteration(&mut bank, 4, &syn_ctx).await;
 
         let all_children = run_gatherer(&bank, &tri_op, None, None).await;
         assert_eq!(all_children.len(), 9usize.pow(3) - 5usize.pow(3));
@@ -898,9 +903,9 @@ mod bank_iterator_tests {
             }),
         });
 
-        add_iteration(&mut bank, 2, &syn_ctx);
-        add_iteration(&mut bank, 3, &syn_ctx);
-        add_iteration(&mut bank, 4, &syn_ctx);
+        add_iteration(&mut bank, 2, &syn_ctx).await;
+        add_iteration(&mut bank, 3, &syn_ctx).await;
+        add_iteration(&mut bank, 4, &syn_ctx).await;
 
         for skip in 0..(9usize.pow(2) - 5usize.pow(2)) {
             let skip_opt = if skip > 0 { Some(skip) } else { None };
@@ -931,9 +936,9 @@ mod bank_iterator_tests {
             }),
         });
 
-        add_iteration(&mut bank, 2, &syn_ctx);
-        add_iteration(&mut bank, 3, &syn_ctx);
-        add_iteration(&mut bank, 4, &syn_ctx);
+        add_iteration(&mut bank, 2, &syn_ctx).await;
+        add_iteration(&mut bank, 3, &syn_ctx).await;
+        add_iteration(&mut bank, 4, &syn_ctx).await;
 
         for take in 0..=(9usize.pow(2) - 5usize.pow(2)) {
             let all_children = run_gatherer(&bank, &bin_op, None, Some(take)).await;
@@ -963,9 +968,9 @@ mod bank_iterator_tests {
             }),
         });
 
-        add_iteration(&mut bank, 2, &syn_ctx);
-        add_iteration(&mut bank, 3, &syn_ctx);
-        add_iteration(&mut bank, 4, &syn_ctx);
+        add_iteration(&mut bank, 2, &syn_ctx).await;
+        add_iteration(&mut bank, 3, &syn_ctx).await;
+        add_iteration(&mut bank, 4, &syn_ctx).await;
 
         let all_children = run_gatherer(&bank, &bin_op, Some(5), Some(3)).await;
         println!("{}", all_children.len());
@@ -993,9 +998,9 @@ mod bank_iterator_tests {
             }),
         });
 
-        add_iteration(&mut bank, 2, &syn_ctx);
-        add_iteration(&mut bank, 3, &syn_ctx);
-        add_iteration(&mut bank, 4, &syn_ctx);
+        add_iteration(&mut bank, 2, &syn_ctx).await;
+        add_iteration(&mut bank, 3, &syn_ctx).await;
+        add_iteration(&mut bank, 4, &syn_ctx).await;
 
         let total_size = 9usize.pow(2) - 5usize.pow(2);
         let split_count = 10;

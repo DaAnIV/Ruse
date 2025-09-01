@@ -24,10 +24,10 @@ pub enum Bank {
 }
 
 impl BankConfig {
-    pub fn new_bank(&self) -> Bank {
+    pub async fn new_bank(&self) -> Bank {
         match self {
             BankConfig::SubsumptionBank(config) => {
-                Bank::SubsumptionBank(SubsumptionProgBank::new_with_config(config.clone()))
+                Bank::SubsumptionBank(SubsumptionProgBank::new_with_config(config.clone()).await)
             }
         }
     }

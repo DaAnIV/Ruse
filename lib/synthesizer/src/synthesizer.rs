@@ -19,7 +19,7 @@ use serde::ser::SerializeStruct;
 use std::{
     fmt::Display, ops::Index, panic, sync::{atomic::*, Arc}, time::Instant
 };
-use tokio::task::JoinSet;
+use tokio::{runtime::Handle, task::JoinSet};
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, info_span, trace, Instrument};
 
@@ -205,7 +205,7 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
         self.cancel_token.clone()
     }
 
-    fn init_context<const IS_START_CTX: bool>(
+    async fn init_context<const IS_START_CTX: bool>(
         &self,
         iteration_map: &mut <P::IterationBuilderType as BankIterationBuilder>::BatchBuilderType,
         ctx: &ContextArray,
@@ -227,11 +227,11 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
                     .inc_value(StatisticsTypes::FoundContextCount);
             }
 
-            if !self.check_program(&p) {
+            if !self.check_program(&p).await {
                 continue;
             }
 
-            if !self.insert_program(p.clone(), iteration_map) {
+            if !self.insert_program(p.clone(), iteration_map).await {
                 continue;
             }
 
@@ -249,7 +249,7 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
         let _span = info_span!(target: "ruse::synthesizer", "run_iteration", iteration = self.bank.iteration_count()).entered();
         let (current_iteration_map, found_prog) = Self::run_iteration_inner(self.clone()).await;
 
-        Self::insert_iteration(self, current_iteration_map);
+        Self::insert_iteration(self, current_iteration_map).await;
 
         found_prog
     }
@@ -269,7 +269,7 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
             panic::AssertUnwindSafe(async move {
                 let mut current_iteration_map = self_clone.bank.create_iteration_builder();
                 let found = if self_clone.bank.iteration_count() == 0 {
-                    tokio::task::block_in_place(|| self_clone.run_init_iteration(&mut current_iteration_map).in_current_span()).into_inner()
+                    tokio::task::block_in_place(|| Handle::current().block_on(self_clone.run_init_iteration(&mut current_iteration_map)).in_current_span()).into_inner()
                 } else {
                     self_clone.run_composite_iteration(&mut current_iteration_map)
                         .await
@@ -293,13 +293,13 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
         res.unwrap().unwrap()
     }
 
-    fn run_init_iteration(
+    async fn run_init_iteration(
         &self,
         current_iteration_map: &mut P::IterationBuilderType,
     ) -> Option<Arc<SubProgram>> {
         let mut batch_builder = current_iteration_map.create_batch_builder();
-        let found = self.init_context::<true>(&mut batch_builder, &self.context.start_context);
-        current_iteration_map.add_batch(batch_builder);
+        let found = self.init_context::<true>(&mut batch_builder, &self.context.start_context).await;
+        current_iteration_map.add_batch(batch_builder).await;
         found
     }
 
@@ -328,7 +328,7 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
         }
     }
 
-    fn composite_iter_batch(
+    async fn composite_iter_batch(
         &self,
         triplet: &ProgTriplet,
         ops: &OpcodesList,
@@ -339,11 +339,11 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
                 continue;
             };
 
-            if !self.check_program(&p) {
+            if !self.check_program(&p).await {
                 continue;
             }
 
-            if !self.insert_program(p.clone(), current_batch_map) {
+            if !self.insert_program(p.clone(), current_batch_map).await {
                 continue;
             }
 
@@ -363,12 +363,12 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
         self.cancel_token.is_cancelled() || self.found_token.is_cancelled()
     }
 
-    fn worker_triple_iterator<'a>(
+    async fn worker_triple_iterator<'a>(
         &'a self,
         i: usize,
         arg_types: &'a Vec<ValueType>,
     ) -> ProgTripletIterator<BankIterator<'a, P>> {
-        let mut children_iterator = bank_iterator(&self.bank, arg_types);
+        let mut children_iterator = bank_iterator(&self.bank, arg_types).await;
         let total_size = children_iterator.remaining();
         let skip = (total_size / self.worker_count) * i;
         let take = if i == self.worker_count - 1 {
@@ -376,7 +376,7 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
         } else {
             total_size / self.worker_count
         };
-        children_iterator.skip(skip);
+        children_iterator.skip(skip).await;
         children_iterator.take(take);
 
         prog_triplet_iterator(children_iterator)
@@ -388,11 +388,12 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
         i: usize,
     ) -> Option<Arc<SubProgram>> {
         for (arg_types, ops) in self.composite_opcodes() {
-            for triple in self.worker_triple_iterator(i, arg_types) {
+            let mut iter = self.worker_triple_iterator(i, arg_types).await;
+            while let Some(triple) = iter.next().await {
                 if self.should_end_worker().await {
                     return None;
                 }
-                let found = tokio::task::block_in_place(|| self.composite_iter_batch(&triple, &ops, batch_builder).in_current_span()).into_inner();
+                let found = self.composite_iter_batch(&triple, &ops, batch_builder).await;
                 if found.is_some() {
                     self.found_token.cancel();
                     return found;
@@ -403,18 +404,18 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
         None
     }
 
-    fn init_new_found_ctx(self: Arc<Self>, current_iteration_map: &mut P::IterationBuilderType) {
+    async fn init_new_found_ctx(self: Arc<Self>, current_iteration_map: &mut P::IterationBuilderType) {
         let mut new_ctx = current_iteration_map.create_batch_builder();
-        for p in current_iteration_map.iter_programs() {
+        for p in current_iteration_map.iter_programs().await {
             if self.cancel_token.is_cancelled() {
                 return;
             }
             if self.found_contexts.insert(p.post_ctx().clone()) {
                 trace!(target: "ruse::synthesizer", "New post context found by program \"{}\"", p.get_code());
-                self.init_context::<false>(&mut new_ctx, p.post_ctx());
+                self.init_context::<false>(&mut new_ctx, p.post_ctx()).await;
             }
         }
-        current_iteration_map.add_batch(new_ctx);
+        current_iteration_map.add_batch(new_ctx).await;
     }
 
     async fn run_composite_iteration(
@@ -444,20 +445,20 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
                 while workers.join_next().await.is_some() {}
                 return found;
             }
-            tokio::task::block_in_place(|| current_iteration_map.add_batch(worker_type_map));
+            tokio::task::block_in_place(|| Handle::current().block_on(current_iteration_map.add_batch(worker_type_map)));
         }
 
         debug!(target: "ruse::synthesizer", "Initializing new contexts!");
 
-        tokio::task::block_in_place(|| self.init_new_found_ctx(current_iteration_map));
+        tokio::task::block_in_place(|| Handle::current().block_on(self.init_new_found_ctx(current_iteration_map)));
         None
     }
 
-    fn insert_iteration(self: &mut Arc<Self>, current_iteration_map: P::IterationBuilderType) {
+    async fn insert_iteration(self: &mut Arc<Self>, current_iteration_map: P::IterationBuilderType) {
         Arc::get_mut(self)
             .unwrap()
             .bank
-            .end_iteration(current_iteration_map);
+            .end_iteration(current_iteration_map).await;
     }
 
     fn evaluate_program(&self, p: &mut Arc<SubProgram>) -> bool {
@@ -499,7 +500,7 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
         }
     }
 
-    fn check_program(&self, p: &Arc<SubProgram>) -> bool {
+    async fn check_program(&self, p: &Arc<SubProgram>) -> bool {
         if p.post_ctx().depth > self.max_context_depth {
             return false;
         }
@@ -510,7 +511,7 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
             return false;
         }
 
-        if self.bank.output_exists(p) {
+        if self.bank.output_exists(p).await {
             return false;
         }
 
@@ -527,12 +528,12 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
         true
     }
 
-    fn insert_program(&self, p: Arc<SubProgram>, batch_builder: &mut <P::IterationBuilderType as BankIterationBuilder>::BatchBuilderType) -> bool {
+    async fn insert_program(&self, p: Arc<SubProgram>, batch_builder: &mut <P::IterationBuilderType as BankIterationBuilder>::BatchBuilderType) -> bool {
         if p.is_terminal() {
             return true;
         }
 
-        if batch_builder.add_program(&p) {
+        if batch_builder.add_program(&p).await {
             trace_prog!(target: "ruse::synthesizer", p, "Inserted");
 
             self.statistics.inc_value(StatisticsTypes::BankSize);
