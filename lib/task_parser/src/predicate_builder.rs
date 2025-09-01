@@ -108,7 +108,7 @@ impl PredicateBuilder {
             js_values.push(output.val().try_into_js(&mut engine_ctx).unwrap());
 
             let code = format!(
-                "function func({}) {{return {}}}\nfunc",
+                "({}) => {{return {}}}",
                 arg_names.join(", "),
                 js
             );
