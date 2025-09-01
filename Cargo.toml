@@ -3,6 +3,8 @@ members = ["lib/*", "benchmarks"]
 resolver = "2"
 
 [workspace.dependencies]
+clap = { version = "*", features = ["derive"] }
+
 hstr = "*"
 
 byteview = "*"
@@ -17,6 +19,7 @@ ruse_ts_interpreter = { path = "./lib/ts_interpreter" }
 ruse_synthesizer = { path = "./lib/synthesizer" }
 ruse_ts_synthesizer = { path = "./lib/ts_synthesizer" }
 ruse_task_parser = { path = "./lib/task_parser" }
+ruse_prog_bank_in_mem = { path = "./lib/prog_bank_in_mem" }
 
 num-traits = "*"
 
