@@ -630,6 +630,48 @@ class LogViewer {
                         </div>
                     </div>
                 </div>
+                
+                <div class="config-section">
+                    <h4>Configuration</h4>
+                    <div class="config-summary">
+                        <div class="config-item">
+                            <span class="config-label">Timeout:</span>
+                            <span class="config-value">${results.config?.timeout || 'Unknown'}s</span>
+                        </div>
+                        <div class="config-item">
+                            <span class="config-label">Max Iterations:</span>
+                            <span class="config-value">${results.config?.max_iterations || 'Unknown'}</span>
+                        </div>
+                        <div class="config-item">
+                            <span class="config-label">Multi-thread:</span>
+                            <span class="config-value">${results.config?.multi_thread ? 'Yes' : 'No'}</span>
+                        </div>
+                        <div class="config-item">
+                            <span class="config-label">Max Context Depth:</span>
+                            <span class="config-value">${results.config?.max_context_depth || 'Unknown'}</span>
+                        </div>
+                        <div class="config-item">
+                            <span class="config-label">Iteration Workers:</span>
+                            <span class="config-value">${results.config?.iteration_workers_count || 'Unknown'}</span>
+                        </div>
+                        <div class="config-item">
+                            <span class="config-label">Max Task Memory:</span>
+                            <span class="config-value">${results.config?.max_task_mem || 'Unknown'}</span>
+                        </div>
+                        <div class="config-item">
+                            <span class="config-label">Bank Type:</span>
+                            <span class="config-value">${results.config?.bank_type || 'Unknown'}</span>
+                        </div>
+                    </div>
+                                        
+                    <button class="config-expand-btn">▼ Show Details</button>
+                    <div class="config-details" style="display: none;">
+                        <h5>Full Configuration</h5>
+                        <div class="full-config">
+                            <pre class="config-json">${JSON.stringify(results.config, null, 2)}</pre>
+                        </div>
+                    </div>
+                </div>
             </div>
             
             <div class="tasks-section">
@@ -695,6 +737,19 @@ class LogViewer {
                 
                 details.style.display = isExpanded ? 'none' : 'block';
                 btn.textContent = isExpanded ? '▼' : '▲';
+            });
+        });
+
+        // Bind config expansion events
+        resultsContent.querySelectorAll('.config-expand-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const configSection = btn.closest('.config-section');
+                const details = configSection.querySelector('.config-details');
+                const isExpanded = details.style.display !== 'none';
+                
+                details.style.display = isExpanded ? 'none' : 'block';
+                btn.textContent = isExpanded ? '▼ Show Details' : '▲ Hide Details';
             });
         });
     }
@@ -924,13 +979,13 @@ class LogViewer {
         if (Object.keys(extensions).length === 0) return '';
 
         // First, collect all extensions (including nested ones from JSON)
-        const allExtensions = this.flattenExtensions(extensions);
+        // const allExtensions = this.flattenExtensions(extensions);
 
         let html = '';
         
         // Handle Mermaid diagrams (including those from nested JSON)
-        if (allExtensions.mermaid) {
-            Object.entries(allExtensions.mermaid).forEach(([key, diagram], mermaidIndex) => {
+        if (extensions.mermaid) {
+            Object.entries(extensions.mermaid).forEach(([key, diagram], mermaidIndex) => {
                 const mermaidId = `mermaid-log-${logIndex}-${mermaidIndex}-${Math.random().toString(36).substr(2, 9)}`;
                 html += `
                     <div class="extension-content">
@@ -968,12 +1023,12 @@ class LogViewer {
                     // Render JSON fields 
                     html += '<div class="log-fields">';
                     html += this.renderJsonFields(jsonData.raw, '', jsonId);
-                    html += '</div>';
                     
                     // Render any nested extensions within this JSON
                     if (jsonData.extensions && Object.keys(jsonData.extensions).length > 0) {
                         html += this.renderExtensions(jsonData.extensions, 0, true);
                     }
+                    html += '</div>';
                 } else {
                     // Handle simple JSON value
                     html += `<pre class="json-display">${this.escapeHtml(JSON.stringify(jsonData, null, 2))}</pre>`;
@@ -984,26 +1039,26 @@ class LogViewer {
         }
 
         // Handle other extensions
-        Object.entries(allExtensions).forEach(([extType, extData]) => {
-            if (extType === 'mermaid' || extType === 'json') return; // Already handled
+        // Object.entries(allExtensions).forEach(([extType, extData]) => {
+        //     if (extType === 'mermaid' || extType === 'json') return; // Already handled
 
-            html += `
-                <div class="extension-content">
-                    <div class="extension-title">🔧 Extension: ${extType}</div>
-                    <div class="log-fields">
-            `;
+        //     html += `
+        //         <div class="extension-content">
+        //             <div class="extension-title">🔧 Extension: ${extType}</div>
+        //             <div class="log-fields">
+        //     `;
             
-            Object.entries(extData).forEach(([key, value]) => {
-                html += `
-                    <div class="log-field">
-                        <div class="log-field-key">${this.escapeHtml(key)}:</div>
-                        <div class="log-field-value">${this.escapeHtml(String(value))}</div>
-                    </div>
-                `;
-            });
+        //     Object.entries(extData).forEach(([key, value]) => {
+        //         html += `
+        //             <div class="log-field">
+        //                 <div class="log-field-key">${this.escapeHtml(key)}:</div>
+        //                 <div class="log-field-value">${this.escapeHtml(String(value))}</div>
+        //             </div>
+        //         `;
+        //     });
             
-            html += '</div></div>';
-        });
+        //     html += '</div></div>';
+        // });
 
         return html;
     }
