@@ -2,7 +2,13 @@ use std::sync::Arc;
 
 use itertools::Itertools;
 use ruse_object_graph::{
-    class_name, dot::{self, DotConfig, SubgraphConfig}, field_name, graph_map_value::GraphMapWrap, root_name, value::{ObjectValue, Value}, vnull, vnum, ClassName, GraphsMap, Number
+    class_name,
+    mermaid::{self, MermaidConfig, SubgraphConfig},
+    field_name,
+    graph_map_value::GraphMapWrap,
+    root_name,
+    value::{ObjectValue, Value},
+    vnull, vnum, ClassName, GraphsMap, Number,
 };
 use ruse_synthesizer::{
     context::{Context, ContextArray, GraphIdGenerator, SynthesizerContext},
@@ -80,15 +86,15 @@ fn create_binary_tree(
     )
 }
 
-fn tree_dot_config(name: &str) -> DotConfig {
-    let mut dot_config = DotConfig::default();
-    dot_config.exclude_fields.insert("parent".to_owned());
-    dot_config.subgraph = Some(SubgraphConfig {
+fn tree_mermaid_config(name: &str) -> MermaidConfig {
+    let mut mermaid_config = MermaidConfig::default();
+    mermaid_config.exclude_fields.insert("parent".to_owned());
+    mermaid_config.subgraph = Some(SubgraphConfig {
         name: name.to_owned(),
     });
-    dot_config.prefix = Some(format!("{}", dot::EscapedName(name)));
+    mermaid_config.prefix = Some(format!("{}", mermaid::EscapedName(name)));
 
-    dot_config
+    mermaid_config
 }
 
 fn binary_tree_class_name() -> ClassName {
@@ -362,11 +368,11 @@ impl<'a> TreeHelper<'a> {
         assert_eq!(expected_size, self.size());
     }
 
-    fn print_dot(&self, name: &str) {
+    fn print_mermaid(&self, name: &str) {
         println!(
             "{}",
             self.tree
-                .dot_display_with_config(self.graphs_map, tree_dot_config(name))
+                .mermaid_display_with_config(self.graphs_map, tree_mermaid_config(name))
         );
     }
 }
@@ -510,7 +516,7 @@ fn check_delete_two_children() {
             graphs_map: &c.graphs_map,
         })
         .collect_vec();
-    initial_trees[0].print_dot(&format!("initial_tree"));
+    initial_trees[0].print_mermaid(&format!("initial_tree"));
 
     let predicate = PredicateBuilder {
         output_type: None,
@@ -560,7 +566,7 @@ fn check_delete_two_children() {
     swap_trees
         .iter()
         .enumerate()
-        .for_each(|(i, x)| x.print_dot(&format!("swap_trees_{}", i)));
+        .for_each(|(i, x)| x.print_mermaid(&format!("swap_trees_{}", i)));
 
     let final_trees = tree_objs
         .iter()
@@ -574,7 +580,7 @@ fn check_delete_two_children() {
     final_trees
         .iter()
         .enumerate()
-        .for_each(|(i, x)| x.print_dot(&format!("final_tree_{}", i)));
+        .for_each(|(i, x)| x.print_mermaid(&format!("final_tree_{}", i)));
 
     // final_tree.check_fields(final_tree.value(), 3, 6);
     // assert!(final_tree.valid());
