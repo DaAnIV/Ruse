@@ -1,6 +1,7 @@
 import json
 import shutil
 import os.path
+import datetime
 from argparse import ArgumentParser
 
 def parse_args():
@@ -21,7 +22,10 @@ def main():
         if task['error'] is not None: continue
 
         count += 1
+        took = datetime.timedelta(seconds = task["total_time"]["secs"], microseconds=task["total_time"]["nanos"] // 1000)
+
         print(f'task {os.path.basename(task["path"])} passed')
+        print(f'solution: "{task["found"]}" in {took.total_seconds():.3f} seconds')
         print(f'{task["path"]}')
         print()
 
