@@ -2,6 +2,7 @@ use siphasher::sip::SipHasher13;
 use std::cell::Cell;
 use std::fmt;
 use std::hash::{BuildHasher, Hasher};
+use std::str::FromStr;
 
 fn hashmap_random_keys() -> (u64, u64) {
     let mut bytes = [0; 16];
@@ -9,6 +10,32 @@ fn hashmap_random_keys() -> (u64, u64) {
     let k1 = u64::from_ne_bytes(bytes[..8].try_into().unwrap());
     let k2 = u64::from_ne_bytes(bytes[8..].try_into().unwrap());
     (k1, k2)
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct BankKeys(u64, u64);
+
+impl FromStr for BankKeys {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut parts = s.split(',');
+
+        let first = parts.next().unwrap().to_owned();
+        let second = parts.next().map(|x| x.to_owned());
+        if parts.next().is_some() {
+            return Err(anyhow::Error::msg("Value contains more then two ','"));
+        }
+
+        let k0: u64 = first.parse()?;
+        let k1: u64 = if let Some(next) = second {
+            next.parse()?
+        } else {
+            0
+        };
+
+        Ok(Self(k0, k1))
+    }
 }
 
 pub struct BankHasher(SipHasher13);
@@ -56,8 +83,8 @@ impl BankHasherBuilder {
         Self { k0: 0, k1: 0 }
     }
 
-    pub fn new_with_keys(k0: u64, k1: u64) -> Self {
-        Self { k0, k1 }
+    pub fn new_with_keys(keys: BankKeys) -> Self {
+        Self { k0: keys.0, k1: keys.1 }
     }
 
     pub fn new_with_random_keys() -> Self {
