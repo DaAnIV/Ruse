@@ -279,10 +279,15 @@ impl TaskType {
                         value,
                         "@ Static method args field is not an array"
                     ))?;
-                    let variant = fields.get("variant").map(|v| v.as_u64().ok_or(parse_err!(
-                        value,
-                        "@ Static method variant field is not an int"
-                    ))).unwrap_or(Ok(0))? as usize;
+                    let variant = fields
+                        .get("variant")
+                        .map(|v| {
+                            v.as_u64().ok_or(parse_err!(
+                                value,
+                                "@ Static method variant field is not an int"
+                            ))
+                        })
+                        .unwrap_or(Ok(0))? as usize;
                     self.create_object_from_method(
                         class,
                         method_name,
