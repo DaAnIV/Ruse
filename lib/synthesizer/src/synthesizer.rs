@@ -31,6 +31,7 @@ pub enum StatisticsTypes {
     Evaluated,
     BankSize,
     FoundContextCount,
+    MaxContextDepth,
     MaxDepth,
     MaxSize,
     __MaxType,
@@ -42,6 +43,7 @@ impl StatisticsTypes {
             StatisticsTypes::Evaluated,
             StatisticsTypes::BankSize,
             StatisticsTypes::FoundContextCount,
+            StatisticsTypes::MaxContextDepth,
             StatisticsTypes::MaxDepth,
             StatisticsTypes::MaxSize,
         ]
@@ -57,6 +59,7 @@ impl StatisticsTypes {
             StatisticsTypes::Evaluated => "Evaluated",
             StatisticsTypes::BankSize => "BankSize",
             StatisticsTypes::FoundContextCount => "FoundContextCount",
+            StatisticsTypes::MaxContextDepth => "MaxContextDepth",
             StatisticsTypes::MaxDepth => "MaxDepth",
             StatisticsTypes::MaxSize => "MaxSize",
             StatisticsTypes::__MaxType => unreachable!(),
@@ -225,6 +228,8 @@ impl<P: ProgBank + 'static> Synthesizer<P> {
         self.found_contexts.insert(ctx.clone());
         self.statistics
             .inc_value(StatisticsTypes::FoundContextCount);
+        self.statistics
+            .max_value(StatisticsTypes::MaxContextDepth, ctx.depth as u64);
         for op in self.init_opcodes() {
             let p = match self.get_program_from_init_opcode(op.clone(), ctx) {
                 Some(p) => p,
