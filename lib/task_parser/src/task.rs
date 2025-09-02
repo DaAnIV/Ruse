@@ -23,6 +23,7 @@ use ruse_ts_interpreter::ts_classes::{TsClasses, TsClassesBuilder};
 use ruse_ts_synthesizer::*;
 
 use serde::{Deserialize, Serialize};
+use tracing::debug;
 use wildmatch::WildMatch;
 
 use crate::{
@@ -469,6 +470,16 @@ impl SnythesisTask {
         let context_array = self.get_context_array()?;
         let predicate = self.get_predicate()?;
         let valid = self.get_valid_predicate()?;
+
+        debug!(target: "ruse::task_parser", { 
+            opcodes.json = %serde_json::to_string_pretty(&opcodes.iter().map(|x| 
+                if x.arg_types().len() == 0 {
+                    format!("{}", x.op_name())
+                } else {
+                    format!("{}[{}]", x.op_name(), x.arg_types().iter().map(|x| x.to_string()).join(", "))
+                }
+            ).collect_vec()).unwrap() 
+        }, "Task {} Has {} opcodes", &self.name, opcodes.len());
         if self.inner.options.pure {
             max_context_depth = 0;
         }
