@@ -74,6 +74,14 @@ pub struct CurrentStatistics {
     values: Vec<u64>,
 }
 
+impl Default for CurrentStatistics {
+    fn default() -> Self {
+        Self {
+            values: vec![0; StatisticsTypes::count()],
+        }
+    }
+}
+
 impl Statistics {
     #[inline]
     pub fn get_value(&self, stype: StatisticsTypes) -> u64 {
