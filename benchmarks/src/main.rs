@@ -26,14 +26,13 @@ use results::ResultsWriter;
 mod config;
 mod runner;
 
-#[cfg(not(target_env = "msvc"))]
-use jemallocator::Jemalloc;
+use mimalloc::MiMalloc;
+
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
 
 use crate::config::{BankArgs, BankTypeArg};
 
-#[cfg(not(target_env = "msvc"))]
-#[global_allocator]
-static GLOBAL: Jemalloc = Jemalloc;
 
 fn get_result_path(cli: &RunArgs) -> PathBuf {
     if cli.output.is_dir() {
