@@ -18,6 +18,7 @@ use ruse_task_parser::predicate_builder::PredicateBuilder;
 use ruse_ts_interpreter::{
     engine_context::EngineContext,
     test::ts_op_helpers::*,
+    ts_class::MethodKind,
     ts_classes::{TsClasses, TsClassesBuilder},
     ts_user_class::TsUserClass,
 };
@@ -195,7 +196,9 @@ fn tests_binary_tree_contains() {
 
     let mut res;
 
-    let contains_method_desc = binary_tree_class.description.methods["contains"].clone();
+    let contains_method_desc = binary_tree_class.description.methods
+        [&("contains".to_string(), MethodKind::Method)]
+        .clone();
 
     res = binary_tree_class
         .call_method(

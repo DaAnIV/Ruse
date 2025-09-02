@@ -127,7 +127,7 @@ impl From<&ast::VarDeclarator> for JsFieldDescription {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum MethodKind {
     GlobalFunction,
     Method,
@@ -379,7 +379,7 @@ pub struct TsClassDescription {
     pub(crate) id: u64,
     pub class_name: ClassName,
     pub fields: HashMap<String, JsFieldDescription>,
-    pub methods: HashMap<String, MethodDescription>,
+    pub methods: HashMap<(String, MethodKind), MethodDescription>,
     pub constructor: MethodDescription,
     pub extends: Option<ClassName>,
     pub is_abstract: bool,

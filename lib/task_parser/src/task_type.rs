@@ -13,6 +13,7 @@ use ruse_synthesizer::context::GraphIdGenerator;
 use ruse_ts_interpreter::{
     dom::{self, DomLoader},
     engine_context::EngineContext,
+    ts_class::MethodKind,
     ts_classes::TsClasses,
     ts_user_class::TsUserClass,
 };
@@ -367,7 +368,7 @@ impl TaskType {
             let desc = class
                 .description
                 .methods
-                .get(method_name)
+                .get(&(method_name.to_string(), MethodKind::Method))
                 .ok_or(verify_err!(
                     "object {} has no method {}",
                     &class.description.class_name,

@@ -206,7 +206,7 @@ pub(crate) struct TsUserClassBuilder<'a> {
     class_name: ClassName,
     dts: &'a DtsClassDecl,
     fields: HashMap<String, JsFieldDescription>,
-    methods: HashMap<String, MethodDescription>,
+    methods: HashMap<(String, MethodKind), MethodDescription>,
     constructor: Option<MethodDescription>,
     gen_id: Arc<GraphIdGenerator>,
     super_class: Option<ClassName>,
@@ -243,8 +243,10 @@ impl<'a> Visit for TsUserClassBuilder<'a> {
             MethodDescription::from(node)
         };
 
-        self.methods
-            .insert(method_desc.name.to_string(), method_desc);
+        self.methods.insert(
+            (method_desc.name.to_string(), method_desc.kind.clone()),
+            method_desc,
+        );
     }
     fn visit_constructor(&mut self, node: &swc_ecma_ast::Constructor) {
         let method_desc = if let Some(method_dts) = self.dts.constructor.as_ref() {

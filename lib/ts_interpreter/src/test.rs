@@ -5,7 +5,7 @@ pub mod ts_op_helpers {
 
     use ruse_object_graph::{root_name, str_cached, Number};
 
-    use crate::{opcode, ts_user_class::TsUserClass};
+    use crate::{opcode, ts_class::MethodKind, ts_user_class::TsUserClass};
 
     pub fn id_op(id: &str) -> Arc<opcode::IdentOp> {
         Arc::new(opcode::IdentOp::new(root_name!(id)))
@@ -14,8 +14,10 @@ pub mod ts_op_helpers {
     pub fn class_method_op(class: &TsUserClass, method_name: &str) -> Arc<opcode::ClassMethodOp> {
         Arc::new(opcode::ClassMethodOp::new(
             class.description.class_name.clone(),
-            &class.description.methods[method_name],
-            class.description.methods[method_name].param_types[0].clone()
+            &class.description.methods[&(method_name.to_string(), MethodKind::Method)],
+            class.description.methods[&(method_name.to_string(), MethodKind::Method)].param_types
+                [0]
+            .clone(),
         ))
     }
 
@@ -359,8 +361,12 @@ mod ts_class_tests {
 
         let mut builder = TsClassesBuilder::new();
 
-        builder.add_classes(code1).expect("Failed to add Student class");
-        builder.add_classes(code2).expect("Failed to add Class class");
+        builder
+            .add_classes(code1)
+            .expect("Failed to add Student class");
+        builder
+            .add_classes(code2)
+            .expect("Failed to add Class class");
 
         let classes = builder.finalize();
 
@@ -466,8 +472,12 @@ mod ts_class_tests {
         let id_gen = Arc::new(GraphIdGenerator::default());
         let mut builder = TsClassesBuilder::new();
 
-        builder.add_classes(code1).expect("Failed to add User class");
-        builder.add_classes(code2).expect("Failed to add UserPair class");
+        builder
+            .add_classes(code1)
+            .expect("Failed to add User class");
+        builder
+            .add_classes(code2)
+            .expect("Failed to add UserPair class");
 
         let classes = builder.finalize();
 
