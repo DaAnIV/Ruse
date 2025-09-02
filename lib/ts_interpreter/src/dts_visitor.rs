@@ -98,6 +98,7 @@ pub(crate) struct DtsVarDecl {
 pub(crate) struct DtsFnDecl {
     pub name: Id,
     pub params: Vec<Vec<ValueType>>,
+    pub has_rest_param: bool,
 }
 
 #[derive(Debug)]
@@ -114,6 +115,7 @@ pub(crate) struct DtsMethodDecl {
     pub name: Atom,
     pub kind: MethodKind,
     pub params: Vec<Vec<ValueType>>,
+    pub has_rest_param: bool,
     pub is_public: bool,
     pub is_static: bool,
 }
@@ -175,18 +177,20 @@ impl DtsVisitor {
             .collect()
     }
 
-    fn update_fn_decl(&mut self, id: Id, params: Option<Vec<ValueType>>) {
+    fn update_fn_decl(&mut self, id: Id, params: Option<Vec<ValueType>>, has_rest_param: bool) {
         match self.functions.entry(id.clone()) {
             std::collections::hash_map::Entry::Occupied(mut e) => {
                 let desc: &mut DtsFnDecl = e.get_mut();
                 if let Some(params) = params {
                     desc.params.push(params);
                 }
+                desc.has_rest_param |= has_rest_param;
             }
             std::collections::hash_map::Entry::Vacant(e) => {
                 e.insert(DtsFnDecl {
                     name: id,
                     params: params.map_or_else(Vec::new, |params| vec![params]),
+                    has_rest_param,
                 });
             }
         }
@@ -205,7 +209,8 @@ impl Visit for DtsVisitor {
                     swc_ecma_ast::TsFnOrConstructorType::TsFnType(ts_fn_type) => {
                         let params =
                             self.get_params_types_from_ts_fn_param(ts_fn_type.params.iter());
-                        self.update_fn_decl(ident.id.clone().into(), params);
+                        let has_rest_param = ts_fn_type.params.iter().any(|param| param.is_rest());
+                        self.update_fn_decl(ident.id.clone().into(), params, has_rest_param);
 
                         return;
                     }
@@ -230,7 +235,8 @@ impl Visit for DtsVisitor {
 
     fn visit_fn_decl(&mut self, node: &FnDecl) {
         let params = self.get_params_types_from_pat(node.function.params.iter().map(|x| &x.pat));
-        self.update_fn_decl(node.ident.clone().into(), params);
+        let has_rest_param = node.function.params.iter().any(|param| param.pat.is_rest());
+        self.update_fn_decl(node.ident.clone().into(), params, has_rest_param);
     }
 
     fn visit_class_decl(&mut self, node: &ClassDecl) {
@@ -294,6 +300,8 @@ impl Visit for DtsVisitor {
             None
         };
 
+        let has_rest_param = function.params.iter().any(|param| param.pat.is_rest());
+
         let class: &mut DtsClassDecl = self
             .classes
             .get_mut(self.current_class.as_ref().unwrap())
@@ -316,6 +324,7 @@ impl Visit for DtsVisitor {
                     name: id,
                     kind: node.kind.clone(),
                     params: params.map_or_else(Vec::new, |params| vec![params]),
+                    has_rest_param,
                     is_public,
                     is_static: node.is_static,
                 });
@@ -352,6 +361,17 @@ impl Visit for DtsVisitor {
             None
         };
 
+        let has_rest_param = node.params.iter().any(|param| match param {
+            swc_ecma_ast::ParamOrTsParamProp::Param(param) => param.pat.is_rest(),
+            swc_ecma_ast::ParamOrTsParamProp::TsParamProp(param) => match &param.param {
+                swc_ecma_ast::TsParamPropParam::Ident(ident) => ident
+                    .type_ann
+                    .as_ref()
+                    .map_or(false, |x| x.type_ann.is_ts_rest_type()),
+                swc_ecma_ast::TsParamPropParam::Assign(assign) => assign.left.is_rest(),
+            },
+        });
+
         let class: &mut DtsClassDecl = self
             .classes
             .get_mut(self.current_class.as_ref().unwrap())
@@ -372,10 +392,21 @@ impl Visit for DtsVisitor {
                     name: id,
                     kind: MethodKind::Method,
                     params: params.map_or_else(Vec::new, |params| vec![params]),
+                    has_rest_param,
                     is_public,
                     is_static: true,
                 });
             }
+        }
+    }
+
+    fn visit_ts_type_alias_decl(&mut self, node: &swc_ecma_ast::TsTypeAliasDecl) {
+        match node.type_ann.as_ref() {
+            ast::TsType::TsTypeLit(t) => {
+                println!("visit_ts_type_alias_decl: {:?}", t);
+                todo!()
+            }
+            _ => todo!(),
         }
     }
 }

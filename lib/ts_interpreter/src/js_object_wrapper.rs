@@ -119,10 +119,19 @@ impl JsUserClassWrapper {
         method: &MethodDescription,
         boa_ctx: &mut boa_engine::Context,
     ) -> boa_engine::NativeFunction {
+        let args_str = if method.has_rest_param {
+            let (last, rest) = method.param_names.split_last().unwrap();
+            if rest.is_empty() {
+                format!("...{}", last)
+            } else {
+                format!("{}, ...{}", &rest.join(", "), last,)
+            }
+        } else {
+            method.param_names.join(", ")
+        };
         let js_source_str = format!(
             "function __func({}) {{{}}}\n__func",
-            &method.param_names.join(", "),
-            &method.body_code,
+            args_str, &method.body_code,
         );
         let js_source = boa_engine::Source::from_bytes(&js_source_str);
         let js_func = boa_ctx.eval(js_source).unwrap();
@@ -287,14 +296,11 @@ impl JsUserClassWrapper {
             }
 
             if method.kind == MethodKind::Getter || method.kind == MethodKind::Setter {
-                let val = match getter_setters.entry(js_string!(method.name.as_str())) {
-                    std::collections::hash_map::Entry::Occupied(occupied_entry) => {
-                        occupied_entry.into_mut()
-                    }
-                    std::collections::hash_map::Entry::Vacant(vacant_entry) => {
-                        vacant_entry.insert((method.is_static, None, None))
-                    }
-                };
+                let val = getter_setters.entry(method.name.clone()).or_insert((
+                    method.is_static,
+                    None,
+                    None,
+                ));
 
                 match method.kind {
                     MethodKind::Getter => {
@@ -314,9 +320,9 @@ impl JsUserClassWrapper {
                 false => boa_engine::property::Attribute::WRITABLE,
             };
             if is_static {
-                builder.static_accessor(key, getter, setter, attribute);
+                builder.static_accessor(js_string!(key), getter, setter, attribute);
             } else {
-                builder.accessor(key, getter, setter, attribute);
+                builder.accessor(js_string!(key), getter, setter, attribute);
             }
         }
 

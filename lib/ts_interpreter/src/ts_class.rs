@@ -150,6 +150,7 @@ pub struct MethodDescription {
     pub name: String,
     pub param_names: Vec<String>,
     pub param_types: Vec<Vec<ValueType>>,
+    pub has_rest_param: bool,
     pub is_static: bool,
     pub is_private: bool,
     pub kind: MethodKind,
@@ -170,6 +171,7 @@ impl From<(&ast::ClassMethod, &DtsMethodDecl)> for MethodDescription {
             name,
             param_names,
             param_types: dts.params.clone(),
+            has_rest_param: dts.has_rest_param,
             is_static: dts.is_static,
             is_private: !dts.is_public,
             kind: decl.kind.into(),
@@ -192,6 +194,7 @@ impl From<(&ast::Constructor, &DtsMethodDecl)> for MethodDescription {
             name,
             param_names,
             param_types: dts.params.clone(),
+            has_rest_param: dts.has_rest_param,
             is_static: true,
             is_private: !dts.is_public,
             kind: MethodKind::Method,
@@ -209,11 +212,22 @@ impl From<&ast::Constructor> for MethodDescription {
             .map(|id| (id.sym.to_string()))
             .collect();
         let access = decl.accessibility.unwrap_or(ast::Accessibility::Public);
+        let has_rest_param = decl.params.iter().any(|param| match param {
+            swc_ecma_ast::ParamOrTsParamProp::Param(param) => param.pat.is_rest(),
+            swc_ecma_ast::ParamOrTsParamProp::TsParamProp(param) => match &param.param {
+                swc_ecma_ast::TsParamPropParam::Ident(ident) => ident
+                    .type_ann
+                    .as_ref()
+                    .map_or(false, |x| x.type_ann.is_ts_rest_type()),
+                swc_ecma_ast::TsParamPropParam::Assign(assign) => assign.left.is_rest(),
+            },
+        });
 
         MethodDescription {
             name,
             param_names,
             param_types: vec![],
+            has_rest_param,
             is_static: true,
             is_private: access != ast::Accessibility::Public,
             kind: MethodKind::Method,
@@ -232,10 +246,17 @@ impl From<&ast::ClassMethod> for MethodDescription {
             .map(|id| (id.sym.to_string()))
             .collect();
 
+        let has_rest_param = value
+            .function
+            .params
+            .iter()
+            .any(|param| param.pat.is_rest());
+
         MethodDescription {
             name,
             param_names,
             param_types: vec![],
+            has_rest_param,
             is_static: value.is_static,
             is_private: access != ast::Accessibility::Public,
             kind: value.kind.into(),
@@ -260,6 +281,7 @@ impl From<(&ast::FnDecl, &DtsFnDecl, bool)> for MethodDescription {
             name,
             param_names,
             param_types: dts.params.clone(),
+            has_rest_param: dts.has_rest_param,
             is_static: true,
             is_private,
             kind: MethodKind::GlobalFunction,
@@ -276,11 +298,13 @@ impl From<&ast::FnDecl> for MethodDescription {
             .into_iter()
             .map(|id| (id.sym.to_string()))
             .collect();
+        let has_rest_param = decl.function.params.iter().any(|param| param.pat.is_rest());
 
         MethodDescription {
             name,
             param_names,
             param_types: vec![],
+            has_rest_param,
             is_static: true,
             is_private: true,
             kind: MethodKind::GlobalFunction,
