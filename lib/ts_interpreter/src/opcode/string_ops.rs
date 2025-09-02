@@ -38,6 +38,7 @@ impl ExprOpcode for StringSplitOp {
         args: &[&LocValue],
         post_ctx: &mut Context,
         _syn_ctx: &SynthesizerContext,
+        _worker_ctx: &mut SynthesizerWorkerContext,
     ) -> EvalResult {
         debug_assert_eq!(args.len(), 2);
 
@@ -90,6 +91,7 @@ impl ExprOpcode for StringConcatOp {
         args: &[&LocValue],
         post_ctx: &mut Context,
         _syn_ctx: &SynthesizerContext,
+        _worker_ctx: &mut SynthesizerWorkerContext,
     ) -> EvalResult {
         debug_assert_eq!(args.len(), 2);
 
@@ -138,6 +140,7 @@ impl ExprOpcode for StringSliceOp {
         args: &[&LocValue],
         post_ctx: &mut Context,
         _syn_ctx: &SynthesizerContext,
+        _worker_ctx: &mut SynthesizerWorkerContext,
     ) -> EvalResult {
         let string = args[0].val().string_value().unwrap();
 
@@ -191,7 +194,8 @@ impl ExprOpcode for StringLengthOp {
         &self,
         args: &[&LocValue],
         post_ctx: &mut Context,
-        _: &SynthesizerContext,
+        _syn_ctx: &SynthesizerContext,
+        _worker_ctx: &mut SynthesizerWorkerContext,
     ) -> EvalResult {
         debug_assert_eq!(args.len(), 1);
 
@@ -238,7 +242,8 @@ impl ExprOpcode for StringLastIndexOfOp {
         &self,
         args: &[&LocValue],
         post_ctx: &mut Context,
-        _: &SynthesizerContext,
+        _syn_ctx: &SynthesizerContext,
+        _worker_ctx: &mut SynthesizerWorkerContext,
     ) -> EvalResult {
         debug_assert_eq!(args.len(), 2);
 
@@ -290,7 +295,8 @@ impl ExprOpcode for StringIndexOfOp {
         &self,
         args: &[&LocValue],
         post_ctx: &mut Context,
-        _: &SynthesizerContext,
+        _syn_ctx: &SynthesizerContext,
+        _worker_ctx: &mut SynthesizerWorkerContext,
     ) -> EvalResult {
         debug_assert_eq!(args.len(), 2);
 
@@ -337,6 +343,7 @@ impl ExprOpcode for StringReplaceAllOp {
         args: &[&LocValue],
         post_ctx: &mut Context,
         _syn_ctx: &SynthesizerContext,
+        _worker_ctx: &mut SynthesizerWorkerContext,
     ) -> EvalResult {
         debug_assert_eq!(args.len(), 3);
 
@@ -381,6 +388,7 @@ impl ExprOpcode for StringAtOp {
         args: &[&LocValue],
         post_ctx: &mut Context,
         _syn_ctx: &SynthesizerContext,
+        _worker_ctx: &mut SynthesizerWorkerContext,
     ) -> EvalResult {
         debug_assert_eq!(args.len(), 2);
 
@@ -457,6 +465,7 @@ impl ExprOpcode for StringSubstringOp {
         args: &[&LocValue],
         post_ctx: &mut Context,
         _syn_ctx: &SynthesizerContext,
+        _worker_ctx: &mut SynthesizerWorkerContext,
     ) -> EvalResult {
         debug_assert_eq!(args.len(), self.arg_types.len());
 

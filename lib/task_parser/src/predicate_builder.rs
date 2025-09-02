@@ -2,13 +2,15 @@ use itertools::{izip, Itertools};
 use ruse_object_graph::graph_map_value::GraphMapWrap;
 use ruse_object_graph::GraphsMap;
 use ruse_object_graph::{value::Value, ValueType};
-use ruse_synthesizer::context::ValuesMap;
+use ruse_synthesizer::context::{SynthesizerWorkerContext, ValuesMap};
 use ruse_synthesizer::{context::SynthesizerContext, prog::SubProgram};
-use ruse_ts_interpreter::engine_context::EngineContext;
 use ruse_ts_interpreter::js_value::TryIntoJs;
+use ruse_ts_interpreter::js_worker_context::JsWorkerContextData;
 use ruse_ts_interpreter::ts_classes::TsClasses;
 
-pub type SynthesizerPredicate = Box<dyn Fn(&SubProgram, &SynthesizerContext) -> bool + Send + Sync>;
+pub type SynthesizerPredicate = Box<
+    dyn Fn(&SubProgram, &SynthesizerContext, &mut SynthesizerWorkerContext) -> bool + Send + Sync,
+>;
 
 pub struct PredicateBuilder {
     pub output_type: Option<ValueType>,
@@ -87,10 +89,14 @@ impl PredicateBuilder {
         predicate_js: &[String],
         p: &SubProgram,
         syn_ctx: &SynthesizerContext,
+        worker_ctx: &mut SynthesizerWorkerContext,
     ) -> bool {
         let classes = syn_ctx.data.downcast_ref::<TsClasses>().unwrap();
-        let mut boa_ctx = EngineContext::new_boa_ctx();
-        let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, classes);
+        let worker_ctx = worker_ctx
+            .data
+            .downcast_mut::<JsWorkerContextData>()
+            .unwrap();
+        let mut engine_ctx = worker_ctx.get_engine_ctx(classes);
 
         debug_assert!(
             p.post_ctx().len() == p.out_value().len() && p.post_ctx().len() == predicate_js.len()
@@ -107,11 +113,7 @@ impl PredicateBuilder {
             arg_names.push("__output__");
             js_values.push(output.val().try_into_js(&mut engine_ctx).unwrap());
 
-            let code = format!(
-                "({}) => {{return {}}}",
-                arg_names.join(", "),
-                js
-            );
+            let code = format!("({}) => {{return {}}}", arg_names.join(", "), js);
             let js_func = engine_ctx
                 .eval(boa_engine::Source::from_bytes(&code))
                 .unwrap();
@@ -132,15 +134,25 @@ impl PredicateBuilder {
         true
     }
 
-    fn js_predicate(&self, p: &SubProgram, syn_ctx: &SynthesizerContext) -> bool {
+    fn js_predicate(
+        &self,
+        p: &SubProgram,
+        syn_ctx: &SynthesizerContext,
+        worker_ctx: &mut SynthesizerWorkerContext,
+    ) -> bool {
         if let Some(predicate_js) = &self.predicate_js {
-            return self.js_predicate_inner(predicate_js, p, syn_ctx);
+            return self.js_predicate_inner(predicate_js, p, syn_ctx, worker_ctx);
         } else {
             true
         }
     }
 
-    fn predicate(&self, p: &SubProgram, syn_ctx: &SynthesizerContext) -> bool {
+    fn predicate(
+        &self,
+        p: &SubProgram,
+        syn_ctx: &SynthesizerContext,
+        worker_ctx: &mut SynthesizerWorkerContext,
+    ) -> bool {
         if !self.output_type_predicate(p, syn_ctx) {
             return false;
         }
@@ -150,7 +162,7 @@ impl PredicateBuilder {
         if !self.state_predicate(p, syn_ctx) {
             return false;
         }
-        if !self.js_predicate(p, syn_ctx) {
+        if !self.js_predicate(p, syn_ctx, worker_ctx) {
             return false;
         }
 
@@ -158,7 +170,13 @@ impl PredicateBuilder {
     }
 
     pub fn finalize(self) -> SynthesizerPredicate {
-        Box::new(move |p: &SubProgram, syn_ctx: &SynthesizerContext| self.predicate(p, syn_ctx))
+        Box::new(
+            move |p: &SubProgram,
+                  syn_ctx: &SynthesizerContext,
+                  worker_ctx: &mut SynthesizerWorkerContext| {
+                self.predicate(p, syn_ctx, worker_ctx)
+            },
+        )
     }
 }
 
@@ -167,7 +185,12 @@ pub struct ValidPredicateBuilder {
 }
 
 impl ValidPredicateBuilder {
-    fn predicate(&self, p: &SubProgram, _syn_ctx: &SynthesizerContext) -> bool {
+    fn predicate(
+        &self,
+        p: &SubProgram,
+        _syn_ctx: &SynthesizerContext,
+        _worker_ctx: &mut SynthesizerWorkerContext,
+    ) -> bool {
         if p.out_type() == &ValueType::String {
             if p.out_value().iter().any(|x| {
                 let str_val = unsafe { x.val().string_value().unwrap_unchecked() };
@@ -180,6 +203,12 @@ impl ValidPredicateBuilder {
     }
 
     pub fn finalize(self) -> SynthesizerPredicate {
-        Box::new(move |p: &SubProgram, syn_ctx: &SynthesizerContext| self.predicate(p, syn_ctx))
+        Box::new(
+            move |p: &SubProgram,
+                  syn_ctx: &SynthesizerContext,
+                  worker_ctx: &mut SynthesizerWorkerContext| {
+                self.predicate(p, syn_ctx, worker_ctx)
+            },
+        )
     }
 }

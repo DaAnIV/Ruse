@@ -386,8 +386,7 @@ pub fn get_value_from_expr(
                 }
             }
 
-            let mut boa_ctx = EngineContext::new_boa_ctx();
-            let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, classes);
+            let mut engine_ctx = EngineContext::create_engine_ctx(classes);
 
             engine_ctx.reset_with_graph(graph_id, graphs_map, classes, id_gen);
 
@@ -417,7 +416,7 @@ pub trait TsClass: Send + Sync + Debug {
     fn wrap_as_js_object(
         &self,
         obj: ObjectValue,
-        engine_ctx: &mut EngineContext<'_>,
+        engine_ctx: &mut EngineContext,
     ) -> JsResult<boa_engine::JsObject>;
 }
 
@@ -427,18 +426,18 @@ pub trait TsBuiltinClass: TsClass {
     fn get_from_js_obj(
         &self,
         value: &boa_engine::JsObject,
-        engine_ctx: &mut EngineContext<'_>,
+        engine_ctx: &mut EngineContext,
     ) -> Result<ObjectValue, boa_engine::JsError>;
 }
 
 pub trait BuiltinClassWrapper {
     fn build_standard_constructor(
-        engine_ctx: &mut EngineContext<'_>,
+        engine_ctx: &mut EngineContext,
     ) -> JsResult<StandardConstructor>;
 
     fn wrap_object(
         map_obj: &ObjectValue,
-        engine_ctx: &mut EngineContext<'_>,
+        engine_ctx: &mut EngineContext,
     ) -> boa_engine::JsResult<boa_engine::JsObject>;
 }
 

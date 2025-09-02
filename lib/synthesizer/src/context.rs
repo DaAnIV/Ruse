@@ -69,13 +69,30 @@ impl Default for GraphIdGenerator {
 pub trait SynthesizerContextData: DowncastSync {}
 impl_downcast!(sync SynthesizerContextData);
 
-pub struct EmptySynthesizerData {}
-impl SynthesizerContextData for EmptySynthesizerData {}
-
 pub struct SynthesizerContext {
     all_variables: Arc<BTreeMap<VariableName, Variable>>,
     pub start_context: ContextArray,
     pub data: Box<dyn SynthesizerContextData>,
+}
+
+pub trait SynthesizerWorkerContextData: DowncastSync {}
+impl_downcast!(sync SynthesizerWorkerContextData);
+
+pub struct EmptySynthesizerData {}
+impl SynthesizerContextData for EmptySynthesizerData {}
+impl SynthesizerWorkerContextData for EmptySynthesizerData {}
+
+pub struct SynthesizerWorkerContext {
+    pub index: usize,
+    pub data: Box<dyn SynthesizerWorkerContextData>,
+}
+impl Default for SynthesizerWorkerContext {
+    fn default() -> Self {
+        Self {
+            index: 0,
+            data: Box::new(EmptySynthesizerData {}),
+        }
+    }
 }
 
 impl SynthesizerContext {

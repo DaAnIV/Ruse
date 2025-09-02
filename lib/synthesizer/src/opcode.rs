@@ -3,7 +3,7 @@ use std::ops::Deref;
 use std::sync::Arc;
 use std::{any::Any, fmt::Debug};
 
-use crate::context::{Context, SynthesizerContext, VariableName};
+use crate::context::{Context, SynthesizerContext, SynthesizerWorkerContext, VariableName};
 
 use crate::location::LocValue;
 use ruse_object_graph::ValueType;
@@ -62,6 +62,7 @@ pub trait ExprOpcode: Debug + Sync + Send {
         args: &[&LocValue],
         post_ctx: &mut Context,
         syn_ctx: &SynthesizerContext,
+        worker_ctx: &mut SynthesizerWorkerContext,
     ) -> EvalResult;
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst>;
 

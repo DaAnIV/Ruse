@@ -32,7 +32,8 @@ impl ExprOpcode for LitOp {
         &self,
         args: &[&LocValue],
         post_ctx: &mut Context,
-        _: &SynthesizerContext,
+        _syn_ctx: &SynthesizerContext,
+        _worker_ctx: &mut SynthesizerWorkerContext,
     ) -> EvalResult {
         debug_assert_eq!(args.len(), 0);
         let val = match self {
@@ -99,6 +100,7 @@ impl ExprOpcode for ArrayLitOp {
         args: &[&LocValue],
         post_ctx: &mut Context,
         _syn_ctx: &SynthesizerContext,
+        _worker_ctx: &mut SynthesizerWorkerContext,
     ) -> EvalResult {
         let values = args.iter().map(|val| (val.val().clone()));
 

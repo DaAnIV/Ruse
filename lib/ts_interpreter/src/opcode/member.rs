@@ -46,6 +46,7 @@ impl ExprOpcode for MemberOp {
         args: &[&LocValue],
         post_ctx: &mut Context,
         _syn_ctx: &SynthesizerContext,
+        _worker_ctx: &mut SynthesizerWorkerContext,
     ) -> EvalResult {
         debug_assert_eq!(args.len(), 1);
 
@@ -112,7 +113,8 @@ impl ExprOpcode for StaticMemberOp {
         &self,
         _args: &[&LocValue],
         post_ctx: &mut Context,
-        _: &SynthesizerContext,
+        _syn_ctx: &SynthesizerContext,
+        _worker_ctx: &mut SynthesizerWorkerContext,
     ) -> EvalResult {
         post_ctx.insert_if_new(self.initial_graph.clone());
         pure!(self.value.clone())

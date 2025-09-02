@@ -42,6 +42,7 @@ mod ts_simple_opcodes_tests {
     use ruse_synthesizer::test::helpers::generate_context_from_array;
     use swc_ecma_ast as ast;
 
+    use crate::js_worker_context::create_js_worker_context;
     use crate::opcode::*;
     use crate::test::ts_op_helpers::*;
     use ruse_object_graph::Number;
@@ -52,6 +53,8 @@ mod ts_simple_opcodes_tests {
         let graphs_map = GraphsMap::default();
         let ctx_arr = ContextArray::default();
         let syn_ctx = SynthesizerContext::from_context_array(ctx_arr);
+        let mut worker_ctx = create_js_worker_context(0);
+
         let ctx = &syn_ctx.start_context[0].clone();
         let mut out_ctx = ctx.clone();
         let evaluator = BinOp::new(ast::BinaryOp::Add, ValueType::Number, ValueType::Number);
@@ -60,7 +63,9 @@ mod ts_simple_opcodes_tests {
             &ctx.temp_value(vnum!(Number::from(3u64))),
             &ctx.temp_value(vnum!(Number::from(4u64))),
         ];
-        let out = evaluator.eval(&args, &mut out_ctx, &syn_ctx).unwrap();
+        let out = evaluator
+            .eval(&args, &mut out_ctx, &syn_ctx, &mut worker_ctx)
+            .unwrap();
         assert_eq!(
             out.val().wrap(&graphs_map),
             vnum!(Number::from(7u64)).wrap(&graphs_map)
@@ -72,13 +77,17 @@ mod ts_simple_opcodes_tests {
         let graphs_map = GraphsMap::default();
         let ctx_arr = ContextArray::default();
         let syn_ctx = SynthesizerContext::from_context_array(ctx_arr);
+        let mut worker_ctx = create_js_worker_context(0);
+
         let ctx = &syn_ctx.start_context[0];
         let mut out_ctx = ctx.clone();
         let evaluator = BinOp::new(ast::BinaryOp::Add, ValueType::String, ValueType::String);
 
         let args = [&ctx.temp_value(vstr!("a")), &ctx.temp_value(vstr!("b"))];
 
-        let out = evaluator.eval(&args, &mut out_ctx, &syn_ctx).unwrap();
+        let out = evaluator
+            .eval(&args, &mut out_ctx, &syn_ctx, &mut worker_ctx)
+            .unwrap();
         assert_eq!(out.val().wrap(&graphs_map), vstr!("ab").wrap(&graphs_map));
     }
 
@@ -92,10 +101,14 @@ mod ts_simple_opcodes_tests {
             id_gen,
         )]);
         let syn_ctx = SynthesizerContext::from_context_array(ctx_arr);
+        let mut worker_ctx = create_js_worker_context(0);
+
         let ctx = &syn_ctx.start_context[0];
         let mut out_ctx = ctx.clone();
         let evaluator = id_op("x");
-        let out = evaluator.eval(&[], &mut out_ctx, &syn_ctx).unwrap();
+        let out = evaluator
+            .eval(&[], &mut out_ctx, &syn_ctx, &mut worker_ctx)
+            .unwrap();
         assert_eq!(
             out.val().wrap(&out_ctx.graphs_map),
             vnum!(Number::from(7u64)).wrap(&out_ctx.graphs_map)
@@ -112,15 +125,24 @@ mod ts_simple_opcodes_tests {
             id_gen,
         )]);
         let syn_ctx = SynthesizerContext::from_context_array(ctx_arr);
+        let mut worker_ctx = create_js_worker_context(0);
+
         let ctx = &syn_ctx.start_context[0];
         let id = id_op("x");
         let op = UpdateOp::new(ast::UpdateOp::PlusPlus, true);
         let mut id_out_ctx = ctx.clone();
-        let x_val = id.eval(&[], &mut id_out_ctx, &syn_ctx).unwrap();
+        let x_val = id
+            .eval(&[], &mut id_out_ctx, &syn_ctx, &mut worker_ctx)
+            .unwrap();
 
         let mut update_out_ctx = id_out_ctx.clone();
         let out = op
-            .eval(&[&x_val.output], &mut update_out_ctx, &syn_ctx)
+            .eval(
+                &[&x_val.output],
+                &mut update_out_ctx,
+                &syn_ctx,
+                &mut worker_ctx,
+            )
             .unwrap();
         assert_eq!(
             ctx.get_var_loc_value(&id.name, &syn_ctx)
@@ -165,14 +187,20 @@ mod ts_simple_opcodes_tests {
             id_gen,
         )]);
         let syn_ctx = SynthesizerContext::from_context_array(ctx_arr);
+        let mut worker_ctx = create_js_worker_context(0);
+
         let ctx = &syn_ctx.start_context[0];
         let id = id_op("x");
         let op = UpdateOp::new(ast::UpdateOp::PlusPlus, false);
         let mut id_out_ctx = ctx.clone();
-        let x_val = id.eval(&[], &mut id_out_ctx, &syn_ctx).unwrap();
+        let x_val = id
+            .eval(&[], &mut id_out_ctx, &syn_ctx, &mut worker_ctx)
+            .unwrap();
 
         let mut update_out_ctx = id_out_ctx.clone();
-        let out = op.eval(&[&x_val], &mut update_out_ctx, &syn_ctx).unwrap();
+        let out = op
+            .eval(&[&x_val], &mut update_out_ctx, &syn_ctx, &mut worker_ctx)
+            .unwrap();
         assert_eq!(
             ctx.get_var_loc_value(&id.name, &syn_ctx)
                 .expect("Didn't find var")
@@ -211,13 +239,16 @@ mod ts_simple_opcodes_tests {
         let ctx = generate_context_from_array(root_name!("x"), &ValueType::Number, []);
         let ctx_arr = ContextArray::from(vec![ctx]);
         let syn_ctx = SynthesizerContext::from_context_array(ctx_arr);
+        let mut worker_ctx = create_js_worker_context(0);
 
         let ctx = &syn_ctx.start_context[0];
         let id = id_op("x");
         let op = ArrayPushOp::new(&ValueType::Number);
 
         let mut id_out_ctx = ctx.clone();
-        let x_val = id.eval(&[], &mut id_out_ctx, &syn_ctx).unwrap();
+        let x_val = id
+            .eval(&[], &mut id_out_ctx, &syn_ctx, &mut worker_ctx)
+            .unwrap();
 
         let mut update_out_ctx = id_out_ctx.clone();
         let num_to_push = update_out_ctx.temp_value(vnum!(Number::from(1)));
@@ -226,6 +257,7 @@ mod ts_simple_opcodes_tests {
                 &[&x_val.output, &num_to_push],
                 &mut update_out_ctx,
                 &syn_ctx,
+                &mut worker_ctx,
             )
             .unwrap();
 
@@ -280,6 +312,7 @@ mod ts_class_tests {
 
     use crate::engine_context::EngineContext;
     use crate::js_value::{TryFromJs, TryIntoJs};
+    use crate::js_worker_context::create_js_worker_context;
     use crate::test::ts_op_helpers::*;
     use crate::{
         ts_class::TsClass,
@@ -437,19 +470,18 @@ mod ts_class_tests {
         );
 
         let mut ctx = Context::with_values([].into(), graphs_map.into(), id_gen);
-        let mut boa_ctx = EngineContext::new_boa_ctx();
-        let mut engine_context = EngineContext::create_engine_ctx(&mut boa_ctx, &classes);
+        let mut engine_context = EngineContext::create_engine_ctx(&classes);
         engine_context.reset_with_mut_context(&mut ctx, &classes);
 
         let js_user = user_class
             .wrap_as_js_object(user, &mut engine_context)
             .unwrap();
-        boa_ctx
+        engine_context
             .register_global_property(js_string!("u"), js_user, Attribute::all())
             .expect("Failed to register p");
 
         let js_code = boa_engine::Source::from_bytes("u.name + \" \" + u.surname");
-        let res = boa_ctx.eval(js_code).unwrap();
+        let res = engine_context.eval(js_code).unwrap();
         assert!(res.is_string());
         assert_eq!(res.as_string().unwrap(), &js_string!("John Doe"));
     }
@@ -528,19 +560,18 @@ mod ts_class_tests {
         );
 
         let mut ctx = Context::with_values([].into(), graphs_map.into(), id_gen);
-        let mut boa_ctx = EngineContext::new_boa_ctx();
-        let mut engine_context = EngineContext::create_engine_ctx(&mut boa_ctx, &classes);
+        let mut engine_context = EngineContext::create_engine_ctx(&classes);
         engine_context.reset_with_mut_context(&mut ctx, &classes);
 
         let js_obj = user_class_pair
             .wrap_as_js_object(complex_user, &mut engine_context)
             .unwrap();
-        boa_ctx
+        engine_context
             .register_global_property(js_string!("up"), js_obj, Attribute::all())
             .expect("Failed to register p");
 
         let js_code = boa_engine::Source::from_bytes("up.user1.name + \" \" + up.user2.name");
-        let res = boa_ctx.eval(js_code).unwrap();
+        let res = engine_context.eval(js_code).unwrap();
         assert!(res.is_string());
         assert_eq!(res.as_string().unwrap(), &js_string!("John Paul"));
     }
@@ -590,8 +621,7 @@ mod ts_class_tests {
         let classes_ref = syn_ctx.data.downcast_ref::<TsClasses>().unwrap();
         let user_class = classes_ref.get_user_class(&user_class_name).unwrap();
 
-        let mut boa_ctx = EngineContext::new_boa_ctx();
-        let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, classes_ref);
+        let mut engine_ctx = EngineContext::create_engine_ctx(classes_ref);
         engine_ctx.reset_with_mut_context(&mut ctx, classes_ref);
 
         ctx.get_var_loc_value(&root_name!("u"), &syn_ctx)
@@ -683,16 +713,17 @@ mod ts_class_tests {
         let ctx = Context::with_values(values, graphs_map.into(), id_gen);
         let ctx_arr = ContextArray::from(vec![ctx]);
         let syn_ctx = SynthesizerContext::from_context_array_with_data(ctx_arr.clone(), classes);
+        let mut worker_ctx = create_js_worker_context(0);
 
         let classes_ref = syn_ctx.data.downcast_ref::<TsClasses>().unwrap();
         let user_class = classes_ref.get_user_class(&user_class_name).unwrap();
 
         let user_op = id_op("user");
-        let user_prog = get_init_prog(user_op, &ctx_arr, &syn_ctx);
+        let user_prog = get_init_prog(user_op, &ctx_arr, &syn_ctx, &mut worker_ctx);
         println!("{}\n", user_prog);
 
         let str_lit_op = lit_str_op("Lit");
-        let str_lit_prog = get_init_prog(str_lit_op, &ctx_arr, &syn_ctx);
+        let str_lit_prog = get_init_prog(str_lit_op, &ctx_arr, &syn_ctx, &mut worker_ctx);
         println!("{}\n", str_lit_prog);
 
         let test_op = user_class.method_opcodes[0].clone();
@@ -700,6 +731,7 @@ mod ts_class_tests {
             test_op,
             vec![user_prog.clone(), str_lit_prog.clone()],
             &syn_ctx,
+            &mut worker_ctx,
         );
         println!("{}\n", test_prog);
         let user_after = test_prog.post_ctx()[0]
@@ -760,8 +792,7 @@ mod ts_class_tests {
         let graph_id = id_gen.get_id_for_graph();
         graphs_map.ensure_graph(graph_id);
 
-        let mut boa_ctx = EngineContext::new_boa_ctx();
-        let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, &classes);
+        let mut engine_ctx = EngineContext::create_engine_ctx(&classes);
         engine_ctx.reset_with_graph(graph_id, &mut graphs_map, &classes, &id_gen);
 
         let user_class = classes.get_user_class(&user_class_name).unwrap();
@@ -812,8 +843,7 @@ mod ts_class_tests {
 
         let graph_id = id_gen.get_id_for_graph();
         graphs_map.ensure_graph(graph_id);
-        let mut boa_ctx = EngineContext::new_boa_ctx();
-        let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, &classes);
+        let mut engine_ctx = EngineContext::create_engine_ctx(&classes);
         engine_ctx.reset_with_graph(graph_id, &mut graphs_map, &classes, &id_gen);
 
         let res = engine_ctx
@@ -900,6 +930,7 @@ mod specific_bugs_tests {
     };
 
     use crate::{
+        js_worker_context::create_js_worker_context,
         opcode::{ArrayIndexOp, ArrayLengthOp, ArrayPushOp, ArraySpliceOp},
         test::ts_op_helpers::*,
     };
@@ -913,20 +944,23 @@ mod specific_bugs_tests {
         );
         let ctx_arr = ContextArray::from(vec![ctx]);
         let syn_ctx = SynthesizerContext::from_context_array(ctx_arr.clone());
+        let mut worker_ctx = create_js_worker_context(0);
 
         let id_op = id_op("names");
         let one_op = lit_number_op(1);
         let splice_op = Arc::new(ArraySpliceOp::new(&ValueType::String, false));
         let len_op = Arc::new(ArrayLengthOp::new(&ValueType::String));
 
-        let names_prog = get_init_prog(id_op, &ctx_arr, &syn_ctx);
-        let one_prog = get_init_prog(one_op, &ctx_arr, &syn_ctx);
+        let names_prog = get_init_prog(id_op, &ctx_arr, &syn_ctx, &mut worker_ctx);
+        let one_prog = get_init_prog(one_op, &ctx_arr, &syn_ctx, &mut worker_ctx);
         let splice_prog = get_composite_prog(
             splice_op,
             vec![names_prog.clone(), one_prog.clone()],
             &syn_ctx,
+            &mut worker_ctx,
         );
-        let len_prog = get_composite_prog(len_op, vec![names_prog.clone()], &syn_ctx);
+        let len_prog =
+            get_composite_prog(len_op, vec![names_prog.clone()], &syn_ctx, &mut worker_ctx);
 
         println!("{}", splice_prog);
         println!("");
@@ -960,6 +994,7 @@ mod specific_bugs_tests {
         );
         let ctx_arr = ContextArray::from(vec![ctx]);
         let syn_ctx = SynthesizerContext::from_context_array(ctx_arr.clone());
+        let mut worker_ctx = create_js_worker_context(0);
 
         let arr_op = id_op("arr");
         let zero_op = lit_number_op(0);
@@ -983,6 +1018,7 @@ mod specific_bugs_tests {
             ),
             &ctx_arr,
             &syn_ctx,
+            &mut worker_ctx,
         );
 
         let expected_ctx = ruse_synthesizer::test::helpers::generate_context_from_array(
@@ -1030,6 +1066,7 @@ mod specific_bugs_tests {
         let ctx = Context::with_values(values, graphs_map.into(), graph_id_gen);
         let ctx_arr = ContextArray::from(vec![ctx]);
         let syn_ctx = SynthesizerContext::from_context_array(ctx_arr.clone());
+        let mut worker_ctx = create_js_worker_context(0);
 
         let arr_op = id_op("arr");
         let i_op = id_op("i");
@@ -1053,6 +1090,7 @@ mod specific_bugs_tests {
             ),
             &ctx_arr,
             &syn_ctx,
+            &mut worker_ctx,
         );
 
         let expected_ctx = ruse_synthesizer::test::helpers::generate_context_from_array(

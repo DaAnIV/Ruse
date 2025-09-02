@@ -70,7 +70,8 @@ impl ExprOpcode for UnaryOp {
         &self,
         args: &[&LocValue],
         post_ctx: &mut Context,
-        _: &SynthesizerContext,
+        _syn_ctx: &SynthesizerContext,
+        _worker_ctx: &mut SynthesizerWorkerContext,
     ) -> EvalResult {
         debug_assert_eq!(args.len(), 1);
         let res = match &args[0].val() {
@@ -133,6 +134,7 @@ impl ExprOpcode for UpdateOp {
         args: &[&LocValue],
         post_ctx: &mut Context,
         syn_ctx: &SynthesizerContext,
+        _worker_ctx: &mut SynthesizerWorkerContext,
     ) -> EvalResult {
         debug_assert_eq!(args.len(), 1);
 

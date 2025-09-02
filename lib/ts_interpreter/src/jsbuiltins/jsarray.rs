@@ -43,7 +43,7 @@ impl BuiltinArrayClass {
     fn get_from_js_array(
         &self,
         js_array: &boa_engine::object::builtins::JsArray,
-        engine_ctx: &mut EngineContext<'_>,
+        engine_ctx: &mut EngineContext,
     ) -> JsResult<ObjectValue> {
         let arr_len = js_array.length(engine_ctx).unwrap() as i64;
         if arr_len == 0 {
@@ -65,7 +65,7 @@ impl BuiltinArrayClass {
     fn get_from_js_typed_array(
         &self,
         js_typed_array: &JsTypedArray,
-        engine_ctx: &mut EngineContext<'_>,
+        engine_ctx: &mut EngineContext,
     ) -> Result<ObjectValue, boa_engine::JsError> {
         let arr_len = js_typed_array.length(engine_ctx).unwrap() as i64;
         if arr_len == 0 {
@@ -95,7 +95,7 @@ impl TsClass for BuiltinArrayClass {
     fn wrap_as_js_object(
         &self,
         obj: ObjectValue,
-        engine_ctx: &mut EngineContext<'_>,
+        engine_ctx: &mut EngineContext,
     ) -> JsResult<boa_engine::JsObject> {
         JsArrayWrapper::wrap_object(&obj, engine_ctx)
     }
@@ -121,7 +121,7 @@ impl TsBuiltinClass for BuiltinArrayClass {
     fn get_from_js_obj(
         &self,
         value: &boa_engine::JsObject,
-        engine_ctx: &mut EngineContext<'_>,
+        engine_ctx: &mut EngineContext,
     ) -> JsResult<ObjectValue> {
         if let Ok(js_array) = boa_engine::object::builtins::JsArray::from_object(value.clone()) {
             self.get_from_js_array(&js_array, engine_ctx)
@@ -160,7 +160,7 @@ impl JsArrayWrapper {
 
 impl BuiltinClassWrapper for JsArrayWrapper {
     fn build_standard_constructor(
-        engine_ctx: &mut EngineContext<'_>,
+        engine_ctx: &mut EngineContext,
     ) -> JsResult<StandardConstructor> {
         let symbol_iterator = JsSymbol::iterator();
         let symbol_unscopables = JsSymbol::unscopables();
@@ -281,7 +281,7 @@ impl BuiltinClassWrapper for JsArrayWrapper {
 
     fn wrap_object(
         array_obj: &ObjectValue,
-        engine_ctx: &mut EngineContext<'_>,
+        engine_ctx: &mut EngineContext,
     ) -> boa_engine::JsResult<boa_engine::JsObject> {
         if !array_obj.is_array() {
             return Err(js_error_not_array_value());
@@ -305,7 +305,13 @@ impl BuiltinClassWrapper for JsArrayWrapper {
                 .map(|x| x.to_js_function(builder.context().realm()));
             let setter = Self::setter_for_index(i as u64)
                 .map(|x| x.to_js_function(builder.context().realm()));
-            builder.accessor(i, getter, setter, boa_engine::property::Attribute::WRITABLE);
+            builder.accessor(
+                i,
+                getter,
+                setter,
+                boa_engine::property::Attribute::WRITABLE
+                    | boa_engine::property::Attribute::ENUMERABLE,
+            );
         }
 
         let obj = builder.build();

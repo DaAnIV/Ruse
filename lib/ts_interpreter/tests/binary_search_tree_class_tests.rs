@@ -16,11 +16,7 @@ use ruse_synthesizer::{
 };
 use ruse_task_parser::predicate_builder::PredicateBuilder;
 use ruse_ts_interpreter::{
-    engine_context::EngineContext,
-    test::ts_op_helpers::*,
-    ts_class::MethodKind,
-    ts_classes::{TsClasses, TsClassesBuilder},
-    ts_user_class::TsUserClass,
+    engine_context::EngineContext, js_worker_context::create_js_worker_context, test::ts_op_helpers::*, ts_class::MethodKind, ts_classes::{TsClasses, TsClassesBuilder}, ts_user_class::TsUserClass
 };
 
 const BINARY_SEARCH_TREE_TS_PATH: &str = "../../benchmarks/tasks/classes/binary_search_tree.ts";
@@ -115,8 +111,7 @@ fn tests_construct_binary_tree() {
     let mut graphs_map = GraphsMap::default();
     graphs_map.ensure_graph(graph_id);
 
-    let mut boa_ctx = EngineContext::new_boa_ctx();
-    let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, &classes);
+    let mut engine_ctx = EngineContext::create_engine_ctx(&classes);
     engine_ctx.reset_with_graph(graph_id, &mut graphs_map, &classes, &id_gen);
 
     let binary_tree_class = classes.get_user_class(&binary_tree_class_name).unwrap();
@@ -165,8 +160,7 @@ fn tests_binary_tree_contains() {
     let mut graphs_map = GraphsMap::default();
     graphs_map.ensure_graph(graph_id);
 
-    let mut boa_ctx = EngineContext::new_boa_ctx();
-    let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, &classes);
+    let mut engine_ctx = EngineContext::create_engine_ctx(&classes);
     engine_ctx.reset_with_graph(graph_id, &mut graphs_map, &classes, &id_gen);
 
     let binary_tree_class = classes.get_user_class(&binary_tree_class_name).unwrap();
@@ -395,8 +389,7 @@ fn auto_constructor() {
     let mut graphs_map = GraphsMap::default();
     graphs_map.ensure_graph(graph_id);
     let tree_value: Value = {
-        let mut boa_ctx = EngineContext::new_boa_ctx();
-        let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, &classes);
+        let mut engine_ctx = EngineContext::create_engine_ctx(&classes);
         engine_ctx.reset_with_graph(graph_id, &mut graphs_map, &classes, &id_gen);
 
         let binary_tree_class = classes.get_user_class(&binary_tree_class_name).unwrap();
@@ -441,8 +434,7 @@ fn get_ctx(
     graphs_map.ensure_graph(graph_id);
 
     let tree_value: Value = {
-        let mut boa_ctx = EngineContext::new_boa_ctx();
-        let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, classes);
+        let mut engine_ctx = EngineContext::create_engine_ctx(classes);
         engine_ctx.reset_with_graph(graph_id, &mut graphs_map, classes, &id_gen);
 
         create_binary_tree(tree_values, classes, binary_tree_class, &mut engine_ctx)
@@ -553,7 +545,8 @@ fn check_delete_two_children() {
         )
     );
 
-    let progs = evaluate_chain(op_chain, &syn_ctx.start_context, &syn_ctx);
+    let mut worker_ctx = create_js_worker_context(0);
+    let progs = evaluate_chain(op_chain, &syn_ctx.start_context, &syn_ctx, &mut worker_ctx);
 
     println!("{}", progs["final"].get_code());
 
@@ -588,5 +581,5 @@ fn check_delete_two_children() {
     // assert!(final_tree.valid());
     // assert!(!final_tree.cotnains(node_to_delete_value));
 
-    assert!(predicate(&progs["final"], &syn_ctx));
+    assert!(predicate(&progs["final"], &syn_ctx, &mut worker_ctx));
 }

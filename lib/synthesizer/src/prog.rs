@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use ruse_object_graph::{graph_map_value::*, ValueType};
 
-use crate::context::ContextArray;
+use crate::context::{ContextArray, SynthesizerWorkerContext};
 use crate::context::SynthesizerContext;
 use crate::location::*;
 use crate::opcode::*;
@@ -108,7 +108,7 @@ impl SubProgram {
         })
     }
 
-    pub fn evaluate(&mut self, syn_ctx: &SynthesizerContext) -> bool {
+    pub fn evaluate(&mut self, syn_ctx: &SynthesizerContext, worker_ctx: &mut SynthesizerWorkerContext) -> bool {
         let mut out_type: Option<ValueType> = None;
         let examples_count = self.pre_ctx().len();
         let mut out_value = Vec::with_capacity(examples_count);
@@ -128,7 +128,7 @@ impl SubProgram {
             evaluate_trace!({ prog_context = ?out_ctx }, "post_ctx[{}] (before)", i);
 
             // Evaluate and verify the output type is consistent
-            let out_val = match self.opcode.eval(&args, out_ctx, syn_ctx) {
+            let out_val = match self.opcode.eval(&args, out_ctx, syn_ctx, worker_ctx) {
                 Ok(result) => {
                     if result.dirty && out_ctx.as_ref() != &old_post_ctx[i] {
                         dirty |= true;

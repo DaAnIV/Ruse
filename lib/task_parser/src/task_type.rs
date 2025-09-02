@@ -79,9 +79,10 @@ impl TaskType {
         graphs_map: &mut GraphsMap,
         id_gen: &Arc<GraphIdGenerator>,
         refs_graph_id: Option<GraphIndex>,
+        engine_ctx: &mut EngineContext,
     ) -> Result<Value, SnythesisTaskError> {
         if let Some(expr) = Self::get_expr_value(value) {
-            self.parse_expr_value(expr, classes, graphs_map, refs_graph_id, id_gen)
+            self.parse_expr_value(expr, classes, graphs_map, refs_graph_id, id_gen, engine_ctx)
         } else {
             let out = self.create_regular_value(
                 value,
@@ -90,6 +91,7 @@ impl TaskType {
                 graphs_map,
                 id_gen,
                 refs_graph_id,
+                engine_ctx,
             );
 
             out
@@ -114,6 +116,7 @@ impl TaskType {
         graphs_map: &mut GraphsMap,
         id_gen: &Arc<GraphIdGenerator>,
         refs_graph_id: Option<GraphIndex>,
+        engine_ctx: &mut EngineContext,
     ) -> Result<Value, SnythesisTaskError> {
         match self {
             TaskType::Int => match value.as_i64() {
@@ -153,6 +156,7 @@ impl TaskType {
                                     graphs_map,
                                     id_gen,
                                     refs_graph_id,
+                                    engine_ctx,
                                 )
                             })
                             .collect();
@@ -194,6 +198,7 @@ impl TaskType {
                                     graphs_map,
                                     id_gen,
                                     refs_graph_id,
+                                    engine_ctx,
                                 )?;
 
                                 Ok(elem.into_primitive().unwrap())
@@ -240,6 +245,7 @@ impl TaskType {
                         graphs_map,
                         id_gen,
                         refs_graph_id,
+                        engine_ctx,
                     )?;
                     parsed_values.insert(key, value);
                 }
@@ -297,6 +303,7 @@ impl TaskType {
                         classes,
                         graphs_map,
                         id_gen,
+                        engine_ctx,
                     )
                 } else {
                     self.create_object_from_fields(
@@ -307,6 +314,7 @@ impl TaskType {
                         graphs_map,
                         id_gen,
                         refs_graph_id,
+                        engine_ctx,
                     )
                 }
             }
@@ -331,6 +339,7 @@ impl TaskType {
         graphs_map: &mut GraphsMap,
         id_gen: &Arc<GraphIdGenerator>,
         refs_graph_id: Option<GraphIndex>,
+        engine_ctx: &mut EngineContext,
     ) -> Result<Value, SnythesisTaskError> {
         let mut values = HashMap::new();
         for (k, v) in fields {
@@ -345,8 +354,15 @@ impl TaskType {
                 .as_ref()
                 .ok_or(verify_err!("field {} type is unknown", k))?;
             let task_type = Self::from(value_type);
-            let value =
-                task_type.create_value(v, classes, graph_id, graphs_map, id_gen, refs_graph_id)?;
+            let value = task_type.create_value(
+                v,
+                classes,
+                graph_id,
+                graphs_map,
+                id_gen,
+                refs_graph_id,
+                engine_ctx,
+            )?;
             values.insert(key, value);
         }
 
@@ -366,6 +382,7 @@ impl TaskType {
         classes: &TsClasses,
         graphs_map: &mut GraphsMap,
         id_gen: &Arc<GraphIdGenerator>,
+        engine_ctx: &mut EngineContext,
     ) -> Result<Value, SnythesisTaskError> {
         let method_desc = if method_name == "constructor" {
             &class.description.constructor
@@ -399,22 +416,20 @@ impl TaskType {
         }
         let arg_types = method_desc.param_types[variant].iter().map(Self::from);
         let args = parse_json_values_array(
-            json_args, arg_types, graph_id, graphs_map, id_gen, classes, None,
+            json_args, arg_types, graph_id, graphs_map, id_gen, classes, None, engine_ctx,
         )?;
 
-        let mut boa_ctx = EngineContext::new_boa_ctx();
-        let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, classes);
         graphs_map.ensure_graph(graph_id); // Make sure graph exists
         engine_ctx.reset_with_graph(graph_id, graphs_map, classes, id_gen);
 
         if method_name == "constructor" {
             let new_obj = class
-                .call_constructor(&args, &mut engine_ctx)
+                .call_constructor(&args, engine_ctx)
                 .map_err(|x| SnythesisTaskError::Eval(x))?;
             Ok(Value::Object(new_obj))
         } else {
             class
-                .call_static_method(method_desc, &args, &mut engine_ctx)
+                .call_static_method(method_desc, &args, engine_ctx)
                 .map_err(|x| SnythesisTaskError::Eval(x))
         }
     }
@@ -463,6 +478,7 @@ impl TaskType {
         graphs_map: &mut GraphsMap,
         refs_graph_id_opt: Option<GraphIndex>,
         id_gen: &GraphIdGenerator,
+        _engine_ctx: &mut EngineContext,
     ) -> Result<Value, SnythesisTaskError> {
         if let Some(static_ref) = ExprPrefix::StaticRef.get(value_string) {
             self.parse_static_ref_expr_value(static_ref, value_string, classes, graphs_map)

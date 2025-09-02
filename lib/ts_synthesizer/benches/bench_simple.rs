@@ -57,8 +57,8 @@ fn simple_synthesize_1(c: &mut Criterion) {
                         SubsumptionProgBank::default(),
                         syn_ctx,
                         opcodes.clone(),
-                        Box::new(|_, _| false),
-                        Box::new(|_, _| true),
+                        Box::new(|_, _, _| false),
+                        Box::new(|_, _, _| true),
                         2,
                         1,
                     )

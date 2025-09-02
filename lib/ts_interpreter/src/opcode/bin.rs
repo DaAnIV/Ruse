@@ -146,6 +146,7 @@ impl ExprOpcode for BinOp {
         args: &[&LocValue],
         post_ctx: &mut Context,
         _syn_ctx: &SynthesizerContext,
+        _worker_ctx: &mut SynthesizerWorkerContext,
     ) -> EvalResult {
         debug_assert_eq!(args.len(), 2);
         debug_assert_eq!(args[0].val().val_type(), self.arg_types[0]);

@@ -33,7 +33,7 @@ pub struct JsUserClassWrapper {
 impl JsUserClassWrapper {
     pub fn new(
         desc: Arc<TsClassDescription>,
-        engine_ctx: &mut EngineContext<'_>,
+        engine_ctx: &mut EngineContext,
     ) -> JsResult<Self> {
         let constructor = Self::build_standard_constructor(&desc, engine_ctx)?;
         Ok(JsUserClassWrapper { desc, constructor })
@@ -150,7 +150,7 @@ impl JsUserClassWrapper {
         &self,
         _new_target: &boa_engine::JsValue,
         _args: &[boa_engine::JsValue],
-        engine_ctx: &mut EngineContext<'_>,
+        engine_ctx: &mut EngineContext,
     ) -> boa_engine::JsResult<ObjectValue> {
         let global_obj = engine_ctx.global_object();
         let global_ctx = RuseJsGlobalObject::from_object(&global_obj)?;
@@ -192,7 +192,7 @@ impl JsUserClassWrapper {
         class_name: &ClassName,
         instance: &boa_engine::JsValue,
         args: &[boa_engine::JsValue],
-        engine_ctx: &mut EngineContext<'_>,
+        engine_ctx: &mut EngineContext,
     ) -> boa_engine::JsResult<JsValue> {
         Self::call_method_body(
             class_name,
@@ -208,7 +208,7 @@ impl JsUserClassWrapper {
         method_name: &str,
         this: &boa_engine::JsValue,
         args: &[boa_engine::JsValue],
-        engine_ctx: &mut EngineContext<'_>,
+        engine_ctx: &mut EngineContext,
     ) -> boa_engine::JsResult<JsValue> {
         let prototype = {
             let global_obj = engine_ctx.global_object();
@@ -224,7 +224,7 @@ impl JsUserClassWrapper {
         class_name: &ClassName,
         method_name: &str,
         args: &[boa_engine::JsValue],
-        engine_ctx: &mut EngineContext<'_>,
+        engine_ctx: &mut EngineContext,
     ) -> boa_engine::JsResult<JsValue> {
         let constructor = {
             let global_obj = engine_ctx.global_object();
@@ -242,7 +242,7 @@ impl JsUserClassWrapper {
 impl JsUserClassWrapper {
     fn build_standard_constructor(
         desc: &TsClassDescription,
-        engine_ctx: &mut EngineContext<'_>,
+        engine_ctx: &mut EngineContext,
     ) -> JsResult<StandardConstructor> {
         let mut builder =
             boa_engine::object::ConstructorBuilder::new(engine_ctx, jsfn_wrap!(Self::construct));
@@ -266,7 +266,8 @@ impl JsUserClassWrapper {
                 let setter = Self::setter_for_field(field)
                     .map(|x| x.to_js_function(builder.context().realm()));
                 let attribute = boa_engine::property::Attribute::WRITABLE
-                    | boa_engine::property::Attribute::PERMANENT;
+                    | boa_engine::property::Attribute::PERMANENT
+                    | boa_engine::property::Attribute::ENUMERABLE;
                 builder.accessor(key, getter, setter, attribute);
             } else {
                 let getter = Self::getter_for_static_field(&desc.class_name, field)
@@ -274,7 +275,8 @@ impl JsUserClassWrapper {
                 let setter = Self::setter_for_static_field(&desc.class_name, field)
                     .map(|x| x.to_js_function(builder.context().realm()));
                 let attribute = boa_engine::property::Attribute::WRITABLE
-                    | boa_engine::property::Attribute::PERMANENT;
+                    | boa_engine::property::Attribute::PERMANENT
+                    | boa_engine::property::Attribute::ENUMERABLE;
                 builder.static_accessor(key, getter, setter, attribute);
             }
         }
@@ -332,7 +334,7 @@ impl JsUserClassWrapper {
     pub fn wrap_object(
         &self,
         obj: ObjectValue,
-        engine_ctx: &mut EngineContext<'_>,
+        engine_ctx: &mut EngineContext,
     ) -> boa_engine::JsResult<boa_engine::JsObject> {
         if !obj.is_class(&self.desc.class_name) {
             return Err(js_error_not_class_value(&self.desc.class_name));

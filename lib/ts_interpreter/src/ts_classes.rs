@@ -78,7 +78,7 @@ impl TsClasses {
         self.global_class.as_ref()
     }
 
-    pub(crate) fn init_engine_ctx(&self, engine_ctx: &mut EngineContext<'_>) {
+    pub(crate) fn init_engine_ctx(&self, engine_ctx: &mut EngineContext) {
         for (_, class) in &self.user_classes {
             class
                 .register_class(engine_ctx)

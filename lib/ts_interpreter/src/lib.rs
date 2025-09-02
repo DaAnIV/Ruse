@@ -6,6 +6,7 @@ pub mod ts_class;
 pub mod ts_user_class;
 pub mod ts_global_class;
 pub mod engine_context;
+pub mod js_worker_context;
 mod js_object_wrapper;
 mod jsbuiltins;
 mod js_errors;

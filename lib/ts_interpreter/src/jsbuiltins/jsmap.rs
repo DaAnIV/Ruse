@@ -47,7 +47,7 @@ impl TsClass for BuiltinMapClass {
     fn wrap_as_js_object(
         &self,
         obj: ObjectValue,
-        engine_ctx: &mut EngineContext<'_>,
+        engine_ctx: &mut EngineContext,
     ) -> JsResult<boa_engine::JsObject> {
         JsMapWrapper::wrap_object(&obj, engine_ctx)
     }
@@ -73,7 +73,7 @@ impl TsBuiltinClass for BuiltinMapClass {
     fn get_from_js_obj(
         &self,
         value: &boa_engine::JsObject,
-        engine_ctx: &mut EngineContext<'_>,
+        engine_ctx: &mut EngineContext,
     ) -> JsResult<ObjectValue> {
         if let Ok(js_map) = boa_engine::object::builtins::JsMap::from_object(value.clone()) {
             if js_map.get_size(engine_ctx)? == 0.into() {
@@ -130,7 +130,7 @@ impl JsMapWrapper {
 impl BuiltinClassWrapper for JsMapWrapper {
     fn wrap_object(
         map_obj: &ObjectValue,
-        engine_ctx: &mut EngineContext<'_>,
+        engine_ctx: &mut EngineContext,
     ) -> boa_engine::JsResult<boa_engine::JsObject> {
         assert!(map_obj.obj_type.is_map_obj_type());
 
@@ -183,7 +183,7 @@ impl BuiltinClassWrapper for JsMapWrapper {
     }
 
     fn build_standard_constructor(
-        engine_ctx: &mut EngineContext<'_>,
+        engine_ctx: &mut EngineContext,
     ) -> JsResult<boa_engine::context::intrinsics::StandardConstructor> {
         let get_size = boa_engine::object::FunctionObjectBuilder::new(
             engine_ctx.realm(),

@@ -41,7 +41,7 @@ impl TsGlobalClass {
         &self,
         method_name: &str,
         params: I,
-        engine_ctx: &mut EngineContext<'_>,
+        engine_ctx: &mut EngineContext,
     ) -> boa_engine::JsResult<Value>
     where
         I: IntoIterator<Item = &'a Value>,
@@ -62,7 +62,7 @@ impl TsGlobalClass {
         })
     }
 
-    pub(crate) fn register_class(&self, engine_ctx: &mut EngineContext<'_>) -> JsResult<()> {
+    pub(crate) fn register_class(&self, engine_ctx: &mut EngineContext) -> JsResult<()> {
         engine_ctx.register_global_class(&self)
     }
 }

@@ -1,6 +1,6 @@
 use ruse_object_graph::{value::*, *};
 use ruse_synthesizer::{
-    context::{Context, SynthesizerContext},
+    context::{Context, SynthesizerContext, SynthesizerWorkerContext},
     dirty,
     location::*,
     opcode::{EvalResult, ExprAst, ExprOpcode},
@@ -13,6 +13,7 @@ use tracing::trace;
 
 use crate::{
     engine_context::EngineContext,
+    js_worker_context::JsWorkerContextData,
     opcode::{
         function_call_ast, member_call_ast, member_expr, new_obj_ast, static_member_call_ast,
         static_member_expr, TsExprAst,
@@ -64,10 +65,14 @@ impl ExprOpcode for ClassMethodOp {
         args: &[&LocValue],
         post_ctx: &mut Context,
         syn_ctx: &SynthesizerContext,
+        worker_ctx: &mut SynthesizerWorkerContext,
     ) -> EvalResult {
         let classes = syn_ctx.data.downcast_ref::<TsClasses>().unwrap();
-        let mut boa_ctx = EngineContext::new_boa_ctx();
-        let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, classes);
+        let worker_ctx = worker_ctx
+            .data
+            .downcast_mut::<JsWorkerContextData>()
+            .unwrap();
+        let mut engine_ctx = worker_ctx.get_engine_ctx(classes);
         engine_ctx.reset_with_mut_context(post_ctx, classes);
         let class = classes.get_user_class(&self.class_name).unwrap();
 
@@ -171,10 +176,14 @@ impl ExprOpcode for ClassConstructorOp {
         args: &[&LocValue],
         post_ctx: &mut Context,
         syn_ctx: &SynthesizerContext,
+        worker_ctx: &mut SynthesizerWorkerContext,
     ) -> EvalResult {
         let classes = syn_ctx.data.downcast_ref::<TsClasses>().unwrap();
-        let mut boa_ctx = EngineContext::new_boa_ctx();
-        let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, classes);
+        let worker_ctx = worker_ctx
+            .data
+            .downcast_mut::<JsWorkerContextData>()
+            .unwrap();
+        let mut engine_ctx = worker_ctx.get_engine_ctx(classes);
         engine_ctx.reset_with_mut_context(post_ctx, classes);
         let class = classes.get_user_class(&self.obj_type).unwrap();
 
@@ -250,10 +259,14 @@ impl ExprOpcode for GlobalFunctionOp {
         args: &[&LocValue],
         post_ctx: &mut Context,
         syn_ctx: &SynthesizerContext,
+        worker_ctx: &mut SynthesizerWorkerContext,
     ) -> EvalResult {
         let classes = syn_ctx.data.downcast_ref::<TsClasses>().unwrap();
-        let mut boa_ctx = EngineContext::new_boa_ctx();
-        let mut engine_ctx = EngineContext::create_engine_ctx(&mut boa_ctx, classes);
+        let worker_ctx = worker_ctx
+            .data
+            .downcast_mut::<JsWorkerContextData>()
+            .unwrap();
+        let mut engine_ctx = worker_ctx.get_engine_ctx(classes);
         engine_ctx.reset_with_mut_context(post_ctx, classes);
         let class = classes.get_global_class().unwrap();
 

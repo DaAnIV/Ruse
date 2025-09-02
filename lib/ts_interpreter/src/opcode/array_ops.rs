@@ -36,6 +36,7 @@ impl ExprOpcode for ArrayIndexOp {
         args: &[&LocValue],
         post_ctx: &mut Context,
         _syn_ctx: &SynthesizerContext,
+        _worker_ctx: &mut SynthesizerWorkerContext,
     ) -> EvalResult {
         debug_assert_eq!(args.len(), 2);
 
@@ -95,6 +96,7 @@ impl ExprOpcode for ArrayLengthOp {
         args: &[&LocValue],
         post_ctx: &mut Context,
         _syn_ctx: &SynthesizerContext,
+        _worker_ctx: &mut SynthesizerWorkerContext,
     ) -> EvalResult {
         debug_assert_eq!(args.len(), 1);
 
@@ -138,6 +140,7 @@ impl ExprOpcode for ArrayPushOp {
         args: &[&LocValue],
         post_ctx: &mut Context,
         _syn_ctx: &SynthesizerContext,
+        _worker_ctx: &mut SynthesizerWorkerContext,
     ) -> EvalResult {
         debug_assert_eq!(args.len(), 2);
 
@@ -186,6 +189,7 @@ impl ExprOpcode for ArrayPopOp {
         args: &[&LocValue],
         post_ctx: &mut Context,
         _syn_ctx: &SynthesizerContext,
+        _worker_ctx: &mut SynthesizerWorkerContext,
     ) -> EvalResult {
         debug_assert_eq!(args.len(), 1);
 
@@ -241,6 +245,7 @@ impl ExprOpcode for ArraySliceOp {
         args: &[&LocValue],
         post_ctx: &mut Context,
         _syn_ctx: &SynthesizerContext,
+        _worker_ctx: &mut SynthesizerWorkerContext,
     ) -> EvalResult {
         let arr = args[0].val().obj().unwrap();
         let graph = arr.graph(&post_ctx.graphs_map);
@@ -319,6 +324,7 @@ impl ExprOpcode for ArrayConcatOp {
         args: &[&LocValue],
         post_ctx: &mut Context,
         _syn_ctx: &SynthesizerContext,
+        _worker_ctx: &mut SynthesizerWorkerContext,
     ) -> EvalResult {
         let arr = args[0].val().obj().unwrap();
         let graph = arr.graph(&post_ctx.graphs_map);
@@ -392,6 +398,7 @@ impl ExprOpcode for ArraySpliceOp {
         args: &[&LocValue],
         post_ctx: &mut Context,
         _syn_ctx: &SynthesizerContext,
+        _worker_ctx: &mut SynthesizerWorkerContext,
     ) -> EvalResult {
         let arr = args[0].val().obj().unwrap();
         let graph = arr.graph(&post_ctx.graphs_map);
@@ -496,6 +503,7 @@ impl ExprOpcode for ArrayConcatArrayOp {
         args: &[&LocValue],
         post_ctx: &mut Context,
         _syn_ctx: &SynthesizerContext,
+        _worker_ctx: &mut SynthesizerWorkerContext,
     ) -> EvalResult {
         let arr = args[0].val().obj().unwrap();
         let arr_to_add = args[1].val().obj().unwrap();

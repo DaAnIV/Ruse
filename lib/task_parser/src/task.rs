@@ -19,7 +19,7 @@ use ruse_synthesizer::{
     opcode::{ExprOpcode, OpcodesList},
     synthesizer::SynthesizerPredicate,
 };
-use ruse_ts_interpreter::ts_classes::{TsClasses, TsClassesBuilder};
+use ruse_ts_interpreter::{engine_context::EngineContext, ts_classes::{TsClasses, TsClassesBuilder}};
 use ruse_ts_synthesizer::*;
 
 use serde::{Deserialize, Serialize};
@@ -62,6 +62,7 @@ fn parse_json_values_map_roots<'a, M>(
     id_gen: &Arc<GraphIdGenerator>,
     refs_graph_id: Option<GraphIndex>,
     classes: &TsClasses,
+    engine_ctx: &mut EngineContext,
 ) -> Result<ValuesMap, SnythesisTaskError>
 where
     M: IntoIterator<Item = (&'a String, &'a serde_json::Value)>,
@@ -80,6 +81,7 @@ where
             graphs_map,
             id_gen,
             refs_graph_id,
+            engine_ctx,
         )?;
 
         if let Some(obj) = value.mut_obj() {
@@ -99,6 +101,7 @@ pub(crate) fn parse_json_values_array<'a, V, T>(
     id_gen: &Arc<GraphIdGenerator>,
     classes: &TsClasses,
     refs_graph_id: Option<GraphIndex>,
+    engine_ctx: &mut EngineContext,
 ) -> Result<Vec<Value>, SnythesisTaskError>
 where
     V: IntoIterator<Item = &'a serde_json::Value>,
@@ -107,7 +110,7 @@ where
     let mut values = vec![];
     for (value, task_type) in arr.into_iter().zip_eq(types) {
         let value =
-            task_type.create_value(value, classes, graph_id, graphs_map, id_gen, refs_graph_id)?;
+            task_type.create_value(value, classes, graph_id, graphs_map, id_gen, refs_graph_id, engine_ctx)?;
         values.push(value);
     }
 
@@ -147,6 +150,7 @@ impl SnythesisTaskExamples {
         &self,
         variables: &HashMap<String, TaskType>,
         classes: &TsClasses,
+        engine_ctx: &mut EngineContext,
     ) -> Result<Box<Context>, SnythesisTaskError> {
         let id_gen = Arc::new(GraphIdGenerator::with_initial_values(
             classes.static_classes_gen_id.max_node_id(),
@@ -162,6 +166,7 @@ impl SnythesisTaskExamples {
             &id_gen,
             Some(REF_GRAPH_ID),
             classes,
+            engine_ctx,
         )?;
         set_var_refs(variables, &mut values, &mut graphs_map)?;
         graphs_map.remove(REF_GRAPH_ID);
@@ -466,9 +471,11 @@ impl SnythesisTask {
     ) -> Result<TsSynthesizer<P>, SnythesisTaskError> {
         let variables = self.inner.variables.as_ref().unwrap();
 
+        let mut engine_ctx = EngineContext::create_engine_ctx(&self.classes);
+
         let opcodes = self.get_opcodes();
-        let context_array = self.get_context_array()?;
-        let predicate = self.get_predicate()?;
+        let context_array = self.get_context_array(&mut engine_ctx)?;
+        let predicate = self.get_predicate(&mut engine_ctx)?;
         let valid = self.get_valid_predicate()?;
 
         debug!(target: "ruse::task_parser", { 
@@ -510,7 +517,7 @@ impl SnythesisTask {
         Ok(synthesizer)
     }
 
-    fn get_predicate(&self) -> Result<SynthesizerPredicate, SnythesisTaskError> {
+    fn get_predicate(&self, engine_ctx: &mut EngineContext) -> Result<SynthesizerPredicate, SnythesisTaskError> {
         let variables = self.inner.variables.as_ref().unwrap();
         let examples = self.inner.examples.as_ref().unwrap();
 
@@ -528,6 +535,7 @@ impl SnythesisTask {
                             &mut predicate_graphs_map,
                             &predicate_gen_id,
                             None,
+                            engine_ctx,
                         )?;
                         array.push(output);
                     }
@@ -547,6 +555,7 @@ impl SnythesisTask {
                         &predicate_gen_id,
                         None,
                         &self.classes,
+                        engine_ctx,
                     )?;
                     array.push(state_map);
                 }
@@ -694,13 +703,14 @@ impl SnythesisTask {
         composite_opcodes
     }
 
-    fn get_context_array(&self) -> Result<ContextArray, SnythesisTaskError> {
+    fn get_context_array(&self, engine_ctx: &mut EngineContext) -> Result<ContextArray, SnythesisTaskError> {
         let variables = self.inner.variables.as_ref().unwrap();
         let examples = self.inner.examples.as_ref().unwrap();
 
         let mut values = Vec::with_capacity(examples.len());
+
         for example in examples {
-            values.push(example.create_context(variables, &self.classes)?);
+            values.push(example.create_context(variables, &self.classes, engine_ctx)?);
         }
 
         Ok(values.into())

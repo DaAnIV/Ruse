@@ -36,6 +36,7 @@ impl ExprOpcode for SequenceOp {
         args: &[&LocValue],
         _post_ctx: &mut Context,
         _syn_ctx: &SynthesizerContext,
+        _worker_ctx: &mut SynthesizerWorkerContext,
     ) -> EvalResult {
         let out = args.last().ok_or(())?;
         pure!((*out).clone())

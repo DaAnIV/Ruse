@@ -30,7 +30,7 @@ pub struct JsObjectIterator {
 
 impl JsObjectIterator {
     pub(crate) fn build_standard_constructor(
-        ctx: &mut EngineContext<'_>,
+        ctx: &mut EngineContext,
     ) -> JsResult<StandardConstructor> {
         let iterator_proto = ctx.intrinsics().objects().iterator_prototypes().iterator();
 

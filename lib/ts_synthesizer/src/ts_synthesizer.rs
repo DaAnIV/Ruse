@@ -1,16 +1,24 @@
 use ruse_synthesizer::{
     bank::ProgBank,
-    context::{SynthesizerContext, VariableName},
+    context::{SynthesizerContext, SynthesizerWorkerContext, VariableName},
     opcode::OpcodesList,
     prog::SubProgram,
-    synthesizer::{CurrentStatistics, Synthesizer, SynthesizerPredicate},
+    synthesizer::{CurrentStatistics, Synthesizer, SynthesizerPredicate, WorkerContextCreator},
 };
+use ruse_ts_interpreter::js_worker_context::create_js_worker_context;
 use tokio_util::sync::CancellationToken;
 
 use std::{fmt::Display, sync::Arc};
 
+pub struct TsWorkerContextCreator {}
+impl WorkerContextCreator for TsWorkerContextCreator {
+    fn create_worker_ctx(&self, index: usize) -> SynthesizerWorkerContext {
+        create_js_worker_context(index)
+    }
+}
+
 pub struct TsSynthesizer<P: ProgBank> {
-    inner: Arc<Synthesizer<P>>,
+    inner: Arc<Synthesizer<P, TsWorkerContextCreator>>,
 }
 
 impl<P: ProgBank + 'static> TsSynthesizer<P> {
@@ -32,6 +40,7 @@ impl<P: ProgBank + 'static> TsSynthesizer<P> {
                 valid,
                 max_context_depth,
                 iteration_workers_count,
+                TsWorkerContextCreator {},
             )),
         }
     }
@@ -56,5 +65,9 @@ impl<P: ProgBank + 'static> TsSynthesizer<P> {
 
     pub fn json_display(&self) -> impl Display + '_ {
         self.inner.json_display()
+    }
+
+    pub fn create_worker_ctx(&self, index: usize) -> SynthesizerWorkerContext {
+        create_js_worker_context(index)
     }
 }

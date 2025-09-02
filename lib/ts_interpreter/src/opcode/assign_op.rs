@@ -119,6 +119,7 @@ impl ExprOpcode for AssignOp {
         args: &[&LocValue],
         post_ctx: &mut Context,
         syn_ctx: &SynthesizerContext,
+        _worker_ctx: &mut SynthesizerWorkerContext,
     ) -> EvalResult {
         debug_assert_eq!(args.len(), 2);
 

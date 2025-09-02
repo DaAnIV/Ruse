@@ -69,7 +69,7 @@ impl TsUserClass {
     pub fn call_constructor<'a, I>(
         &self,
         params: I,
-        engine_ctx: &mut EngineContext<'_>,
+        engine_ctx: &mut EngineContext,
     ) -> boa_engine::JsResult<ObjectValue>
     where
         I: IntoIterator<Item = &'a Value>,
@@ -89,7 +89,7 @@ impl TsUserClass {
         &self,
         method_desc: &MethodDescription,
         params: I,
-        engine_ctx: &mut EngineContext<'_>,
+        engine_ctx: &mut EngineContext,
     ) -> boa_engine::JsResult<Value>
     where
         I: IntoIterator<Item = &'a Value>,
@@ -120,7 +120,7 @@ impl TsUserClass {
         method_desc: &MethodDescription,
         this: &Value,
         params: I,
-        engine_ctx: &mut EngineContext<'_>,
+        engine_ctx: &mut EngineContext,
     ) -> boa_engine::JsResult<Value>
     where
         I: IntoIterator<Item = &'a Value>,
@@ -160,7 +160,7 @@ impl TsUserClass {
         })
     }
 
-    pub(crate) fn register_class(&self, engine_ctx: &mut EngineContext<'_>) -> JsResult<()> {
+    pub(crate) fn register_class(&self, engine_ctx: &mut EngineContext) -> JsResult<()> {
         let wrapper = JsUserClassWrapper::new(self.description.clone(), engine_ctx)?;
         engine_ctx.register_user_class(wrapper)
     }
@@ -176,7 +176,7 @@ impl TsClass for TsUserClass {
     fn wrap_as_js_object(
         &self,
         obj: ObjectValue,
-        engine_ctx: &mut EngineContext<'_>,
+        engine_ctx: &mut EngineContext,
     ) -> JsResult<boa_engine::JsObject> {
         let global_obj = engine_ctx.global_object();
         let global_ctx = RuseJsGlobalObject::from_object(&global_obj)?;

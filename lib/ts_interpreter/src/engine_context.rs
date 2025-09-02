@@ -19,6 +19,7 @@ use ruse_synthesizer::{
     context::{Context, GraphIdGenerator},
     temp_value,
 };
+use tracing::trace;
 
 use crate::{
     js_console_logger::RuseJsConsoleLogger,
@@ -227,7 +228,7 @@ pub struct RuseJsConstructors {
 }
 
 impl RuseJsConstructors {
-    pub fn array_prototype(&self, engine_ctx: &mut EngineContext<'_>) -> JsResult<JsObject> {
+    pub fn array_prototype(&self, engine_ctx: &mut EngineContext) -> JsResult<JsObject> {
         if let Some(constructor) = self.array_constructor.borrow().as_ref() {
             return Ok(constructor.prototype());
         }
@@ -239,7 +240,7 @@ impl RuseJsConstructors {
             .prototype())
     }
 
-    pub fn map_prototype(&self, engine_ctx: &mut EngineContext<'_>) -> JsResult<JsObject> {
+    pub fn map_prototype(&self, engine_ctx: &mut EngineContext) -> JsResult<JsObject> {
         if let Some(constructor) = self.map_constructor.borrow().as_ref() {
             return Ok(constructor.prototype());
         }
@@ -251,7 +252,7 @@ impl RuseJsConstructors {
             .prototype())
     }
 
-    pub fn iter_prototype(&self, engine_ctx: &mut EngineContext<'_>) -> JsResult<JsObject> {
+    pub fn iter_prototype(&self, engine_ctx: &mut EngineContext) -> JsResult<JsObject> {
         if let Some(constructor) = self.iter_constructor.borrow().as_ref() {
             return Ok(constructor.prototype());
         }
@@ -296,7 +297,7 @@ impl RuseJsGlobalObject {
     pub fn get_field(
         wrapped_obj: &boa_engine::JsValue,
         field_name: &FieldName,
-        engine_ctx: &mut EngineContext<'_>,
+        engine_ctx: &mut EngineContext,
     ) -> boa_engine::JsResult<boa_engine::JsValue> {
         let obj_val = ObjectValue::try_from_js(wrapped_obj, engine_ctx)?;
         let global_obj = engine_ctx.global_object();
@@ -313,7 +314,7 @@ impl RuseJsGlobalObject {
         wrapped_obj: &boa_engine::JsValue,
         field_name: &FieldName,
         new_js_value: &boa_engine::JsValue,
-        engine_ctx: &mut EngineContext<'_>,
+        engine_ctx: &mut EngineContext,
     ) -> boa_engine::JsResult<()> {
         let obj_val = ObjectValue::try_from_js(wrapped_obj, engine_ctx)?;
         let global_obj = engine_ctx.global_object();
@@ -333,7 +334,7 @@ impl RuseJsGlobalObject {
     pub fn get_static_field(
         class_name: &ClassName,
         field_name: &FieldName,
-        engine_ctx: &mut EngineContext<'_>,
+        engine_ctx: &mut EngineContext,
     ) -> boa_engine::JsResult<boa_engine::JsValue> {
         let global_obj = engine_ctx.global_object();
         let inner = RuseJsGlobalObject::from_object(&global_obj)?;
@@ -353,7 +354,7 @@ impl RuseJsGlobalObject {
         class_name: &ClassName,
         field_name: &FieldName,
         new_js_value: &boa_engine::JsValue,
-        engine_ctx: &mut EngineContext<'_>,
+        engine_ctx: &mut EngineContext,
     ) -> boa_engine::JsResult<()> {
         let global_obj = engine_ctx.global_object();
         let new_value = Value::try_from_js(&new_js_value, engine_ctx)?;
@@ -378,7 +379,7 @@ impl RuseJsGlobalObject {
 
     pub fn get_global_field(
         field_name: &FieldName,
-        engine_ctx: &mut EngineContext<'_>,
+        engine_ctx: &mut EngineContext,
     ) -> boa_engine::JsResult<boa_engine::JsValue> {
         let global_obj = engine_ctx.global_object();
         let inner = RuseJsGlobalObject::from_object(&global_obj)?;
@@ -399,7 +400,7 @@ impl RuseJsGlobalObject {
     pub fn set_global_field(
         field_name: &FieldName,
         new_js_value: &boa_engine::JsValue,
-        engine_ctx: &mut EngineContext<'_>,
+        engine_ctx: &mut EngineContext,
     ) -> boa_engine::JsResult<()> {
         let global_obj = engine_ctx.global_object();
         let new_value = Value::try_from_js(&new_js_value, engine_ctx)?;
@@ -474,10 +475,16 @@ impl Default for RuseJsGlobalObject {
 }
 
 #[derive(Debug)]
-pub struct EngineContext<'a>(&'a mut boa_engine::Context);
+pub enum EngineContext {
+    Owning(Box<boa_engine::Context>),
+    Borrowing(*mut boa_engine::Context),
+}
 
-impl<'a> EngineContext<'a> {
-    pub fn new_boa_ctx() -> Box<boa_engine::Context> {
+unsafe impl Send for EngineContext {}
+unsafe impl Sync for EngineContext {}
+
+impl EngineContext {
+    pub(crate) fn new_boa_ctx() -> Box<boa_engine::Context> {
         Box::new(
             boa_engine::context::ContextBuilder::default()
                 .host_hooks(&EngineContextHooks)
@@ -486,8 +493,8 @@ impl<'a> EngineContext<'a> {
         )
     }
 
-    pub fn create_engine_ctx(boa_ctx: &'a mut boa_engine::Context, classes: &TsClasses) -> Self {
-        let mut engine_ctx = Self(boa_ctx);
+    pub fn create_engine_ctx(classes: &TsClasses) -> Self {
+        let mut engine_ctx = Self::Owning(Self::new_boa_ctx());
         classes.init_engine_ctx(&mut engine_ctx);
 
         let console = boa_runtime::Console::init_with_logger(&mut engine_ctx, RuseJsConsoleLogger);
@@ -499,6 +506,8 @@ impl<'a> EngineContext<'a> {
                 boa_engine::property::Attribute::all(),
             )
             .expect("the console object shouldn't exist yet");
+
+        trace!(target: "ruse::ts_interpreter", "Created engine context");
 
         engine_ctx
     }
@@ -689,27 +698,34 @@ impl<'a> EngineContext<'a> {
     }
 }
 
-impl<'a> From<&'a mut boa_engine::Context> for EngineContext<'a> {
-    fn from(value: &'a mut boa_engine::Context) -> Self {
-        Self(value)
+impl From<&mut boa_engine::Context> for EngineContext {
+    fn from(value: &mut boa_engine::Context) -> Self {
+        let ptr = std::ptr::from_mut(value);
+        Self::Borrowing(ptr)
     }
 }
 
-impl<'a> Deref for EngineContext<'a> {
+impl Deref for EngineContext {
     type Target = boa_engine::Context;
 
     fn deref(&self) -> &Self::Target {
-        self.0
+        match self {
+            EngineContext::Owning(ctx) => &ctx,
+            EngineContext::Borrowing(ctx) => unsafe { &**ctx },
+        }
     }
 }
 
-impl<'a> DerefMut for EngineContext<'a> {
+impl<'a> DerefMut for EngineContext {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        self.0
+        match self {
+            EngineContext::Owning(ctx) => ctx.as_mut(),
+            EngineContext::Borrowing(ctx) => unsafe { &mut **ctx },
+        }
     }
 }
 
-impl<'a> EngineContext<'a> {
+impl<'a> EngineContext {
     pub fn is_dirty(&self) -> bool {
         let global_obj = self.global_object();
         let wrapped_inner = RuseJsGlobalObject::from_object(&global_obj).unwrap();

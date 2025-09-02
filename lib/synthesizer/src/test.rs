@@ -21,7 +21,8 @@ pub mod helpers {
     use crate::{
         bank::*,
         context::{
-            Context, ContextArray, GraphIdGenerator, SynthesizerContext, ValuesMap, VariableName,
+            Context, ContextArray, GraphIdGenerator, SynthesizerContext, SynthesizerWorkerContext,
+            ValuesMap, VariableName,
         },
         dirty,
         embedding::merge_context_arrays,
@@ -62,7 +63,13 @@ pub mod helpers {
             &self.arg_types
         }
 
-        fn eval(&self, _: &[&LocValue], _: &mut Context, _: &SynthesizerContext) -> EvalResult {
+        fn eval(
+            &self,
+            _: &[&LocValue],
+            _: &mut Context,
+            _: &SynthesizerContext,
+            _: &mut SynthesizerWorkerContext,
+        ) -> EvalResult {
             self.returns.clone()
         }
 
@@ -102,6 +109,7 @@ pub mod helpers {
             _: &[&LocValue],
             post_ctx: &mut Context,
             syn_ctx: &SynthesizerContext,
+            _: &mut SynthesizerWorkerContext,
         ) -> EvalResult {
             if let Some(var) = post_ctx.get_var_loc_value(&self.id, syn_ctx) {
                 pure!(var)
@@ -152,6 +160,7 @@ pub mod helpers {
             args: &[&LocValue],
             post_ctx: &mut Context,
             _: &SynthesizerContext,
+            _: &mut SynthesizerWorkerContext,
         ) -> EvalResult {
             let obj = args[0].val().obj().unwrap();
             let new_value = Value::Primitive(self.field_new_value.clone());
@@ -193,6 +202,7 @@ pub mod helpers {
             _: &[&LocValue],
             post_ctx: &mut Context,
             syn_ctx: &SynthesizerContext,
+            _: &mut SynthesizerWorkerContext,
         ) -> EvalResult {
             let mut loc = Location::Var(VarLoc {
                 var: self.id.clone(),
@@ -209,8 +219,12 @@ pub mod helpers {
         }
     }
 
-    pub fn evaluate_prog(p: &mut Arc<SubProgram>, syn_ctx: &SynthesizerContext) -> bool {
-        unsafe { Arc::get_mut(p).unwrap_unchecked() }.evaluate(syn_ctx)
+    pub fn evaluate_prog(
+        p: &mut Arc<SubProgram>,
+        syn_ctx: &SynthesizerContext,
+        worker_ctx: &mut SynthesizerWorkerContext,
+    ) -> bool {
+        unsafe { Arc::get_mut(p).unwrap_unchecked() }.evaluate(syn_ctx, worker_ctx)
     }
 
     pub fn calculate_hash<T: Hash>(t: &T) -> u64 {
@@ -351,12 +365,13 @@ pub mod helpers {
         op: Arc<dyn ExprOpcode>,
         ctx_arr: &ContextArray,
         syn_ctx: &SynthesizerContext,
+        worker_ctx: &mut SynthesizerWorkerContext,
     ) -> Arc<SubProgram> {
         let op_ctx = ctx_arr
             .get_partial_context(op.required_variables())
             .unwrap();
         let mut prog = SubProgram::with_opcode(op, op_ctx.clone(), op_ctx.clone());
-        assert!(evaluate_prog(&mut prog, &syn_ctx));
+        assert!(evaluate_prog(&mut prog, &syn_ctx, worker_ctx));
         prog
     }
 
@@ -364,6 +379,7 @@ pub mod helpers {
         op: Arc<dyn ExprOpcode>,
         children: Vec<Arc<SubProgram>>,
         syn_ctx: &SynthesizerContext,
+        worker_ctx: &mut SynthesizerWorkerContext,
     ) -> Arc<SubProgram> {
         let mut pre = children[0].pre_ctx().clone();
         let mut post = children[0].post_ctx().clone();
@@ -374,7 +390,7 @@ pub mod helpers {
         }
 
         let mut prog = SubProgram::with_opcode_and_children(op, children, pre, post);
-        assert!(evaluate_prog(&mut prog, &syn_ctx));
+        assert!(evaluate_prog(&mut prog, &syn_ctx, worker_ctx));
         prog
     }
 
@@ -406,16 +422,17 @@ pub mod helpers {
         chain: &OpChain,
         ctx: &ContextArray,
         syn_ctx: &SynthesizerContext,
+        worker_ctx: &mut SynthesizerWorkerContext,
         results: &mut HashMap<String, Arc<SubProgram>>,
     ) -> Arc<SubProgram> {
         let prog = if chain.children_ops.is_empty() {
-            get_init_prog(chain.op.clone(), ctx, syn_ctx)
+            get_init_prog(chain.op.clone(), ctx, syn_ctx, worker_ctx)
         } else {
             let children = chain
                 .children_ops
                 .iter()
-                .map(|child_op| evaluate_chain_inner(child_op, ctx, syn_ctx, results));
-            get_composite_prog(chain.op.clone(), children.collect(), syn_ctx)
+                .map(|child_op| evaluate_chain_inner(child_op, ctx, syn_ctx, worker_ctx, results));
+            get_composite_prog(chain.op.clone(), children.collect(), syn_ctx, worker_ctx)
         };
 
         results.insert(chain.name.clone(), prog.clone());
@@ -426,9 +443,10 @@ pub mod helpers {
         chain: OpChain,
         ctx: &ContextArray,
         syn_ctx: &SynthesizerContext,
+        worker_ctx: &mut SynthesizerWorkerContext,
     ) -> HashMap<String, Arc<SubProgram>> {
         let mut results = HashMap::default();
-        evaluate_chain_inner(&chain, ctx, syn_ctx, &mut results);
+        evaluate_chain_inner(&chain, ctx, syn_ctx, worker_ctx, &mut results);
 
         results
     }
@@ -559,7 +577,7 @@ mod bank_iterator_tests {
         bank::*,
         bank_hasher::BankHasherBuilder,
         bank_iterator::bank_iterator,
-        context::GraphIdGenerator,
+        context::{EmptySynthesizerData, GraphIdGenerator, SynthesizerWorkerContext},
         multi_programs_map_product::{multi_programs_map_product, ProgramChildrenIterator},
         prog_triplet_iterator::prog_triplet_iterator,
         pure,
@@ -603,7 +621,11 @@ mod bank_iterator_tests {
         all_children.iter().map(|x| x.value().clone()).collect()
     }
 
-    fn get_prog_for_bank(value: Value, syn_ctx: &SynthesizerContext) -> Arc<SubProgram> {
+    fn get_prog_for_bank(
+        value: Value,
+        syn_ctx: &SynthesizerContext,
+        worker_ctx: &mut SynthesizerWorkerContext,
+    ) -> Arc<SubProgram> {
         let init_op: Arc<dyn ExprOpcode> = Arc::new(TestOpcode {
             arg_types: vec![],
             returns: pure!(LocValue {
@@ -617,7 +639,7 @@ mod bank_iterator_tests {
             syn_ctx.start_context.clone(),
             syn_ctx.start_context.clone(),
         );
-        Arc::get_mut(&mut p).unwrap().evaluate(syn_ctx);
+        Arc::get_mut(&mut p).unwrap().evaluate(syn_ctx, worker_ctx);
         p
     }
 
@@ -636,12 +658,16 @@ mod bank_iterator_tests {
     }
 
     async fn add_iteration(bank: &mut impl ProgBank, n: usize, syn_ctx: &SynthesizerContext) {
+        let mut worker_ctx = SynthesizerWorkerContext {
+            index: 0,
+            data: Box::new(EmptySynthesizerData {}),
+        };
         let iteration = bank.iteration_count();
         let mut iteration_builder = bank.create_iteration_builder();
         let mut batch_builder = iteration_builder.create_batch_builder();
         for i in 0..n {
             let value = Number::from(iteration << 32 | i);
-            let p = get_prog_for_bank(vnum!(value), syn_ctx);
+            let p = get_prog_for_bank(vnum!(value), syn_ctx, &mut worker_ctx);
             batch_builder.add_program(&p).await;
         }
         iteration_builder.add_batch(batch_builder).await;
@@ -654,10 +680,13 @@ mod bank_iterator_tests {
         let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default());
         let mut bank = TestBank::default();
         add_iteration(&mut bank, 2, &syn_ctx).await;
-        let mut iter = prog_triplet_iterator(multi_programs_map_product(
-            &bank,
-            [(0, ValueType::Number), (0, ValueType::Number)].into_iter(),
-        ).await);
+        let mut iter = prog_triplet_iterator(
+            multi_programs_map_product(
+                &bank,
+                [(0, ValueType::Number), (0, ValueType::Number)].into_iter(),
+            )
+            .await,
+        );
         while let Some(triplet) = iter.next().await {
             println!(
                 "{:#?}",
@@ -682,7 +711,8 @@ mod bank_iterator_tests {
             let mut children_iter = multi_programs_map_product(
                 &bank,
                 [(0, ValueType::Number), (1, ValueType::Number)].into_iter(),
-            ).await;
+            )
+            .await;
             if i > 0 {
                 children_iter.skip(i).await;
             }
@@ -721,7 +751,8 @@ mod bank_iterator_tests {
             let mut children_iter = multi_programs_map_product(
                 &bank,
                 [(0, ValueType::Number), (1, ValueType::Number)].into_iter(),
-            ).await;
+            )
+            .await;
             if i > 0 {
                 children_iter.take(3 * 4 - i)
             }
@@ -759,7 +790,8 @@ mod bank_iterator_tests {
         let mut children_iter = multi_programs_map_product(
             &bank,
             [(0, ValueType::Number), (1, ValueType::Number)].into_iter(),
-        ).await;
+        )
+        .await;
         children_iter.skip(5).await;
         children_iter.take(3);
 
@@ -1359,7 +1391,9 @@ mod prog_tests {
     use std::sync::Arc;
 
     use crate::{
-        context::{Context, ContextArray, GraphIdGenerator, SynthesizerContext},
+        context::{
+            Context, ContextArray, GraphIdGenerator, SynthesizerContext, SynthesizerWorkerContext,
+        },
         dirty,
         prog::SubProgram,
         test::helpers::*,
@@ -1387,7 +1421,8 @@ mod prog_tests {
         });
 
         let mut p = SubProgram::with_opcode(opcode, pre_ctx, post_ctx);
-        evaluate_prog(&mut p, &syn_ctx);
+        let mut worker_ctx = SynthesizerWorkerContext::default();
+        evaluate_prog(&mut p, &syn_ctx, &mut worker_ctx);
         println!("{}", p.pre_ctx());
         println!("{}", p.out_value().wrap(p.post_ctx()));
         println!("{}", p.post_ctx());
