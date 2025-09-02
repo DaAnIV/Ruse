@@ -120,6 +120,7 @@ class MongoDBService {
             { timestampDate: 1 },
             { level: 1 },
             { target: 1 },
+            { threadId: 1 },
             { 'fields.message': 'text' }, // Text search index
             { '_meta.isPanic': 1 },
             { timestampDate: 1, level: 1 }, // Compound index
@@ -228,6 +229,11 @@ class MongoDBService {
             query['_meta.isPanic'] = true;
         } else if (filters.isPanic === 'false') {
             query['_meta.isPanic'] = false;
+        }
+
+        // Thread ID filter
+        if (filters.threadId && Array.isArray(filters.threadId) && filters.threadId.length > 0) {
+            query.threadId = { $in: filters.threadId };
         }
     }
 

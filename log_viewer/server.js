@@ -208,7 +208,8 @@ app.get('/api/logs/:cacheHash', async (req, res) => {
             search, 
             isPanic, 
             task, 
-            iteration 
+            iteration,
+            threadId
         } = req.query;
         
         // Build filters object
@@ -238,6 +239,9 @@ app.get('/api/logs/:cacheHash', async (req, res) => {
                     taskName: task.split(',')
                 };
             }
+        }
+        if (threadId) {
+            filters.threadId = threadId.split(',');
         }
         
         const pageNum = parseInt(page, 10);

@@ -394,6 +394,7 @@ class LogPreprocessor {
             stats: {
                 levels: {},
                 targets: {},
+                threadIds: {},
                 panicCount: 0,
                 tasks: {}
             }
@@ -438,9 +439,11 @@ class LogPreprocessor {
                 // Update statistics
                 const level = entry.level || 'unknown';
                 const target = entry.target || 'unknown';
+                const threadId = entry.threadId || 'unknown';
 
                 metadata.stats.levels[level] = (metadata.stats.levels[level] || 0) + 1;
                 metadata.stats.targets[target] = (metadata.stats.targets[target] || 0) + 1;
+                metadata.stats.threadIds[threadId] = (metadata.stats.threadIds[threadId] || 0) + 1;
 
                 if (processedEntry._meta.isPanic) {
                     metadata.stats.panicCount++;

@@ -95,6 +95,18 @@ class LogViewer {
             this.updateFilterAllState('targetFilterAll', targetFilterOptions);
         });
 
+        // Thread ID filter
+        const threadIdFilterAll = document.getElementById('threadIdFilterAll');
+        const threadIdFilterOptions = document.getElementById('threadIdFilterOptions');
+        
+        threadIdFilterAll.addEventListener('change', (e) => {
+            const checkboxes = threadIdFilterOptions.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = e.target.checked;
+            });
+            this.updateFilterAllState('threadIdFilterAll', threadIdFilterOptions);
+        });
+
         // Task filter
         const taskFilterAll = document.getElementById('taskFilterAll');
         const taskFilterOptions = document.getElementById('taskFilterOptions');
@@ -140,6 +152,16 @@ class LogViewer {
             targetFilterOptions.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
                 checkbox.addEventListener('change', () => {
                     this.updateFilterAllState('targetFilterAll', targetFilterOptions);
+                });
+            });
+        }
+
+        // Bind events to thread ID filter checkboxes
+        const threadIdFilterOptions = document.getElementById('threadIdFilterOptions');
+        if (threadIdFilterOptions) {
+            threadIdFilterOptions.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                checkbox.addEventListener('change', () => {
+                    this.updateFilterAllState('threadIdFilterAll', threadIdFilterOptions);
                 });
             });
         }
@@ -1293,6 +1315,7 @@ class LogViewer {
         // Store current filter values before repopulating
         const currentLevels = this.getCheckedFilterValues('levelFilterOptions');
         const currentTargets = this.getCheckedFilterValues('targetFilterOptions');
+        const currentThreadIds = this.getCheckedFilterValues('threadIdFilterOptions');
         const currentTasks = this.getCheckedFilterValues('taskFilterOptions');
         const currentIterations = this.getCheckedFilterValues('iterationFilterOptions');
 
@@ -1336,6 +1359,27 @@ class LogViewer {
             targetFilterOptions.appendChild(label);
         });
 
+        // Populate thread ID filter
+        const threadIdFilterOptions = document.getElementById('threadIdFilterOptions');
+        threadIdFilterOptions.innerHTML = '';
+        let sortedThreadIds = Object.entries(stats.threadIds).sort(([keyA, _valueA], [keyB, _valueB]) => keyA.localeCompare(keyB));
+        sortedThreadIds.forEach(([threadId, count]) => {
+            const label = document.createElement('label');
+            label.className = 'checkbox-label';
+            
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.value = threadId;
+            checkbox.dataset.filterType = 'threadId';
+            
+            const span = document.createElement('span');
+            span.textContent = `${threadId} (${count})`;
+            
+            label.appendChild(checkbox);
+            label.appendChild(span);
+            threadIdFilterOptions.appendChild(label);
+        });
+
         // Populate tasks filter
         const taskFilterOptions = document.getElementById('taskFilterOptions');
         taskFilterOptions.innerHTML = '';
@@ -1364,11 +1408,13 @@ class LogViewer {
         // Restore selected values if they still exist in the new options
         this.restoreFilterSelections('levelFilterOptions', currentLevels);
         this.restoreFilterSelections('targetFilterOptions', currentTargets);
+        this.restoreFilterSelections('threadIdFilterOptions', currentThreadIds);
         this.restoreFilterSelections('taskFilterOptions', currentTasks);
         
         // Update "All" checkbox states
         this.updateFilterAllState('levelFilterAll', levelFilterOptions);
         this.updateFilterAllState('targetFilterAll', targetFilterOptions);
+        this.updateFilterAllState('threadIdFilterAll', threadIdFilterOptions);
         this.updateFilterAllState('taskFilterAll', taskFilterOptions);
         
         // Bind individual checkbox events
@@ -1406,6 +1452,9 @@ class LogViewer {
         const target = this.getCheckedFilterValues('targetFilterOptions');
         if (target.length > 0) filters.target = target;
 
+        const threadId = this.getCheckedFilterValues('threadIdFilterOptions');
+        if (threadId.length > 0) filters.threadId = threadId;
+
         const search = document.getElementById('searchFilter').value.trim();
         if (search) filters.search = search;
 
@@ -1434,6 +1483,7 @@ class LogViewer {
         // Clear all filter checkboxes
         this.clearFilterCheckboxes('levelFilterOptions');
         this.clearFilterCheckboxes('targetFilterOptions');
+        this.clearFilterCheckboxes('threadIdFilterOptions');
         this.clearFilterCheckboxes('taskFilterOptions');
         this.clearFilterCheckboxes('iterationFilterOptions');
         
@@ -1442,6 +1492,8 @@ class LogViewer {
         document.getElementById('levelFilterAll').indeterminate = false;
         document.getElementById('targetFilterAll').checked = false;
         document.getElementById('targetFilterAll').indeterminate = false;
+        document.getElementById('threadIdFilterAll').checked = false;
+        document.getElementById('threadIdFilterAll').indeterminate = false;
         document.getElementById('taskFilterAll').checked = false;
         document.getElementById('taskFilterAll').indeterminate = false;
         document.getElementById('iterationFilterAll').checked = false;
