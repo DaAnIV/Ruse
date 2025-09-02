@@ -126,6 +126,12 @@ struct PrintOpcodesArgs {
     #[arg(short, long, default_value_t = false)]
     only_ts: bool,
 
+    #[arg(long, default_value_t = false)]
+    ignore_sequence_ops: bool,
+
+    #[arg(long, default_value_t = false)]
+    ignore_string_ops: bool,
+
     #[arg(short, long, default_value_t = false)]
     print_summary: bool,
 }
@@ -304,7 +310,7 @@ fn print_opcodes(cli: &PrintOpcodesArgs) -> ExitCode {
     let composite_opcodes = if cli.only_ts {
         SnythesisTask::get_classes_opcodes(&classes, true)
     } else {
-        SnythesisTask::get_composite_opcodes(&classes, true, true)
+        SnythesisTask::get_composite_opcodes(&classes, !cli.ignore_sequence_ops, !cli.ignore_string_ops)
     };
     let opcodes_len = composite_opcodes.len();
 
