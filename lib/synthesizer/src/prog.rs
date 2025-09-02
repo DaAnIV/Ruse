@@ -113,6 +113,7 @@ impl SubProgram {
         let examples_count = self.pre_ctx().len();
         let mut out_value = Vec::with_capacity(examples_count);
         let mut dirty = false;
+        let old_post_ctx = self.post_ctx.clone();
 
         evaluate_trace!({ 
             pre_ctx = %self.pre_ctx.json_display(), 
@@ -129,7 +130,9 @@ impl SubProgram {
             // Evaluate and verify the output type is consistent
             let out_val = match self.opcode.eval(&args, out_ctx, syn_ctx) {
                 Ok(result) => {
-                    dirty |= result.dirty;
+                    if result.dirty && out_ctx.as_ref() != &old_post_ctx[i] {
+                        dirty |= true;
+                    }
                     result.output
                 }
                 Err(_) => return false,
