@@ -31,7 +31,10 @@ use mimalloc::MiMalloc;
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
 
-use crate::config::{BankArgs, BankTypeArg};
+use crate::{
+    config::{BankArgs, BankTypeArg},
+    results::BenchmarkResult,
+};
 
 
 fn get_result_path(cli: &RunArgs) -> PathBuf {
@@ -214,14 +217,9 @@ fn set_logger(cli: &RunArgs) {
     std::panic::set_hook(Box::new(panic_hook));
 }
 
-fn run_all_benchmarks<F>(
-    cli: &RunArgs,
-    bench_config: &config::BenchmarkConfig,
-    mut writer: ResultsWriter<F>,
-) where
-    F: Formatter + Clone,
-{
-    for benchmark in &cli.benchmarks {
+fn get_benchmarks_recursively(paths: &[std::path::PathBuf]) -> Vec<std::path::PathBuf> {
+    let mut all_benchmarks = Vec::new();
+    for benchmark in paths {
         if !benchmark.exists() {
             error!(target: "ruse::runner", "Path doesn't exist {}", benchmark.display());
         } else if benchmark.is_dir() {
@@ -233,13 +231,38 @@ fn run_all_benchmarks<F>(
                         && e.path().extension().map(|s| s == "sy").unwrap_or(false)
                 })
             {
-                let result = runner::run_task(entry.path(), &bench_config);
-                writer.write_result(&result);
+                all_benchmarks.push(entry.path().to_path_buf());
             }
         } else {
-            let result = runner::run_task(benchmark.as_path(), &bench_config);
-            writer.write_result(&result);
+            all_benchmarks.push(benchmark.clone());
         }
+    }
+
+    all_benchmarks
+}
+
+fn run_all_benchmarks<F>(
+    cli: &RunArgs,
+    bench_config: &config::BenchmarkConfig,
+    mut writer: ResultsWriter<F>,
+) where
+    F: Formatter + Clone,
+{
+    let mut ctrlc = false;
+    let benchmarks = get_benchmarks_recursively(&cli.benchmarks);
+    for benchmark in benchmarks {
+        let mut result = BenchmarkResult::new(benchmark.as_path());
+        if ctrlc {
+            result.error(&runner::RunnerError::CtrlC);
+            result.finish(None, Duration::from_secs(0), Default::default());
+            writer.write_result(&result);
+        } else {
+            let runner_result = runner::run_task(benchmark.as_path(), &bench_config, &mut result);
+            if runner_result.is_err_and(|e| e.is_ctrlc()) {
+                ctrlc = true;
+            }
+        }
+        writer.write_result(&result);
     }
 }
 

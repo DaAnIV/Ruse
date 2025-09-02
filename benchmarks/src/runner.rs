@@ -6,8 +6,8 @@ use std::{
 
 use byte_unit::{Byte, Unit};
 use ruse_synthesizer::bank::ProgBank;
-use ruse_task_parser::bank_factory::Bank;
 use ruse_task_parser::SnythesisTask;
+use ruse_task_parser::{bank_factory::Bank, error::SnythesisTaskError};
 use ruse_ts_synthesizer::TsSynthesizer;
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, error, info, info_span};
@@ -15,9 +15,18 @@ use tracing::{debug, error, info, info_span};
 use crate::{config::BenchmarkConfig, results::BenchmarkResult};
 
 #[derive(Debug)]
-enum RunnerError {
+pub enum RunnerError {
     Timeout,
     OOM,
+    CtrlC,
+    TaskCreateError(SnythesisTaskError),
+    SynthesizerCreateError(SnythesisTaskError),
+}
+
+impl RunnerError {
+    pub fn is_ctrlc(&self) -> bool {
+        matches!(self, RunnerError::CtrlC)
+    }
 }
 
 impl std::error::Error for RunnerError {}
@@ -27,6 +36,9 @@ impl std::fmt::Display for RunnerError {
         match self {
             RunnerError::Timeout => write!(f, "Timeout"),
             RunnerError::OOM => write!(f, "OOM"),
+            RunnerError::CtrlC => write!(f, "Ctrl+C"),
+            RunnerError::TaskCreateError(e) => write!(f, "TaskCreateError: {}", e),
+            RunnerError::SynthesizerCreateError(e) => write!(f, "SynthesizerCreateError: {}", e),
         }
     }
 }
@@ -62,18 +74,23 @@ async fn watch_vm_usage(max_task_mem: Byte) {
 async fn watch_for_error<I>(
     timeout: tokio::time::Timeout<I>,
     config: &BenchmarkConfig,
-) -> Result<(), RunnerError>
+) -> Result<bool, RunnerError>
 where
-    I: Future,
+    I: Future<Output = bool>,
 {
     tokio::select! {
         res = timeout => {
-            if let Err(_) = res {
-                error!(target: "ruse::runner", "Reached timeout");
-                Err(RunnerError::Timeout)
-            } else {
-                Ok(())
+            match res {
+                Ok(v) => Ok(v),
+                Err(_) => {
+                    error!(target: "ruse::runner", "Reached timeout");
+                    Err(RunnerError::Timeout)
+                }
             }
+        },
+        _ = tokio::signal::ctrl_c() => {
+            error!(target: "ruse::runner", "Received Ctrl+C!");
+            Err(RunnerError::CtrlC)
         },
         _ = watch_vm_usage(config.max_task_mem) => {
             error!(target: "ruse::runner", "Reached max mem usage");
@@ -87,7 +104,7 @@ async fn run_synthesizer<P: ProgBank + 'static>(
     result: &mut BenchmarkResult,
     max_iterations: u32,
     cancel_token: CancellationToken,
-) {
+) -> bool {
     let _span = info_span!(target: "ruse::runner", "synthesizer_run").entered();
 
     let start = Instant::now();
@@ -100,7 +117,7 @@ async fn run_synthesizer<P: ProgBank + 'static>(
         };
         let iteration_took = iteration_start.elapsed();
         if res.is_err() {
-            return;
+            return false;
         }
         result.add_iteration(iteration_took, synthesizer.statistics());
         if let Ok(Some(p)) = res {
@@ -117,8 +134,11 @@ async fn run_synthesizer<P: ProgBank + 'static>(
         result.error(&err);
     }
 
+    let success = found.is_some();
     result.finish(found, took, synthesizer.statistics());
     info!(target: "ruse::runner", "Benchmark took {:.3}s", took.as_secs_f32());
+
+    return success;
 }
 
 fn get_tokio_runtime(bench_config: &BenchmarkConfig) -> tokio::runtime::Runtime {
@@ -144,7 +164,7 @@ async fn run_task_with_bank<P: ProgBank + 'static>(
     bench_config: &BenchmarkConfig,
     result: &mut BenchmarkResult,
     bank: P,
-) {
+) -> Result<bool, RunnerError> {
     let task_name = task.name.clone();
     let task_path = task.path.clone();
 
@@ -157,7 +177,7 @@ async fn run_task_with_bank<P: ProgBank + 'static>(
         Err(e) => {
             error!(target: "ruse::runner", "Failed to get synthesizer for task {}. {}", task_name, e);
             result.error(&e);
-            return;
+            return Err(RunnerError::SynthesizerCreateError(e));
         }
     };
     info!(target: "ruse::runner", "Running {}", task_path.display());
@@ -175,15 +195,23 @@ async fn run_task_with_bank<P: ProgBank + 'static>(
             cancel_token.child_token(),
         ),
     );
-    if let Err(e) = watch_for_error(timeout, bench_config).await {
-        cancel_token.cancel();
-        result.error(&e);
-        result.add_iteration(Duration::from_secs(0), synthesizer.statistics());
-        result.finish(None, bench_config.timeout, synthesizer.statistics());
+    match watch_for_error(timeout, bench_config).await {
+        Ok(success) => Ok(success),
+        Err(e) => {
+            cancel_token.cancel();
+            result.error(&e);
+            result.add_iteration(Duration::from_secs(0), synthesizer.statistics());
+            result.finish(None, bench_config.timeout, synthesizer.statistics());
+            Err(e)
+        }
     }
 }
 
-async fn run_task_async(path: &Path, bench_config: &BenchmarkConfig, result: &mut BenchmarkResult) {
+async fn run_task_async(
+    path: &Path,
+    bench_config: &BenchmarkConfig,
+    result: &mut BenchmarkResult,
+) -> Result<bool, RunnerError> {
     let task_name = SnythesisTask::task_name(path);
 
     let _span = info_span!(target: "ruse::runner", "task", task_name = task_name).entered();
@@ -191,31 +219,27 @@ async fn run_task_async(path: &Path, bench_config: &BenchmarkConfig, result: &mu
     let task = match SnythesisTask::from_json_file(path) {
         Ok(v) => v,
         Err(e) => {
-            error!(target: "ruse::runner", "Failed to run task {}. {}", task_name, e);
+            error!(target: "ruse::runner", "Failed to parse task {}. {}", task_name, e);
             result.error(&e);
-            return;
+            return Err(RunnerError::TaskCreateError(e));
         }
     };
 
     init_results(&task, result);
 
     match bench_config.bank_config.new_bank().await {
-        Bank::SubsumptionBank(bank) => {
-            run_task_with_bank(task, bench_config, result, bank).await;
-        }
+        Bank::SubsumptionBank(bank) => run_task_with_bank(task, bench_config, result, bank).await,
     }
 }
 
-pub fn run_task(path: &Path, bench_config: &BenchmarkConfig) -> BenchmarkResult {
+pub fn run_task(
+    path: &Path,
+    bench_config: &BenchmarkConfig,
+    result: &mut BenchmarkResult,
+) -> Result<bool, RunnerError> {
     let runtime = get_tokio_runtime(bench_config);
 
-    let mut result = BenchmarkResult::new(path);
-
     runtime.block_on(async {
-        tokio::task::block_in_place(|| run_task_async(path, bench_config, &mut result)).await
-    });
-
-    drop(runtime);
-
-    result
+        tokio::task::block_in_place(|| run_task_async(path, bench_config, result)).await
+    })
 }
