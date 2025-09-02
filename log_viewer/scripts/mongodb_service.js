@@ -218,10 +218,7 @@ class MongoDBService {
 
         // Text search in message and other fields
         if (filters.search) {
-            query.$or = [
-                { 'fields.message': { $regex: filters.search, $options: 'i' } },
-                // Add more fields to search in if needed
-            ];
+            query['fields.message'] = { $regex: filters.search, $options: 'i' };
         }
 
         // Panic filter
