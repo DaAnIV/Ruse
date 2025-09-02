@@ -1858,26 +1858,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4a5f13b858c8d314ee3e8f639011f7ccefe71f97f96e50151fb991f267928e2c"
 
 [[package]]
-name = "jemalloc-sys"
-version = "0.5.4+5.3.0-patched"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ac6c1946e1cea1788cbfde01c993b52a10e2da07f4bac608228d1bed20bfebf2"
-dependencies = [
- "cc",
- "libc",
-]
-
-[[package]]
-name = "jemallocator"
-version = "0.5.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a0de374a9f8e63150e6f5e8a60cc14c668226d7a347d8aee1a45766e3c4dd3bc"
-dependencies = [
- "jemalloc-sys",
- "libc",
-]
-
-[[package]]
 name = "js-sys"
 version = "0.3.77"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1907,6 +1887,16 @@ name = "libc"
 version = "0.2.172"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d750af042f7ef4f724306de029d18836c26c1765a54a6a3f094cbd23a7267ffa"
+
+[[package]]
+name = "libmimalloc-sys"
+version = "0.1.44"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "667f4fec20f29dfc6bc7357c582d91796c169ad7e2fce709468aefeb2c099870"
+dependencies = [
+ "cc",
+ "libc",
+]
 
 [[package]]
 name = "linux-raw-sys"
@@ -2003,6 +1993,15 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.101",
+]
+
+[[package]]
+name = "mimalloc"
+version = "0.1.48"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e1ee66a4b64c74f4ef288bcbb9192ad9c3feaad75193129ac8509af543894fd8"
+dependencies = [
+ "libmimalloc-sys",
 ]
 
 [[package]]
@@ -2832,9 +2831,10 @@ dependencies = [
  "clap-verbosity-flag",
  "console-subscriber",
  "itertools 0.14.0",
- "jemallocator",
+ "mimalloc",
  "procfs",
  "ruse_object_graph",
+ "ruse_prog_bank_in_mem",
  "ruse_synthesizer",
  "ruse_task_parser",
  "ruse_ts_interpreter",
@@ -2870,9 +2870,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "ruse_prog_bank_in_mem"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "criterion",
+ "getrandom 0.3.3",
+ "itertools 0.14.0",
+ "rand",
+ "ruse_object_graph",
+ "ruse_synthesizer",
+ "serde",
+ "serde_json",
+ "siphasher 1.0.1",
+ "tracing",
+]
+
+[[package]]
 name = "ruse_synthesizer"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "criterion",
  "dashmap 6.1.0",
  "downcast-rs",
@@ -2897,12 +2916,14 @@ dependencies = [
  "boa_engine",
  "itertools 0.14.0",
  "ruse_object_graph",
+ "ruse_prog_bank_in_mem",
  "ruse_synthesizer",
  "ruse_ts_interpreter",
  "ruse_ts_synthesizer",
  "serde",
  "serde_json",
  "serde_with",
+ "tracing",
  "wildmatch",
 ]
 
@@ -2945,6 +2966,7 @@ dependencies = [
  "criterion",
  "itertools 0.14.0",
  "ruse_object_graph",
+ "ruse_prog_bank_in_mem",
  "ruse_synthesizer",
  "ruse_ts_interpreter",
  "swc_ecma_ast",
@@ -3151,6 +3173,15 @@ name = "shlex"
 version = "1.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0fda2ff0d084019ba4d7c6f371c95d8fd75ce3524c3cb8fb653a3023f6323e64"
+
+[[package]]
+name = "signal-hook-registry"
+version = "1.4.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b2a4719bff48cee6b39d12c020eeb490953ad2443b7055bd0b21fca26bd8c28b"
+dependencies = [
+ "libc",
+]
 
 [[package]]
 name = "simdutf8"
@@ -4509,6 +4540,7 @@ dependencies = [
  "libc",
  "mio",
  "pin-project-lite",
+ "signal-hook-registry",
  "socket2",
  "tokio-macros",
  "tracing",

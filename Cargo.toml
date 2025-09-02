@@ -52,6 +52,7 @@ tokio = { version = "^1.43.0", features = [
     "sync",
     "time",
     "macros",
+    "signal",
 ] }
 tokio-util = "*"
 futures = "*"
