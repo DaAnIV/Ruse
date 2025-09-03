@@ -726,6 +726,7 @@ class LogViewer {
                                         <span>Evaluated: ${task.total_statistics.Evaluated}</span>
                                         <span>Bank Size: ${task.total_statistics.BankSize}</span>
                                         <span>Max Depth: ${task.total_statistics.MaxDepth}</span>
+                                        <span>Max Context Depth: ${task.total_statistics.MaxContextDepth}</span>
                                         <span>Max Size: ${task.total_statistics.MaxSize}</span>
                                     </div>
 
@@ -744,6 +745,7 @@ class LogViewer {
                                                 <span>Evaluated: ${iter.statistics.Evaluated}</span>
                                                 <span>Bank Size: ${iter.statistics.BankSize}</span>
                                                 <span>Max Depth: ${iter.statistics.MaxDepth}</span>
+                                                <span>Max Context Depth: ${iter.statistics.MaxContextDepth}</span>
                                                 <span>Max Size: ${iter.statistics.MaxSize}</span>
                                             </div>
                                         </div>
@@ -863,7 +865,7 @@ class LogViewer {
             // Show loading animation
             this.showLogsLoading(loadingMessage);
             
-            const itemsPerPage = parseInt(document.getElementById('itemsPerPage').value) || 100;
+            const itemsPerPage = parseInt(document.getElementById('itemsPerPage').value) || 25;
             const params = new URLSearchParams({
                 page: this.currentPage,
                 limit: itemsPerPage,
@@ -896,10 +898,8 @@ class LogViewer {
 
     renderLogs(data) {
         const entries = document.getElementById('logsEntries');
-        const logsCount = document.getElementById('logsCount');
         const fileName = document.getElementById('currentFileName');
 
-        logsCount.textContent = `${data.pagination.total} logs`;
         fileName.textContent = this.getFileNameFromPath(data.metadata.sourceFile);
 
         if (data.logs.length === 0) {
@@ -1553,24 +1553,29 @@ class LogViewer {
             return; // Don't show page numbers if there's only one page
         }
         
-        const buttons = this.createPageButtons(currentPage, totalPages);
+        const buttonConfigs = this.createPageButtonConfigs(currentPage, totalPages);
         
-        // Add buttons to both pagination sections
-        buttons.forEach(button => {
-            const clone = button.cloneNode(true);
+        // Create buttons for top pagination
+        buttonConfigs.forEach(config => {
+            const button = this.createPageButton(config.pageNumber, config.isActive, config.isEllipsis);
             pageNumbers.appendChild(button);
-            pageNumbersBottom.appendChild(clone);
+        });
+        
+        // Create buttons for bottom pagination
+        buttonConfigs.forEach(config => {
+            const button = this.createPageButton(config.pageNumber, config.isActive, config.isEllipsis);
+            pageNumbersBottom.appendChild(button);
         });
     }
 
-    createPageButtons(currentPage, totalPages) {
-        const buttons = [];
+    createPageButtonConfigs(currentPage, totalPages) {
+        const configs = [];
         const maxVisiblePages = 7; // Show up to 7 page buttons
         
         if (totalPages <= maxVisiblePages) {
             // Show all pages if total is small
             for (let i = 1; i <= totalPages; i++) {
-                buttons.push(this.createPageButton(i, i === currentPage));
+                configs.push({ pageNumber: i, isActive: i === currentPage, isEllipsis: false });
             }
         } else {
             // Smart pagination with ellipsis
@@ -1579,41 +1584,48 @@ class LogViewer {
             if (currentPage <= 4) {
                 // Show first pages: 1 2 3 4 5 ... last
                 for (let i = 1; i <= 5; i++) {
-                    buttons.push(this.createPageButton(i, i === currentPage));
+                    configs.push({ pageNumber: i, isActive: i === currentPage, isEllipsis: false });
                 }
                 if (showEllipsis) {
-                    buttons.push(this.createEllipsis());
+                    configs.push({ pageNumber: null, isActive: false, isEllipsis: true });
                 }
-                buttons.push(this.createPageButton(totalPages, false));
+                configs.push({ pageNumber: totalPages, isActive: false, isEllipsis: false });
             } else if (currentPage >= totalPages - 3) {
                 // Show last pages: 1 ... (last-4) (last-3) (last-2) (last-1) last
-                buttons.push(this.createPageButton(1, false));
+                configs.push({ pageNumber: 1, isActive: false, isEllipsis: false });
                 if (showEllipsis) {
-                    buttons.push(this.createEllipsis());
+                    configs.push({ pageNumber: null, isActive: false, isEllipsis: true });
                 }
                 for (let i = totalPages - 4; i <= totalPages; i++) {
-                    buttons.push(this.createPageButton(i, i === currentPage));
+                    configs.push({ pageNumber: i, isActive: i === currentPage, isEllipsis: false });
                 }
             } else {
                 // Show middle pages: 1 ... (current-1) current (current+1) ... last
-                buttons.push(this.createPageButton(1, false));
+                configs.push({ pageNumber: 1, isActive: false, isEllipsis: false });
                 if (showEllipsis) {
-                    buttons.push(this.createEllipsis());
+                    configs.push({ pageNumber: null, isActive: false, isEllipsis: true });
                 }
                 for (let i = currentPage - 1; i <= currentPage + 1; i++) {
-                    buttons.push(this.createPageButton(i, i === currentPage));
+                    configs.push({ pageNumber: i, isActive: i === currentPage, isEllipsis: false });
                 }
                 if (showEllipsis) {
-                    buttons.push(this.createEllipsis());
+                    configs.push({ pageNumber: null, isActive: false, isEllipsis: true });
                 }
-                buttons.push(this.createPageButton(totalPages, false));
+                configs.push({ pageNumber: totalPages, isActive: false, isEllipsis: false });
             }
         }
         
-        return buttons;
+        return configs;
     }
 
-    createPageButton(pageNumber, isActive) {
+    createPageButton(pageNumber, isActive, isEllipsis = false) {
+        if (isEllipsis) {
+            const ellipsis = document.createElement('div');
+            ellipsis.className = 'page-ellipsis';
+            ellipsis.textContent = '...';
+            return ellipsis;
+        }
+        
         const button = document.createElement('button');
         button.className = `page-number-btn ${isActive ? 'active' : ''}`;
         button.textContent = pageNumber;
@@ -1627,20 +1639,16 @@ class LogViewer {
         return button;
     }
 
-    createEllipsis() {
-        const ellipsis = document.createElement('div');
-        ellipsis.className = 'page-ellipsis';
-        ellipsis.textContent = '...';
-        return ellipsis;
-    }
-
     updateResultsInfo(pagination) {
-        const itemsPerPage = parseInt(document.getElementById('itemsPerPage').value) || 100;
+        const itemsPerPage = parseInt(document.getElementById('itemsPerPage').value) || 25;
         const startItem = (pagination.page - 1) * itemsPerPage + 1;
         const endItem = Math.min(pagination.page * itemsPerPage, pagination.total);
         
-        const resultsInfo = document.getElementById('resultsInfo');
-        resultsInfo.textContent = `Results: ${startItem} - ${endItem} of ${pagination.total}`;
+        const resultsText = `Results: ${startItem} - ${endItem} of ${pagination.total}`;
+        
+        // Update both results info elements
+        document.getElementById('resultsInfo').textContent = resultsText;
+        document.getElementById('resultsInfoBottom').textContent = resultsText;
     }
 
     previousPage() {
@@ -1888,3 +1896,4 @@ class LogViewer {
 document.addEventListener('DOMContentLoaded', () => {
     window.app = new LogViewer();
 });
+

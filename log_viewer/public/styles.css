@@ -1315,6 +1315,7 @@ body {
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    padding-left: 1rem;
 }
 
 .items-per-page label {
@@ -1342,6 +1343,12 @@ body {
     background: #f8f9fa;
     border-top: 1px solid #e9ecef;
     justify-content: center;
+}
+
+.bottom-pagination-info {
+    padding: 0.5rem 1rem;
+    background: #f8f9fa;
+    border-top: 1px solid #e9ecef;
 }
 
 /* Modal */
