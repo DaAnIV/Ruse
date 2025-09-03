@@ -1,11 +1,12 @@
 use std::{
     future::Future,
     path::Path,
+    sync::Arc,
     time::{Duration, Instant},
 };
 
 use byte_unit::{Byte, Unit};
-use ruse_synthesizer::bank::ProgBank;
+use ruse_synthesizer::{bank::ProgBank, prog::SubProgram};
 use ruse_task_parser::SnythesisTask;
 use ruse_task_parser::{bank_factory::Bank, error::SnythesisTaskError};
 use ruse_ts_synthesizer::TsSynthesizer;
@@ -101,6 +102,13 @@ where
     }
 }
 
+enum SynthesizerResult {
+    Found(Arc<SubProgram>),
+    Error(String),
+    Cancelled,
+    NotFound,
+}
+
 async fn run_synthesizer<P: ProgBank + 'static>(
     synthesizer: &mut TsSynthesizer<P>,
     result: &mut BenchmarkResult,
@@ -110,36 +118,45 @@ async fn run_synthesizer<P: ProgBank + 'static>(
     let _span = info_span!(target: "ruse::runner", "synthesizer_run").entered();
 
     let start = Instant::now();
-    let mut found = None;
+    let mut synthesizer_result = SynthesizerResult::NotFound;
     for _ in 0..max_iterations {
         let iteration_start = Instant::now();
-        let res = tokio::select! {
-            _ = cancel_token.cancelled() => Err(()),
+        synthesizer_result = tokio::select! {
+            _ = cancel_token.cancelled() => SynthesizerResult::Cancelled,
             v = synthesizer.run_iteration() => {
-                if let Err(e) = &v {
-                    result.error_string(&e.to_string());
+                match v {
+                    Ok(Some(p)) => SynthesizerResult::Found(p),
+                    Err(e) => SynthesizerResult::Error(e.to_string()),
+                    Ok(None) => SynthesizerResult::NotFound,
                 }
-                v.map_err(|_e| ())
             }
         };
         let iteration_took = iteration_start.elapsed();
-        if res.is_err() {
-            return false;
-        }
         result.add_iteration(iteration_took, synthesizer.statistics());
-        if let Ok(Some(p)) = res {
-            found = Some(p);
-            break;
+        match &synthesizer_result {
+            SynthesizerResult::NotFound => (),
+            _ => break,
         }
     }
     let took = start.elapsed();
-    if let Some(found) = &found {
-        info!(target: "ruse::runner", "Found \"{}\"", found.get_code());
-    } else {
-        error!(target: "ruse::runner", "Reached max iterations");
-        let err = ReachedMaxIterationError {};
-        result.error(&err);
-    }
+    let found = match synthesizer_result {
+        SynthesizerResult::Found(sub_program) => {
+            info!(target: "ruse::runner", "Found \"{}\"", sub_program.get_code());
+            Some(sub_program)
+        }
+        SynthesizerResult::Error(e) => {
+            error!(target: "ruse::runner", "Error in synthesizer {}", &e);
+            result.error_string(&e);
+            None
+        }
+        SynthesizerResult::Cancelled => None,
+        SynthesizerResult::NotFound => {
+            error!(target: "ruse::runner", "Reached max iterations");
+            let err = ReachedMaxIterationError {};
+            result.error(&err);
+            None
+        }
+    };
 
     let success = found.is_some();
     result.finish(found, took, synthesizer.statistics());
