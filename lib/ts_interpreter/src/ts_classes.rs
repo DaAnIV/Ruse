@@ -111,12 +111,19 @@ impl TsClasses {
     }
 }
 
+#[derive(Default)]
+pub struct TsClassesBuilderOptions {
+    pub print_code: bool,
+}
+
 pub struct TsClassesBuilder {
     compiler: swc::Compiler,
     cm: Arc<SourceMap>,
 
     dts_visitor: DtsVisitor,
     program_visitor: ProgramVisitor,
+
+    options: TsClassesBuilderOptions,
 }
 
 enum FileType {
@@ -143,12 +150,17 @@ impl TryFrom<&Path> for FileType {
 
 impl TsClassesBuilder {
     pub fn new() -> Self {
+        Self::new_with_options(TsClassesBuilderOptions::default())
+    }
+
+    pub fn new_with_options(options: TsClassesBuilderOptions) -> Self {
         let cm = Arc::<SourceMap>::default();
         Self {
             compiler: swc::Compiler::new(cm.clone()),
             cm,
             dts_visitor: DtsVisitor::default(),
             program_visitor: ProgramVisitor::default(),
+            options: options,
         }
     }
 
@@ -192,22 +204,58 @@ impl TsClassesBuilder {
         }
     }
 
+    fn print_code(
+        &self,
+        source_file: &str,
+        program: Option<&ast::Program>,
+        dts: Option<&ast::Program>,
+    ) {
+        if !self.options.print_code {
+            return;
+        }
+
+        if let Some(program) = program {
+            let program_code = self
+                .compiler
+                .print(program, swc::PrintArgs::default())
+                .unwrap();
+            println!("{} program code:", source_file);
+            println!("{}", program_code.code);
+            println!("--------------------------------");
+        }
+
+        if let Some(dts) = dts {
+            let dts_code = self.compiler.print(dts, swc::PrintArgs::default()).unwrap();
+            println!("{} DTS code:", source_file);
+            println!("{}", dts_code.code);
+            println!("--------------------------------");
+        }
+    }
+
     fn add_file(&mut self, source_file: Arc<SourceFile>, extension: FileType) -> Result<(), Error> {
-        let _span = info_span!(target: "ruse:TsClassesBuilder", "Parsing file", file_name = source_file.name.to_string()).entered();
+        let file_name = source_file.name.to_string();
+        let _span =
+            info_span!(target: "ruse:TsClassesBuilder", "Parsing file", file_name = &file_name)
+                .entered();
 
         match extension {
             FileType::Ts => {
                 let (program, dts) = self.parse_ts_file(source_file)?;
+                self.print_code(&file_name, Some(&program), Some(&dts));
 
                 self.add_declarations(dts)?;
                 self.parse_program(program)
             }
             FileType::Js => {
                 let program = self.parse_js_file(source_file)?;
+                self.print_code(&file_name, Some(&program), None);
+
                 self.parse_program(program)
             }
             FileType::Dts => {
                 let dts = self.parse_dts_file(source_file)?;
+                self.print_code(&file_name, None, Some(&dts));
+
                 self.add_declarations(dts)?;
                 Ok(())
             }

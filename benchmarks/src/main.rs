@@ -3,7 +3,7 @@ use clap_verbosity_flag::{InfoLevel, Verbosity};
 use itertools::Itertools;
 use ruse_synthesizer::opcode::sort_opcodes;
 use ruse_task_parser::SnythesisTask;
-use ruse_ts_interpreter::ts_classes::TsClassesBuilder;
+use ruse_ts_interpreter::ts_classes::{TsClassesBuilder, TsClassesBuilderOptions};
 use serde_json::ser::Formatter;
 use std::{
     backtrace::{Backtrace, BacktraceStatus},
@@ -35,7 +35,6 @@ use crate::{
     config::{BankArgs, BankTypeArg},
     results::BenchmarkResult,
 };
-
 
 fn get_result_path(cli: &RunArgs) -> PathBuf {
     if cli.output.is_dir() {
@@ -137,6 +136,9 @@ struct PrintOpcodesArgs {
 
     #[arg(short, long, default_value_t = false)]
     print_summary: bool,
+
+    #[arg(long, default_value_t = false)]
+    print_js_code: bool,
 }
 
 // Taken and modified from tracing_panic::panic_hook crate (need the target: ruse)
@@ -322,7 +324,9 @@ fn run_benchmarks(cli: &RunArgs) -> ExitCode {
 }
 
 fn print_opcodes(cli: &PrintOpcodesArgs) -> ExitCode {
-    let mut builder = TsClassesBuilder::new();
+    let mut builder = TsClassesBuilder::new_with_options(TsClassesBuilderOptions {
+        print_code: cli.print_js_code,
+    });
 
     for full_path in cli.ts_files.iter() {
         builder.add_files(&full_path).unwrap();
@@ -333,7 +337,11 @@ fn print_opcodes(cli: &PrintOpcodesArgs) -> ExitCode {
     let composite_opcodes = if cli.only_ts {
         SnythesisTask::get_classes_opcodes(&classes, true)
     } else {
-        SnythesisTask::get_composite_opcodes(&classes, !cli.ignore_sequence_ops, !cli.ignore_string_ops)
+        SnythesisTask::get_composite_opcodes(
+            &classes,
+            !cli.ignore_sequence_ops,
+            !cli.ignore_string_ops,
+        )
     };
     let opcodes_len = composite_opcodes.len();
 
