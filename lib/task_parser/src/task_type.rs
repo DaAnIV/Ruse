@@ -13,6 +13,7 @@ use ruse_synthesizer::context::GraphIdGenerator;
 use ruse_ts_interpreter::{
     dom::{self, DomLoader},
     engine_context::EngineContext,
+    js_value::TryFromJs,
     ts_class::MethodKind,
     ts_classes::TsClasses,
     ts_user_class::TsUserClass,
@@ -36,6 +37,7 @@ enum ExprPrefix {
     StaticRef,
     HtmlFile,
     StaticMethod,
+    JS,
     Null,
 }
 
@@ -50,6 +52,7 @@ impl ExprPrefix {
             ExprPrefix::StaticRef => "$",
             ExprPrefix::HtmlFile => "#",
             ExprPrefix::StaticMethod => "@",
+            ExprPrefix::JS => "@js",
             ExprPrefix::Null => "Null",
         }
     }
@@ -305,6 +308,11 @@ impl TaskType {
                         id_gen,
                         engine_ctx,
                     )
+                } else if let Some(js_value) = fields.get(ExprPrefix::JS.as_str()) {
+                    let js_str = js_value
+                        .as_str()
+                        .ok_or(parse_err!(value, "js script is not a string"))?;
+                    self.create_from_js(js_str, graph_id, classes, graphs_map, id_gen, engine_ctx)
                 } else {
                     self.create_object_from_fields(
                         fields,
@@ -415,6 +423,16 @@ impl TaskType {
             ));
         }
         let arg_types = method_desc.param_types[variant].iter().map(Self::from);
+        if json_args.len() != arg_types.len() {
+            return Err(verify_err!(
+                "Class {} method {} variant {} has {} arguments, but {} were given",
+                &class.description.class_name,
+                method_name,
+                variant,
+                arg_types.len(),
+                json_args.len()
+            ));
+        }
         let args = parse_json_values_array(
             json_args, arg_types, graph_id, graphs_map, id_gen, classes, None, engine_ctx,
         )?;
@@ -432,6 +450,37 @@ impl TaskType {
                 .call_static_method(method_desc, &args, engine_ctx)
                 .map_err(|x| SnythesisTaskError::Eval(x))
         }
+    }
+
+    fn create_from_js(
+        &self,
+        js_str: &str,
+        graph_id: GraphIndex,
+        classes: &TsClasses,
+        graphs_map: &mut GraphsMap,
+        id_gen: &Arc<GraphIdGenerator>,
+        engine_ctx: &mut EngineContext,
+    ) -> Result<Value, SnythesisTaskError> {
+        graphs_map.ensure_graph(graph_id); // Make sure graph exists
+        engine_ctx.reset_with_graph(graph_id, graphs_map, classes, id_gen);
+
+        let js_code = boa_engine::Source::from_bytes(js_str);
+        let js_obj = engine_ctx
+            .eval(js_code)
+            .map_err(|e| SnythesisTaskError::Eval(e))?;
+        let value =
+            Value::try_from_js(&js_obj, engine_ctx).map_err(|e| SnythesisTaskError::Eval(e))?;
+        if value.val_type() != self.value_type() {
+            return Err(parse_err!(
+                js_str,
+                format!(
+                    "js script does not return a value of type {}",
+                    self.value_type()
+                )
+            ));
+        }
+
+        Ok(value)
     }
 
     pub fn parse_dom(
