@@ -70,6 +70,10 @@ impl BenchmarkResult {
         self.error = Some(error.to_string());
     }
 
+    pub fn error_string(&mut self, error: &str) {
+        self.error = Some(error.to_string());
+    }
+
     pub fn finish(
         &mut self,
         found: Option<Arc<SubProgram>>,

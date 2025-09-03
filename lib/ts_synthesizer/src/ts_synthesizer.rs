@@ -46,7 +46,7 @@ impl<P: ProgBank + 'static> TsSynthesizer<P> {
     }
 
     #[inline]
-    pub async fn run_iteration(&mut self) -> Option<Arc<SubProgram>> {
+    pub async fn run_iteration(&mut self) -> anyhow::Result<Option<Arc<SubProgram>>> {
         Synthesizer::run_iteration(&mut self.inner).await
     }
 

@@ -267,16 +267,16 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
         res
     }
 
-    pub async fn run_iteration(self: &mut Arc<Self>) -> Option<Arc<SubProgram>> {
+    pub async fn run_iteration(self: &mut Arc<Self>) -> anyhow::Result<Option<Arc<SubProgram>>> {
         let _span = info_span!(target: "ruse::synthesizer", "run_iteration", iteration = self.bank.iteration_count()).entered();
-        let (current_iteration_map, found_prog) = Self::run_iteration_inner(self.clone()).await;
+        let (current_iteration_map, found_prog) = Self::run_iteration_inner(self.clone()).await?;
 
         Self::insert_iteration(self, current_iteration_map).await;
 
-        found_prog
+        Ok(found_prog)
     }
 
-    async fn run_iteration_inner(self: Arc<Self>) -> (P::IterationBuilderType, Option<Arc<SubProgram>>) {
+    async fn run_iteration_inner(self: Arc<Self>) -> anyhow::Result<(P::IterationBuilderType, Option<Arc<SubProgram>>)> {
         let iteration = self.bank.iteration_count();
 
         debug!(target: "ruse::synthesizer", "Starting iteration {}", iteration);
@@ -296,7 +296,7 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
                     self_clone.run_composite_iteration(&mut current_iteration_map)
                         .await
                 };
-                (current_iteration_map, found)
+                Ok((current_iteration_map, found?))
             })
             .catch_unwind().in_current_span(),
         )
@@ -312,7 +312,7 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
             took,
             new_evaluated - prev_evaluated, 
             new_bank_size - prev_bank_size);
-        res.unwrap().unwrap()
+        res?.map_err(|_e| anyhow::anyhow!("Panic in run_iteration_inner"))?
     }
 
     fn create_worker_ctx(&self, index: usize) -> SynthesizerWorkerContext {
@@ -322,12 +322,12 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
     async fn run_init_iteration(
         &self,
         current_iteration_map: &mut P::IterationBuilderType,
-    ) -> Option<Arc<SubProgram>> {
+    ) -> anyhow::Result<Option<Arc<SubProgram>>> {
         let mut worker_ctx = self.create_worker_ctx(0);
         let mut batch_builder = current_iteration_map.create_batch_builder();
         let found = self.init_context::<true>(&mut batch_builder, &self.context.start_context, &mut worker_ctx).await;
         current_iteration_map.add_batch(batch_builder).await;
-        found
+        Ok(found)
     }
 
     fn trace_program(p: &SubProgram) {
@@ -451,7 +451,7 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
     async fn run_composite_iteration(
         self: Arc<Self>,
         current_iteration_map: &mut P::IterationBuilderType,
-    ) -> Option<Arc<SubProgram>> {
+    ) -> anyhow::Result<Option<Arc<SubProgram>>> {
         let mut workers = JoinSet::new();
         for i in 0..self.worker_count {
             let mut batch_builder = current_iteration_map.create_batch_builder();
@@ -466,14 +466,14 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
         }
 
         while let Some(worker_res) = workers.join_next().await {
-            let (worker_type_map, found) = worker_res.unwrap().unwrap();
+            let (worker_type_map, found) = worker_res?.map_err(|_e| anyhow::anyhow!("Panic in composite_iteration_worker"))?;
             if self.cancel_token.is_cancelled() {
-                return None;
+                return Ok(None);
             }
             if found.is_some() {
                 workers.abort_all();
                 while workers.join_next().await.is_some() {}
-                return found;
+                return Ok(found);
             }
             tokio::task::block_in_place(|| Handle::current().block_on(current_iteration_map.add_batch(worker_type_map)));
         }
@@ -481,7 +481,7 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
         debug!(target: "ruse::synthesizer", "Initializing new contexts!");
 
         tokio::task::block_in_place(|| Handle::current().block_on(self.init_new_found_ctx(current_iteration_map)));
-        None
+        Ok(None)
     }
 
     async fn insert_iteration(self: &mut Arc<Self>, current_iteration_map: P::IterationBuilderType) {

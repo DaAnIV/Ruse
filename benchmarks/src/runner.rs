@@ -115,7 +115,12 @@ async fn run_synthesizer<P: ProgBank + 'static>(
         let iteration_start = Instant::now();
         let res = tokio::select! {
             _ = cancel_token.cancelled() => Err(()),
-            v = synthesizer.run_iteration() => Ok(v)
+            v = synthesizer.run_iteration() => {
+                if let Err(e) = &v {
+                    result.error_string(&e.to_string());
+                }
+                v.map_err(|_e| ())
+            }
         };
         let iteration_took = iteration_start.elapsed();
         if res.is_err() {
