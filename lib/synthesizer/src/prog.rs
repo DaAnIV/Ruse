@@ -283,4 +283,14 @@ macro_rules! trace_prog {
              }, "{}. program \"{}\"", format!($($arg)+), $prog.get_code());
         }
     };
+    ($level:expr, target: $target:expr, $prog:expr, $($arg:tt)+) => {      
+        if tracing::enabled!($level) {   
+            tracing::event!(target: $target, $level, { 
+                prog = %$prog,
+                pre_ctx.json = %$prog.pre_ctx().json_display(),
+                post_ctx.json = %$prog.post_ctx().json_display(),
+                out_value.json = %$prog.out_value().json_display($prog.post_ctx())
+             }, "{}. program \"{}\"", format!($($arg)+), $prog.get_code());
+        }
+    };
 }

@@ -11,7 +11,6 @@ use crate::{
 use dashmap::DashSet;
 use futures::FutureExt;
 use ruse_object_graph::{
-    mermaid::MermaidConfig,
     value::Value,
     ValueType,
 };
@@ -330,31 +329,6 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
         Ok(found)
     }
 
-    fn trace_program(p: &SubProgram) {
-        debug!(target: "ruse::synthesizer", "Program \"{}\"", p.get_code());
-
-        for i in 0..p.post_ctx().len() {
-            let pre_ctx = &p.pre_ctx()[i];
-            let post_ctx = &p.post_ctx()[i];
-            let out_value = &p.out_value()[i];
-            for (name, value) in pre_ctx.variables() {
-                debug!(target: "ruse::synthesizer", "pre_ctx[{}] {}:\n{}", i,
-                    name, 
-                    value.mermaid_display_with_config(&pre_ctx.graphs_map, 
-                    MermaidConfig::subgraph_config(&format!("{}[{}]_{}", "pre", i, name))));
-            }
-            for (name, value) in post_ctx.variables() {
-                debug!(target: "ruse::synthesizer", "post_ctx[{}] {}:\n{}", i,
-                    name, 
-                    value.mermaid_display_with_config(&post_ctx.graphs_map, 
-                    MermaidConfig::subgraph_config(&format!("{}[{}]_{}", "post", i, name))))
-            }
-            debug!(target: "ruse::synthesizer", "output[{}]: {}", i ,
-                out_value.val().mermaid_display_with_config(&post_ctx.graphs_map, 
-                MermaidConfig::subgraph_config(&format!("output[{}]", i))));
-        }
-    }
-
     async fn composite_iter_batch(
         &self,
         triplet: &ProgTriplet,
@@ -378,8 +352,7 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
             if p.pre_ctx().subset(&self.context.start_context)
                 && (self.predicate)(&p, &self.context, worker_ctx)
             {
-                debug!(target: "ruse::synthesizer", "Found!");
-                Self::trace_program(&p);
+                trace_prog!(tracing::Level::DEBUG, target: "ruse::synthesizer", &p, "Found");
                 return Some(p);
             }
         }
