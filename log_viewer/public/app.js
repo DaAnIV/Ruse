@@ -1054,9 +1054,16 @@ class LogViewer {
                     html += '<div class="log-fields">';
                     html += this.renderJsonFields(jsonData.raw, '', jsonId);
                     
-                    // Render any nested extensions within this JSON
+                    // Note: Nested Mermaid diagrams are now rendered inline within the JSON structure
+                    // Only render non-Mermaid extensions here if needed
                     if (jsonData.extensions && Object.keys(jsonData.extensions).length > 0) {
-                        html += this.renderExtensions(jsonData.extensions, 0, true);
+                        // Filter out mermaid extensions as they're handled inline
+                        const nonMermaidExtensions = { ...jsonData.extensions };
+                        delete nonMermaidExtensions.mermaid;
+                        
+                        if (Object.keys(nonMermaidExtensions).length > 0) {
+                            html += this.renderExtensions(nonMermaidExtensions, 0, true);
+                        }
                     }
                     html += '</div>';
                 } else {
@@ -1141,11 +1148,33 @@ class LogViewer {
                 html += this.renderJsonFields(value, fullKey, jsonId);
                 html += '</div>';
             } else {
-                // Skip extension fields (they'll be handled by renderExtensions)
-                if (fullKey.endsWith('.mermaid') || fullKey.endsWith('.json') || 
-                    fullKey.includes('.mermaid.') || fullKey.includes('.json.')) {
-                    // Don't render extension fields as regular fields
-                    // They will be handled by the extension rendering system
+                // Handle extension fields inline
+                if (fullKey.endsWith('.mermaid')) {
+                    // Render Mermaid diagram inline
+                    const mermaidId = `mermaid-${jsonId}-${fullKey.replace(/\./g, '-')}-${Math.random().toString(36).substr(2, 9)}`;
+                    html += `
+                        <div class="log-field">
+                            <div class="log-field-key">${this.escapeHtml(key)}:</div>
+                            <div class="log-field-value">
+                                <div class="extension-content">
+                                    <div class="extension-title">
+                                        📊 Mermaid Diagram
+                                        <button class="mermaid-toggle-btn" onclick="app.toggleMermaidRaw('${mermaidId}')" title="Toggle raw text">
+                                            <span id="toggle-icon-${mermaidId}">👁️</span>
+                                        </button>
+                                    </div>
+                                    <div class="mermaid-diagram" id="diagram-${mermaidId}">
+                                        <pre class="mermaid">${this.escapeHtml(value)}</pre>
+                                    </div>
+                                    <div class="mermaid-raw" id="raw-${mermaidId}" style="display: none;">
+                                        <pre class="mermaid-raw-text">${this.escapeHtml(value)}</pre>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else if (fullKey.endsWith('.json') || fullKey.includes('.json.')) {
+                    // Skip JSON extension fields as they're handled by the main extension system
                 } else {
                     // Render as regular field
                     const displayValue = Array.isArray(value) ? JSON.stringify(value) : String(value);
