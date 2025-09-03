@@ -156,7 +156,7 @@ impl TsClassesBuilder {
         let file_name = PathBuf::from("temp.ts");
         let src = self
             .cm
-            .new_source_file(Arc::new(file_name.into()), code.into());
+            .new_source_file(Arc::new(file_name.into()), code.to_string());
         self.add_file(src, FileType::Ts)
     }
 

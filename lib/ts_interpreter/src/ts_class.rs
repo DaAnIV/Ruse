@@ -321,21 +321,10 @@ where
 
     let codegen_config = swc_ecma_codegen::Config::default().with_target(ast::EsVersion::Es2022);
 
-    let print_args = swc::PrintArgs {
-        source_root: None,
-        source_file_name: None,
-        output_path: None,
-        inline_sources_content: false,
-        source_map: swc::config::SourceMapsConfig::Bool(false),
-        source_map_names: &Default::default(),
-        orig: None,
-        comments: None,
-        emit_source_map_columns: false,
-        preamble: "",
-        codegen_config,
-        output: None,
-        source_map_url: None,
-    };
+    let mut print_args = swc::PrintArgs::default();
+    print_args.source_map = swc::config::SourceMapsConfig::Bool(false);
+    print_args.codegen_config = codegen_config;
+
     c.print(body, print_args).expect("Failed to get code").code
 }
 
