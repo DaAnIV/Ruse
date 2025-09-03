@@ -67,6 +67,11 @@ class LogViewer {
             });
         });
 
+        // Mermaid modal toggle button
+        document.getElementById('toggleMermaidModal').addEventListener('click', () => {
+            this.toggleMermaidModal();
+        });
+
         // Click outside modal to close
         document.querySelectorAll('.modal').forEach(modal => {
             modal.addEventListener('click', (e) => {
@@ -918,6 +923,24 @@ class LogViewer {
         entries.querySelectorAll('.log-header').forEach((header, index) => {
             header.addEventListener('click', () => this.toggleLogEntry(index));
         });
+
+        // Bind click events for Mermaid diagrams
+        entries.querySelectorAll('.mermaid-diagram').forEach((diagram) => {
+            diagram.addEventListener('click', (e) => {
+                e.stopPropagation();
+                // Get the Mermaid text from the corresponding raw text element
+                const mermaidId = diagram.id.replace('diagram-', '');
+                const rawElement = document.getElementById(`raw-${mermaidId}`);
+                console.log(mermaidId, rawElement);
+                if (rawElement) {
+                    const mermaidRawText = rawElement.querySelector('.mermaid-raw-text');
+                    if (mermaidRawText) {
+                        console.log(mermaidRawText.textContent);
+                        this.showMermaidModal(mermaidId, mermaidRawText.textContent);
+                    }
+                }
+            });
+        });
     }
 
     renderLogEntry(log, index) {
@@ -1021,7 +1044,7 @@ class LogViewer {
                     <div class="extension-content">
                         <div class="extension-title">
                             📊 Mermaid Diagram: ${key}
-                            <button class="mermaid-toggle-btn" onclick="app.toggleMermaidRaw('${mermaidId}')" title="Toggle raw text">
+                            <button class="mermaid-toggle-btn" onclick="event.stopPropagation(); app.toggleMermaidRaw('${mermaidId}')" title="Toggle raw text">
                                 <span id="toggle-icon-${mermaidId}">👁️</span>
                             </button>
                         </div>
@@ -1159,7 +1182,7 @@ class LogViewer {
                                 <div class="extension-content">
                                     <div class="extension-title">
                                         📊 Mermaid Diagram
-                                        <button class="mermaid-toggle-btn" onclick="app.toggleMermaidRaw('${mermaidId}')" title="Toggle raw text">
+                                        <button class="mermaid-toggle-btn" onclick="event.stopPropagation(); app.toggleMermaidRaw('${mermaidId}')" title="Toggle raw text">
                                             <span id="toggle-icon-${mermaidId}">👁️</span>
                                         </button>
                                     </div>
@@ -1315,6 +1338,23 @@ class LogViewer {
             if (section.style.display === 'none') {
                 section.style.display = 'block';
                 icon.textContent = '▼';
+                
+                // Add click event listeners to Mermaid diagrams in this section
+                section.querySelectorAll('.mermaid-diagram').forEach((diagram) => {
+                    diagram.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        // Get the Mermaid text from the corresponding raw text element
+                        const mermaidId = diagram.id;
+                        const rawElement = document.getElementById(`raw-${mermaidId}`);
+                        if (rawElement) {
+                            const mermaidRawText = rawElement.querySelector('.mermaid-raw-text');
+                            if (mermaidRawText) {
+                                this.showMermaidModal(mermaidId, mermaidRawText.textContent);
+                            }
+                        }
+                    });
+                });
+                
                 // Trigger Mermaid rendering only for this specific JSON section
                 setTimeout(() => this.triggerMermaidRendering(section), 100);
             } else {
@@ -1345,6 +1385,56 @@ class LogViewer {
                 // Trigger Mermaid rendering when switching back to diagram
                 setTimeout(() => this.triggerMermaidRendering(diagramDiv), 100);
             }
+        }
+    }
+
+    showMermaidModal(mermaidId, diagramText) {
+        const modal = document.getElementById('mermaidModal');
+        const modalDiagram = document.getElementById('mermaidModalDiagram');
+        const modalRaw = document.getElementById('mermaidModalRaw');
+        const modalRawText = document.getElementById('mermaidModalRawText');
+        const toggleBtn = document.getElementById('toggleMermaidModal');
+        
+        // Store the original diagram text
+        this.currentModalDiagramText = diagramText;
+        
+        // Set up the modal content
+        modalDiagram.innerHTML = `<pre class="mermaid">${diagramText}</pre>`;
+        modalRawText.textContent = diagramText;
+        
+        // Reset modal state
+        modalDiagram.style.display = 'block';
+        modalRaw.style.display = 'none';
+        toggleBtn.textContent = 'Show Raw Text';
+        
+        // Show the modal
+        modal.classList.add('active');
+        
+        // Trigger Mermaid rendering for the modal
+        setTimeout(() => {
+            this.triggerMermaidRendering(modalDiagram);
+        }, 100);
+    }
+
+    toggleMermaidModal() {
+        const modalDiagram = document.getElementById('mermaidModalDiagram');
+        const modalRaw = document.getElementById('mermaidModalRaw');
+        const toggleBtn = document.getElementById('toggleMermaidModal');
+        
+        if (modalRaw.style.display === 'none') {
+            // Show raw text, hide diagram
+            modalDiagram.style.display = 'none';
+            modalRaw.style.display = 'block';
+            toggleBtn.textContent = 'Show Diagram';
+        } else {
+            // Show diagram, hide raw text
+            modalDiagram.style.display = 'block';
+            modalRaw.style.display = 'none';
+            toggleBtn.textContent = 'Show Raw Text';
+            // Trigger Mermaid rendering when switching back to diagram
+            setTimeout(() => {
+                this.triggerMermaidRendering(modalDiagram);
+            }, 100);
         }
     }
 

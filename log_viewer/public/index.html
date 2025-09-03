@@ -305,6 +305,29 @@
         </div>
     </div>
 
+    <!-- Mermaid Diagram Modal -->
+    <div id="mermaidModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>Mermaid Diagram</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="mermaidModalContent">
+                    <div class="mermaid-modal-controls">
+                        <button id="toggleMermaidModal" class="btn btn-small">Show Raw Text</button>
+                    </div>
+                    <div id="mermaidModalDiagram" class="mermaid-modal-diagram">
+                        <!-- Mermaid diagram will be rendered here -->
+                    </div>
+                    <div id="mermaidModalRaw" class="mermaid-modal-raw" style="display: none;">
+                        <pre id="mermaidModalRawText"></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="app.js"></script>
 </body>
 </html>
