@@ -57,7 +57,7 @@ impl std::fmt::Debug for ReachedMaxIterationError {
     }
 }
 
-async fn watch_vm_usage(max_task_mem: Byte) {
+async fn watch_vm_usage(max_task_mem: Byte, max_vm_usage: &mut Byte) {
     let proc = procfs::process::Process::myself().unwrap();
 
     let mut interval = tokio::time::interval(Duration::from_secs(1));
@@ -65,6 +65,7 @@ async fn watch_vm_usage(max_task_mem: Byte) {
         interval.tick().await;
         let status = proc.status().unwrap();
         let vmrss = Byte::from_u64_with_unit(status.vmrss.unwrap(), Unit::KiB).unwrap();
+        *max_vm_usage = (*max_vm_usage).max(vmrss);
         if vmrss > max_task_mem {
             break;
         }
@@ -74,6 +75,7 @@ async fn watch_vm_usage(max_task_mem: Byte) {
 async fn watch_for_error<I>(
     timeout: tokio::time::Timeout<I>,
     config: &BenchmarkConfig,
+    max_vm_usage: &mut Byte,
 ) -> Result<bool, RunnerError>
 where
     I: Future<Output = bool>,
@@ -92,7 +94,7 @@ where
             error!(target: "ruse::runner", "Received Ctrl+C!");
             Err(RunnerError::CtrlC)
         },
-        _ = watch_vm_usage(config.max_task_mem) => {
+        _ = watch_vm_usage(config.max_task_mem, max_vm_usage) => {
             error!(target: "ruse::runner", "Reached max mem usage");
             Err(RunnerError::OOM)
         }
@@ -195,7 +197,11 @@ async fn run_task_with_bank<P: ProgBank + 'static>(
             cancel_token.child_token(),
         ),
     );
-    match watch_for_error(timeout, bench_config).await {
+
+    let mut max_vm_usage = Byte::from_u64(0);
+    let res = watch_for_error(timeout, bench_config, &mut max_vm_usage).await;
+    result.set_max_vm_usage(max_vm_usage);
+    match res {
         Ok(success) => Ok(success),
         Err(e) => {
             cancel_token.cancel();

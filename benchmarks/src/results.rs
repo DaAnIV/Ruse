@@ -6,6 +6,7 @@ use std::{
     vec,
 };
 
+use byte_unit::{Byte, AdjustedByte, UnitType};
 use ruse_synthesizer::{prog::SubProgram, synthesizer::CurrentStatistics};
 
 use serde::Serialize;
@@ -29,6 +30,7 @@ pub struct BenchmarkResult {
     found: String,
     total_time: Option<Duration>,
     total_statistics: Option<CurrentStatistics>,
+    max_vm_usage: Option<AdjustedByte>,
     error: Option<String>,
 }
 
@@ -43,6 +45,7 @@ impl BenchmarkResult {
             found: "_".to_owned(),
             total_time: None,
             total_statistics: None,
+            max_vm_usage: None,
             error: None,
         }
     }
@@ -78,6 +81,10 @@ impl BenchmarkResult {
             self.found = p.get_code();
         }
         self.total_statistics = Some(statistics);
+    }
+    
+    pub(crate) fn set_max_vm_usage(&mut self, max_vm_usage: Byte) {
+        self.max_vm_usage = Some(max_vm_usage.get_appropriate_unit(UnitType::Decimal));
     }
 }
 
