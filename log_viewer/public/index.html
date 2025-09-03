@@ -197,9 +197,27 @@
                                 <span id="currentFileName"></span>
                             </div>
                             <div class="pagination-controls">
-                                <button id="prevPageBtn" class="btn btn-small" disabled>Previous</button>
-                                <span id="pageInfo">Page 1 of 1</span>
-                                <button id="nextPageBtn" class="btn btn-small" disabled>Next</button>
+                                <button id="prevPageBtn" class="btn btn-small pagination-btn" disabled>
+                                    <span class="pagination-arrow">‹</span>
+                                </button>
+                                <div class="page-numbers" id="pageNumbers">
+                                    <!-- Page number buttons will be generated here -->
+                                </div>
+                                <button id="nextPageBtn" class="btn btn-small pagination-btn" disabled>
+                                    <span class="pagination-arrow">›</span>
+                                </button>
+                            </div>
+                            <div class="pagination-info">
+                                <span id="resultsInfo">Results: 1 - 10 of 96</span>
+                                <div class="items-per-page">
+                                    <label for="itemsPerPage">Show:</label>
+                                    <select id="itemsPerPage" class="items-select">
+                                        <option value="10">10</option>
+                                        <option value="25" selected>25</option>
+                                        <option value="50">50</option>
+                                        <option value="100">100</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
 
@@ -216,9 +234,15 @@
                         </div>
 
                         <div class="pagination-controls bottom-pagination">
-                            <button id="prevPageBtnBottom" class="btn btn-small" disabled>Previous</button>
-                            <span id="pageInfoBottom">Page 1 of 1</span>
-                            <button id="nextPageBtnBottom" class="btn btn-small" disabled>Next</button>
+                            <button id="prevPageBtnBottom" class="btn btn-small pagination-btn" disabled>
+                                <span class="pagination-arrow">‹</span>
+                            </button>
+                            <div class="page-numbers" id="pageNumbersBottom">
+                                <!-- Page number buttons will be generated here -->
+                            </div>
+                            <button id="nextPageBtnBottom" class="btn btn-small pagination-btn" disabled>
+                                <span class="pagination-arrow">›</span>
+                            </button>
                         </div>
                     </div>
                 </div>

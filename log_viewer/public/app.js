@@ -49,6 +49,13 @@ class LogViewer {
         document.getElementById('nextPageBtn').addEventListener('click', () => this.nextPage());
         document.getElementById('prevPageBtnBottom').addEventListener('click', () => this.previousPage());
         document.getElementById('nextPageBtnBottom').addEventListener('click', () => this.nextPage());
+        
+        // Items per page selector
+        document.getElementById('itemsPerPage').addEventListener('change', (e) => {
+            this.currentPage = 1;
+            this.updateUrlParams({ page: 1 });
+            this.loadLogs('Changing items per page...');
+        });
 
         // Upload modal
         this.bindUploadEvents();
@@ -856,9 +863,10 @@ class LogViewer {
             // Show loading animation
             this.showLogsLoading(loadingMessage);
             
+            const itemsPerPage = parseInt(document.getElementById('itemsPerPage').value) || 100;
             const params = new URLSearchParams({
                 page: this.currentPage,
-                limit: 100,
+                limit: itemsPerPage,
                 ...this.currentFilters
             });
 
@@ -1520,17 +1528,119 @@ class LogViewer {
     }
 
     updatePagination(pagination) {
-        // Update page info
-        document.getElementById('pageInfo').textContent = 
-            `Page ${pagination.page} of ${pagination.totalPages}`;
-        document.getElementById('pageInfoBottom').textContent = 
-            `Page ${pagination.page} of ${pagination.totalPages}`;
-
+        // Generate page number buttons
+        this.generatePageButtons(pagination.page, pagination.totalPages);
+        
+        // Update results info
+        this.updateResultsInfo(pagination);
+        
         // Update button states
         document.getElementById('prevPageBtn').disabled = !pagination.hasPrev;
         document.getElementById('nextPageBtn').disabled = !pagination.hasNext;
         document.getElementById('prevPageBtnBottom').disabled = !pagination.hasPrev;
         document.getElementById('nextPageBtnBottom').disabled = !pagination.hasNext;
+    }
+
+    generatePageButtons(currentPage, totalPages) {
+        const pageNumbers = document.getElementById('pageNumbers');
+        const pageNumbersBottom = document.getElementById('pageNumbersBottom');
+        
+        // Clear existing buttons
+        pageNumbers.innerHTML = '';
+        pageNumbersBottom.innerHTML = '';
+        
+        if (totalPages <= 1) {
+            return; // Don't show page numbers if there's only one page
+        }
+        
+        const buttons = this.createPageButtons(currentPage, totalPages);
+        
+        // Add buttons to both pagination sections
+        buttons.forEach(button => {
+            const clone = button.cloneNode(true);
+            pageNumbers.appendChild(button);
+            pageNumbersBottom.appendChild(clone);
+        });
+    }
+
+    createPageButtons(currentPage, totalPages) {
+        const buttons = [];
+        const maxVisiblePages = 7; // Show up to 7 page buttons
+        
+        if (totalPages <= maxVisiblePages) {
+            // Show all pages if total is small
+            for (let i = 1; i <= totalPages; i++) {
+                buttons.push(this.createPageButton(i, i === currentPage));
+            }
+        } else {
+            // Smart pagination with ellipsis
+            const showEllipsis = totalPages > maxVisiblePages;
+            
+            if (currentPage <= 4) {
+                // Show first pages: 1 2 3 4 5 ... last
+                for (let i = 1; i <= 5; i++) {
+                    buttons.push(this.createPageButton(i, i === currentPage));
+                }
+                if (showEllipsis) {
+                    buttons.push(this.createEllipsis());
+                }
+                buttons.push(this.createPageButton(totalPages, false));
+            } else if (currentPage >= totalPages - 3) {
+                // Show last pages: 1 ... (last-4) (last-3) (last-2) (last-1) last
+                buttons.push(this.createPageButton(1, false));
+                if (showEllipsis) {
+                    buttons.push(this.createEllipsis());
+                }
+                for (let i = totalPages - 4; i <= totalPages; i++) {
+                    buttons.push(this.createPageButton(i, i === currentPage));
+                }
+            } else {
+                // Show middle pages: 1 ... (current-1) current (current+1) ... last
+                buttons.push(this.createPageButton(1, false));
+                if (showEllipsis) {
+                    buttons.push(this.createEllipsis());
+                }
+                for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+                    buttons.push(this.createPageButton(i, i === currentPage));
+                }
+                if (showEllipsis) {
+                    buttons.push(this.createEllipsis());
+                }
+                buttons.push(this.createPageButton(totalPages, false));
+            }
+        }
+        
+        return buttons;
+    }
+
+    createPageButton(pageNumber, isActive) {
+        const button = document.createElement('button');
+        button.className = `page-number-btn ${isActive ? 'active' : ''}`;
+        button.textContent = pageNumber;
+        button.addEventListener('click', () => {
+            if (pageNumber !== this.currentPage) {
+                this.currentPage = pageNumber;
+                this.updateUrlParams({ page: this.currentPage });
+                this.loadLogs(`Navigating to page ${pageNumber}...`);
+            }
+        });
+        return button;
+    }
+
+    createEllipsis() {
+        const ellipsis = document.createElement('div');
+        ellipsis.className = 'page-ellipsis';
+        ellipsis.textContent = '...';
+        return ellipsis;
+    }
+
+    updateResultsInfo(pagination) {
+        const itemsPerPage = parseInt(document.getElementById('itemsPerPage').value) || 100;
+        const startItem = (pagination.page - 1) * itemsPerPage + 1;
+        const endItem = Math.min(pagination.page * itemsPerPage, pagination.total);
+        
+        const resultsInfo = document.getElementById('resultsInfo');
+        resultsInfo.textContent = `Results: ${startItem} - ${endItem} of ${pagination.total}`;
     }
 
     previousPage() {
