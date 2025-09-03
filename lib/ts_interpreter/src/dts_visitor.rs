@@ -10,19 +10,19 @@ use swc_ecma_ast::{self as ast, Accessibility, ClassDecl, FnDecl, Id, MethodKind
 pub(crate) fn get_value_type_from_ts_type(type_ann: &ast::TsType) -> ValueType {
     match type_ann {
         ast::TsType::TsKeywordType(t) => match t.kind {
-            swc_ecma_ast::TsKeywordTypeKind::TsAnyKeyword => todo!(),
-            swc_ecma_ast::TsKeywordTypeKind::TsUnknownKeyword => todo!(),
-            swc_ecma_ast::TsKeywordTypeKind::TsNumberKeyword => ValueType::Number,
-            swc_ecma_ast::TsKeywordTypeKind::TsObjectKeyword => todo!(),
-            swc_ecma_ast::TsKeywordTypeKind::TsBooleanKeyword => ValueType::Bool,
-            swc_ecma_ast::TsKeywordTypeKind::TsBigIntKeyword => todo!(),
-            swc_ecma_ast::TsKeywordTypeKind::TsStringKeyword => ValueType::String,
-            swc_ecma_ast::TsKeywordTypeKind::TsSymbolKeyword => todo!(),
-            swc_ecma_ast::TsKeywordTypeKind::TsVoidKeyword => todo!(),
-            swc_ecma_ast::TsKeywordTypeKind::TsUndefinedKeyword => todo!(),
-            swc_ecma_ast::TsKeywordTypeKind::TsNullKeyword => ValueType::Null,
-            swc_ecma_ast::TsKeywordTypeKind::TsNeverKeyword => todo!(),
-            swc_ecma_ast::TsKeywordTypeKind::TsIntrinsicKeyword => todo!(),
+            ast::TsKeywordTypeKind::TsAnyKeyword => todo!(),
+            ast::TsKeywordTypeKind::TsUnknownKeyword => todo!(),
+            ast::TsKeywordTypeKind::TsNumberKeyword => ValueType::Number,
+            ast::TsKeywordTypeKind::TsObjectKeyword => todo!(),
+            ast::TsKeywordTypeKind::TsBooleanKeyword => ValueType::Bool,
+            ast::TsKeywordTypeKind::TsBigIntKeyword => todo!(),
+            ast::TsKeywordTypeKind::TsStringKeyword => ValueType::String,
+            ast::TsKeywordTypeKind::TsSymbolKeyword => todo!(),
+            ast::TsKeywordTypeKind::TsVoidKeyword => todo!(),
+            ast::TsKeywordTypeKind::TsUndefinedKeyword => todo!(),
+            ast::TsKeywordTypeKind::TsNullKeyword => ValueType::Null,
+            ast::TsKeywordTypeKind::TsNeverKeyword => todo!(),
+            ast::TsKeywordTypeKind::TsIntrinsicKeyword => todo!(),
         },
         ast::TsType::TsThisType(_) => todo!(),
         ast::TsType::TsFnOrConstructorType(_) => todo!(),
@@ -198,7 +198,7 @@ impl DtsVisitor {
 }
 
 impl Visit for DtsVisitor {
-    fn visit_var_declarator(&mut self, node: &swc_ecma_ast::VarDeclarator) {
+    fn visit_var_declarator(&mut self, node: &ast::VarDeclarator) {
         let ident = node.name.as_ident().unwrap();
 
         if let Some(type_ann) = ident.type_ann.as_ref() {
@@ -206,7 +206,7 @@ impl Visit for DtsVisitor {
                 type_ann.type_ann.as_ts_fn_or_constructor_type()
             {
                 match fn_or_constructor_type_ann {
-                    swc_ecma_ast::TsFnOrConstructorType::TsFnType(ts_fn_type) => {
+                    ast::TsFnOrConstructorType::TsFnType(ts_fn_type) => {
                         let params =
                             self.get_params_types_from_ts_fn_param(ts_fn_type.params.iter());
                         let has_rest_param = ts_fn_type.params.iter().any(|param| param.is_rest());
@@ -214,9 +214,9 @@ impl Visit for DtsVisitor {
 
                         return;
                     }
-                    swc_ecma_ast::TsFnOrConstructorType::TsConstructorType(
-                        _ts_constructor_type,
-                    ) => todo!("Var declarator constructor type"),
+                    ast::TsFnOrConstructorType::TsConstructorType(_ts_constructor_type) => {
+                        todo!("Var declarator constructor type")
+                    }
                 }
             }
         }
@@ -254,7 +254,7 @@ impl Visit for DtsVisitor {
         <ClassDecl as VisitWith<Self>>::visit_children_with(node, self)
     }
 
-    fn visit_class_prop(&mut self, node: &swc_ecma_ast::ClassProp) {
+    fn visit_class_prop(&mut self, node: &ast::ClassProp) {
         let id = node.key.as_ident().unwrap().sym.clone();
         let var_type = node
             .type_ann
@@ -278,7 +278,7 @@ impl Visit for DtsVisitor {
         );
     }
 
-    fn visit_class_method(&mut self, node: &swc_ecma_ast::ClassMethod) {
+    fn visit_class_method(&mut self, node: &ast::ClassMethod) {
         let id = node.key.as_ident().unwrap().sym.clone();
         let function = &node.function;
         let params = if function
@@ -332,13 +332,13 @@ impl Visit for DtsVisitor {
         }
     }
 
-    fn visit_constructor(&mut self, node: &swc_ecma_ast::Constructor) {
+    fn visit_constructor(&mut self, node: &ast::Constructor) {
         let id = node.key.as_ident().unwrap().sym.clone();
         let params = if node.params.iter().all(|param| match param {
-            swc_ecma_ast::ParamOrTsParamProp::Param(param) => {
+            ast::ParamOrTsParamProp::Param(param) => {
                 param.pat.as_ident().unwrap().type_ann.is_some()
             }
-            swc_ecma_ast::ParamOrTsParamProp::TsParamProp(param) => {
+            ast::ParamOrTsParamProp::TsParamProp(param) => {
                 param.param.as_ident().unwrap().type_ann.is_some()
             }
         }) {
@@ -346,11 +346,11 @@ impl Visit for DtsVisitor {
                 node.params
                     .iter()
                     .map(|param| match param {
-                        swc_ecma_ast::ParamOrTsParamProp::Param(param) => {
+                        ast::ParamOrTsParamProp::Param(param) => {
                             let ident = param.pat.as_ident().unwrap();
                             self.value_type_from_ts_type(&ident.type_ann.as_ref().unwrap().type_ann)
                         }
-                        swc_ecma_ast::ParamOrTsParamProp::TsParamProp(param) => {
+                        ast::ParamOrTsParamProp::TsParamProp(param) => {
                             let ident = param.param.as_ident().unwrap();
                             self.value_type_from_ts_type(&ident.type_ann.as_ref().unwrap().type_ann)
                         }
@@ -362,13 +362,13 @@ impl Visit for DtsVisitor {
         };
 
         let has_rest_param = node.params.iter().any(|param| match param {
-            swc_ecma_ast::ParamOrTsParamProp::Param(param) => param.pat.is_rest(),
-            swc_ecma_ast::ParamOrTsParamProp::TsParamProp(param) => match &param.param {
-                swc_ecma_ast::TsParamPropParam::Ident(ident) => ident
+            ast::ParamOrTsParamProp::Param(param) => param.pat.is_rest(),
+            ast::ParamOrTsParamProp::TsParamProp(param) => match &param.param {
+                ast::TsParamPropParam::Ident(ident) => ident
                     .type_ann
                     .as_ref()
                     .map_or(false, |x| x.type_ann.is_ts_rest_type()),
-                swc_ecma_ast::TsParamPropParam::Assign(assign) => assign.left.is_rest(),
+                ast::TsParamPropParam::Assign(assign) => assign.left.is_rest(),
             },
         });
 
@@ -400,7 +400,7 @@ impl Visit for DtsVisitor {
         }
     }
 
-    fn visit_ts_type_alias_decl(&mut self, node: &swc_ecma_ast::TsTypeAliasDecl) {
+    fn visit_ts_type_alias_decl(&mut self, node: &ast::TsTypeAliasDecl) {
         match node.type_ann.as_ref() {
             ast::TsType::TsTypeLit(t) => {
                 println!("visit_ts_type_alias_decl: {:?}", t);
@@ -415,19 +415,19 @@ impl DtsVisitor {
     fn value_type_from_ts_type(&self, type_ann: &ast::TsType) -> ValueType {
         match type_ann {
             ast::TsType::TsKeywordType(t) => match t.kind {
-                swc_ecma_ast::TsKeywordTypeKind::TsAnyKeyword => todo!(),
-                swc_ecma_ast::TsKeywordTypeKind::TsUnknownKeyword => todo!(),
-                swc_ecma_ast::TsKeywordTypeKind::TsNumberKeyword => ValueType::Number,
-                swc_ecma_ast::TsKeywordTypeKind::TsObjectKeyword => todo!(),
-                swc_ecma_ast::TsKeywordTypeKind::TsBooleanKeyword => ValueType::Bool,
-                swc_ecma_ast::TsKeywordTypeKind::TsBigIntKeyword => todo!(),
-                swc_ecma_ast::TsKeywordTypeKind::TsStringKeyword => ValueType::String,
-                swc_ecma_ast::TsKeywordTypeKind::TsSymbolKeyword => todo!(),
-                swc_ecma_ast::TsKeywordTypeKind::TsVoidKeyword => todo!(),
-                swc_ecma_ast::TsKeywordTypeKind::TsUndefinedKeyword => todo!(),
-                swc_ecma_ast::TsKeywordTypeKind::TsNullKeyword => ValueType::Null,
-                swc_ecma_ast::TsKeywordTypeKind::TsNeverKeyword => todo!(),
-                swc_ecma_ast::TsKeywordTypeKind::TsIntrinsicKeyword => todo!(),
+                ast::TsKeywordTypeKind::TsAnyKeyword => todo!(),
+                ast::TsKeywordTypeKind::TsUnknownKeyword => todo!(),
+                ast::TsKeywordTypeKind::TsNumberKeyword => ValueType::Number,
+                ast::TsKeywordTypeKind::TsObjectKeyword => todo!(),
+                ast::TsKeywordTypeKind::TsBooleanKeyword => ValueType::Bool,
+                ast::TsKeywordTypeKind::TsBigIntKeyword => todo!(),
+                ast::TsKeywordTypeKind::TsStringKeyword => ValueType::String,
+                ast::TsKeywordTypeKind::TsSymbolKeyword => todo!(),
+                ast::TsKeywordTypeKind::TsVoidKeyword => todo!(),
+                ast::TsKeywordTypeKind::TsUndefinedKeyword => ValueType::Null,
+                ast::TsKeywordTypeKind::TsNullKeyword => ValueType::Null,
+                ast::TsKeywordTypeKind::TsNeverKeyword => todo!(),
+                ast::TsKeywordTypeKind::TsIntrinsicKeyword => todo!(),
             },
             ast::TsType::TsThisType(_) => ValueType::Object(ObjectType::class_obj_type(
                 self.current_class.as_ref().unwrap().0.as_str(),
