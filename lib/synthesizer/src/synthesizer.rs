@@ -236,8 +236,6 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
         self.found_contexts.insert(ctx.clone());
         self.statistics
             .inc_value(StatisticsTypes::FoundContextCount);
-        self.statistics
-            .max_value(StatisticsTypes::MaxContextDepth, ctx.depth as u64);
         for op in self.init_opcodes() {
             let p = match self.get_program_from_init_opcode(op.clone(), ctx, worker_ctx) {
                 Some(p) => p,
@@ -546,6 +544,8 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
                 .max_value(StatisticsTypes::MaxDepth, p.depth().into());
             self.statistics
                 .max_value(StatisticsTypes::MaxSize, p.size().into());
+            self.statistics
+                .max_value(StatisticsTypes::MaxContextDepth, p.post_ctx().depth as u64);
 
             return true;
         }
