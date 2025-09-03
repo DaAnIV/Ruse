@@ -447,20 +447,27 @@ impl Context {
             }
         }
 
-        for var in connected_variables {
+        for var in connected_variables.iter().map(|var| *var) {
             let var_value = self.values.get(var)?.clone();
             let var_hash = unsafe { *self.hashes.get(var).unwrap_unchecked() };
-            values.insert((*var).clone(), var_value);
-            hashes.insert((*var).clone(), var_hash);
+            values.insert(var.clone(), var_value);
+            hashes.insert(var.clone(), var_hash);
         }
+
+        #[cfg(feature = "prune_graph_map")]
+        let partial_graphs_map = self
+            .graphs_map
+            .get_graphs_for_roots(connected_variables.into_iter());
+        #[cfg(not(feature = "prune_graph_map"))]
+        let partial_graphs_map = self.graphs_map.clone();
 
         Some(
             Self {
                 hashes: hashes.into(),
                 values: values.into(),
-                graphs_map: self.graphs_map.clone(),
+                graphs_map: partial_graphs_map.into(),
                 graph_id_gen: self.graph_id_gen.clone(),
-                outputs: self.outputs.clone(),
+                outputs: Vec::new().into(),
             }
             .into(),
         )

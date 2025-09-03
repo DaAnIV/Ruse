@@ -611,6 +611,33 @@ impl GraphsMap {
     }
 }
 
+impl GraphsMap {
+    pub fn get_graphs_for_roots<'a>(
+        &self,
+        variables: impl Iterator<Item = &'a RootName>,
+    ) -> GraphsMap {
+        let mut pruned_graphs_map = GraphsMap::new();
+        for v in variables {
+            if let Some(root) = self.get_root(v) {
+                pruned_graphs_map.set_as_root(v.clone(), root.graph, root.node);
+                pruned_graphs_map
+                    .insert_graph_and_chained_graphs(self.graphs[&root.graph].clone(), &self);
+            }
+        }
+        pruned_graphs_map.weak_components =
+            GraphsMapWeakComponents::from_graphs_map(&pruned_graphs_map);
+        pruned_graphs_map
+    }
+
+    fn insert_graph_and_chained_graphs(&mut self, graph: Arc<ObjectGraph>, graphs_map: &GraphsMap) {
+        if self.graphs.insert(graph.id, graph.clone()).is_none() {
+            for g in graph.chained_graphs() {
+                self.insert_graph_and_chained_graphs(graphs_map.graphs[g].clone(), graphs_map);
+            }
+        }
+    }
+}
+
 impl Default for GraphsMap {
     fn default() -> Self {
         Self::new()
