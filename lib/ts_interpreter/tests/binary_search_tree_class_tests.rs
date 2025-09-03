@@ -527,7 +527,7 @@ fn check_delete_two_children() {
 
     let node_to_delete_ident_op = id_op("node_to_delete");
 
-    let right_op = class_method_op(&binary_tree_class, "right");
+    let right_op = class_getter_op(&binary_tree_class, "right");
     let min_node_op = class_method_op(&binary_tree_class, "min_node");
     let swap_op = class_method_op(&binary_tree_class, "swap");
     let unlink_leaf_op = class_method_op(&binary_tree_class, "unlink_leaf");
