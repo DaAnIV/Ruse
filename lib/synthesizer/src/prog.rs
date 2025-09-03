@@ -273,14 +273,14 @@ impl Display for SubProgram {
 
 #[macro_export]
 macro_rules! trace_prog {
-    (target: $target:expr, $prog:expr, $message:expr) => {      
+    (target: $target:expr, $prog:expr, $($arg:tt)+) => {      
         if tracing::enabled!(tracing::Level::TRACE) {   
             tracing::trace!(target: $target, { 
                 prog = %$prog,
                 pre_ctx.json = %$prog.pre_ctx().json_display(),
                 post_ctx.json = %$prog.post_ctx().json_display(),
                 out_value.json = %$prog.out_value().json_display($prog.post_ctx())
-             }, "{}. program \"{}\"", $message, $prog.get_code());
+             }, "{}. program \"{}\"", format!($($arg)+), $prog.get_code());
         }
-     }
+    };
 }

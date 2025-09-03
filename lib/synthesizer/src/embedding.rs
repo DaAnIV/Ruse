@@ -13,7 +13,8 @@ use itertools::Itertools;
 
 #[cfg(feature = "trace_embeddings")]
 macro_rules! __embeddings_trace {
-    ($($arg:tt)+) => { tracing::trace!(target: "ruse::embedding", $($arg)+); }
+    (prog: $prog:expr, $($arg:tt)+) => { trace_prog!(target: "ruse::embedding", $prog, $($arg)+); };
+    ($($arg:tt)+) => { tracing::trace!(target: "ruse::embedding", $($arg)+); };
 }
 #[cfg(not(feature = "trace_embeddings"))]
 macro_rules! __embeddings_trace {
@@ -113,10 +114,10 @@ pub(crate) fn merge_context(
     q_2: &Context,
 ) -> Result<(Box<Context>, Box<Context>), ()> {
     embeddings_trace!({
-        p_1 = %p_1.json_display(),
-        q_1 = %q_1.json_display(),
-        p_2 = %p_2.json_display(),
-        q_2 = %q_2.json_display(),
+        p_1.json = %p_1.json_display(),
+        q_1.json = %q_1.json_display(),
+        p_2.json = %p_2.json_display(),
+        q_2.json = %q_2.json_display(),
     }, "Merging contexts");
 
     if !verify_matching_primitive_values(q_1, p_2) {
@@ -197,6 +198,8 @@ pub(crate) fn merge_context(
     ) {
         return Err(());
     }
+
+    embeddings_trace!("Intersecting roots graphs are equal");
 
     for (var, _, _) in intersection {
         if let Some(q_2_o) = q_2_roots.get(var) {
@@ -290,15 +293,16 @@ pub(crate) fn merge_context(
         }
     }
 
-    Ok((
-        Context::with_values(p_1_hat, p_1_map_hat.into(), p_1.graph_id_gen.clone()),
-        Context::with_values_and_outputs(
-            q_2_hat,
-            outputs,
-            q_2_map_hat.into(),
-            q_2.graph_id_gen.clone(),
-        ),
-    ))
+    let pre_ctx_hat = Context::with_values(p_1_hat, p_1_map_hat.into(), p_1.graph_id_gen.clone());
+    let post_ctx_hat = Context::with_values_and_outputs(
+        q_2_hat,
+        outputs,
+        q_2_map_hat.into(),
+        q_2.graph_id_gen.clone(),
+    );
+
+    embeddings_trace!({pre_ctx_hat.json = %pre_ctx_hat.json_display(), post_ctx_hat.json = %post_ctx_hat.json_display()}, "Contexts merged");
+    Ok((pre_ctx_hat, post_ctx_hat))
 }
 
 fn triplet_new_nodes(p_ctx: &Context, q_ctx: &Context) -> HashSet<NodeIndex> {

@@ -655,7 +655,7 @@ impl Context {
             seen.insert((cur_graph_id, cur_node_id));
             let graph = &graphs_map[cur_graph_id];
             for (_, neig) in graph.neighbors(&cur_node_id) {
-                q.push_back((neig.graph.unwrap_or(graph_id), neig.node));
+                q.push_back((neig.graph.unwrap_or(cur_graph_id), neig.node));
             }
         }
     }
