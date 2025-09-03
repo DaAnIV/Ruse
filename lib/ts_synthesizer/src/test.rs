@@ -109,7 +109,7 @@ mod tests {
 
         for _ in 1..=5 {
             let res = synthesizer.run_iteration().await;
-            if let Some(p) = res {
+            if let Ok(Some(p)) = res {
                 assert_eq!(p.get_code(), "(x.name + \" \") + x.surname");
                 return;
             }
@@ -212,7 +212,7 @@ mod tests {
 
         for _ in 1..=5 {
             let res = synthesizer.run_iteration().await;
-            if let Some(p) = res {
+            if let Ok(Some(p)) = res {
                 assert_eq!(p.get_code(), "(++p.x) + p.x");
                 return;
             }
