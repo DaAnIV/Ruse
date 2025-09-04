@@ -518,7 +518,7 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
             return false;
         }
 
-        if self.bank.output_exists(p).await {
+        if !p.is_terminal() && self.bank.output_exists(p).await {
             return false;
         }
 
