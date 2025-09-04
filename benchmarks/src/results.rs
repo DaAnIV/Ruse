@@ -27,7 +27,7 @@ pub struct BenchmarkResult {
     string_literals: Option<Vec<String>>,
     num_literals: Option<Vec<i64>>,
     iterations: Vec<BenchmarksIteration>,
-    found: String,
+    found: Option<String>,
     total_time: Option<Duration>,
     total_statistics: Option<CurrentStatistics>,
     max_vm_usage: Option<AdjustedByte>,
@@ -42,7 +42,7 @@ impl BenchmarkResult {
             iterations: vec![],
             string_literals: None,
             num_literals: None,
-            found: "_".to_owned(),
+            found: None,
             total_time: None,
             total_statistics: None,
             max_vm_usage: None,
@@ -82,7 +82,7 @@ impl BenchmarkResult {
     ) {
         self.total_time = Some(time);
         if let Some(p) = found {
-            self.found = p.get_code();
+            self.found = Some(p.get_code());
         }
         self.total_statistics = Some(statistics);
     }
