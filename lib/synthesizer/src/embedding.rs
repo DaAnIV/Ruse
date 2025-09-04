@@ -13,7 +13,7 @@ use itertools::Itertools;
 
 #[cfg(feature = "trace_embeddings")]
 macro_rules! __embeddings_trace {
-    (prog: $prog:expr, $($arg:tt)+) => { trace_prog!(target: "ruse::embedding", $prog, $($arg)+); };
+    (prog: $prog:expr, $($arg:tt)+) => { $crate::trace_prog!(target: "ruse::embedding", $prog, $($arg)+); };
     ($($arg:tt)+) => { tracing::trace!(target: "ruse::embedding", $($arg)+); };
 }
 #[cfg(not(feature = "trace_embeddings"))]

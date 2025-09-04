@@ -386,8 +386,12 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
         batch_builder: &mut <P::IterationBuilderType as BankIterationBuilder>::BatchBuilderType,
         i: usize,
     ) -> Option<Arc<SubProgram>> {
+        let worker_span = info_span!(target: "ruse::synthesizer", "composite iteration worker", worker_index = i);
+        let _worker_span_guard = worker_span.enter();
         let mut worker_ctx = self.create_worker_ctx(i);
         for (arg_types, ops) in self.composite_opcodes() {
+            let span = info_span!(target: "ruse::synthesizer", "composite opcodes", arg_types = ?arg_types, ops = ?ops.iter().map(|op| op.op_name()).collect::<Vec<_>>());
+            let _span_guard = span.enter();
             let mut iter = self.worker_triple_iterator(i, arg_types).await;
             while let Some(triple) = iter.next().await {
                 if self.should_end_worker().await {
@@ -533,6 +537,7 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
 
     async fn insert_program(&self, p: Arc<SubProgram>, batch_builder: &mut <P::IterationBuilderType as BankIterationBuilder>::BatchBuilderType) -> bool {
         if p.is_terminal() {
+            trace_prog!(target: "ruse::synthesizer", p, "Terminal program.");
             return true;
         }
 

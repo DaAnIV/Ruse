@@ -12,13 +12,15 @@ use crate::opcode::*;
 use crate::value_array::ValueArray;
 
 #[cfg(feature = "trace_evaluations")]
-macro_rules! evaluate_trace {
-    ($($arg:tt)+) => { tracing::trace!(target: "ruse::prog::evaluate", $($arg)+); }
+macro_rules! __evaluate_trace {
+    (prog: $prog:expr, $($arg:tt)+) => { $crate::trace_prog!(target: "ruse::prog::evaluate", $prog, $($arg)+); };
+    ($($arg:tt)+) => { tracing::trace!(target: "ruse::prog::evaluate", $($arg)+); };
 }
 #[cfg(not(feature = "trace_evaluations"))]
-macro_rules! evaluate_trace {
+macro_rules! __evaluate_trace {
     ($($arg:tt)+) => {};
 }
+pub(crate) use __evaluate_trace as evaluate_trace;
 
 pub struct SubProgram {
     pub opcode: Arc<dyn ExprOpcode>,
@@ -116,8 +118,8 @@ impl SubProgram {
         let old_post_ctx = self.post_ctx.clone();
 
         evaluate_trace!({ 
-            pre_ctx = %self.pre_ctx.json_display(), 
-            post_ctx = %self.post_ctx.json_display() 
+            pre_ctx.json = %self.pre_ctx.json_display(), 
+            post_ctx.json = %self.post_ctx.json_display() 
         }, "Evaluating: {}", self.get_code());
 
         for i in 0..examples_count {
@@ -157,11 +159,7 @@ impl SubProgram {
         self.out_type = out_type;
         self.out_value = Some(out_value.into());
 
-        evaluate_trace!({ 
-            pre_ctx = %self.pre_ctx.json_display(), 
-            post_ctx = %self.post_ctx.json_display(), 
-            output = %self.out_value().wrap(self.post_ctx()) 
-        }, "Finished evaluating: {}", self.get_code());
+        evaluate_trace!(prog: self, "Finished evaluating");
 
         true
     }
