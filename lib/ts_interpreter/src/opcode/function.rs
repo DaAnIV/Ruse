@@ -12,7 +12,6 @@ use swc_ecma_ast as ast;
 use tracing::trace;
 
 use crate::{
-    engine_context::EngineContext,
     js_worker_context::JsWorkerContextData,
     opcode::{
         function_call_ast, member_call_ast, member_expr, new_obj_ast, static_member_call_ast,
