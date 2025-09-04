@@ -320,10 +320,10 @@ class LogPreprocessor {
             if (entry.spans && Array.isArray(entry.spans)) {
                 processed._meta.span.name = entry.spans.map(s => s.name).join(':');
                 processed._meta.span.task = entry.spans.find(s => s.task_name !== undefined)?.task_name;
-                const iteration_span = entry.spans.find(s => s.iteration !== undefined);
-                if (iteration_span) {
-                    processed._meta.span.iteration = iteration_span.iteration;
-                }
+                processed._meta.span.iteration = entry.spans.find(s => s.iteration !== undefined)?.iteration;
+                processed._meta.span.worker = entry.spans.find(s => s.worker_index !== undefined)?.worker_index;
+                processed._meta.span.arg_types = entry.spans.find(s => s.arg_types !== undefined)?.arg_types;
+                processed._meta.span.ops = entry.spans.find(s => s.ops !== undefined)?.ops;
             }
 
             // Extract extensions

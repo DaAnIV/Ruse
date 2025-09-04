@@ -41,6 +41,13 @@ class LogViewer {
         document.getElementById('applyFiltersBtn').addEventListener('click', () => this.applyFilters());
         document.getElementById('clearFiltersBtn').addEventListener('click', () => this.clearFilters());
         
+        // Search filter - apply on Enter key
+        document.getElementById('searchFilter').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                this.applyFilters();
+            }
+        });
+        
         // Bind "All" checkbox events
         this.bindFilterAllCheckboxes();
         
@@ -694,7 +701,7 @@ class LogViewer {
                         </div>
                         <div class="config-item">
                             <span class="config-label">Bank Type:</span>
-                            <span class="config-value">${results.config?.bank_type || 'Unknown'}</span>
+                            <span class="config-value">${Object.keys(results.config?.bank_config)[0] || 'Unknown'}</span>
                         </div>
                     </div>
                                         
@@ -1583,7 +1590,7 @@ class LogViewer {
         if (threadId.length > 0) filters.threadId = threadId;
 
         const search = document.getElementById('searchFilter').value.trim();
-        if (search) filters.search = search;
+        if (search) filters.search = RegExp.escape(search);
 
         const isPanic = document.getElementById('panicFilter').checked;
         if (isPanic) filters.isPanic = 'true';
@@ -1753,6 +1760,12 @@ class LogViewer {
                 this.currentPage = pageNumber;
                 this.updateUrlParams({ page: this.currentPage });
                 this.loadLogs(`Navigating to page ${pageNumber}...`);
+                
+                // Scroll to top of log content
+                const runContainer = document.getElementById('runContainer');
+                if (runContainer) {
+                    runContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
             }
         });
         return button;
