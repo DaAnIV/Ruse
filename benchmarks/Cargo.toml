@@ -51,3 +51,4 @@ boa_engine.workspace = true
 [features]
 trace_evaluations=["ruse_synthesizer/trace_evaluations"]
 trace_embeddings=["ruse_synthesizer/trace_embeddings"]
+prune_graph_map=["ruse_synthesizer/prune_graph_map"]
