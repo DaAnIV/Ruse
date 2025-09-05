@@ -146,38 +146,18 @@ impl Sysinfo {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
-enum State {
-    First,
-    Rest,
-    FirstArray,
-    RestArray,
-}
-
-impl State {
-    fn is_arr(&self) -> bool {
-        match self {
-            State::FirstArray => true,
-            State::RestArray => true,
-            _ => false,
-        }
-    }
-
-    fn is_first(&self) -> bool {
-        match self {
-            State::First => true,
-            State::FirstArray => true,
-            _ => false,
-        }
-    }
+#[derive(Serialize)]
+struct Metadata<'a> {
+    timestamp: i64,
+    sysinfo: Sysinfo,
+    config: &'a BenchmarkConfig,
 }
 
 pub(crate) struct ResultsWriter<F>
 where
     F: Formatter + Clone,
 {
-    writer: File,
-    state: Vec<State>,
+    results_dir: PathBuf,
     formatter: F,
 }
 
@@ -186,118 +166,34 @@ where
     F: Formatter + Clone,
 {
     fn from_path_with_formatter(path: &Path, config: &BenchmarkConfig, formatter: F) -> Self {
-        let writer = File::create(path).expect("Failed to open output file");
-        let mut this = Self {
-            state: vec![],
-            writer,
+        let self_ = Self {
+            results_dir: path.to_path_buf(),
             formatter: formatter,
         };
 
-        this.begin();
-        this.serialize_entry("timestamp", &chrono::Utc::now().timestamp());
-        this.serialize_entry("sysinfo", &Sysinfo::new());
-        this.serialize_entry("config", config);
-        this.begin_array("tasks");
+        std::fs::create_dir(path).expect("Failed to create output dir");
 
-        this
-    }
-
-    pub fn write_result(&mut self, result: &BenchmarkResult) {
-        self.serialize_element(result);
-    }
-
-    fn begin(&mut self) {
-        self.state.push(State::First);
-        self.formatter
-            .begin_object(&mut self.writer)
-            .expect("Failed");
-    }
-
-    fn serialize_entry<T: Serialize>(&mut self, key: &str, value: &T) {
-        self.serialize_key(key);
-        self.serialize_value(value)
-    }
-
-    fn serialize_element<T: Serialize>(&mut self, value: &T) {
-        self.serialize_value(value)
-    }
-
-    fn begin_array(&mut self, key: &str) {
-        self.serialize_key(key);
-        self.formatter
-            .begin_object_value(&mut self.writer)
-            .expect("Failed");
-        self.formatter
-            .begin_array(&mut self.writer)
-            .expect("Failed");
-        self.state.push(State::FirstArray);
-    }
-
-    fn serialize_key(&mut self, key: &str) {
-        let state = self.state.last_mut().unwrap();
-
-        self.formatter
-            .begin_object_key(&mut self.writer, state.is_first())
-            .expect("Failed");
-        *state = State::Rest;
-
-        self.formatter
-            .begin_string(&mut self.writer)
-            .expect("Failed");
-        self.formatter
-            .write_string_fragment(&mut self.writer, key)
-            .expect("Failed");
-        self.formatter.end_string(&mut self.writer).expect("Failed");
-        self.formatter
-            .end_object_key(&mut self.writer)
-            .expect("Failed");
-    }
-
-    fn serialize_value<T: Serialize>(&mut self, value: &T) {
-        self.begin_value();
-
-        let mut ser =
-            serde_json::Serializer::with_formatter(&mut self.writer, self.formatter.clone());
-        value.serialize(&mut ser).expect("Failed");
-
-        self.end_value();
-    }
-
-    fn begin_value(&mut self) {
-        let state = self.state.last_mut().unwrap();
-        if state.is_arr() {
-            self.formatter
-                .begin_array_value(&mut self.writer, state.is_first())
-                .expect("Failed");
-            *state = State::RestArray;
-        } else {
-            self.formatter
-                .begin_object_value(&mut self.writer)
-                .expect("Failed");
+        let mut ser = self_.create_serializer("metadata.json");
+        Metadata {
+            timestamp: chrono::Utc::now().timestamp(),
+            sysinfo: Sysinfo::new(),
+            config: config,
         }
+        .serialize(&mut ser)
+        .expect("Failed to write metadata");
+
+        self_
     }
 
-    fn end_value(&mut self) {
-        let state = self.state.last().unwrap();
-        if state.is_arr() {
-            self.formatter
-                .end_array_value(&mut self.writer)
-                .expect("Failed");
-        } else {
-            self.formatter
-                .end_object_value(&mut self.writer)
-                .expect("Failed");
-        }
+    pub fn write_result(&self, result: &BenchmarkResult, i: usize) {
+        let mut ser = self.create_serializer(&format!("task_{}.json", i));
+        result.serialize(&mut ser).expect("Failed to write result");
     }
 
-    fn end_array(&mut self) {
-        self.state.pop();
-        self.formatter.end_array(&mut self.writer).expect("Failed");
-    }
-
-    fn end(&mut self) {
-        self.end_array();
-        self.formatter.end_object(&mut self.writer).expect("Failed");
+    fn create_serializer(&self, name: &str) -> serde_json::Serializer<File, F> {
+        let file = std::fs::File::create(self.results_dir.join(name))
+            .expect("Failed to create output file");
+        serde_json::Serializer::with_formatter(file, self.formatter.clone())
     }
 }
 
@@ -310,14 +206,5 @@ impl ResultsWriter<CompactFormatter> {
 impl<'a> ResultsWriter<PrettyFormatter<'a>> {
     pub fn from_path_pretty(path: &Path, config: &BenchmarkConfig) -> Self {
         Self::from_path_with_formatter(path, config, PrettyFormatter::new())
-    }
-}
-
-impl<F> Drop for ResultsWriter<F>
-where
-    F: Formatter + Clone,
-{
-    fn drop(&mut self) {
-        self.end()
     }
 }

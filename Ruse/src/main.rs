@@ -4,7 +4,6 @@ use itertools::Itertools;
 use ruse_synthesizer::opcode::sort_opcodes;
 use ruse_task_parser::SnythesisTask;
 use ruse_ts_interpreter::ts_classes::{TsClassesBuilder, TsClassesBuilderOptions};
-use serde_json::ser::Formatter;
 use std::{
     backtrace::{Backtrace, BacktraceStatus},
     clone::Clone,
@@ -31,22 +30,20 @@ use mimalloc::MiMalloc;
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
 
-use crate::{
-    config::{BankArgs, BankTypeArg},
-    results::BenchmarkResult,
-};
+use crate::config::{BankArgs, BankTypeArg};
 
-fn get_result_path(cli: &RunArgs) -> PathBuf {
-    if cli.output.is_dir() {
-        std::fs::create_dir_all(cli.output.as_path()).expect("Failed to create output dir");
+fn get_result_path(cli: &RunArgs) -> Result<PathBuf, String> {
+    if cli.output.is_file() {
+        return Err(format!("Output path {} is a file", cli.output.display()));
+    } else if cli.output.exists() {
         let mut path = cli.output.clone();
         path.push(format!(
-            "benchmarks_{}.json",
+            "benchmarks_{}",
             chrono::Local::now().format("%Y-%m-%d-%H:%M:%S%.f")
         ));
-        path
+        Ok(path)
     } else {
-        cli.output.clone()
+        Ok(cli.output.clone())
     }
 }
 
@@ -222,55 +219,6 @@ fn set_logger(cli: &RunArgs) {
     std::panic::set_hook(Box::new(panic_hook));
 }
 
-fn get_benchmarks_recursively(paths: &[std::path::PathBuf]) -> Vec<std::path::PathBuf> {
-    let mut all_benchmarks = Vec::new();
-    for benchmark in paths {
-        if !benchmark.exists() {
-            error!(target: "ruse::runner", "Path doesn't exist {}", benchmark.display());
-        } else if benchmark.is_dir() {
-            for entry in walkdir::WalkDir::new(benchmark)
-                .into_iter()
-                .filter_map(Result::ok)
-                .filter(|e| {
-                    e.file_type().is_file()
-                        && e.path().extension().map(|s| s == "sy").unwrap_or(false)
-                })
-            {
-                all_benchmarks.push(entry.path().to_path_buf());
-            }
-        } else {
-            all_benchmarks.push(benchmark.clone());
-        }
-    }
-
-    all_benchmarks
-}
-
-fn run_all_benchmarks<F>(
-    cli: &RunArgs,
-    bench_config: &config::BenchmarkConfig,
-    mut writer: ResultsWriter<F>,
-) where
-    F: Formatter + Clone,
-{
-    let mut ctrlc = false;
-    let benchmarks = get_benchmarks_recursively(&cli.benchmarks);
-    for benchmark in benchmarks {
-        let mut result = BenchmarkResult::new(benchmark.as_path());
-        if ctrlc {
-            result.error(&runner::RunnerError::CtrlC);
-            result.finish(None, Duration::from_secs(0), Default::default());
-            writer.write_result(&result);
-        } else {
-            let runner_result = runner::run_task(benchmark.as_path(), &bench_config, &mut result);
-            if runner_result.is_err_and(|e| e.is_ctrlc()) {
-                ctrlc = true;
-            }
-        }
-        writer.write_result(&result);
-    }
-}
-
 fn construct_config(cli: &RunArgs) -> BenchmarkConfig {
     let bank_args = BankArgs::parse_by_bank_type(cli.bank_type, &cli.bank_arg);
 
@@ -295,6 +243,7 @@ fn run_benchmarks(cli: &RunArgs) -> ExitCode {
 
     let max_task_mem = bench_config.max_task_mem;
     info!(target: "ruse::runner", "start time: {}", chrono::Local::now());
+    info!(target: "ruse::runner", "CMD: {}", std::env::args().join(" "));
     info!(target: "ruse::runner", "PID: {}", std::process::id());
     info!(target: "ruse::runner", "Timeout {:.3} seconds", bench_config.timeout.as_secs_f32());
     info!(target: "ruse::runner", "Max task mem {}", format!("{max_task_mem:#}"));
@@ -307,17 +256,23 @@ fn run_benchmarks(cli: &RunArgs) -> ExitCode {
         console_subscriber::init();
     }
 
-    let results_path = get_result_path(&cli);
+    let results_path = match get_result_path(&cli) {
+        Ok(path) => path,
+        Err(e) => {
+            error!(target: "ruse::runner", "Failed to get results path: {}", e);
+            return ExitCode::FAILURE;
+        }
+    };
 
     if cli.pretty {
-        run_all_benchmarks(
-            &cli,
+        runner::run_all_benchmarks(
+            &cli.benchmarks,
             &bench_config,
             ResultsWriter::from_path_pretty(results_path.as_path(), &bench_config),
         );
     } else {
-        run_all_benchmarks(
-            &cli,
+        runner::run_all_benchmarks(
+            &cli.benchmarks,
             &bench_config,
             ResultsWriter::from_path(results_path.as_path(), &bench_config),
         );

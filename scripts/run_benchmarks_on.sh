@@ -1,16 +1,16 @@
 #!/bin/bash
 
 
-RUST_BACKTRACE=1 ./target/profiling/ruse_benchmarks run \
+RUST_BACKTRACE=1 ./target/profiling/Ruse run \
     --timeout 300 \
     --max-iterations 5 \
     --max-context-depth 3 \
     --max-sequence-size 10 \
     --workers-count 64 \
-    --output results/result.json \
+    --output results/results \
     --log results/log.jsonl \
-    --pretty \
     -vvvv \
+    --pretty \
     ${@/#/-b }
 
 # cd log_viewer

@@ -2,32 +2,34 @@ use std::{
     future::Future,
     path::Path,
     sync::Arc,
+    thread,
     time::{Duration, Instant},
 };
 
 use byte_unit::{Byte, Unit};
+use crossbeam_channel::select;
 use ruse_synthesizer::{bank::ProgBank, prog::SubProgram};
 use ruse_task_parser::SnythesisTask;
 use ruse_task_parser::{bank_factory::Bank, error::SnythesisTaskError};
 use ruse_ts_synthesizer::TsSynthesizer;
+use serde_json::ser::Formatter;
+use sysinfo::get_current_pid;
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, error, info, info_span};
 
-use crate::{config::BenchmarkConfig, results::BenchmarkResult};
+use crate::{
+    config::BenchmarkConfig,
+    results::{BenchmarkResult, ResultsWriter},
+};
 
 #[derive(Debug)]
 pub enum RunnerError {
     Timeout,
     OOM,
     CtrlC,
+    ForkError,
     TaskCreateError(SnythesisTaskError),
     SynthesizerCreateError(SnythesisTaskError),
-}
-
-impl RunnerError {
-    pub fn is_ctrlc(&self) -> bool {
-        matches!(self, RunnerError::CtrlC)
-    }
 }
 
 impl std::error::Error for RunnerError {}
@@ -38,6 +40,7 @@ impl std::fmt::Display for RunnerError {
             RunnerError::Timeout => write!(f, "Timeout"),
             RunnerError::OOM => write!(f, "OOM"),
             RunnerError::CtrlC => write!(f, "Ctrl+C"),
+            RunnerError::ForkError => write!(f, "ForkError"),
             RunnerError::TaskCreateError(e) => write!(f, "TaskCreateError: {}", e),
             RunnerError::SynthesizerCreateError(e) => write!(f, "SynthesizerCreateError: {}", e),
         }
@@ -175,7 +178,11 @@ fn get_tokio_runtime(bench_config: &BenchmarkConfig) -> tokio::runtime::Runtime 
     runtime_builder.enable_all().build().unwrap()
 }
 
-fn init_results(task: &SnythesisTask, bench_config: &BenchmarkConfig, results: &mut BenchmarkResult) {
+fn init_results(
+    task: &SnythesisTask,
+    bench_config: &BenchmarkConfig,
+    results: &mut BenchmarkResult,
+) {
     results.set_literals(
         Vec::from_iter(task.string_literals.iter().cloned()),
         Vec::from_iter(task.num_literals.iter().cloned()),
@@ -209,7 +216,6 @@ async fn run_task_with_bank<P: ProgBank + 'static>(
             return Err(RunnerError::SynthesizerCreateError(e));
         }
     };
-    info!(target: "ruse::runner", "Running {}", task_path.display());
     debug!(target: "ruse::runner", { 
         synthesizer.json = %synthesizer.json_display()
     }, "Benchmark {} Synthesizer", task_path.display());
@@ -270,14 +276,113 @@ async fn run_task_async(
     }
 }
 
-pub fn run_task(
+fn run_task_child(
     path: &Path,
     bench_config: &BenchmarkConfig,
     result: &mut BenchmarkResult,
 ) -> Result<bool, RunnerError> {
-    let runtime = get_tokio_runtime(bench_config);
-
+    let runtime = get_tokio_runtime(&bench_config);
     runtime.block_on(async {
         tokio::task::block_in_place(|| run_task_async(path, bench_config, result)).await
     })
+}
+
+fn ctrl_channel() -> Result<crossbeam_channel::Receiver<()>, ctrlc::Error> {
+    let (sender, receiver) = crossbeam_channel::bounded(100);
+    ctrlc::set_handler(move || {
+        let _ = sender.send(());
+    })?;
+
+    Ok(receiver)
+}
+
+pub fn run_task<F: Formatter + Clone>(
+    path: &Path,
+    i: usize,
+    bench_config: &BenchmarkConfig,
+    result_writer: &ResultsWriter<F>,
+) -> Result<crossbeam_channel::Receiver<()>, RunnerError> {
+    let (sender, receiver) = crossbeam_channel::bounded(1);
+
+    match fork::fork().map_err(|_| RunnerError::ForkError)? {
+        fork::Fork::Parent(child_pid) => {
+            thread::Builder::new()
+                .name("waitchild".into())
+                .spawn(move || {
+                    fork::waitpid(child_pid).unwrap();
+                    let _ = sender.send(());
+                })
+                .map_err(|_| RunnerError::ForkError)?;
+            Ok(receiver)
+        }
+        fork::Fork::Child => {
+            let mut result = BenchmarkResult::new(path);
+            debug!(target: "ruse::runner", "Running child {}", get_current_pid().unwrap());
+
+            match run_task_child(path, bench_config, &mut result) {
+                Ok(_) => (),
+                Err(e) => {
+                    result.error(&e);
+                }
+            }
+
+            result_writer.write_result(&result, i);
+
+            std::process::exit(0);
+        }
+    }
+}
+
+pub fn get_benchmarks_recursively(paths: &[std::path::PathBuf]) -> Vec<std::path::PathBuf> {
+    let mut all_benchmarks = Vec::new();
+    for benchmark in paths {
+        if !benchmark.exists() {
+            error!(target: "ruse::runner", "Path doesn't exist {}", benchmark.display());
+        } else if benchmark.is_dir() {
+            for entry in walkdir::WalkDir::new(benchmark)
+                .into_iter()
+                .filter_map(Result::ok)
+                .filter(|e| {
+                    e.file_type().is_file()
+                        && e.path().extension().map(|s| s == "sy").unwrap_or(false)
+                })
+            {
+                all_benchmarks.push(entry.path().to_path_buf());
+            }
+        } else {
+            all_benchmarks.push(benchmark.clone());
+        }
+    }
+
+    all_benchmarks
+}
+
+pub fn run_all_benchmarks<F: Formatter + Clone>(
+    top_level_benchmark: &[std::path::PathBuf],
+    bench_config: &BenchmarkConfig,
+    writer: ResultsWriter<F>,
+) {
+    let mut ctrlc = false;
+    let ctrl_c_events = ctrl_channel().expect("Failed to create ctrl_c_events");
+
+    let benchmarks = get_benchmarks_recursively(top_level_benchmark);
+    let total_benchmarks = benchmarks.len();
+    for (i, benchmark) in benchmarks.into_iter().enumerate() {
+        info!(target: "ruse::runner", "Starting benchmark {} [{}/{}]", benchmark.display(), i + 1, total_benchmarks);
+        if ctrlc {
+            let mut result = BenchmarkResult::new(benchmark.as_path());
+            result.error(&RunnerError::CtrlC);
+            result.finish(None, Duration::from_secs(0), Default::default());
+            writer.write_result(&result, i);
+        } else {
+            let task_channel = run_task(benchmark.as_path(), i, &bench_config, &writer)
+                .expect("Failed to create task channel");
+            select! {
+                recv(task_channel) -> _ => {}
+                recv(ctrl_c_events) -> _ => {
+                    ctrlc = true;
+                }
+            }
+        }
+    }
 }

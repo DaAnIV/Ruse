@@ -8,6 +8,8 @@ edition = "2021"
 [dependencies]
 mimalloc = { version = "*", features = ["v3"] }
 
+fork = "*"
+
 ruse_object_graph.workspace = true
 ruse_ts_interpreter.workspace = true
 ruse_synthesizer.workspace = true
@@ -38,8 +40,11 @@ serde.workspace = true
 serde_json.workspace = true
 serde_with.workspace = true
 
+ctrlc = "*"
 procfs = "*"
 byte-unit = { version = "*", features = ["serde"] }
+
+crossbeam-channel = "*"
 
 tokio.workspace = true
 tokio-util.workspace = true
