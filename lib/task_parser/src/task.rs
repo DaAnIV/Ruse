@@ -513,7 +513,7 @@ impl SnythesisTask {
 
     pub fn get_synthesizer<P: ProgBank + 'static>(
         self,
-        mut max_context_depth: usize,
+        mut max_mutations: u32,
         max_seq_size: usize,
         iteration_workers_count: usize,
         bank: P,
@@ -553,11 +553,11 @@ impl SnythesisTask {
         }
 
         if self.inner.options.pure {
-            max_context_depth = 0;
+            max_mutations = 0;
         }
         if let Some(immutable) = &self.inner.immutable {
             if immutable.len() == variables.len() {
-                max_context_depth = 0;
+                max_mutations = 0;
             }
         }
 
@@ -569,7 +569,7 @@ impl SnythesisTask {
             opcodes,
             predicate,
             valid,
-            max_context_depth,
+            max_mutations,
             iteration_workers_count,
         );
 

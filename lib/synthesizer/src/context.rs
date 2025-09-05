@@ -946,7 +946,6 @@ impl Display for ContextJsonDisplay {
 
 #[derive(Clone, Debug)]
 pub struct ContextArray {
-    pub depth: usize,
     inner: Vec<Box<Context>>,
 }
 
@@ -990,7 +989,6 @@ impl ContextArray {
 
         Some(Self {
             inner: ctxs,
-            depth: self.depth,
         })
     }
 
@@ -1027,7 +1025,6 @@ macro_rules! trace_context_array {
     (target: $target:expr, $ctx_array:expr, $message:expr) => (
         if tracing::enabled!(tracing::Level::TRACE) {
             tracing::trace!(target: $target, {
-                depth = %$ctx_array.depth,
                 size = %$ctx_array.len(),
                 contexts.json = %$ctx_array.json_display()
             },  $message);
@@ -1047,7 +1044,6 @@ macro_rules! trace_context_array {
 impl Default for ContextArray {
     fn default() -> Self {
         Self {
-            depth: 0,
             inner: vec![Context::with_values(
                 Default::default(),
                 GraphsMap::default().into(),
@@ -1062,7 +1058,6 @@ impl From<Vec<Box<Context>>> for ContextArray {
         assert!(!value.is_empty(), "Must have at least one example");
         let obj = ContextArray {
             inner: value,
-            depth: 0,
         };
         debug_assert!(obj.verify_contexts_vector());
         obj
@@ -1094,7 +1089,6 @@ impl PartialEq for ContextArray {
 impl Display for ContextArray {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "{{")?;
-        writeln!(f, "depth: {}", self.depth)?;
         writeln!(f, "contexts: [")?;
         for ctx in &self.inner {
             writeln!(f, "{}", ctx)?;

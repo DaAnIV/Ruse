@@ -58,7 +58,7 @@ pub struct BenchmarkConfig {
     pub timeout: Duration,
     pub max_iterations: u32,
     pub multi_thread: bool,
-    pub max_context_depth: usize,
+    pub max_mutations: u32,
     pub iteration_workers_count: usize,
     pub max_sequence_size: usize,
     pub benchmarks: Vec<PathBuf>,

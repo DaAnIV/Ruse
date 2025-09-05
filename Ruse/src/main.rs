@@ -84,7 +84,7 @@ struct RunArgs {
     max_iterations: u32,
 
     #[arg(long, default_value_t = 5)]
-    max_context_depth: usize,
+    max_mutations: u32,
 
     #[arg(long, default_value_t = String::from("100GiB"))]
     max_task_mem: String,
@@ -278,7 +278,7 @@ fn construct_config(cli: &RunArgs) -> BenchmarkConfig {
         timeout: Duration::from_secs(cli.timeout),
         max_iterations: cli.max_iterations,
         multi_thread: !cli.single_thread,
-        max_context_depth: cli.max_context_depth,
+        max_mutations: cli.max_mutations,
         iteration_workers_count: cli.workers_count,
         max_sequence_size: cli.max_sequence_size,
         benchmarks: cli.benchmarks.clone(),
@@ -299,7 +299,7 @@ fn run_benchmarks(cli: &RunArgs) -> ExitCode {
     info!(target: "ruse::runner", "Timeout {:.3} seconds", bench_config.timeout.as_secs_f32());
     info!(target: "ruse::runner", "Max task mem {}", format!("{max_task_mem:#}"));
     info!(target: "ruse::runner", "Max iterations: {}", bench_config.max_iterations);
-    info!(target: "ruse::runner", "Max context depth: {}", bench_config.max_context_depth);
+    info!(target: "ruse::runner", "Max mutations: {}", bench_config.max_mutations);
     info!(target: "ruse::runner", "Workers count: {}", bench_config.iteration_workers_count);
     info!(target: "ruse::runner", "Bank config {}", bench_config.bank_config);
 

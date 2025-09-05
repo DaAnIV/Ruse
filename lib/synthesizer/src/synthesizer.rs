@@ -30,7 +30,7 @@ pub enum StatisticsTypes {
     Evaluated,
     BankSize,
     FoundContextCount,
-    MaxContextDepth,
+    MaxMutatingOpcodes,
     MaxDepth,
     MaxSize,
     __MaxType,
@@ -42,7 +42,7 @@ impl StatisticsTypes {
             StatisticsTypes::Evaluated,
             StatisticsTypes::BankSize,
             StatisticsTypes::FoundContextCount,
-            StatisticsTypes::MaxContextDepth,
+            StatisticsTypes::MaxMutatingOpcodes,
             StatisticsTypes::MaxDepth,
             StatisticsTypes::MaxSize,
         ]
@@ -58,7 +58,7 @@ impl StatisticsTypes {
             StatisticsTypes::Evaluated => "Evaluated",
             StatisticsTypes::BankSize => "BankSize",
             StatisticsTypes::FoundContextCount => "FoundContextCount",
-            StatisticsTypes::MaxContextDepth => "MaxContextDepth",
+            StatisticsTypes::MaxMutatingOpcodes => "MaxMutatingOpcodes",
             StatisticsTypes::MaxDepth => "MaxDepth",
             StatisticsTypes::MaxSize => "MaxSize",
             StatisticsTypes::__MaxType => unreachable!(),
@@ -168,7 +168,7 @@ pub struct Synthesizer<P: ProgBank, W: WorkerContextCreator + 'static> {
     opcodes: OpcodesMap,
     context: SynthesizerContext,
     found_contexts: DashSet<ContextArray>,
-    max_context_depth: usize,
+    max_mutations: u32,
     cancel_token: CancellationToken,
 
     predicate: SynthesizerPredicate,
@@ -189,7 +189,7 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
         opcodes: OpcodesList,
         predicate: SynthesizerPredicate,
         valid: SynthesizerPredicate,
-        max_context_depth: usize,
+        max_mutations: u32,
         iteration_workers_count: usize,
         worker_context_creator: W,
     ) -> Self {
@@ -198,7 +198,7 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
             opcodes: sort_opcodes(opcodes),
             context: syn_ctx,
             found_contexts: DashSet::new(),
-            max_context_depth,
+            max_mutations: max_mutations,
             cancel_token: CancellationToken::new(),
             predicate,
             valid,
@@ -487,6 +487,9 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
             triplet_clone.pre_ctx,
             triplet_clone.post_ctx,
         );
+        if p.num_mutations() > self.max_mutations {
+            return None;
+        }
         self.evaluate_program(&mut p, worker_ctx).then(|| p)
     }
 
@@ -508,7 +511,7 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
     }
 
     async fn check_program(&self, p: &Arc<SubProgram>, worker_ctx: &mut SynthesizerWorkerContext) -> bool {
-        if p.post_ctx().depth > self.max_context_depth {
+        if p.num_mutations() > self.max_mutations {
             return false;
         }
         if !p.out_value().iter().all(|x| self.check_out_value(x.val())) {
@@ -550,7 +553,7 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
             self.statistics
                 .max_value(StatisticsTypes::MaxSize, p.size().into());
             self.statistics
-                .max_value(StatisticsTypes::MaxContextDepth, p.post_ctx().depth as u64);
+                .max_value(StatisticsTypes::MaxMutatingOpcodes, p.num_mutations() as u64);
 
             return true;
         }
@@ -575,7 +578,7 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
 pub struct SynthesizerJsonDisplay {
     opcodes: Vec<String>,
     context: SynthesizerContextJsonDisplay,
-    max_context_depth: usize,
+    max_mutations: u32,
     worker_count: usize,
 }
 
@@ -595,7 +598,7 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
         SynthesizerJsonDisplay {
             opcodes: self.opcodes.values().flat_map(|ops| ops.iter().map(|op| format!("{}:{:?}", op.op_name(), op))).collect(),
             context: self.context.json_display_struct(),
-            max_context_depth: self.max_context_depth,
+            max_mutations: self.max_mutations,
             worker_count: self.worker_count,
         }
     }

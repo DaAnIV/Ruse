@@ -24,7 +24,7 @@ pub struct BenchmarksIteration {
 #[derive(Serialize, Debug, Clone)]
 struct ResultSolution {
     has_side_effects: bool,
-    context_depth: usize,
+    num_mutations: u32,
     found: String,
 }
 
@@ -103,8 +103,8 @@ impl BenchmarkResult {
         self.total_time = Some(time);
         if let Some(p) = found {
             self.found = Some(ResultSolution {
-                has_side_effects: p.post_ctx().depth > 0,
-                context_depth: p.post_ctx().depth,
+                has_side_effects: p.num_mutations() > 0,
+                num_mutations: p.num_mutations(),
                 found: p.get_code(),
             });
         }

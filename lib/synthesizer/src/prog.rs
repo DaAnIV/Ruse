@@ -28,6 +28,7 @@ pub struct SubProgram {
 
     size: u32,
     depth: u32,
+    num_mutating_opcodes: u32,
     out_type: Option<ValueType>,
 
     pre_ctx: ContextArray,
@@ -66,6 +67,7 @@ impl SubProgram {
 
         let size = children.iter().fold(0, |acc, x| acc + x.size) + 1;
         let depth = children.iter().fold(0, |acc, x| max(acc, x.depth)) + 1;
+        let num_mutations = children.iter().fold(0, |acc, x| acc + x.num_mutating_opcodes);
 
         pre_ctx.iter_mut().for_each(|ctx| {
             ctx.clear_outputs();
@@ -77,6 +79,7 @@ impl SubProgram {
 
             size,
             depth,
+            num_mutating_opcodes: num_mutations,
 
             out_type: None,
             pre_ctx,
@@ -101,6 +104,7 @@ impl SubProgram {
 
             size: 1,
             depth: 1,
+            num_mutating_opcodes: 0,
 
             out_type: None,
             pre_ctx,
@@ -153,7 +157,7 @@ impl SubProgram {
         }
 
         if dirty {
-            self.post_ctx.depth += 1;
+            self.num_mutating_opcodes += 1;
         }
         self.dirty = Some(dirty);
         self.out_type = out_type;
@@ -181,6 +185,11 @@ impl SubProgram {
     #[inline]
     pub fn depth(&self) -> u32 {
         self.depth
+    }
+
+    #[inline]
+    pub fn num_mutations(&self) -> u32 {
+        self.num_mutating_opcodes
     }
 
     #[inline]

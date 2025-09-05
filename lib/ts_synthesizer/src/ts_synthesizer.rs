@@ -28,7 +28,7 @@ impl<P: ProgBank + 'static> TsSynthesizer<P> {
         opcodes: OpcodesList,
         predicate: SynthesizerPredicate,
         valid: SynthesizerPredicate,
-        max_context_depth: usize,
+        max_mutations: u32,
         iteration_workers_count: usize,
     ) -> TsSynthesizer<P> {
         Self {
@@ -38,7 +38,7 @@ impl<P: ProgBank + 'static> TsSynthesizer<P> {
                 opcodes,
                 predicate,
                 valid,
-                max_context_depth,
+                max_mutations,
                 iteration_workers_count,
                 TsWorkerContextCreator {},
             )),
