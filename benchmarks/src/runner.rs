@@ -175,12 +175,12 @@ fn get_tokio_runtime(bench_config: &BenchmarkConfig) -> tokio::runtime::Runtime 
     runtime_builder.enable_all().build().unwrap()
 }
 
-fn init_results(task: &SnythesisTask, results: &mut BenchmarkResult) {
+fn init_results(task: &SnythesisTask, bench_config: &BenchmarkConfig, results: &mut BenchmarkResult) {
     results.set_literals(
         Vec::from_iter(task.string_literals.iter().cloned()),
         Vec::from_iter(task.num_literals.iter().cloned()),
     );
-    results.opcode_count = task.opcode_count();
+    results.opcode_count = task.opcode_count(bench_config.max_sequence_size);
 }
 
 async fn run_task_with_bank<P: ProgBank + 'static>(
@@ -194,6 +194,7 @@ async fn run_task_with_bank<P: ProgBank + 'static>(
 
     let mut synthesizer = match task.get_synthesizer(
         bench_config.max_context_depth,
+        bench_config.max_sequence_size,
         bench_config.iteration_workers_count,
         bank,
     ) {
@@ -253,7 +254,7 @@ async fn run_task_async(
         }
     };
 
-    init_results(&task, result);
+    init_results(&task, bench_config, result);
 
     match bench_config.bank_config.new_bank().await {
         Bank::SubsumptionBank(bank) => run_task_with_bank(task, bench_config, result, bank).await,

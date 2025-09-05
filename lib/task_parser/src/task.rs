@@ -201,8 +201,8 @@ fn default_pure() -> bool {
     false
 }
 
-fn default_expression() -> bool {
-    false
+fn default_max_seq_size() -> Option<usize> {
+    Some(2)
 }
 
 fn default_version() -> u32 {
@@ -215,8 +215,8 @@ struct SnythesisTaskOptions {
     strings: bool,
     #[serde(default = "default_pure")]
     pure: bool,
-    #[serde(default = "default_expression")]
-    expression: bool,
+    #[serde(default = "default_max_seq_size")]
+    max_seq_size: Option<usize>,
 }
 
 impl Default for SnythesisTaskOptions {
@@ -224,7 +224,7 @@ impl Default for SnythesisTaskOptions {
         Self {
             strings: default_strings(),
             pure: default_pure(),
-            expression: default_expression(),
+            max_seq_size: default_max_seq_size(),
         }
     }
 }
@@ -466,6 +466,7 @@ impl SnythesisTask {
     pub fn get_synthesizer<P: ProgBank + 'static>(
         self,
         mut max_context_depth: usize,
+        max_seq_size: usize,
         iteration_workers_count: usize,
         bank: P,
     ) -> Result<TsSynthesizer<P>, SnythesisTaskError> {
@@ -473,7 +474,7 @@ impl SnythesisTask {
 
         let mut engine_ctx = EngineContext::create_engine_ctx(&self.classes);
 
-        let opcodes = self.get_opcodes();
+        let opcodes = self.get_opcodes(max_seq_size);
         let context_array = self.get_context_array(&mut engine_ctx)?;
         let predicate = self.get_predicate(&mut engine_ctx)?;
         let valid = self.get_valid_predicate()?;
@@ -598,7 +599,9 @@ impl SnythesisTask {
         Ok(builder.finalize())
     }
 
-    fn get_opcodes(&self) -> OpcodesList {
+    fn get_opcodes(&self, max_seq_size: usize) -> OpcodesList {
+        let max_seq_size = self.inner.options.max_seq_size.unwrap_or(max_seq_size);
+
         let var_names: Vec<VariableName> = self
             .inner
             .variables
@@ -621,15 +624,15 @@ impl SnythesisTask {
             construct_opcode_list(&var_names, &self.num_literals, &string_literals, false);
 
         let composite_opcodes =
-            Self::get_composite_opcodes(&self.classes, !self.inner.options.expression, self.inner.options.strings);
+            Self::get_composite_opcodes(&self.classes, max_seq_size, self.inner.options.strings);
 
         opcodes.extend(composite_opcodes.into_iter().filter(self.get_filter()));
 
         opcodes
     }
 
-    pub fn opcode_count(&self) -> usize {
-        self.get_opcodes().len()
+    pub fn opcode_count(&self, max_seq_size: usize) -> usize {
+        self.get_opcodes(max_seq_size).len()
     }
 
     fn get_filter(&self) -> Box<dyn Fn(&Arc<dyn ExprOpcode>) -> bool> {
@@ -644,7 +647,7 @@ impl SnythesisTask {
         }
     }
 
-    pub fn get_composite_opcodes(classes: &TsClasses, add_seq: bool, strings: bool) -> OpcodesList {
+    pub fn get_composite_opcodes(classes: &TsClasses, max_seq_size: usize, strings: bool) -> OpcodesList {
         let mut composite_opcodes = OpcodesList::new();
         add_num_opcodes(
             &mut composite_opcodes,
@@ -665,18 +668,19 @@ impl SnythesisTask {
             &mut composite_opcodes,
             &[ValueType::Number, ValueType::String],
         );
-        if add_seq {
-            let mut value_types = vec![ValueType::Number, ValueType::String, ValueType::Null];
-            value_types.extend(
-                classes
-                    .classes_names()
-                    .map(|x| ValueType::class_value_type(x.clone())),
-            );
-            value_types.push(ValueType::array_value_type(&ValueType::Number));
-            value_types.push(ValueType::array_value_type(&ValueType::String));
-            value_types.push(ValueType::set_value_type(&ValueType::Number));
-            value_types.push(ValueType::set_value_type(&ValueType::String));
-            add_seq_opcodes(&mut composite_opcodes, 2, &value_types);
+
+        let mut value_types = vec![ValueType::Number, ValueType::String, ValueType::Null];
+        value_types.extend(
+            classes
+                .classes_names()
+                .map(|x| ValueType::class_value_type(x.clone())),
+        );
+        value_types.push(ValueType::array_value_type(&ValueType::Number));
+        value_types.push(ValueType::array_value_type(&ValueType::String));
+        value_types.push(ValueType::set_value_type(&ValueType::Number));
+        value_types.push(ValueType::set_value_type(&ValueType::String));
+        for size in 2..=max_seq_size {
+            add_seq_opcodes(&mut composite_opcodes, size, &value_types);
         }
 
         composite_opcodes.extend(Self::get_classes_opcodes(classes, true));

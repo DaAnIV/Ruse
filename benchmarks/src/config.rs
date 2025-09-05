@@ -60,6 +60,7 @@ pub struct BenchmarkConfig {
     pub multi_thread: bool,
     pub max_context_depth: usize,
     pub iteration_workers_count: usize,
+    pub max_sequence_size: usize,
     pub benchmarks: Vec<PathBuf>,
     pub max_task_mem: Byte,
     pub bank_config: BankConfig,

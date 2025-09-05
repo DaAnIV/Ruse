@@ -92,6 +92,9 @@ struct RunArgs {
     #[arg(long, default_value_t = 16)]
     workers_count: usize,
 
+    #[arg(long, default_value_t = 2)]
+    max_sequence_size: usize,
+
     #[arg(long, default_value_t = false)]
     print_all_programs: bool,
 
@@ -128,8 +131,8 @@ struct PrintOpcodesArgs {
     #[arg(short, long, default_value_t = false)]
     only_ts: bool,
 
-    #[arg(long, default_value_t = false)]
-    ignore_sequence_ops: bool,
+    #[arg(long, default_value_t = 2)]
+    max_sequence_size: usize,
 
     #[arg(long, default_value_t = false)]
     ignore_string_ops: bool,
@@ -277,6 +280,7 @@ fn construct_config(cli: &RunArgs) -> BenchmarkConfig {
         multi_thread: !cli.single_thread,
         max_context_depth: cli.max_context_depth,
         iteration_workers_count: cli.workers_count,
+        max_sequence_size: cli.max_sequence_size,
         benchmarks: cli.benchmarks.clone(),
         max_task_mem: Byte::parse_str(&cli.max_task_mem, true).unwrap(),
         bank_config: bank_args.into(),
@@ -339,7 +343,7 @@ fn print_opcodes(cli: &PrintOpcodesArgs) -> ExitCode {
     } else {
         SnythesisTask::get_composite_opcodes(
             &classes,
-            !cli.ignore_sequence_ops,
+            cli.max_sequence_size,
             !cli.ignore_string_ops,
         )
     };
