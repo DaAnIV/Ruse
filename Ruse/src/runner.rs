@@ -180,6 +180,10 @@ fn init_results(task: &SnythesisTask, bench_config: &BenchmarkConfig, results: &
         Vec::from_iter(task.string_literals.iter().cloned()),
         Vec::from_iter(task.num_literals.iter().cloned()),
     );
+    results.set_category(task.category());
+    if let Some(source) = task.source() {
+        results.set_source(source.clone());
+    }
     results.opcode_count = task.opcode_count(bench_config.max_sequence_size);
 }
 
@@ -209,6 +213,11 @@ async fn run_task_with_bank<P: ProgBank + 'static>(
     debug!(target: "ruse::runner", { 
         synthesizer.json = %synthesizer.json_display()
     }, "Benchmark {} Synthesizer", task_path.display());
+
+    if bench_config.dry_run {
+        result.finish(None, Duration::from_secs(0), Default::default());
+        return Ok(false);
+    }
 
     let cancel_token = synthesizer.get_cancel_token();
     let timeout = tokio::time::timeout(

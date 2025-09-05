@@ -64,4 +64,6 @@ pub struct BenchmarkConfig {
     pub benchmarks: Vec<PathBuf>,
     pub max_task_mem: Byte,
     pub bank_config: BankConfig,
+    #[serde(skip)]
+    pub dry_run: bool,
 }

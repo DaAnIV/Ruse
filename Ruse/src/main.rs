@@ -95,9 +95,6 @@ struct RunArgs {
     #[arg(long, default_value_t = 2)]
     max_sequence_size: usize,
 
-    #[arg(long, default_value_t = false)]
-    print_all_programs: bool,
-
     #[command(flatten)]
     verbose: Verbosity<InfoLevel>,
 
@@ -120,6 +117,9 @@ struct RunArgs {
 
     #[arg(long, action = clap::ArgAction::Append, allow_hyphen_values = true)]
     bank_arg: Vec<String>,
+
+    #[arg(long, default_value_t = false)]
+    dry_run: bool,
 }
 
 #[derive(clap::Args, Debug)]
@@ -284,6 +284,7 @@ fn construct_config(cli: &RunArgs) -> BenchmarkConfig {
         benchmarks: cli.benchmarks.clone(),
         max_task_mem: Byte::parse_str(&cli.max_task_mem, true).unwrap(),
         bank_config: bank_args.into(),
+        dry_run: cli.dry_run,
     }
 }
 

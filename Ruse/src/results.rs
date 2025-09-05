@@ -6,9 +6,10 @@ use std::{
     vec,
 };
 
-use byte_unit::{Byte, AdjustedByte, UnitType};
+use byte_unit::{AdjustedByte, Byte, UnitType};
 use ruse_synthesizer::{prog::SubProgram, synthesizer::CurrentStatistics};
 
+use ruse_task_parser::SnythesisTaskCategory;
 use serde::Serialize;
 use serde_json::ser::{CompactFormatter, Formatter, PrettyFormatter};
 
@@ -21,13 +22,22 @@ pub struct BenchmarksIteration {
 }
 
 #[derive(Serialize, Debug, Clone)]
+struct ResultSolution {
+    has_side_effects: bool,
+    context_depth: usize,
+    found: String,
+}
+
+#[derive(Serialize, Debug, Clone)]
 pub struct BenchmarkResult {
     path: PathBuf,
+    source: Option<String>,
+    category: Option<String>,
     pub opcode_count: usize,
     string_literals: Option<Vec<String>>,
     num_literals: Option<Vec<i64>>,
     iterations: Vec<BenchmarksIteration>,
-    found: Option<String>,
+    found: Option<ResultSolution>,
     total_time: Option<Duration>,
     total_statistics: Option<CurrentStatistics>,
     max_vm_usage: Option<AdjustedByte>,
@@ -38,6 +48,8 @@ impl BenchmarkResult {
     pub fn new(path: &Path) -> Self {
         Self {
             path: PathBuf::from(path),
+            source: None,
+            category: None,
             opcode_count: 0,
             iterations: vec![],
             string_literals: None,
@@ -48,6 +60,14 @@ impl BenchmarkResult {
             max_vm_usage: None,
             error: None,
         }
+    }
+
+    pub fn set_source(&mut self, source: String) {
+        self.source = Some(source);
+    }
+
+    pub fn set_category(&mut self, category: SnythesisTaskCategory) {
+        self.category = Some(category.to_string());
     }
 
     pub fn set_literals(&mut self, string_literals: Vec<String>, num_literals: Vec<i64>) {
@@ -82,11 +102,15 @@ impl BenchmarkResult {
     ) {
         self.total_time = Some(time);
         if let Some(p) = found {
-            self.found = Some(p.get_code());
+            self.found = Some(ResultSolution {
+                has_side_effects: p.post_ctx().depth > 0,
+                context_depth: p.post_ctx().depth,
+                found: p.get_code(),
+            });
         }
         self.total_statistics = Some(statistics);
     }
-    
+
     pub(crate) fn set_max_vm_usage(&mut self, max_vm_usage: Byte) {
         self.max_vm_usage = Some(max_vm_usage.get_appropriate_unit(UnitType::Decimal));
     }

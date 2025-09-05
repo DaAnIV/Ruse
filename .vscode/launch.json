@@ -7,21 +7,63 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug executable 'ruse benchmarks'",
+            "name": "Debug running benchmark",
+            "cwd": "${workspaceFolder}",
             "cargo": {
                 "args": [
                     "build",
-                    "--package=ruse_benchmarks"
+                    "--package=Ruse",
+                    "--features",
+                    "trace_evaluations trace_embeddings"
                 ]
+            },
+            "env": {
+                "RUST_BACKTRACE": "short",
+                "RUSTC_TOOLCHAIN": "/home/biber.barak/.rustup/toolchains/stable-x86_64-unknown-linux-gnu"
             },
             "args": [
                 "run",
-                "-b", "benchmarks/tasks/simple/complex_user.sy",
-                "-o", "failed/failed2.json",
-                "-t", "5000",
+                "-b",
+                "benchmarks/tasks/simple/seq.sy",
+                "-o",
+                "results/debug_results.json",
+                "--log",
+                "results/debug_log.json",
+                "-t",
+                "5000",
+                // "--single-thread",
+                "--workers-count",
+                "1",
                 "-vvv",
+                "--max-iterations",
+                "3",
+                "--max-context-depth",
+                "3",
+            ],
+            "sourceLanguages": [
+                "rust"
+            ],
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug ts parsing",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--package=Ruse"
+                ]
+            },
+            "args": [
+                "print-opcodes",
+                "--print-js-code",
+                "-o",
+                "-t",
+                "benchmarks/tasks/classes/simple_tree.ts",
             ],
             "cwd": "${workspaceFolder}"
+        },
+    ],
         }
     ]
 }

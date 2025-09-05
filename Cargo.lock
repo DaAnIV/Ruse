@@ -13,6 +13,39 @@ dependencies = [
 ]
 
 [[package]]
+name = "Ruse"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "boa_engine",
+ "byte-unit",
+ "chrono",
+ "clap",
+ "clap-verbosity-flag",
+ "console-subscriber",
+ "itertools 0.13.0",
+ "mimalloc",
+ "procfs",
+ "ruse_object_graph",
+ "ruse_prog_bank_in_mem",
+ "ruse_synthesizer",
+ "ruse_task_parser",
+ "ruse_ts_interpreter",
+ "ruse_ts_synthesizer",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "sysinfo",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "tracing-log",
+ "tracing-subscriber",
+ "walkdir",
+ "wildmatch",
+]
+
+[[package]]
 name = "addr2line"
 version = "0.24.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2842,39 +2875,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 1.0.109",
-]
-
-[[package]]
-name = "ruse_benchmarks"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "boa_engine",
- "byte-unit",
- "chrono",
- "clap",
- "clap-verbosity-flag",
- "console-subscriber",
- "itertools 0.14.0",
- "mimalloc",
- "procfs",
- "ruse_object_graph",
- "ruse_prog_bank_in_mem",
- "ruse_synthesizer",
- "ruse_task_parser",
- "ruse_ts_interpreter",
- "ruse_ts_synthesizer",
- "serde",
- "serde_json",
- "serde_with",
- "sysinfo",
- "tokio",
- "tokio-util",
- "tracing",
- "tracing-log",
- "tracing-subscriber",
- "walkdir",
- "wildmatch",
 ]
 
 [[package]]
