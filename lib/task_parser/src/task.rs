@@ -1,6 +1,6 @@
 use std::{
     collections::{HashMap, HashSet},
-    fmt::Debug,
+    fmt::{self, Debug, Display},
     hash::{BuildHasherDefault, DefaultHasher},
     path::{Path, PathBuf},
     sync::Arc,
@@ -19,7 +19,10 @@ use ruse_synthesizer::{
     opcode::{ExprOpcode, OpcodesList},
     synthesizer::SynthesizerPredicate,
 };
-use ruse_ts_interpreter::{engine_context::EngineContext, ts_classes::{TsClasses, TsClassesBuilder}};
+use ruse_ts_interpreter::{
+    engine_context::EngineContext,
+    ts_classes::{TsClasses, TsClassesBuilder},
+};
 use ruse_ts_synthesizer::*;
 
 use serde::{Deserialize, Serialize};
@@ -28,7 +31,7 @@ use wildmatch::WildMatch;
 
 use crate::{
     error::SnythesisTaskError,
-    parse_err,
+    io_err, parse_err,
     predicate_builder::{PredicateBuilder, ValidPredicateBuilder},
     skip_err,
     task_type::{JsonValuesMap, TaskType},
@@ -109,8 +112,15 @@ where
 {
     let mut values = vec![];
     for (value, task_type) in arr.into_iter().zip_eq(types) {
-        let value =
-            task_type.create_value(value, classes, graph_id, graphs_map, id_gen, refs_graph_id, engine_ctx)?;
+        let value = task_type.create_value(
+            value,
+            classes,
+            graph_id,
+            graphs_map,
+            id_gen,
+            refs_graph_id,
+            engine_ctx,
+        )?;
         values.push(value);
     }
 
@@ -229,18 +239,71 @@ impl Default for SnythesisTaskOptions {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Debug, Copy, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SynthesisOOPCategory {
+    Primitive,
+    PrimitiveObjects,
+    FullOOP,
+}
+
+impl Display for SynthesisOOPCategory {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            SynthesisOOPCategory::Primitive => write!(f, "Primitive"),
+            SynthesisOOPCategory::PrimitiveObjects => write!(f, "Primitive Objects"),
+            SynthesisOOPCategory::FullOOP => write!(f, "Full OOP"),
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum SnythesisTaskSideEffects {
+    Yes,
+    No,
+    Maybe,
+}
+
+impl Display for SnythesisTaskSideEffects {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            SnythesisTaskSideEffects::Yes => write!(f, "With Side Effects"),
+            SnythesisTaskSideEffects::No => write!(f, "Without Side Effects"),
+            SnythesisTaskSideEffects::Maybe => write!(f, "Possibly With Side Effects"),
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, Deserialize, Serialize)]
+pub struct SnythesisTaskCategory {
+    pub oop_category: SynthesisOOPCategory,
+    pub side_effects: SnythesisTaskSideEffects,
+}
+
+impl Display for SnythesisTaskCategory {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}:{}", self.oop_category, self.side_effects)
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+struct SnythesisTaskSolution {
+    has_side_effects: SnythesisTaskSideEffects,
+    expected: Vec<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
 struct SnythesisTaskInner {
     #[serde(default = "default_version")]
     version: u32,
     #[serde(skip_serializing_if = "Option::is_none")]
     source: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    skip: Option<String>,
     #[serde(default)]
     options: SnythesisTaskOptions,
     #[serde(skip_serializing_if = "Option::is_none")]
-    variables: Option<HashMap<String, TaskType>>,
+    max_string_size: Option<usize>,
+    variables: HashMap<String, TaskType>,
     #[serde(rename = "stringLiterals", skip_serializing_if = "Option::is_none")]
     string_literals: Option<Vec<String>>,
     #[serde(rename = "intLiterals", skip_serializing_if = "Option::is_none")]
@@ -253,42 +316,26 @@ struct SnythesisTaskInner {
     ts_files: Option<Vec<PathBuf>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     immutable: Option<HashSet<String>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    examples: Option<Vec<SnythesisTaskExamples>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    solution: Option<Vec<String>>,
+    examples: Vec<SnythesisTaskExamples>,
+    solution: SnythesisTaskSolution,
     #[serde(skip_serializing_if = "Option::is_none")]
     opcodes: Option<HashSet<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     common: Option<SnythesisTaskExamples>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    max_string_size: Option<usize>,
 }
 
 impl SnythesisTaskInner {
     fn extend_examples(&mut self) {
         if let Some(common) = &self.common {
-            for example in self.examples.as_mut().unwrap().iter_mut() {
+            for example in &mut self.examples {
                 example.extend(common);
             }
         }
     }
 
     fn verify(&self) -> Result<(), SnythesisTaskError> {
-        if let Some(reason) = &self.skip {
-            return Err(skip_err!(reason));
-        }
-
-        if self.variables.is_none() {
-            return Err(verify_err!("Non skipped tasks must contain variables dict"));
-        }
-
-        if self.examples.is_none() {
-            return Err(verify_err!("Non skipped tasks must contain examples array"));
-        }
-
-        let variables = self.variables.as_ref().unwrap();
-        let examples = self.examples.as_ref().unwrap();
+        let variables = &self.variables;
+        let examples = &self.examples;
 
         let has_common_output = self.common.as_ref().is_some_and(|x| x.output.is_some());
         let has_common_state = self.common.as_ref().is_some_and(|x| x.state.is_some());
@@ -441,8 +488,8 @@ impl SnythesisTaskInner {
     }
 
     fn upgrade_from_version_1(&mut self) -> Result<(), SnythesisTaskError> {
-        for example in self.examples.as_mut().unwrap().iter_mut() {
-            example.upgrade_from_version_1(&self.variables.as_ref().unwrap(), &self.return_type)?
+        for example in &mut self.examples {
+            example.upgrade_from_version_1(&self.variables, &self.return_type)?
         }
 
         Ok(())
@@ -457,6 +504,7 @@ pub struct SnythesisTask {
     classes: Box<TsClasses>,
     pub string_literals: HashSet<String, BuildHasherDefault<DefaultHasher>>,
     pub num_literals: HashSet<i64, BuildHasherDefault<DefaultHasher>>,
+    oop_category: SynthesisOOPCategory,
 }
 
 impl SnythesisTask {
@@ -470,7 +518,7 @@ impl SnythesisTask {
         iteration_workers_count: usize,
         bank: P,
     ) -> Result<TsSynthesizer<P>, SnythesisTaskError> {
-        let variables = self.inner.variables.as_ref().unwrap();
+        let variables = &self.inner.variables;
 
         let mut engine_ctx = EngineContext::create_engine_ctx(&self.classes);
 
@@ -479,15 +527,31 @@ impl SnythesisTask {
         let predicate = self.get_predicate(&mut engine_ctx)?;
         let valid = self.get_valid_predicate()?;
 
-        debug!(target: "ruse::task_parser", { 
-            opcodes.json = %serde_json::to_string_pretty(&opcodes.iter().map(|x| 
-                if x.arg_types().len() == 0 {
-                    format!("{}", x.op_name())
-                } else {
-                    format!("{}[{}]", x.op_name(), x.arg_types().iter().map(|x| x.to_string()).join(", "))
-                }
-            ).collect_vec()).unwrap() 
-        }, "Task {} Has {} opcodes", &self.name, opcodes.len());
+        if tracing::enabled!(tracing::Level::DEBUG) {
+            let opcodes_json = serde_json::to_string_pretty(
+                &opcodes
+                    .iter()
+                    .map(|x| {
+                        if x.arg_types().len() == 0 {
+                            format!("{}", x.op_name())
+                        } else {
+                            format!(
+                                "{}[{}]",
+                                x.op_name(),
+                                x.arg_types().iter().map(|x| x.to_string()).join(", ")
+                            )
+                        }
+                    })
+                    .collect_vec(),
+            )
+            .unwrap();
+            debug!(target: "ruse::task_parser", { 
+                opcodes.json = %opcodes_json,
+                task_name = %self.name,
+                opcodes_len = %opcodes.len()
+            }, "Task {} Has {} opcodes", &self.name, opcodes.len());
+        }
+
         if self.inner.options.pure {
             max_context_depth = 0;
         }
@@ -518,9 +582,12 @@ impl SnythesisTask {
         Ok(synthesizer)
     }
 
-    fn get_predicate(&self, engine_ctx: &mut EngineContext) -> Result<SynthesizerPredicate, SnythesisTaskError> {
-        let variables = self.inner.variables.as_ref().unwrap();
-        let examples = self.inner.examples.as_ref().unwrap();
+    fn get_predicate(
+        &self,
+        engine_ctx: &mut EngineContext,
+    ) -> Result<SynthesizerPredicate, SnythesisTaskError> {
+        let variables = &self.inner.variables;
+        let examples = &self.inner.examples;
 
         let mut predicate_graphs_map = GraphsMap::default();
         let predicate_gen_id = Arc::new(GraphIdGenerator::default());
@@ -605,8 +672,6 @@ impl SnythesisTask {
         let var_names: Vec<VariableName> = self
             .inner
             .variables
-            .as_ref()
-            .unwrap()
             .keys()
             .map(|x| root_name!(x.as_str()))
             .collect();
@@ -647,7 +712,11 @@ impl SnythesisTask {
         }
     }
 
-    pub fn get_composite_opcodes(classes: &TsClasses, max_seq_size: usize, strings: bool) -> OpcodesList {
+    pub fn get_composite_opcodes(
+        classes: &TsClasses,
+        max_seq_size: usize,
+        strings: bool,
+    ) -> OpcodesList {
         let mut composite_opcodes = OpcodesList::new();
         add_num_opcodes(
             &mut composite_opcodes,
@@ -707,9 +776,12 @@ impl SnythesisTask {
         composite_opcodes
     }
 
-    fn get_context_array(&self, engine_ctx: &mut EngineContext) -> Result<ContextArray, SnythesisTaskError> {
-        let variables = self.inner.variables.as_ref().unwrap();
-        let examples = self.inner.examples.as_ref().unwrap();
+    fn get_context_array(
+        &self,
+        engine_ctx: &mut EngineContext,
+    ) -> Result<ContextArray, SnythesisTaskError> {
+        let variables = &self.inner.variables;
+        let examples = &self.inner.examples;
 
         let mut values = Vec::with_capacity(examples.len());
 
@@ -726,18 +798,26 @@ impl SnythesisTask {
             .to_string()
     }
 
+    pub fn check_if_skipped(path: &Path) -> Result<(), SnythesisTaskError> {
+        let reader = std::fs::File::open(path).map_err(|e| io_err!(e))?;
+        let json: serde_json::Map<String, serde_json::Value> =
+            serde_json::from_reader(reader).map_err(|e| parse_err!("json", e))?;
+        if let Some(skip_reason) = json.get("skip") {
+            return Err(skip_err!(skip_reason.as_str().unwrap()));
+        }
+        Ok(())
+    }
+
     pub fn from_json_file(path: &Path) -> Result<SnythesisTask, SnythesisTaskError> {
-        let reader = std::fs::File::open(path).map_err(|e| SnythesisTaskError::IO(e))?;
-        let mut inner: SnythesisTaskInner = match serde_json::from_reader(reader) {
-            Ok(val) => val,
-            Err(e) => {
-                return Err(parse_err!("json", e));
-            }
-        };
+        Self::check_if_skipped(path)?;
+
+        let reader = std::fs::File::open(path).map_err(|e| io_err!(e))?;
+        let mut inner: SnythesisTaskInner =
+            serde_json::from_reader(reader).map_err(|e| parse_err!("json", e))?;
         inner.verify()?;
         inner.extend_examples();
 
-        let variables = inner.variables.as_ref().unwrap();
+        let variables = &inner.variables;
 
         let mut dir = PathBuf::from(path);
         dir.pop();
@@ -791,9 +871,9 @@ impl SnythesisTask {
             }
         }
 
-        for example in inner.examples.as_mut().unwrap() {
+        for example in &mut inner.examples {
             if let Some(return_type) = &inner.return_type {
-                if let Some(output) = example.output.as_mut() {
+                if let Some(output) = &mut example.output {
                     return_type.load_value(dir.as_path(), output)?;
                 }
             }
@@ -808,6 +888,20 @@ impl SnythesisTask {
             inner.upgrade_from_version_1()?;
         }
 
+        let oop_category = if inner.classes.is_some() || inner.ts_files.is_some() {
+            SynthesisOOPCategory::FullOOP
+        } else if inner.variables.values().any(|v| v.is_object())
+            || inner
+                .return_type
+                .as_ref()
+                .unwrap_or(&TaskType::Bool)
+                .is_object()
+        {
+            SynthesisOOPCategory::PrimitiveObjects
+        } else {
+            SynthesisOOPCategory::Primitive
+        };
+
         Ok(Self {
             path: path.into(),
             name: Self::task_name(path),
@@ -815,6 +909,18 @@ impl SnythesisTask {
             num_literals,
             classes,
             inner,
+            oop_category,
         })
+    }
+
+    pub fn source(&self) -> Option<&String> {
+        self.inner.source.as_ref()
+    }
+
+    pub fn category(&self) -> SnythesisTaskCategory {
+        SnythesisTaskCategory {
+            oop_category: self.oop_category,
+            side_effects: self.inner.solution.has_side_effects,
+        }
     }
 }

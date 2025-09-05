@@ -10,6 +10,8 @@ ruse_ts_interpreter.workspace = true
 ruse_ts_synthesizer.workspace = true
 ruse_prog_bank_in_mem.workspace = true
 
+anyhow.workspace = true
+
 itertools.workspace = true
 
 serde.workspace = true

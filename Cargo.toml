@@ -11,7 +11,7 @@ byteview = "*"
 
 union-find = "*"
 
-tracing = { version = "*", features = ["release_max_level_trace"] }
+tracing = { version = "*", features = ["release_max_level_info"] }
 tracing-subscriber = { version = "*", features = ["json"] }
 
 ruse_object_graph = { path = "./lib/object_graph" }
