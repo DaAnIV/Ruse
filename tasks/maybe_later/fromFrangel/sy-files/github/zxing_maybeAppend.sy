@@ -1,0 +1,40 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/github/Zxing_maybeAppend.java",
+  "variables": {
+    "values": "Array<String>",
+    "result": "?"
+  },
+  "returnType": "?",
+  "examples": [
+    {
+      "input": {
+        "values": ["a", "bc", "123"],
+        "result": ""
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "values": ["a", "bc", "123"],
+        "result": ""
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "values": "NULL",
+        "result": ""
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "values": "NULL",
+        "result": ""
+      },
+      "output": "NULL"
+    }
+  ],
+  "solution": []
+}

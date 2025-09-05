@@ -1,0 +1,41 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/geometry/NumPathSegments.java",
+  "variables": {
+    "it": "?"
+  },
+  "returnType": "Int",
+  "examples": [
+    {
+      "input": {
+        "it": ""
+      },
+      "output": 7
+    },
+    {
+      "input": {
+        "it": ""
+      },
+      "output": 8
+    },
+    {
+      "input": {
+        "it": ""
+      },
+      "output": 2
+    },
+    {
+      "input": {
+        "it": ""
+      },
+      "output": 6
+    },
+    {
+      "input": {
+        "it": ""
+      },
+      "output": 10
+    }
+  ],
+  "solution": []
+}

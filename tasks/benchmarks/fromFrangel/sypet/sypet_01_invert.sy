@@ -1,0 +1,39 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/sypet/SyPet_01_invert.java",
+  "import": [
+    "../../../classes/linear",
+    "../../../classes/utils"
+  ],
+  "variables": {
+    "mat": "Matrix"
+  },
+  "returnType": "Matrix",
+  "examples": [
+    {
+      "input": {
+        "mat": {
+          "@": "constructor",
+          "args": [
+            [
+              [1.0, 2.0, 3.0],
+              [4.0, 5.0, 6.0]
+            ]
+          ]}
+      },
+      "output": {
+        "@": "constructor",
+        "args": [
+          [
+            [-0.944444,0.444444],[-0.111111,0.111111],[0.722222,-0.222222]
+          ]
+        ]}
+    }
+  ],
+  "solution": {
+    "has_side_effects": "no",
+    "expected": [
+      "(new SingularValueDecomposition(mat)).inverse()"
+    ]
+  }
+}

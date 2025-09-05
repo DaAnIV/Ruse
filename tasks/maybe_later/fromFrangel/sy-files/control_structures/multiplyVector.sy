@@ -1,0 +1,40 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/MultiplyVector.java",
+  "variables": {
+    "vector": "?",
+    "factor": "double"
+  },
+  "returnType": "?",
+  "examples": [
+    {
+      "input": {
+        "vector": "",
+        "factor": 5.0
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "vector": "",
+        "factor": 1.1
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "vector": "",
+        "factor": 2.0
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "vector": "",
+        "factor": 0.0
+      },
+      "output": "NULL"
+    }
+  ],
+  "solution": []
+}

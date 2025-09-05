@@ -1,0 +1,53 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/geometry/InscribedCircle.java",
+  "variables": {
+    "rect": "Rectangle2D"
+  },
+  "returnType": "?",
+  "examples": [
+    {
+      "input": {
+        "rect": ""
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "rect": ""
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "rect": ""
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "rect": ""
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "rect": ""
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "rect": ""
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "rect": ""
+      },
+      "output": ""
+    }
+  ],
+  "solution": []
+}

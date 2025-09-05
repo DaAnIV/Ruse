@@ -1,0 +1,35 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/github/Fastjson_of.java",
+  "variables": {
+    "features": "?"
+  },
+  "returnType": "Int",
+  "examples": [
+    {
+      "input": {
+        "features": ["", "", "", "", ""]
+      },
+      "output": 197
+    },
+    {
+      "input": {
+        "features": [""]
+      },
+      "output": 64
+    },
+    {
+      "input": {
+        "features": []
+      },
+      "output": 0
+    },
+    {
+      "input": {
+        "features": "NULL"
+      },
+      "output": 0
+    }
+  ],
+  "solution": []
+}

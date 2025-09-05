@@ -1,0 +1,66 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/sypet/SyPet_09_eigenvalue.java",
+  "options": {
+    "strings": false
+  },
+  "import": [
+    "../../../classes/linear/matrix.ts",
+    "../../../classes/linear/eigen.ts",
+    "../../../classes/utils"
+  ],
+  "variables": {
+    "mat": "Matrix",
+    "index": "Int"
+  },
+  "returnType": "[number, number]",
+  "examples": [
+    {
+      "input": {
+        "mat": {
+          "@": "constructor",
+          "args": [
+            [
+              [0, -20],
+              [10, 10]
+            ]
+          ]
+        },
+        "index": 0
+      },
+      "predicate_js": [
+        "((eigenvalue) => {",
+        "let epsilon = 1e-10;",
+        "Math.abs(eigenvalue[0] - 5) < epsilon && Math.abs(eigenvalue[1] - 5*Math.sqrt(7)) < epsilon",
+        "})(__output__)"
+      ]
+      
+    },
+    {
+      "input": {
+        "mat": {
+          "@": "constructor",
+          "args": [
+            [
+              [0, 2],
+              [2, 0]
+            ]
+          ]
+        },
+        "index": 1
+      },
+      "predicate_js": [
+        "((eigenvalue) => {",
+        "let epsilon = 1e-10;",
+        "Math.abs(eigenvalue[0] + 2) < epsilon && Math.abs(eigenvalue[1]) < epsilon",
+        "})(__output__)"
+      ]
+    }
+  ],
+  "solution": {
+    "has_side_effects": "no",
+    "expected": [
+      "new EigenvalueDecomposition(mat).getEigenvalue(index)"
+    ]
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/SumPositive.java",
+  "variables": {
+    "arr": "Array<double>"
+  },
+  "returnType": "double",
+  "examples": [
+    {
+      "input": {
+        "arr": [1.2, -3.4, 10.0, -0.1, 0.1, 300.0]
+      },
+      "output": 311.3
+    },
+    {
+      "input": {
+        "arr": [1.2, 3.4]
+      },
+      "output": 4.6
+    },
+    {
+      "input": {
+        "arr": [1.2, -3.4]
+      },
+      "output": 1.2
+    },
+    {
+      "input": {
+        "arr": [-1.2, 3.4]
+      },
+      "output": 3.4
+    },
+    {
+      "input": {
+        "arr": [-1.2, -3.4]
+      },
+      "output": 0.0
+    }
+  ],
+  "solution": []
+}

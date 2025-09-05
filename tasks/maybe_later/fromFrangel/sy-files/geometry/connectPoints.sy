@@ -1,0 +1,41 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/geometry/ConnectPoints.java",
+  "variables": {
+    "points": "Array<Point2D>"
+  },
+  "returnType": "?",
+  "examples": [
+    {
+      "input": {
+        "points": ["", "", "", ""]
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "points": ["", ""]
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "points": ["", ""]
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "points": ["", ""]
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "points": ["", ""]
+      },
+      "output": ""
+    }
+  ],
+  "solution": []
+}

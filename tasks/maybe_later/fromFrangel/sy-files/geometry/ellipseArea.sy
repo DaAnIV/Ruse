@@ -1,0 +1,35 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/geometry/EllipseArea.java",
+  "variables": {
+    "ellipse": "Ellipse2D"
+  },
+  "returnType": "double",
+  "examples": [
+    {
+      "input": {
+        "ellipse": ""
+      },
+      "output": 55.13495107050087
+    },
+    {
+      "input": {
+        "ellipse": ""
+      },
+      "output": 12.252211349000193
+    },
+    {
+      "input": {
+        "ellipse": ""
+      },
+      "output": 12.252211349000193
+    },
+    {
+      "input": {
+        "ellipse": ""
+      },
+      "output": 3.141592653589793
+    }
+  ],
+  "solution": []
+}

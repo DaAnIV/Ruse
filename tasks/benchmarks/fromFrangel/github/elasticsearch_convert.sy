@@ -1,0 +1,45 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/github/ElasticSearchConvert.java",
+  "import": [
+    "../../../classes/distance_unit.ts"
+  ],
+  "variables": {
+    "distance": "Double",
+    "from": "DistanceUnit",
+    "to": "DistanceUnit"
+  },
+  "returnType": "Double",
+  "examples": [
+    {
+      "input": {
+        "distance": 10.0,
+        "from": "$DistanceUnit.MILES",
+        "to": "$DistanceUnit.KILOMETERS"
+      },
+      "output": 16.09344
+    },
+    {
+      "input": {
+        "distance": 10.0,
+        "from": "$DistanceUnit.KILOMETERS",
+        "to": "$DistanceUnit.MILES"
+      },
+      "output": 6.21371192
+    },
+    {
+      "input": {
+        "distance": 10.0,
+        "from": "$DistanceUnit.METERS",
+        "to": "$DistanceUnit.KILOMETERS"
+      },
+      "output": 0.01
+    }
+  ],
+  "solution": {
+    "has_side_effects": "no",
+    "expected": [
+      "DistanceUnit.convert(distance, from, to)"
+    ]
+  }
+}

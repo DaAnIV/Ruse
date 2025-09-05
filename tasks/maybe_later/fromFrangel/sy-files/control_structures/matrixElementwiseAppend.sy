@@ -1,0 +1,33 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/MatrixElementwiseAppend.java",
+  "variables": {
+    "mat": "Array<Array<String>>",
+    "suffix": "String"
+  },
+  "returnType": "?",
+  "examples": [
+    {
+      "input": {
+        "mat": [["123", "", "?"], [], ["cb", "1"]],
+        "suffix": "ab"
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "mat": [["123"]],
+        "suffix": "!!"
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "mat": [[""]],
+        "suffix": "abc"
+      },
+      "output": "NULL"
+    }
+  ],
+  "solution": []
+}

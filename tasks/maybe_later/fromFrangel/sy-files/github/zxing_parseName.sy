@@ -1,0 +1,47 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/github/Zxing_parseName.java",
+  "variables": {
+    "name": "String"
+  },
+  "returnType": "String",
+  "examples": [
+    {
+      "input": {
+        "name": "Last,First"
+      },
+      "output": "First Last"
+    },
+    {
+      "input": {
+        "name": "ab,cde,f"
+      },
+      "output": "cde,f ab"
+    },
+    {
+      "input": {
+        "name": "abcd,"
+      },
+      "output": " abcd"
+    },
+    {
+      "input": {
+        "name": ",abc,d"
+      },
+      "output": "abc,d "
+    },
+    {
+      "input": {
+        "name": "abcd"
+      },
+      "output": "abcd"
+    },
+    {
+      "input": {
+        "name": ""
+      },
+      "output": ""
+    }
+  ],
+  "solution": []
+}

@@ -1,0 +1,29 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/geometry/RectanglePerimeter.java",
+  "variables": {
+    "rect": "Rectangle2D"
+  },
+  "returnType": "double",
+  "examples": [
+    {
+      "input": {
+        "rect": ""
+      },
+      "output": 26.8
+    },
+    {
+      "input": {
+        "rect": ""
+      },
+      "output": 11.2
+    },
+    {
+      "input": {
+        "rect": ""
+      },
+      "output": 15.6
+    }
+  ],
+  "solution": []
+}

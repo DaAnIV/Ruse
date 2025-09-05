@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/sypet/SyPet_22_getAge.java",
+  "variables": {
+    "birthdate": "Date"
+  },
+  "returnType": "Int",
+  "examples": [
+    {
+      "input": {
+        "birthdate": ""
+      },
+      "output": 34
+    },
+    {
+      "input": {
+        "birthdate": ""
+      },
+      "output": 44
+    }
+  ],
+  "solution": []
+}

@@ -1,0 +1,62 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/sypet/SyPet_04_evaluate.java",
+  "import": [
+    "../../../classes/linear",
+    "../../../classes/utils"
+  ],
+  "variables": {
+    "mat": "Matrix"
+  },
+  "returnType": "SingularValueDecomposition",
+  "examples": [
+    {
+      "input": {
+        "mat":  {
+          "@": "constructor",
+          "args": [
+            [
+              [1, 2],
+              [2, 2],
+              [2, 1]
+            ]
+          ]}
+      },
+      "predicate_js": [
+        "((svd) => {",
+        "let epsilon = 1e-10;",
+        
+        "let inv_sqrt2 = 1/Math.sqrt(2);",
+        "let eU = [[3/Math.sqrt(34),-1/Math.sqrt(2)],[4/Math.sqrt(34),0],[3/Math.sqrt(34),1/Math.sqrt(2)]];",
+        "let eS = [Math.sqrt(17),1];",
+        "let VT = [[inv_sqrt2,inv_sqrt2],[inv_sqrt2,-inv_sqrt2]];",
+        
+        "if (svd.leftSingularVectors.rows != 3 || svd.leftSingularVectors.columns != 2) { return false; }",
+        "if (svd.rightSingularVectors.rows != 2 || svd.rightSingularVectors.columns != 2) { return false; }",
+        "if (svd.diagonal.length != 2) { return false; }",
+
+        "for (let i = 0; i < eU.length; i++) {",
+          "for (let j = 0; j < eU[i].length; j++) {",
+            "if (Math.abs(svd.leftSingularVectors.get(i,j) - eU[i][j]) > epsilon) { return false; }",
+          "}",
+        "}",
+        "for (let i = 0; i < VT.length; i++) {",
+          "for (let j = 0; j < VT[i].length; j++) {",
+            "if (Math.abs(svd.rightSingularVectors.get(i,j) - VT[i][j]) > epsilon) { return false; }",
+          "}",
+        "}",        
+        "for (let i = 0; i < eS.length; i++) {",
+          "if (Math.abs(svd.diagonal[i] - eS[i]) > epsilon) { return false; }",
+        "}",
+        "return true;",
+        "})(__output__)"
+      ] 
+    }
+  ],
+  "solution": {
+    "has_side_effects": "no",
+    "expected": [
+      "(new SingularValueDecomposition(mat))"
+    ]
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/github/Guava_frequency.java",
+  "variables": {
+    "iterator": "?",
+    "element": "?"
+  },
+  "returnType": "Int",
+  "examples": [
+    {
+      "input": {
+        "iterator": "",
+        "element": "a"
+      },
+      "output": 2
+    },
+    {
+      "input": {
+        "iterator": "",
+        "element": "b"
+      },
+      "output": 1
+    },
+    {
+      "input": {
+        "iterator": "",
+        "element": "c"
+      },
+      "output": 0
+    },
+    {
+      "input": {
+        "iterator": "",
+        "element": 4.2
+      },
+      "output": 0
+    },
+    {
+      "input": {
+        "iterator": "",
+        "element": "NULL"
+      },
+      "output": 3
+    },
+    {
+      "input": {
+        "iterator": "",
+        "element": ""
+      },
+      "output": 7
+    },
+    {
+      "input": {
+        "iterator": "",
+        "element": 3
+      },
+      "output": 5
+    }
+  ],
+  "solution": []
+}

@@ -1,0 +1,41 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/ReverseLinkedList.java",
+  "variables": {
+    "node": "?"
+  },
+  "returnType": "?",
+  "examples": [
+    {
+      "input": {
+        "node": ""
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "node": ""
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "node": ""
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "node": ""
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "node": "NULL"
+      },
+      "output": "NULL"
+    }
+  ],
+  "solution": []
+}

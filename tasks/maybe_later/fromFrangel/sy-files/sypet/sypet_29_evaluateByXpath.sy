@@ -1,0 +1,21 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/sypet/SyPet_29_evaluateByXpath.java",
+  "variables": {
+    "file": "?",
+    "query": "String",
+    "qname": "?"
+  },
+  "returnType": "?",
+  "examples": [
+    {
+      "input": {
+        "file": "",
+        "query": "/html/body/div[@id='container']",
+        "qname": ""
+      },
+      "output": "NULL"
+    }
+  ],
+  "solution": []
+}

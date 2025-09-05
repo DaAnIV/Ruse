@@ -1,0 +1,66 @@
+{
+  "version": 2,
+  "import": [
+    "../../classes/ruse/binary_search_tree.ts"
+  ],
+  "variables": {
+    "tree": "BinarySearchTreeNode"
+  },
+  "intLiterals": [],
+  "stringLiterals": [],
+  "returnType": "Bool",
+  "examples": [
+    {
+      "input": {
+        "tree": {
+          "@": "constructor",
+          "variant": 1,
+          "args": [
+            1,
+            "Null",
+            {
+              "@": "constructor",
+              "args": [
+                28
+              ]
+            }
+          ]
+        }
+      },
+      "output": true
+    },
+    {
+      "input": {
+        "tree": {
+          "@": "constructor",
+          "variant": 1,
+          "args": [
+            3,
+            "Null",
+            {
+              "@": "constructor",
+              "variant": 1,
+              "args": [
+                59,
+                "Null",
+                {
+                  "@": "constructor",
+                  "args": [
+                    59
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "output": false
+    }
+  ],
+  "solution": {
+    "has_side_effects": "no",
+    "expected": [
+      "tree.valid()"
+    ]
+  }
+}

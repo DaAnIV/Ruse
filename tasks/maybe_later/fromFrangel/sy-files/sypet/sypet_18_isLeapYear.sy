@@ -1,0 +1,29 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/sypet/SyPet_18_isLeapYear.java",
+  "variables": {
+    "year": "Int"
+  },
+  "returnType": "?",
+  "examples": [
+    {
+      "input": {
+        "year": 2000
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "year": 1900
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "year": 2011
+      },
+      "output": ""
+    }
+  ],
+  "solution": []
+}

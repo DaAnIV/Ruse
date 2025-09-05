@@ -1,0 +1,35 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/geometry/LineCenter.java",
+  "variables": {
+    "line": "Line2D"
+  },
+  "returnType": "Point2D",
+  "examples": [
+    {
+      "input": {
+        "line": ""
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "line": ""
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "line": ""
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "line": ""
+      },
+      "output": ""
+    }
+  ],
+  "solution": []
+}

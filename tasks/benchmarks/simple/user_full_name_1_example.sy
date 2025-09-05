@@ -1,0 +1,26 @@
+{
+  "version": 2,
+  "classes": [
+    "export class User {\nconstructor(public name: string,\npublic surname: string) {}\n}"
+  ],
+  "variables": {
+    "a": "User"
+  },
+  "intLiterals": [],
+  "stringLiterals": [" "],
+  "returnType": "String",
+  "examples": [
+    {
+      "input": {
+        "a": {"name": "'John'", "surname": "'Doe'"}
+      },
+      "output": "'John Doe'"
+    }
+  ],
+  "solution": {
+    "has_side_effects": "no",
+    "expected": [
+      "a.name + \" \" a.surname"
+    ]
+  }
+}

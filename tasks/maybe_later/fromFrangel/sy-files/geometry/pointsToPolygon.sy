@@ -1,0 +1,29 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/geometry/PointsToPolygon.java",
+  "variables": {
+    "points": "?"
+  },
+  "returnType": "?",
+  "examples": [
+    {
+      "input": {
+        "points": ["", "", "", ""]
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "points": [""]
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "points": [""]
+      },
+      "output": ""
+    }
+  ],
+  "solution": []
+}

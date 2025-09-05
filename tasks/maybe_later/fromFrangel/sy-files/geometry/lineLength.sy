@@ -1,0 +1,29 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/geometry/LineLength.java",
+  "variables": {
+    "line": "Line2D"
+  },
+  "returnType": "double",
+  "examples": [
+    {
+      "input": {
+        "line": ""
+      },
+      "output": 9.019977827023745
+    },
+    {
+      "input": {
+        "line": ""
+      },
+      "output": 100.0
+    },
+    {
+      "input": {
+        "line": ""
+      },
+      "output": 100.0
+    }
+  ],
+  "solution": []
+}

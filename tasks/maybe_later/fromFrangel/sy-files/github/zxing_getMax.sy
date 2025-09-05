@@ -1,0 +1,35 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/github/Zxing_getMax.java",
+  "variables": {
+    "values": "Array<Int>"
+  },
+  "returnType": "Int",
+  "examples": [
+    {
+      "input": {
+        "values": [12, 34, 32, 99, 98, 23]
+      },
+      "output": 99
+    },
+    {
+      "input": {
+        "values": [12, 34, 32, 97, 98, 23]
+      },
+      "output": 98
+    },
+    {
+      "input": {
+        "values": [123]
+      },
+      "output": 123
+    },
+    {
+      "input": {
+        "values": []
+      },
+      "output": -1
+    }
+  ],
+  "solution": []
+}

@@ -1,0 +1,26 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/github/Fastjson_read.java",
+  "variables": {
+    "json": "String",
+    "path": "String"
+  },
+  "returnType": "?",
+  "examples": [
+    {
+      "input": {
+        "json": "{"user":[{"amount":1.11,"isadmin":true,"age":18},{"amount":0.22,"isadmin":false,"age":28}]}",
+        "path": "$.user[age = 18]"
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "json": "{"a":123}",
+        "path": "$"
+      },
+      "output": "NULL"
+    }
+  ],
+  "solution": []
+}

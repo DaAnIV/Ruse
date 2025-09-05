@@ -1,0 +1,61 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/github/Guava_swap.java",
+  "variables": {
+    "array": "?",
+    "i": "Int",
+    "j": "Int"
+  },
+  "returnType": "?",
+  "examples": [
+    {
+      "input": {
+        "array": ["abc", 123, "NULL", "", "", 1.2, "?"],
+        "i": 3,
+        "j": 5
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "array": ["abc", 123, "NULL", "", "", 1.2, "?"],
+        "i": 2,
+        "j": 5
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "array": ["abc", 123, "NULL", "", "", 1.2, "?"],
+        "i": 5,
+        "j": 2
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "array": ["abc", 123],
+        "i": 0,
+        "j": 1
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "array": ["abc", "NULL"],
+        "i": 0,
+        "j": 1
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "array": ["NULL", "abc"],
+        "i": 0,
+        "j": 1
+      },
+      "output": "NULL"
+    }
+  ],
+  "solution": []
+}

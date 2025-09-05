@@ -1,0 +1,37 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/github/Zxing_copyToResult.java",
+  "variables": {
+    "result": "?",
+    "tmpResult": "?",
+    "destinationIndexes": "Array<Int>"
+  },
+  "returnType": "?",
+  "examples": [
+    {
+      "input": {
+        "result": ["NULL", "NULL", "NULL", "NULL"],
+        "tmpResult": ["", "", "", ""],
+        "destinationIndexes": [2, 0, 3, 1]
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "result": ["NULL", "NULL", "NULL", "NULL", "NULL"],
+        "tmpResult": ["", ""],
+        "destinationIndexes": [3]
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "result": ["NULL"],
+        "tmpResult": [""],
+        "destinationIndexes": [0]
+      },
+      "output": "NULL"
+    }
+  ],
+  "solution": []
+}

@@ -1,0 +1,28 @@
+{
+  "version": 2,
+  "variables": {
+    "x": "Int"
+  },
+  "returnType": "Int",
+  "intLiterals": [],
+  "examples": [
+    {
+      "input": {
+        "x": 5
+      },
+      "output": 12
+    },
+    {
+      "input": {
+        "x": 7
+      },
+      "output": 16
+    }
+  ],
+  "solution": {
+    "has_side_effects": "yes",
+    "expected": [
+      "(++x) + x"
+    ]
+  }
+}

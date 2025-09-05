@@ -1,0 +1,40 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/ArrayUnion.java",
+  "variables": {
+    "arr1": "Array<String>",
+    "arr2": "Array<String>"
+  },
+  "returnType": "?",
+  "examples": [
+    {
+      "input": {
+        "arr1": ["abc", "", "hi", "1", "x"],
+        "arr2": ["x!", "hi", "hi", "abc", "1", "def"]
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "arr1": ["abc", "x", "hi"],
+        "arr2": ["hi", "x"]
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "arr1": ["hi"],
+        "arr2": ["hi", "y", "abc"]
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "arr1": [],
+        "arr2": []
+      },
+      "output": ""
+    }
+  ],
+  "solution": []
+}

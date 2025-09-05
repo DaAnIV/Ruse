@@ -1,0 +1,83 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/FizzBuzz.java",
+  "variables": {
+    "num": "Int"
+  },
+  "returnType": "String",
+  "examples": [
+    {
+      "input": {
+        "num": 3
+      },
+      "output": "Fizz"
+    },
+    {
+      "input": {
+        "num": 21
+      },
+      "output": "Fizz"
+    },
+    {
+      "input": {
+        "num": 84
+      },
+      "output": "Fizz"
+    },
+    {
+      "input": {
+        "num": 5
+      },
+      "output": "Buzz"
+    },
+    {
+      "input": {
+        "num": 40
+      },
+      "output": "Buzz"
+    },
+    {
+      "input": {
+        "num": 85
+      },
+      "output": "Buzz"
+    },
+    {
+      "input": {
+        "num": 28
+      },
+      "output": "28"
+    },
+    {
+      "input": {
+        "num": 47
+      },
+      "output": "47"
+    },
+    {
+      "input": {
+        "num": 61
+      },
+      "output": "61"
+    },
+    {
+      "input": {
+        "num": 15
+      },
+      "output": "FizzBuzz"
+    },
+    {
+      "input": {
+        "num": 60
+      },
+      "output": "FizzBuzz"
+    },
+    {
+      "input": {
+        "num": 75
+      },
+      "output": "FizzBuzz"
+    }
+  ],
+  "solution": []
+}

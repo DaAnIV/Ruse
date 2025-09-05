@@ -1,0 +1,54 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/sypet/SyPet_11_shear.java",
+  "options": {
+    "strings": false,
+    "pure": true,
+    "expression": true
+  },
+  "variables": {
+    "rect": "Rect",
+    "shearX": "Double",
+    "shearY": "Double"
+  },
+  "import": [
+    "../../classes/geom/"
+  ],
+  "returnType": "Rect",
+  "examples": [
+    {
+      "input": {
+        "rect": {
+          "@": "constructor",
+          "variant": 1,
+          "args": [
+            10,
+            20,
+            10,
+            2
+          ]
+        },
+        "shearX": 0.5,
+        "shearY": 0.4
+      },
+      "output": {
+        "@": "constructor",
+        "variant": 1,
+        "args": [
+          20,
+          24,
+          15,
+          14
+        ]
+      }
+    }
+  ],
+  "opcodes": [
+    "new Vec2*",
+    "*AffineTransform*",
+    "TransformRect"
+  ],
+  "solution": [
+    "TransformRect(rect, AffineTransform.getShearTransform(shearX, shearY))"
+  ]
+}

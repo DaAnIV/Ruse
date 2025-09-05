@@ -1,0 +1,35 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/sypet/SyPet_06_solveLinear.java",
+  "import": [
+    "../../../classes/linear",
+    "../../../classes/utils"
+  ],
+  "variables": {
+    "mat": "Matrix",
+    "vec": "Matrix"
+  },
+  "immutable": ["mat", "vec"],
+  "returnType": "Array<Double>",
+  "examples": [
+    {
+      "input": {
+        "mat": {
+          "@": "constructor",
+          "args": [[[3.0, -1.0], [1.0, 1.0]]]
+        },
+        "vec": {
+          "@": "constructor",
+          "args": [[[3.0, 5.0]]]
+        }
+      },
+      "output": [2.0, 3.0]
+    }
+  ],
+  "solution": {
+    "has_side_effects": "no",
+    "expected": [
+      "(new SingularValueDecomposition(mat)).inverse().mmul(vec).transpose()).to1DArray()"
+    ]
+  }
+}

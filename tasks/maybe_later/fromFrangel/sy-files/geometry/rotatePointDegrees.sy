@@ -1,0 +1,26 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/geometry/RotatePointDegrees.java",
+  "variables": {
+    "point": "Point2D",
+    "degrees": "double"
+  },
+  "returnType": "?",
+  "examples": [
+    {
+      "input": {
+        "point": "",
+        "degrees": 60.0
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "point": "",
+        "degrees": 57.29577951308232
+      },
+      "output": "NULL"
+    }
+  ],
+  "solution": []
+}

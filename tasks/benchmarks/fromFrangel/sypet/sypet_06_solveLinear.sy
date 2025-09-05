@@ -1,0 +1,35 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/sypet/SyPet_06_solveLinear.java",
+  "import": [
+    "../../../classes/linear",
+    "../../../classes/utils"
+  ],
+  "variables": {
+    "mat": "Array<Array<Double>>",
+    "vec": "Array<Array<Double>>"
+  },
+  "returnType": "Array<Double>",
+  "examples": [
+    {
+      "input": {
+        "mat": [[3.0, -1.0], [1.0, 1.0]],
+        "vec": [[3.0, 5.0]]
+      },
+      "output": [2.0, 3.0]
+    },
+    {
+      "input": {
+        "mat": [[1.0, 2.0, 1.0], [2.0, -1.0, 3.0], [3.0, 1.0, 2.0]],
+        "vec": [[7.0, 7.0, 18.0]]
+      },
+      "output": [7.0, 1.0, -2.0]
+    }
+  ],
+  "solution": {
+    "has_side_effects": "no",
+    "expected": [
+      "(new SingularValueDecomposition(new Matrix(mat))).inverse().mmul((new Matrix(vec)).transpose()).to1DArray()"
+    ]
+  }
+}

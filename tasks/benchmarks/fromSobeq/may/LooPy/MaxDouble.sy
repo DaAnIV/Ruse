@@ -1,0 +1,38 @@
+{
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/MaxDouble.java",
+  "version": 2,
+  "variables": {
+    "list": "[Int]"
+  },
+  "returnType": "Int",
+  "examples": [
+    {
+      "input": {
+        "list": [-99, 88, -32, 3, 10, 999, 9991, 0, 99]
+      },
+      "output": 9991
+    },
+    {
+      "input": {
+        "list": [-8, -9, -7]
+      },
+      "output": -7
+    },
+    {
+      "input": {
+        "list": [-9]
+      },
+      "output": -9
+    }
+  ],
+  "solution": {
+    "has_side_effects": "yes",
+    "expected": [
+      "list.sort((n1,n2) => n1 - n2).reverse()[0]",
+      "list.sort((n1, n2) => n1 - n2).pop()",
+      "list.sort((n1,n2) => n1 - n2).pop()",
+      "list.sort((n1,n2) => n1 - n2)[list.length - 1]",
+      "list.sort((n1,n2) => n1 - n2)[-1 + list.length]"
+    ]
+  }
+}

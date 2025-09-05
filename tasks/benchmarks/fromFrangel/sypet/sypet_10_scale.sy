@@ -1,0 +1,52 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/sypet/SyPet_10_scale.java",
+  "options": {
+    "strings": false,
+    "pure": true,
+    "expression": true
+  },
+  "import": [
+    "../../../classes/geom/"
+  ],
+  "variables": {
+    "rect": "Rect",
+    "scaleX": "Double",
+    "scaleY": "Double"
+  },
+  "returnType": "Rect",
+  "examples": [
+    {
+      "input": {
+        "rect": {
+          "@": "constructor",
+          "variant": 1,
+          "args": [
+            10,
+            20,
+            10,
+            2
+          ]
+        },
+        "scaleX": 2.0,
+        "scaleY": 3.0
+      },
+      "output": {
+        "@": "constructor",
+        "variant": 1,
+        "args": [
+          20,
+          6,
+          20,
+          60
+        ]
+      }
+    }
+  ],
+  "solution": {
+    "has_side_effects": "no",
+    "expected": [
+      "TransformRect(rect, AffineTransform.getScaleTransform(scaleX, scaleY))"
+    ]
+  }
+}

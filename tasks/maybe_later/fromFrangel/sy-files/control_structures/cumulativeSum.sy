@@ -1,0 +1,35 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/CumulativeSum.java",
+  "variables": {
+    "arr": "Array<double>"
+  },
+  "returnType": "?",
+  "examples": [
+    {
+      "input": {
+        "arr": [1.2, 3.4, -1.0, 100.0]
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "arr": [1.2, 3.4]
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "arr": [1.2, -1.2]
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "arr": [1.2, 1.2]
+      },
+      "output": "NULL"
+    }
+  ],
+  "solution": []
+}

@@ -1,0 +1,36 @@
+{
+  "source": "https://github.com/peleghila/sobeq/blob/main/benchmarks/must/sobeq-new/partition-k-largest.sy",
+  "variables": {
+    "nums": "[Int]",
+    "k": "Int"
+  },
+  "returnType": "[Int]",
+  "examples": [
+    {
+      "input": {
+        "nums": "[2, 2, 1,8,-2,13]",
+        "k": "2"
+      },
+      "state": {
+        "nums": "[-2,1,2,2]"
+      },
+      "output": "[8,13]"
+    },
+    {
+      "input": {
+        "nums": "[-9,-10,-11,-12]",
+        "k": "3"
+      },
+      "state": {
+        "nums": "[-12]"
+      },
+      "output": "[-11,-10,-9]"
+    }
+  ],
+  "solution": {
+    "has_side_effects": "yes",
+    "expected": [
+      "nums.sort().splice(0, nums.length - k)[1]"
+    ]
+  }
+}

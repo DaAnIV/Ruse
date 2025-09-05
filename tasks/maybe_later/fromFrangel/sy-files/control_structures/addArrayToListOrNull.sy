@@ -1,0 +1,40 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/AddArrayToListOrNull.java",
+  "variables": {
+    "arr": "?",
+    "list": "?"
+  },
+  "returnType": "?",
+  "examples": [
+    {
+      "input": {
+        "arr": ["abc", "NULL", 123, "", ""],
+        "list": ""
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "arr": ["abc", "NULL", 123, "", ""],
+        "list": "NULL"
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "arr": ["abc"],
+        "list": ""
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "arr": ["abc"],
+        "list": "NULL"
+      },
+      "output": ""
+    }
+  ],
+  "solution": []
+}

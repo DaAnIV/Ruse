@@ -1,0 +1,33 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/geometry/RectangleIntersectionArea.java",
+  "variables": {
+    "rect1": "Rectangle2D",
+    "rect2": "Rectangle2D"
+  },
+  "returnType": "double",
+  "examples": [
+    {
+      "input": {
+        "rect1": "",
+        "rect2": ""
+      },
+      "output": 0.42
+    },
+    {
+      "input": {
+        "rect1": "",
+        "rect2": ""
+      },
+      "output": 0.7
+    },
+    {
+      "input": {
+        "rect1": "",
+        "rect2": ""
+      },
+      "output": 0.6
+    }
+  ],
+  "solution": []
+}

@@ -1,0 +1,68 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/geometry/SolveCubic.java",
+  "variables": {
+    "coeff": "Array<double>",
+    "roots": "?"
+  },
+  "returnType": "Int",
+  "examples": [
+    {
+      "input": {
+        "coeff": [47.25, -8.25, -5.0, 1.0],
+        "roots": ""
+      },
+      "output": 3
+    },
+    {
+      "input": {
+        "coeff": [0.714, -1.79, 0.4, 1.0],
+        "roots": ""
+      },
+      "output": 3
+    },
+    {
+      "input": {
+        "coeff": [0.748, -1.77, 0.4, 1.0],
+        "roots": ""
+      },
+      "output": 1
+    },
+    {
+      "input": {
+        "coeff": [0.21, -0.65, 0.5, 0.0],
+        "roots": ""
+      },
+      "output": 2
+    },
+    {
+      "input": {
+        "coeff": [12.3, -10.0, 0.0, 0.0],
+        "roots": ""
+      },
+      "output": 1
+    },
+    {
+      "input": {
+        "coeff": [0.22, -0.65, 0.5, 0.0],
+        "roots": ""
+      },
+      "output": 0
+    },
+    {
+      "input": {
+        "coeff": [0.0, -0.65, 0.0, 0.0],
+        "roots": ""
+      },
+      "output": 1
+    },
+    {
+      "input": {
+        "coeff": [0.21, 0.0, 0.0, 0.0],
+        "roots": ""
+      },
+      "output": 0
+    }
+  ],
+  "solution": []
+}

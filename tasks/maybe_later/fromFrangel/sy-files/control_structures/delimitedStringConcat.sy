@@ -1,0 +1,45 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/DelimitedStringConcat.java",
+  "variables": {
+    "strs": "?",
+    "delim": "String",
+    "result": "?"
+  },
+  "returnType": "?",
+  "examples": [
+    {
+      "input": {
+        "strs": "",
+        "delim": ", ",
+        "result": ""
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "strs": "",
+        "delim": ", ",
+        "result": ""
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "strs": "",
+        "delim": " ",
+        "result": ""
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "strs": "",
+        "delim": ", ",
+        "result": ""
+      },
+      "output": "NULL"
+    }
+  ],
+  "solution": []
+}

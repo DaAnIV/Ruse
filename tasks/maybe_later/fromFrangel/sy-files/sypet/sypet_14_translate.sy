@@ -1,0 +1,21 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/sypet/SyPet_14_translate.java",
+  "variables": {
+    "rect": "Rectangle2D",
+    "dx": "double",
+    "dy": "double"
+  },
+  "returnType": "Rectangle2D",
+  "examples": [
+    {
+      "input": {
+        "rect": "",
+        "dx": 6.0,
+        "dy": 1.0
+      },
+      "output": ""
+    }
+  ],
+  "solution": []
+}

@@ -1,0 +1,26 @@
+{
+  "version": 2,
+  "variables": {
+    "a": "[Int]"
+  },
+  "intLiterals": [0],
+  "returnType": "Int",
+  "examples": [
+    {
+      "input": {
+        "a": [1, 3, 2]
+      },
+      "output": 1
+    },
+    {
+      "input": {
+        "a": [5, 10, 1]
+      },
+      "output": 5
+    }
+  ],
+  "solution": {
+    "has_side_effects": "no",
+    "expected": [ "a[0]" ]
+  }
+}

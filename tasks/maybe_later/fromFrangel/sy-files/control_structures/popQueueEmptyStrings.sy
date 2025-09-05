@@ -1,0 +1,53 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/PopQueueEmptyStrings.java",
+  "variables": {
+    "queue": "Queue"
+  },
+  "returnType": "Int",
+  "examples": [
+    {
+      "input": {
+        "queue": ""
+      },
+      "output": 4
+    },
+    {
+      "input": {
+        "queue": ""
+      },
+      "output": 3
+    },
+    {
+      "input": {
+        "queue": ""
+      },
+      "output": 2
+    },
+    {
+      "input": {
+        "queue": ""
+      },
+      "output": 5
+    },
+    {
+      "input": {
+        "queue": ""
+      },
+      "output": 1
+    },
+    {
+      "input": {
+        "queue": ""
+      },
+      "output": 0
+    },
+    {
+      "input": {
+        "queue": ""
+      },
+      "output": 0
+    }
+  ],
+  "solution": []
+}

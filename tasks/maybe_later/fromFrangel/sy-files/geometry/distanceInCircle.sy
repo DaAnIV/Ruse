@@ -1,0 +1,47 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/geometry/DistanceInCircle.java",
+  "variables": {
+    "point": "Point2D",
+    "circle": "Ellipse2D"
+  },
+  "returnType": "double",
+  "examples": [
+    {
+      "input": {
+        "point": "",
+        "circle": ""
+      },
+      "output": 9.019977827023745
+    },
+    {
+      "input": {
+        "point": "",
+        "circle": ""
+      },
+      "output": 61.5
+    },
+    {
+      "input": {
+        "point": "",
+        "circle": ""
+      },
+      "output": Infinity
+    },
+    {
+      "input": {
+        "point": "",
+        "circle": ""
+      },
+      "output": 61.5
+    },
+    {
+      "input": {
+        "point": "",
+        "circle": ""
+      },
+      "output": 61.5
+    }
+  ],
+  "solution": []
+}

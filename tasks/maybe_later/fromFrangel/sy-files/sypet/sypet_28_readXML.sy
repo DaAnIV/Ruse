@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/sypet/SyPet_28_readXML.java",
+  "variables": {
+    "file": "?"
+  },
+  "returnType": "?",
+  "examples": [
+    {
+      "input": {
+        "file": ""
+      },
+      "output": "NULL"
+    }
+  ],
+  "solution": []
+}

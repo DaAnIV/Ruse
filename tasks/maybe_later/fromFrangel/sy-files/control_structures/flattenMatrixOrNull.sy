@@ -1,0 +1,35 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/FlattenMatrixOrNull.java",
+  "variables": {
+    "mat": "?"
+  },
+  "returnType": "?",
+  "examples": [
+    {
+      "input": {
+        "mat": [[1, 2, 3], [], ["a", "NULL"]]
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "mat": [[1, 2]]
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "mat": [["!"]]
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "mat": "NULL"
+      },
+      "output": ""
+    }
+  ],
+  "solution": []
+}

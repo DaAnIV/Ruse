@@ -1,0 +1,21 @@
+{
+  "source": "https://github.com/peleghila/sobeq/blob/main/benchmarks/may/sobeq-new/DigitsToString.sy",
+  "variables": {
+    "digits": "[Int]"
+  },
+  "returnType": "String",
+  "examples": [
+    {
+      "input": {
+        "digits": "[1, 2, 3, 4, 5]"
+      },
+      "output": "'54321'"
+    }
+  ],
+  "solution": {
+    "has_side_effects": "yes",
+    "expected": [
+    "digits.reverse().join('')"
+    ]
+  }
+}

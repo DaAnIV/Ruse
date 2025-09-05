@@ -1,0 +1,59 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/geometry/EllipseEccentricity.java",
+  "variables": {
+    "ellipse": "Ellipse2D"
+  },
+  "returnType": "double",
+  "examples": [
+    {
+      "input": {
+        "ellipse": ""
+      },
+      "output": 0.72160242458822
+    },
+    {
+      "input": {
+        "ellipse": ""
+      },
+      "output": 0.72160242458822
+    },
+    {
+      "input": {
+        "ellipse": ""
+      },
+      "output": 0.0
+    },
+    {
+      "input": {
+        "ellipse": ""
+      },
+      "output": 1.0
+    },
+    {
+      "input": {
+        "ellipse": ""
+      },
+      "output": 0.9839269509968508
+    },
+    {
+      "input": {
+        "ellipse": ""
+      },
+      "output": 0.9839269509968508
+    },
+    {
+      "input": {
+        "ellipse": ""
+      },
+      "output": 0.714142842854285
+    },
+    {
+      "input": {
+        "ellipse": ""
+      },
+      "output": 0.714142842854285
+    }
+  ],
+  "solution": []
+}

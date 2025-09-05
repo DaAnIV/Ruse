@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/sypet/SyPet_23_getOffsetForLine.java",
+  "variables": {
+    "doc": "?",
+    "line": "Int"
+  },
+  "returnType": "Int",
+  "examples": [
+    {
+      "input": {
+        "doc": "",
+        "line": 1
+      },
+      "output": 3
+    }
+  ],
+  "solution": []
+}

@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/sypet/SyPet_26_getDoctypeByString.java",
+  "variables": {
+    "xmlStr": "String"
+  },
+  "returnType": "?",
+  "examples": [
+    {
+      "input": {
+        "xmlStr": "<?xml version="1.0"?><!DOCTYPE note [<!ELEMENT note (to,from,heading,body)><!ELEMENT body (#PCDATA)>]><note><heading>Reminder</heading><body>Don't forget me this weekend</body></note>"
+      },
+      "output": "NULL"
+    }
+  ],
+  "solution": []
+}

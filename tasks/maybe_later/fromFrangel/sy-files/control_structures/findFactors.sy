@@ -1,0 +1,53 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/FindFactors.java",
+  "variables": {
+    "num": "Int"
+  },
+  "returnType": "?",
+  "examples": [
+    {
+      "input": {
+        "num": 18
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "num": 17
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "num": 9
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "num": 6
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "num": 4
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "num": 3
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "num": 1
+      },
+      "output": ""
+    }
+  ],
+  "solution": []
+}

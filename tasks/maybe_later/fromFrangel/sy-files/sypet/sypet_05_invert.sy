@@ -1,0 +1,5 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/sypet/SyPet_05_invert.java",
+  "skip": "Not that different from sypet_01.sy"
+}

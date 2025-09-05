@@ -1,0 +1,48 @@
+{
+  "version": 2,
+  "import": [
+    "../../classes/ruse/binary_search_tree.ts"
+  ],
+  "variables": {
+    "tree": "BinarySearchTreeNode",
+    "node_to_delete": "BinarySearchTreeNode"
+  },
+  "intLiterals": [],
+  "stringLiterals": [],
+  "common": {
+    "input": {
+      "tree": {
+        "@js": "new BinarySearchTreeNode(5, new BinarySearchTreeNode(2, new BinarySearchTreeNode(1), new BinarySearchTreeNode(3)), new BinarySearchTreeNode(10, new BinarySearchTreeNode(6), new BinarySearchTreeNode(11)))"
+      }
+    }
+  },
+  "examples": [
+    {
+      "input": {
+        "node_to_delete": "*tree._right"
+      },
+      "predicate_js": "tree.size == 6 && tree.valid() && !tree.contains(10)"
+    },
+    {
+      "input": {
+        "node_to_delete": "*tree._left"
+      },
+      "predicate_js": "tree.size == 6 && tree.valid() && !tree.contains(2)"
+    },
+    {
+      "input": {
+        "node_to_delete": "*tree"
+      },
+      "predicate_js": "tree.size == 6 && tree.valid() && !tree.contains(5)"
+    }
+  ],
+  "opcodes": [
+    "BinarySearchTreeNode.*"
+  ],
+  "solution": {
+    "has_side_effects": "yes",
+    "expected": [
+      "node_to_delete.right.min_node().swap(node_to_delete).unlink_leaf()"
+    ]
+  }
+}

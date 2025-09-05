@@ -1,0 +1,53 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/CountUnique.java",
+  "variables": {
+    "arr": "Array<String>"
+  },
+  "returnType": "Int",
+  "examples": [
+    {
+      "input": {
+        "arr": ["a", "d", "a", "!@#", "c", "a", "?!", "A", " ", "b", "c", "123"]
+      },
+      "output": 9
+    },
+    {
+      "input": {
+        "arr": ["a", "d", "a", "!@#", "c", "a", "?!", "a", " ", "b", "c", "123"]
+      },
+      "output": 8
+    },
+    {
+      "input": {
+        "arr": ["a", "d", "a", "!@#", "c", "a", "?!", "a", " ", "c", "c", "123"]
+      },
+      "output": 7
+    },
+    {
+      "input": {
+        "arr": ["", "NULL", " ", "null", "NULL", "  "]
+      },
+      "output": 6
+    },
+    {
+      "input": {
+        "arr": ["", "NULL", " ", "null", "null", "  "]
+      },
+      "output": 5
+    },
+    {
+      "input": {
+        "arr": ["", "NULL", " ", "null", "NULL", " "]
+      },
+      "output": 4
+    },
+    {
+      "input": {
+        "arr": []
+      },
+      "output": 0
+    }
+  ],
+  "solution": []
+}

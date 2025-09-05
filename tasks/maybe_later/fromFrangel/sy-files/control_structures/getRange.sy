@@ -1,0 +1,33 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/GetRange.java",
+  "variables": {
+    "start": "Int",
+    "end": "Int"
+  },
+  "returnType": "?",
+  "examples": [
+    {
+      "input": {
+        "start": 10,
+        "end": 15
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "start": 10,
+        "end": 11
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "start": 0,
+        "end": 1
+      },
+      "output": ""
+    }
+  ],
+  "solution": []
+}

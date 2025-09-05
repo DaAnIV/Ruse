@@ -1,0 +1,59 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/geometry/PolygonToPoints.java",
+  "variables": {
+    "poly": "?"
+  },
+  "returnType": "?",
+  "examples": [
+    {
+      "input": {
+        "poly": ""
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "poly": ""
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "poly": ""
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "poly": ""
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "poly": ""
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "poly": ""
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "poly": ""
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "poly": ""
+      },
+      "output": ""
+    }
+  ],
+  "solution": []
+}

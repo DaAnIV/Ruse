@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/sypet/SyPet_24_getParagraphElement.java",
+  "variables": {
+    "doc": "?",
+    "offset": "Int"
+  },
+  "returnType": "?",
+  "examples": [
+    {
+      "input": {
+        "doc": "",
+        "offset": 1
+      },
+      "output": "NULL"
+    }
+  ],
+  "solution": []
+}

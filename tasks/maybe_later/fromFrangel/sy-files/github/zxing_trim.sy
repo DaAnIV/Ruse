@@ -1,0 +1,31 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/github/Zxing_trim.java",
+  "variables": {
+    "s": "String"
+  },
+  "returnType": "String",
+  "examples": [
+    {
+      "input": {
+        "s": "  	abc 	def
+ 	  "
+      },
+      "output": "abc 	def"
+    },
+    {
+      "input": {
+        "s": "  	 	
+ 	  "
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "s": "NULL"
+      },
+      "output": "NULL"
+    }
+  ],
+  "solution": []
+}

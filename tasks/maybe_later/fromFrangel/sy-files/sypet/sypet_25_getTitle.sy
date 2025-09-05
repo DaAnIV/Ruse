@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/sypet/SyPet_25_getTitle.java",
+  "variables": {
+    "url": "String"
+  },
+  "returnType": "String",
+  "examples": [
+    {
+      "input": {
+        "url": "https://www.google.com/"
+      },
+      "output": "Google"
+    }
+  ],
+  "solution": []
+}

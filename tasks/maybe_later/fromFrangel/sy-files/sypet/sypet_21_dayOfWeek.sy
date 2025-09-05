@@ -1,0 +1,26 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/sypet/SyPet_21_dayOfWeek.java",
+  "variables": {
+    "dateStr": "String",
+    "formatStr": "String"
+  },
+  "returnType": "String",
+  "examples": [
+    {
+      "input": {
+        "dateStr": "2015/11/10",
+        "formatStr": "yyyy/MM/dd"
+      },
+      "output": "Tuesday"
+    },
+    {
+      "input": {
+        "dateStr": "2015/11/11",
+        "formatStr": "yyyy/MM/dd"
+      },
+      "output": "Wednesday"
+    }
+  ],
+  "solution": []
+}

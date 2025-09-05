@@ -1,0 +1,47 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/geometry/CountSquares.java",
+  "variables": {
+    "rectList": "?"
+  },
+  "returnType": "Int",
+  "examples": [
+    {
+      "input": {
+        "rectList": ""
+      },
+      "output": 1
+    },
+    {
+      "input": {
+        "rectList": ""
+      },
+      "output": 0
+    },
+    {
+      "input": {
+        "rectList": ""
+      },
+      "output": 1
+    },
+    {
+      "input": {
+        "rectList": ""
+      },
+      "output": 1
+    },
+    {
+      "input": {
+        "rectList": ""
+      },
+      "output": 2
+    },
+    {
+      "input": {
+        "rectList": ""
+      },
+      "output": 5
+    }
+  ],
+  "solution": []
+}

@@ -1,0 +1,37 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/geometry/ScaleRectangle.java",
+  "variables": {
+    "rect": "Rectangle2D",
+    "scaleX": "double",
+    "scaleY": "double"
+  },
+  "returnType": "Rectangle2D",
+  "examples": [
+    {
+      "input": {
+        "rect": "",
+        "scaleX": 0.5,
+        "scaleY": 0.4
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "rect": "",
+        "scaleX": 1.0,
+        "scaleY": 0.0
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "rect": "",
+        "scaleX": 0.0,
+        "scaleY": 1.0
+      },
+      "output": ""
+    }
+  ],
+  "solution": []
+}

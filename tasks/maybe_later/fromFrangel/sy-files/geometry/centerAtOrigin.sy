@@ -1,0 +1,35 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/geometry/CenterAtOrigin.java",
+  "variables": {
+    "shape": "?"
+  },
+  "returnType": "?",
+  "examples": [
+    {
+      "input": {
+        "shape": ""
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "shape": ""
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "shape": ""
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "shape": ""
+      },
+      "output": "NULL"
+    }
+  ],
+  "solution": []
+}

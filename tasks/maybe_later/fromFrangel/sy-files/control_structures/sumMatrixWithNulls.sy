@@ -1,0 +1,41 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/SumMatrixWithNulls.java",
+  "variables": {
+    "mat": "Array<Array<double>>"
+  },
+  "returnType": "double",
+  "examples": [
+    {
+      "input": {
+        "mat": [[1.2, -3.4], "NULL", [10.0, 300.0, 5000.0]]
+      },
+      "output": 5307.8
+    },
+    {
+      "input": {
+        "mat": [[1.2, -3.4], [], [10.0, 300.0, 5000.0]]
+      },
+      "output": 5307.8
+    },
+    {
+      "input": {
+        "mat": [[1.2, -3.4]]
+      },
+      "output": -2.2
+    },
+    {
+      "input": {
+        "mat": [[1.2]]
+      },
+      "output": 1.2
+    },
+    {
+      "input": {
+        "mat": [[], []]
+      },
+      "output": 0.0
+    }
+  ],
+  "solution": []
+}

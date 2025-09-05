@@ -1,0 +1,47 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/FilterStringStart.java",
+  "variables": {
+    "list": "?",
+    "start": "String"
+  },
+  "returnType": "?",
+  "examples": [
+    {
+      "input": {
+        "list": "",
+        "start": "start"
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "list": "",
+        "start": "aa"
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "list": "",
+        "start": "aa"
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "list": "",
+        "start": "aa"
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "list": "",
+        "start": "aa"
+      },
+      "output": ""
+    }
+  ],
+  "solution": []
+}

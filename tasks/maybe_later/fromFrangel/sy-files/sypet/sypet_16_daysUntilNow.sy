@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/sypet/SyPet_16_daysUntilNow.java",
+  "variables": {
+    "date": "?"
+  },
+  "returnType": "Int",
+  "examples": [
+    {
+      "input": {
+        "date": ""
+      },
+      "output": 3342
+    },
+    {
+      "input": {
+        "date": ""
+      },
+      "output": 3707
+    }
+  ],
+  "solution": []
+}

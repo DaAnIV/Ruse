@@ -1,0 +1,33 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/geometry/DistancePointsToLine.java",
+  "variables": {
+    "points": "Array<Point2D>",
+    "line": "Line2D"
+  },
+  "returnType": "double",
+  "examples": [
+    {
+      "input": {
+        "points": [""],
+        "line": ""
+      },
+      "output": 3.605551275463989
+    },
+    {
+      "input": {
+        "points": ["", ""],
+        "line": ""
+      },
+      "output": 47.95383196367106
+    },
+    {
+      "input": {
+        "points": ["", "", "", ""],
+        "line": ""
+      },
+      "output": 49.617932552346744
+    }
+  ],
+  "solution": []
+}

@@ -1,0 +1,54 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/RotateQueue.java",
+  "variables": {
+    "queue": "Queue",
+    "amount": "Int"
+  },
+  "returnType": "?",
+  "examples": [
+    {
+      "input": {
+        "queue": "",
+        "amount": 1
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "queue": "",
+        "amount": 4
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "queue": "",
+        "amount": 7
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "queue": "",
+        "amount": 0
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "queue": "",
+        "amount": 4
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "queue": "",
+        "amount": 10003
+      },
+      "output": "NULL"
+    }
+  ],
+  "solution": []
+}

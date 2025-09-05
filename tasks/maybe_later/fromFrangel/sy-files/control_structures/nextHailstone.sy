@@ -1,0 +1,53 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/NextHailstone.java",
+  "variables": {
+    "num": "Int"
+  },
+  "returnType": "Int",
+  "examples": [
+    {
+      "input": {
+        "num": 1
+      },
+      "output": 1
+    },
+    {
+      "input": {
+        "num": 2
+      },
+      "output": 1
+    },
+    {
+      "input": {
+        "num": 3
+      },
+      "output": 10
+    },
+    {
+      "input": {
+        "num": 123456
+      },
+      "output": 61728
+    },
+    {
+      "input": {
+        "num": 1234567
+      },
+      "output": 3703702
+    },
+    {
+      "input": {
+        "num": 500000004
+      },
+      "output": 250000002
+    },
+    {
+      "input": {
+        "num": 500000005
+      },
+      "output": 1500000016
+    }
+  ],
+  "solution": []
+}

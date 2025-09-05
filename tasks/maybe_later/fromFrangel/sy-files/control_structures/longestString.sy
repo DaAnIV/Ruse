@@ -1,0 +1,53 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/LongestString.java",
+  "variables": {
+    "list": "?"
+  },
+  "returnType": "String",
+  "examples": [
+    {
+      "input": {
+        "list": ""
+      },
+      "output": "longest"
+    },
+    {
+      "input": {
+        "list": ""
+      },
+      "output": "longest"
+    },
+    {
+      "input": {
+        "list": ""
+      },
+      "output": "123456"
+    },
+    {
+      "input": {
+        "list": ""
+      },
+      "output": "abcdef"
+    },
+    {
+      "input": {
+        "list": ""
+      },
+      "output": "wxyz!?"
+    },
+    {
+      "input": {
+        "list": ""
+      },
+      "output": "12345"
+    },
+    {
+      "input": {
+        "list": ""
+      },
+      "output": "ABCDE"
+    }
+  ],
+  "solution": []
+}

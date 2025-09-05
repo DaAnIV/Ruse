@@ -1,0 +1,29 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/LargestOddFactor.java",
+  "variables": {
+    "num": "Int"
+  },
+  "returnType": "Int",
+  "examples": [
+    {
+      "input": {
+        "num": 105472
+      },
+      "output": 103
+    },
+    {
+      "input": {
+        "num": -442
+      },
+      "output": -221
+    },
+    {
+      "input": {
+        "num": 229
+      },
+      "output": 229
+    }
+  ],
+  "solution": []
+}

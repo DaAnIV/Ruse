@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/sypet/SyPet_27_stringToElement.java",
+  "variables": {
+    "xmlStr": "String"
+  },
+  "returnType": "?",
+  "examples": [
+    {
+      "input": {
+        "xmlStr": "<MyXML id="pldi">xml</MyXML>"
+      },
+      "output": "NULL"
+    }
+  ],
+  "solution": []
+}

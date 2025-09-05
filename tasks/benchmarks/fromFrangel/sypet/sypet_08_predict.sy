@@ -1,0 +1,34 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/sypet/SyPet_08_predict.java",
+  "import": [
+    "../../../classes/stats"
+  ],
+  "variables": {
+    "data": "Array<Array<Double>>",
+    "value": "Double"
+  },
+  "returnType": "Double",
+  "examples": [
+    {
+      "input": {
+        "data": [[1.0, 2.0], [2.0, 3.0], [3.0, 4.0], [4.0, 5.0], [5.0, 6.0]],
+        "value": 1.5
+      },
+      "output": 2.5
+    },
+    {
+      "input": {
+        "data": [[1.0, 3.0], [2.0, 4.0], [3.0, 5.0], [4.0, 6.0], [5.0, 7.0]],
+        "value": 2.5
+      },
+      "output": 4.5
+    }
+  ],
+  "solution": {
+    "has_side_effects": "no",
+    "expected": [
+      "linear_regression(data).predict(value)"
+    ]
+  }
+}

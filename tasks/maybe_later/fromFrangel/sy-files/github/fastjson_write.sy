@@ -1,0 +1,33 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/github/Fastjson_write.java",
+  "variables": {
+    "out": "?",
+    "object": "?"
+  },
+  "returnType": "?",
+  "examples": [
+    {
+      "input": {
+        "out": "",
+        "object": ["a12", "b34"]
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "out": "",
+        "object": ""
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "out": "",
+        "object": ""
+      },
+      "output": "NULL"
+    }
+  ],
+  "solution": []
+}

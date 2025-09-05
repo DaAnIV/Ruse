@@ -1,0 +1,40 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/geometry/FilterContainsPoint.java",
+  "variables": {
+    "shapes": "Array<Ellipse2D>",
+    "point": "Point2D"
+  },
+  "returnType": "?",
+  "examples": [
+    {
+      "input": {
+        "shapes": ["", "", "", "", "", "", ""],
+        "point": ""
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "shapes": ["", ""],
+        "point": ""
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "shapes": ["", ""],
+        "point": ""
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "shapes": [""],
+        "point": ""
+      },
+      "output": ""
+    }
+  ],
+  "solution": []
+}

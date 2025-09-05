@@ -1,0 +1,40 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/ArraySimpleFilter.java",
+  "variables": {
+    "arr": "Array<String>",
+    "filter": "?"
+  },
+  "returnType": "?",
+  "examples": [
+    {
+      "input": {
+        "arr": ["bad", "awesome", "terrible", "", "Rude", "badly", "rude", "rude.."],
+        "filter": ""
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "arr": ["terribl", "bad"],
+        "filter": ""
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "arr": ["bad", "BAD"],
+        "filter": ""
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "arr": ["not-bad!", "rude "],
+        "filter": ""
+      },
+      "output": "NULL"
+    }
+  ],
+  "solution": []
+}

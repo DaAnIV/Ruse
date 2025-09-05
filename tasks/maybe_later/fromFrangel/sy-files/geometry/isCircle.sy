@@ -1,0 +1,29 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/geometry/IsCircle.java",
+  "variables": {
+    "ellipse": "Ellipse2D"
+  },
+  "returnType": "?",
+  "examples": [
+    {
+      "input": {
+        "ellipse": ""
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "ellipse": ""
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "ellipse": ""
+      },
+      "output": ""
+    }
+  ],
+  "solution": []
+}

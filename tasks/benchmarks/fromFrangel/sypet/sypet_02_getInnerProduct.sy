@@ -1,0 +1,39 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/sypet/SyPet_02_getInnerProduct.java",
+  "import": [
+    "../../../classes/linear"
+  ],
+  "variables": {
+    "vec1": "Matrix",
+    "vec2": "Matrix"
+  },
+  "returnType": "Double",
+  "examples": [
+    {
+      "input": {
+        "vec1":  {
+          "@": "constructor",
+          "args": [
+            [
+              [1, 1, 1]
+            ]
+          ]},
+        "vec2":  {
+          "@": "constructor",
+          "args": [
+            [
+              [1, 2, 3]
+            ]
+          ]}
+      },
+      "output": 6.0
+    }
+  ],
+  "solution": {
+    "has_side_effects": "no",
+    "expected": [
+      "vec1.transpose().mmul(vec2)"
+    ]
+  }
+}

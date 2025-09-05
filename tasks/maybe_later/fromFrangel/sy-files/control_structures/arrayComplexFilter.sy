@@ -1,0 +1,40 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/ArrayComplexFilter.java",
+  "variables": {
+    "arr": "Array<String>",
+    "filter": "?"
+  },
+  "returnType": "?",
+  "examples": [
+    {
+      "input": {
+        "arr": ["Very bad service", "Awesome!", "", "terrible and rude...", "Food was great.", "not-bad :)"],
+        "filter": ""
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "arr": ["Very Bad service", "rude"],
+        "filter": ""
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "arr": ["Very Bad service", "Very bad service"],
+        "filter": ""
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "arr": ["Greater", "rible"],
+        "filter": ""
+      },
+      "output": "NULL"
+    }
+  ],
+  "solution": []
+}

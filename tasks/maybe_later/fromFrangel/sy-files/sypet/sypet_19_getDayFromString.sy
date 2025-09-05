@@ -1,0 +1,26 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/sypet/SyPet_19_getDayFromString.java",
+  "variables": {
+    "dateStr": "String",
+    "formatStr": "String"
+  },
+  "returnType": "Int",
+  "examples": [
+    {
+      "input": {
+        "dateStr": "2015/10/21",
+        "formatStr": "yyyy/MM/dd"
+      },
+      "output": 21
+    },
+    {
+      "input": {
+        "dateStr": "2013/6/13",
+        "formatStr": "yyyy/MM/dd"
+      },
+      "output": 13
+    }
+  ],
+  "solution": []
+}

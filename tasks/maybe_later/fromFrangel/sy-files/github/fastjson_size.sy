@@ -1,0 +1,33 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/github/Fastjson_size.java",
+  "variables": {
+    "rootObject": "?",
+    "path": "String"
+  },
+  "returnType": "Int",
+  "examples": [
+    {
+      "input": {
+        "rootObject": "",
+        "path": "$"
+      },
+      "output": 3
+    },
+    {
+      "input": {
+        "rootObject": "",
+        "path": "$.values"
+      },
+      "output": 3
+    },
+    {
+      "input": {
+        "rootObject": "",
+        "path": "$"
+      },
+      "output": 111
+    }
+  ],
+  "solution": []
+}

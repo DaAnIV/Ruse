@@ -1,0 +1,35 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/github/Guava_getPackageName.java",
+  "variables": {
+    "classFullName": "String"
+  },
+  "returnType": "String",
+  "examples": [
+    {
+      "input": {
+        "classFullName": "java.MyType"
+      },
+      "output": "java"
+    },
+    {
+      "input": {
+        "classFullName": "java.lang.Iterable"
+      },
+      "output": "java.lang"
+    },
+    {
+      "input": {
+        "classFullName": "NoPackage"
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "classFullName": "ab.cd"
+      },
+      "output": "ab"
+    }
+  ],
+  "solution": []
+}

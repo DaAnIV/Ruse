@@ -1,0 +1,54 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/geometry/MapPointCoordinates.java",
+  "variables": {
+    "point": "Point2D",
+    "map": "?"
+  },
+  "returnType": "?",
+  "examples": [
+    {
+      "input": {
+        "point": "",
+        "map": ""
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "point": "",
+        "map": ""
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "point": "",
+        "map": ""
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "point": "",
+        "map": ""
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "point": "",
+        "map": ""
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "point": "",
+        "map": ""
+      },
+      "output": "NULL"
+    }
+  ],
+  "solution": []
+}

@@ -1,0 +1,26 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/sypet/SyPet_20_daysOfMonth.java",
+  "variables": {
+    "dateStr": "String",
+    "formatStr": "String"
+  },
+  "returnType": "Int",
+  "examples": [
+    {
+      "input": {
+        "dateStr": "2012/02",
+        "formatStr": "yyyy/MM"
+      },
+      "output": 29
+    },
+    {
+      "input": {
+        "dateStr": "2014/03",
+        "formatStr": "yyyy/MM"
+      },
+      "output": 31
+    }
+  ],
+  "solution": []
+}

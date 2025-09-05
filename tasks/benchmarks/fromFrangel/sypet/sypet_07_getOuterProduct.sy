@@ -1,0 +1,36 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/sypet/SyPet_07_getOuterProduct.java",
+  "import": [
+    "../../../classes/linear"
+  ],
+  "variables": {
+    "vec1": "Matrix",
+    "vec2": "Matrix"
+  },
+  "returnType": "Matrix",
+  "examples": [
+    {
+      "input": {
+        "vec1": {
+          "@": "constructor",
+          "args": [[[1.0, 1.0, 1.0]]]
+        },
+        "vec2": {
+          "@": "constructor",
+          "args": [[[1.0, 2.0, 3.0]]]
+        }
+      },
+      "output": {
+        "@": "constructor",
+        "args": [[[1.0, 2.0, 3.0], [1.0, 2.0, 3.0], [1.0, 2.0, 3.0]]]
+      }
+    }
+  ],
+  "solution": {
+    "has_side_effects": "no",
+    "expected": [
+      "vec1.transpose().mmul(vec2)"
+    ]
+  }
+}

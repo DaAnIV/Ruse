@@ -1,0 +1,35 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/geometry/RectangleUnion.java",
+  "variables": {
+    "rects": "Array<Rectangle2D>"
+  },
+  "returnType": "?",
+  "examples": [
+    {
+      "input": {
+        "rects": ["", "", "", "", ""]
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "rects": ["", ""]
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "rects": [""]
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "rects": [""]
+      },
+      "output": ""
+    }
+  ],
+  "solution": []
+}

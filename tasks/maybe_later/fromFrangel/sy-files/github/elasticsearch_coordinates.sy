@@ -1,0 +1,5 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/github/ElasticSearchCoordinates.java",
+  "skip": "Has loop"
+}

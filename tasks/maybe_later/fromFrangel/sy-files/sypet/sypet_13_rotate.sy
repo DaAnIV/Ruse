@@ -1,0 +1,29 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/sypet/SyPet_13_rotate.java",
+  "variables": {
+    "area": "?",
+    "point": "Point2D",
+    "angle": "double"
+  },
+  "returnType": "?",
+  "examples": [
+    {
+      "input": {
+        "area": "",
+        "point": "",
+        "angle": 1.5707963267948966
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "area": "",
+        "point": "",
+        "angle": 1.5707963267948966
+      },
+      "output": ""
+    }
+  ],
+  "solution": []
+}

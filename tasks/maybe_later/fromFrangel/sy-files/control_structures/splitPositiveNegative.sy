@@ -1,0 +1,53 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/SplitPositiveNegative.java",
+  "variables": {
+    "list": "?",
+    "positive": "?",
+    "negative": "?"
+  },
+  "returnType": "?",
+  "examples": [
+    {
+      "input": {
+        "list": "",
+        "positive": "",
+        "negative": ""
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "list": "",
+        "positive": "",
+        "negative": ""
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "list": "",
+        "positive": "",
+        "negative": ""
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "list": "",
+        "positive": "",
+        "negative": ""
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "list": "",
+        "positive": "",
+        "negative": ""
+      },
+      "output": "NULL"
+    }
+  ],
+  "solution": []
+}

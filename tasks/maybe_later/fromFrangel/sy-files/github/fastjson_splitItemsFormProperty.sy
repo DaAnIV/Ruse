@@ -1,0 +1,41 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/github/Fastjson_splitItemsFormProperty.java",
+  "variables": {
+    "property": "String"
+  },
+  "returnType": "Array<String>",
+  "examples": [
+    {
+      "input": {
+        "property": "abc,de,12345"
+      },
+      "output": ["abc", "de", "12345"]
+    },
+    {
+      "input": {
+        "property": ","
+      },
+      "output": []
+    },
+    {
+      "input": {
+        "property": " "
+      },
+      "output": [" "]
+    },
+    {
+      "input": {
+        "property": ""
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "property": "NULL"
+      },
+      "output": "NULL"
+    }
+  ],
+  "solution": []
+}

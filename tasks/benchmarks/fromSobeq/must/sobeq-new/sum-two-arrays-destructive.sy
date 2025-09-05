@@ -1,0 +1,42 @@
+{
+  "source": "https://github.com/peleghila/sobeq/blob/main/benchmarks/must/sobeq-new/sum-two-arrays-destructive.sy",
+  "variables": {
+    "fst": "[Int]",
+    "snd": "[Int]",
+    "rs": "[Int]"
+  },
+  "returnType": "[Int]",
+  "immutable": ["rs"],
+  "examples": [
+    {
+      "input": {
+        "fst": "[2, 2, 1]",
+        "snd": "[0, 9, 8]",
+        "rs": "[]"
+      },
+      "output": "[2]",
+      "state": {
+        "fst": "[2,1]",
+        "snd": "[9,8]"
+      }
+    },
+    {
+      "input": {
+        "fst": "[2, 1]",
+        "snd": "[9, 8]",
+        "rs": "[2]"
+      },
+      "output": "[2, 11]",
+      "state": {
+        "fst": "[1]",
+        "snd": "[8]"
+      }
+    }
+  ],
+  "solution": {
+    "has_side_effects": "yes",
+    "expected": [
+      "fst.push(snd.shift())"
+    ]
+  }
+}

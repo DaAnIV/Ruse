@@ -1,0 +1,40 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/ListReplaceNull.java",
+  "variables": {
+    "list": "?",
+    "nullStr": "String"
+  },
+  "returnType": "?",
+  "examples": [
+    {
+      "input": {
+        "list": "",
+        "nullStr": "<NULL>"
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "list": "",
+        "nullStr": "<NULL>"
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "list": "",
+        "nullStr": "nul"
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "list": "",
+        "nullStr": "null"
+      },
+      "output": "NULL"
+    }
+  ],
+  "solution": []
+}

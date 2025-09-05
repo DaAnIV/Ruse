@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/sypet/SyPet_15_getIntersection.java",
+  "variables": {
+    "rect": "Rectangle2D",
+    "ellipse": "Ellipse2D"
+  },
+  "returnType": "Rectangle2D",
+  "examples": [
+    {
+      "input": {
+        "rect": "",
+        "ellipse": ""
+      },
+      "output": ""
+    }
+  ],
+  "solution": []
+}

@@ -1,0 +1,41 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/UppercaseFirstChar.java",
+  "variables": {
+    "str": "String"
+  },
+  "returnType": "String",
+  "examples": [
+    {
+      "input": {
+        "str": "computer science is COOL"
+      },
+      "output": "Computer science is COOL"
+    },
+    {
+      "input": {
+        "str": "123abc"
+      },
+      "output": "123abc"
+    },
+    {
+      "input": {
+        "str": "aaa"
+      },
+      "output": "Aaa"
+    },
+    {
+      "input": {
+        "str": "a"
+      },
+      "output": "A"
+    },
+    {
+      "input": {
+        "str": ""
+      },
+      "output": ""
+    }
+  ],
+  "solution": []
+}

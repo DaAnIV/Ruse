@@ -1,0 +1,35 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/sypet/SyPet_03_findRoots.java",
+  "import": [
+    "../../../classes/polynomial",
+    "../../../classes/utils"
+  ],
+  "variables": {
+    "func": "Polynomial"
+  },
+  "returnType": "Array<Array<Double>>",
+  "examples": [
+    {
+      "input": {
+        "func": {
+          "@": "constructor",
+          "args": [
+            {
+              "0": 1,
+              "1": -2,
+              "2": 1
+            }
+          ]
+        }
+      },
+      "output": [[1,1],[0,0]]
+    }
+  ],
+  "solution": {
+    "has_side_effects": "no",
+    "expected": [
+      "findRoots(func.coeffs)"
+    ]
+  }
+}

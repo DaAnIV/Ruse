@@ -1,0 +1,77 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/github/Guava_constrainToRange.java",
+  "variables": {
+    "value": "Int",
+    "min": "Int",
+    "max": "Int"
+  },
+  "returnType": "Int",
+  "examples": [
+    {
+      "input": {
+        "value": 1,
+        "min": 0,
+        "max": 5
+      },
+      "output": 1
+    },
+    {
+      "input": {
+        "value": 1,
+        "min": 1,
+        "max": 5
+      },
+      "output": 1
+    },
+    {
+      "input": {
+        "value": 1,
+        "min": 3,
+        "max": 5
+      },
+      "output": 3
+    },
+    {
+      "input": {
+        "value": 0,
+        "min": -5,
+        "max": -1
+      },
+      "output": -1
+    },
+    {
+      "input": {
+        "value": 5,
+        "min": 2,
+        "max": 2
+      },
+      "output": 2
+    },
+    {
+      "input": {
+        "value": 123,
+        "min": 67,
+        "max": 89
+      },
+      "output": 89
+    },
+    {
+      "input": {
+        "value": 45,
+        "min": 67,
+        "max": 89
+      },
+      "output": 67
+    },
+    {
+      "input": {
+        "value": 75,
+        "min": 67,
+        "max": 89
+      },
+      "output": 75
+    }
+  ],
+  "solution": []
+}

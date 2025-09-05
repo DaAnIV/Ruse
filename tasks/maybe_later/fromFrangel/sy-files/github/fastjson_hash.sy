@@ -1,0 +1,77 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/github/Fastjson_hash.java",
+  "variables": {
+    "buffer": "?",
+    "offset": "Int",
+    "len": "Int"
+  },
+  "returnType": "Int",
+  "examples": [
+    {
+      "input": {
+        "buffer": ["", "", "", "", "", "", "", "", "", "", "", "", ""],
+        "offset": 7,
+        "len": 4
+      },
+      "output": 2702130
+    },
+    {
+      "input": {
+        "buffer": ["", "", "", "", "", "", "", "", "", "", "", "", ""],
+        "offset": 11,
+        "len": 2
+      },
+      "output": 3133
+    },
+    {
+      "input": {
+        "buffer": ["", "", "", "", "", "", "", "", "", "", "", "", ""],
+        "offset": 11,
+        "len": 2
+      },
+      "output": 3100
+    },
+    {
+      "input": {
+        "buffer": ["", "", "", "", "", "", "", "", "", "", "", "", ""],
+        "offset": 9,
+        "len": 1
+      },
+      "output": 114
+    },
+    {
+      "input": {
+        "buffer": ["", "", "", "", "", "", ""],
+        "offset": 0,
+        "len": 7
+      },
+      "output": 1742810335
+    },
+    {
+      "input": {
+        "buffer": [""],
+        "offset": 0,
+        "len": 1
+      },
+      "output": 1
+    },
+    {
+      "input": {
+        "buffer": ["", "", ""],
+        "offset": 0,
+        "len": 3
+      },
+      "output": 87417
+    },
+    {
+      "input": {
+        "buffer": ["", ""],
+        "offset": 0,
+        "len": 2
+      },
+      "output": 2817
+    }
+  ],
+  "solution": []
+}

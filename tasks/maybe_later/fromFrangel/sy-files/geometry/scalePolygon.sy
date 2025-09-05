@@ -1,0 +1,69 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/geometry/ScalePolygon.java",
+  "variables": {
+    "poly": "?",
+    "scaleX": "Int",
+    "scaleY": "Int"
+  },
+  "returnType": "?",
+  "examples": [
+    {
+      "input": {
+        "poly": "",
+        "scaleX": -5,
+        "scaleY": 6
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "poly": "",
+        "scaleX": -5,
+        "scaleY": 6
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "poly": "",
+        "scaleX": -5,
+        "scaleY": 6
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "poly": "",
+        "scaleX": -5,
+        "scaleY": 6
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "poly": "",
+        "scaleX": -5,
+        "scaleY": 6
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "poly": "",
+        "scaleX": 0,
+        "scaleY": 123
+      },
+      "output": "NULL"
+    },
+    {
+      "input": {
+        "poly": "",
+        "scaleX": 123,
+        "scaleY": 0
+      },
+      "output": "NULL"
+    }
+  ],
+  "solution": []
+}

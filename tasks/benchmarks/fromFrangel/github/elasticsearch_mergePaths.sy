@@ -1,0 +1,32 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/github/ElasticSearchMergePaths.java",
+  "variables": {
+    "path": "String",
+    "field": "String"
+  },
+  "stringLiterals": ["."],
+  "returnType": "String",
+  "examples": [
+    {
+      "input": {
+        "path": "'path'",
+        "field": "'field'"
+      },
+      "output": "'path.field'"
+    },
+    {
+      "input": {
+        "path": "'a'",
+        "field": "''"
+      },
+      "output": "'a.'"
+    }
+  ],
+  "solution": {
+    "has_side_effects": "no",
+    "expected": [
+      "path + \".\" + field"
+    ]
+  }
+}

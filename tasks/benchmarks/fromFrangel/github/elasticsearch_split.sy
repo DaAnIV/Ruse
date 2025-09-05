@@ -1,0 +1,59 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/github/ElasticSearchSplit.java",
+  "variables": {
+    "toSplit": "String",
+    "index": "Int",
+    "result": "Array<String>"
+  },
+  "returnType": "Array<String>",
+  "stringLiterals": [],
+  "examples": [
+    {
+      "input": {
+        "toSplit": "'Hello world!'",
+        "index": 5,
+        "result": ["'some'", "'existing'", "'junk'"]
+      },
+      "output": ["'Hello'", "'world!'", "'junk'"]
+    },
+    {
+      "input": {
+        "toSplit": "'Hello world!'",
+        "index": 11,
+        "result": ["'some'", "''", "'junk'"]
+      },
+      "output": ["'Hello world'", "''", "'junk'"]
+    },
+    {
+      "input": {
+        "toSplit": "'Hello world!'",
+        "index": 0,
+        "result": ["''", "'existing'", "'junk'"]
+      },
+      "output": ["''", "'ello world!'", "'junk'"]
+    },
+    {
+      "input": {
+        "toSplit": "' '",
+        "index": 0,
+        "result": ["'some'", "''", "'junk'"]
+      },
+      "output": ["''", "''", "'junk'"]
+    },
+    {
+      "input": {
+        "toSplit": "' '",
+        "index": 0,
+        "result": ["''", "'existing'", "'junk'"]
+      },
+      "output": ["''", "'existing'", "'junk'"]
+    }
+  ],
+  "solution": {
+    "has_side_effects": "no",
+    "expected": [
+      "result[0] = toSplit.substring(0, index); result[1] = toSplit.substring(index + 1); result"
+    ]
+  }
+}

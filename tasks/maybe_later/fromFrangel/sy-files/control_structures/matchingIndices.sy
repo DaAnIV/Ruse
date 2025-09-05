@@ -1,0 +1,47 @@
+{
+  "version": 2,
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/MatchingIndices.java",
+  "variables": {
+    "strings": "Array<String>",
+    "pattern": "String"
+  },
+  "returnType": "?",
+  "examples": [
+    {
+      "input": {
+        "strings": ["aab", "aaab", "aaba", "abb", "abaab", "abab", "", "bab"],
+        "pattern": "(a+b)*"
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "strings": ["aab", "abab"],
+        "pattern": "(a+b)*"
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "strings": ["bab", "abab"],
+        "pattern": "(a+b)*"
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "strings": ["abababaabab"],
+        "pattern": "(a+b)*"
+      },
+      "output": ""
+    },
+    {
+      "input": {
+        "strings": ["abababbaaab"],
+        "pattern": "(a+b)*"
+      },
+      "output": ""
+    }
+  ],
+  "solution": []
+}
