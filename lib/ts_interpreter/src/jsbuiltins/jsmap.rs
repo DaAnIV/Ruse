@@ -152,7 +152,7 @@ impl BuiltinClassWrapper for JsMapWrapper {
         let graphs_map = global_ctx.graphs_map()?;
 
         if value_type.is_primitive() {
-            for (key, _) in map_obj.fields(graphs_map) {
+            for (key, _) in map_obj.primitive_fields(graphs_map) {
                 let getter = Self::getter_for_field_name(key.clone())
                     .map(|x| x.to_js_function(builder.context().realm()));
                 let setter = Self::setter_for_field_name(key.clone())

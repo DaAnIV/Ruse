@@ -1,5 +1,6 @@
+use itertools::Itertools;
 use num_traits::ToPrimitive;
-use ruse_object_graph::{field_name, vnum, vobj, Number};
+use ruse_object_graph::{field_name, vnum, vobj, vstr, Number};
 use ruse_object_graph::{value::Value, ValueType};
 use ruse_synthesizer::location::*;
 use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};
@@ -546,6 +547,106 @@ impl ExprOpcode for ArrayConcatArrayOp {
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
         member_call_ast("concat", children)
+    }
+
+    fn arg_types(&self) -> &[ValueType] {
+        &self.arg_types
+    }
+}
+
+#[derive(Debug)]
+pub struct ArrayReverseOp {
+    arg_types: Vec<ValueType>,
+}
+
+impl ArrayReverseOp {
+    pub fn new(elem_type: &ValueType) -> Self {
+        let arg_types = vec![ValueType::array_value_type(elem_type)];
+        Self { arg_types }
+    }
+}
+
+impl ExprOpcode for ArrayReverseOp {
+    fn op_name(&self) -> &str {
+        "Array.prototype.reverse"
+    }
+
+    fn eval(
+        &self,
+        args: &[&LocValue],
+        post_ctx: &mut Context,
+        _syn_ctx: &SynthesizerContext,
+        _worker_ctx: &mut SynthesizerWorkerContext,
+    ) -> EvalResult {
+        let arr = args[0].val().obj().unwrap();
+        let graph = arr.graph(&post_ctx.graphs_map);
+
+        let values: Vec<Value> = arr.array_values_iterator(&post_ctx.graphs_map).collect();
+        for (i, value) in values.iter().rev().enumerate() {
+            post_ctx.set_field(graph.id, arr.node, field_name!(i.to_string()), &value);
+        }
+
+        dirty!(post_ctx.temp_value(Value::Object(arr.clone())))
+    }
+
+    fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
+        member_call_ast("reverse", children)
+    }
+
+    fn arg_types(&self) -> &[ValueType] {
+        &self.arg_types
+    }
+}
+
+#[derive(Debug)]
+pub struct ArrayJoinOp {
+    arg_types: Vec<ValueType>,
+}
+
+impl ArrayJoinOp {
+    pub fn new(elem_type: &ValueType, seperator: bool) -> Self {
+        if !elem_type.is_primitive() {
+            unimplemented!("Array.prototype.join with non-primitive type");
+        }
+        let mut arg_types = vec![ValueType::array_value_type(elem_type)];
+        if seperator {
+            arg_types.push(ValueType::String);
+        }
+        Self { arg_types }
+    }
+}
+
+impl ExprOpcode for ArrayJoinOp {
+    fn op_name(&self) -> &str {
+        "Array.prototype.join"
+    }
+
+    fn eval(
+        &self,
+        args: &[&LocValue],
+        post_ctx: &mut Context,
+        _syn_ctx: &SynthesizerContext,
+        _worker_ctx: &mut SynthesizerWorkerContext,
+    ) -> EvalResult {
+        let arr = args[0].val().obj().unwrap();
+
+        let values: Vec<Value> = arr.array_values_iterator(&post_ctx.graphs_map).collect();
+        let seperator = if self.arg_types.len() == 2 {
+            args[1].val().string_value().unwrap().to_string()
+        } else {
+            ",".to_string()
+        };
+
+        let result = values
+            .iter()
+            .map(|x| x.primitive().unwrap().to_string())
+            .join(&seperator);
+
+        pure!(post_ctx.temp_value(vstr!(result.as_str())))
+    }
+
+    fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
+        member_call_ast("join", children)
     }
 
     fn arg_types(&self) -> &[ValueType] {

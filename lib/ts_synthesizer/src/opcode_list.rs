@@ -166,6 +166,11 @@ pub fn add_array_opcodes(opcodes: &mut OpcodesList, array_types: &[ValueType]) {
         opcodes.push(Arc::new(opcode::ArraySpliceOp::new(t, true)));
         opcodes.push(Arc::new(opcode::ArrayPushOp::new(t)));
         opcodes.push(Arc::new(opcode::ArrayPopOp::new(t)));
+        opcodes.push(Arc::new(opcode::ArrayReverseOp::new(t)));
+        if t.is_primitive() {
+            opcodes.push(Arc::new(opcode::ArrayJoinOp::new(t, false)));
+            opcodes.push(Arc::new(opcode::ArrayJoinOp::new(t, true)));
+        }
     }
 }
 

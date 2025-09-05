@@ -1,5 +1,6 @@
 use crate::{
     dot::{Dot, DotConfig},
+    field_name,
     graph_equality::equal_graphs_by_node,
     graph_map_value::*,
     graph_node::EdgeEndPoint,
@@ -156,7 +157,7 @@ impl ObjectValue {
         self.obj_type.is_class_obj_type(class_name)
     }
 
-    pub fn fields<'a>(
+    pub fn primitive_fields<'a>(
         &self,
         graphs_map: &'a GraphsMap,
     ) -> impl Iterator<Item = (&'a FieldName, &'a PrimitiveField)> {
@@ -212,7 +213,7 @@ impl ObjectValue {
         &self,
         graphs_map: &'a GraphsMap,
     ) -> impl Iterator<Item = &'a FieldName> {
-        self.fields(graphs_map)
+        self.primitive_fields(graphs_map)
             .map(|(name, _)| name)
             .chain(self.neighbors(graphs_map).map(|(name, _)| name))
     }
@@ -222,7 +223,7 @@ impl ObjectValue {
         graphs_map: &'a GraphsMap,
     ) -> impl Iterator<Item = Value> + 'a {
         let self_graph_id = self.graph_id;
-        self.fields(graphs_map)
+        self.primitive_fields(graphs_map)
             .map(|(_, p)| Value::Primitive(p.value.clone()))
             .chain(self.neighbors(graphs_map).map(move |(_, edge)| {
                 let graph_id = edge.graph.unwrap_or(self_graph_id);
@@ -242,7 +243,7 @@ impl ObjectValue {
         graphs_map: &'a GraphsMap,
     ) -> impl Iterator<Item = (&'a FieldName, Value)> + 'a {
         let self_graph_id = self.graph_id;
-        self.fields(graphs_map)
+        self.primitive_fields(graphs_map)
             .map(|(name, p)| (name, Value::Primitive(p.value.clone())))
             .chain(self.neighbors(graphs_map).map(move |(name, edge)| {
                 let graph_id = edge.graph.unwrap_or(self_graph_id);
@@ -257,6 +258,19 @@ impl ObjectValue {
                     }),
                 )
             }))
+    }
+
+    pub fn array_values_iterator<'a>(
+        &'a self,
+        graphs_map: &'a GraphsMap,
+    ) -> impl Iterator<Item = Value> + 'a {
+        let total_count = self.total_field_count(graphs_map);
+
+        (0..total_count).map(move |i| {
+            let field_name = field_name!(i.to_string());
+            let value = self.get_field_value(&field_name, graphs_map).unwrap();
+            value
+        })
     }
 }
 
