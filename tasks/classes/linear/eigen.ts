@@ -17,7 +17,6 @@ export class EigenvalueDecomposition {
     if (matrix.isEmpty()) {
       throw new Error('Matrix must be non-empty');
     }
-    console.error("EigenvalueDecomposition constructor");
 
     let n = matrix.columns;
     let V = Matrix.zeros(n, n);
@@ -57,12 +56,9 @@ export class EigenvalueDecomposition {
     this.e = e;
     this.d = d;
     this.V = V;
-    console.error("EigenvalueDecomposition constructor");
   }
 
   public getEigenvalue(index: number): [number, number] {
-    console.error("Getting eigenvalue", index);
-    console.error(this.d[index], this.e[index]);
     return [this.d[index], this.e[index]];
   }
 

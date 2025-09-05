@@ -29,9 +29,9 @@ export class SingularValueDecomposition {
             if (!autoTranspose) {
                 a = value.clone();
                 // eslint-disable-next-line no-console
-                console.warn(
-                    'Computing SVD on a matrix with more columns than rows. Consider enabling autoTranspose',
-                );
+                // console.warn(
+                //     'Computing SVD on a matrix with more columns than rows. Consider enabling autoTranspose',
+                // );
             } else {
                 a = value.transpose();
                 m = a.rows;
