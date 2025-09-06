@@ -16,6 +16,13 @@ impl PartialEq for Number {
     }
 }
 
+impl Number {
+    /// See f64::total_cmp
+    pub fn total_cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.0.total_cmp(&other.0)
+    }
+}
+
 impl Eq for Number {}
 
 impl Hash for Number {
