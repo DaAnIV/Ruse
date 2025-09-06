@@ -1,6 +1,6 @@
 use std::{
     future::Future,
-    path::Path,
+    path::{Path, PathBuf},
     sync::Arc,
     thread,
     time::{Duration, Instant},
@@ -28,6 +28,7 @@ pub enum RunnerError {
     OOM,
     CtrlC,
     ForkError,
+    ThreadError,
     TaskCreateError(SnythesisTaskError),
     SynthesizerCreateError(SnythesisTaskError),
 }
@@ -41,6 +42,7 @@ impl std::fmt::Display for RunnerError {
             RunnerError::OOM => write!(f, "OOM"),
             RunnerError::CtrlC => write!(f, "Ctrl+C"),
             RunnerError::ForkError => write!(f, "ForkError"),
+            RunnerError::ThreadError => write!(f, "ThreadError"),
             RunnerError::TaskCreateError(e) => write!(f, "TaskCreateError: {}", e),
             RunnerError::SynthesizerCreateError(e) => write!(f, "SynthesizerCreateError: {}", e),
         }
@@ -296,14 +298,13 @@ fn ctrl_channel() -> Result<crossbeam_channel::Receiver<()>, ctrlc::Error> {
     Ok(receiver)
 }
 
-pub fn run_task<F: Formatter + Clone>(
+fn run_task_fork<F: Formatter + Sync + Send + Clone + 'static>(
     path: &Path,
     i: usize,
     bench_config: &BenchmarkConfig,
     result_writer: &ResultsWriter<F>,
-) -> Result<crossbeam_channel::Receiver<()>, RunnerError> {
-    let (sender, receiver) = crossbeam_channel::bounded(1);
-
+    sender: crossbeam_channel::Sender<()>,
+) -> Result<(), RunnerError> {
     match fork::fork().map_err(|_| RunnerError::ForkError)? {
         fork::Fork::Parent(child_pid) => {
             thread::Builder::new()
@@ -313,7 +314,7 @@ pub fn run_task<F: Formatter + Clone>(
                     let _ = sender.send(());
                 })
                 .map_err(|_| RunnerError::ForkError)?;
-            Ok(receiver)
+            Ok(())
         }
         fork::Fork::Child => {
             let mut result = BenchmarkResult::new(path);
@@ -331,6 +332,54 @@ pub fn run_task<F: Formatter + Clone>(
             std::process::exit(0);
         }
     }
+}
+
+fn run_task_thread<F: Formatter + Sync + Send + Clone + 'static>(
+    path: &Path,
+    i: usize,
+    bench_config: &BenchmarkConfig,
+    result_writer: &ResultsWriter<F>,
+    sender: crossbeam_channel::Sender<()>,
+) -> Result<(), RunnerError> {
+    let path_buf = PathBuf::from(path);
+    let bench_config_clone = bench_config.clone();
+    let result_writer_clone = result_writer.clone();
+
+    thread::Builder::new()
+        .name("task_thread".into())
+        .spawn(move || {
+            let mut result = BenchmarkResult::new(&path_buf);
+
+            match run_task_child(&path_buf, &bench_config_clone, &mut result) {
+                Ok(_) => (),
+                Err(e) => {
+                    result.error(&e);
+                }
+            }
+
+            result_writer_clone.write_result(&result, i);
+            let _ = sender.send(());
+        })
+        .map_err(|_| RunnerError::ThreadError)?;
+
+    Ok(())
+}
+
+pub fn run_task<F: Formatter + Sync + Send + Clone + 'static>(
+    path: &Path,
+    i: usize,
+    bench_config: &BenchmarkConfig,
+    result_writer: &ResultsWriter<F>,
+) -> Result<crossbeam_channel::Receiver<()>, RunnerError> {
+    let (sender, receiver) = crossbeam_channel::bounded(1);
+
+    if bench_config.fork {
+        run_task_fork(path, i, bench_config, result_writer, sender)?;
+    } else {
+        run_task_thread(path, i, bench_config, result_writer, sender)?;
+    }
+
+    Ok(receiver)
 }
 
 pub fn get_benchmarks_recursively(paths: &[std::path::PathBuf]) -> Vec<std::path::PathBuf> {
@@ -357,7 +406,7 @@ pub fn get_benchmarks_recursively(paths: &[std::path::PathBuf]) -> Vec<std::path
     all_benchmarks
 }
 
-pub fn run_all_benchmarks<F: Formatter + Clone>(
+pub fn run_all_benchmarks<F: Formatter + Sync + Send + Clone + 'static>(
     top_level_benchmark: &[std::path::PathBuf],
     bench_config: &BenchmarkConfig,
     writer: ResultsWriter<F>,

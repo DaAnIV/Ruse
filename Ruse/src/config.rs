@@ -52,7 +52,7 @@ impl Into<BankConfig> for BankArgs {
 }
 
 #[serde_as]
-#[derive(serde::Deserialize, serde::Serialize)]
+#[derive(Clone, serde::Deserialize, serde::Serialize)]
 pub struct BenchmarkConfig {
     #[serde_as(as = "DurationSeconds<u64>")]
     pub timeout: Duration,
@@ -66,4 +66,5 @@ pub struct BenchmarkConfig {
     pub bank_config: BankConfig,
     #[serde(skip)]
     pub dry_run: bool,
+    pub fork: bool,
 }

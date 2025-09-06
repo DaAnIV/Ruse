@@ -117,6 +117,9 @@ struct RunArgs {
 
     #[arg(long, default_value_t = false)]
     dry_run: bool,
+
+    #[arg(long, default_value_t = false)]
+    no_fork: bool,
 }
 
 #[derive(clap::Args, Debug)]
@@ -233,6 +236,7 @@ fn construct_config(cli: &RunArgs) -> BenchmarkConfig {
         max_task_mem: Byte::parse_str(&cli.max_task_mem, true).unwrap(),
         bank_config: bank_args.into(),
         dry_run: cli.dry_run,
+        fork: !cli.no_fork,
     }
 }
 

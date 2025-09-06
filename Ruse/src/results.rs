@@ -154,9 +154,10 @@ struct Metadata<'a> {
     config: &'a BenchmarkConfig,
 }
 
+#[derive(Clone)]
 pub(crate) struct ResultsWriter<F>
 where
-    F: Formatter + Clone,
+    F: Formatter + Sync + Send + Clone + 'static,
 {
     results_dir: PathBuf,
     formatter: F,
@@ -164,7 +165,7 @@ where
 
 impl<F> ResultsWriter<F>
 where
-    F: Formatter + Clone,
+    F: Formatter + Sync + Send + Clone + 'static,
 {
     fn from_path_with_formatter(path: &Path, config: &BenchmarkConfig, formatter: F) -> Self {
         let self_ = Self {
