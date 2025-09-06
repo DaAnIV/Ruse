@@ -891,7 +891,7 @@ impl SnythesisTask {
         let oop_category = if inner.classes.is_some() || inner.ts_files.is_some() {
             SynthesisOOPCategory::FullOOP
         } else if inner.variables.values().any(|v| !v.is_primitive())
-            || inner
+            || !inner
                 .return_type
                 .as_ref()
                 .unwrap_or(&TaskType::Bool)
