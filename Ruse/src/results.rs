@@ -149,6 +149,7 @@ impl Sysinfo {
 #[derive(Serialize)]
 struct Metadata<'a> {
     timestamp: i64,
+    pid: u32,
     sysinfo: Sysinfo,
     config: &'a BenchmarkConfig,
 }
@@ -176,6 +177,7 @@ where
         let mut ser = self_.create_serializer("metadata.json");
         Metadata {
             timestamp: chrono::Utc::now().timestamp(),
+            pid: std::process::id(),
             sysinfo: Sysinfo::new(),
             config: config,
         }
