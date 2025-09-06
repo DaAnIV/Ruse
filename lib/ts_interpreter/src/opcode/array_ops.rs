@@ -754,3 +754,55 @@ impl ExprOpcode for ArraySortOp {
         &self.arg_types
     }
 }
+
+
+#[derive(Debug)]
+pub struct ArrayShiftOp {
+    arg_types: [ValueType; 1],
+}
+
+impl ArrayShiftOp {
+    pub fn new(elem_type: &ValueType) -> Self {
+        Self {
+            arg_types: [ValueType::array_value_type(elem_type)],
+        }
+    }
+}
+
+impl ExprOpcode for ArrayShiftOp {
+    fn op_name(&self) -> &str {
+        "Array.prototype.shift"
+    }
+
+    fn eval(
+        &self,
+        args: &[&LocValue],
+        post_ctx: &mut Context,
+        _syn_ctx: &SynthesizerContext,
+        _worker_ctx: &mut SynthesizerWorkerContext,
+    ) -> EvalResult {
+        debug_assert_eq!(args.len(), 1);
+
+        let arr = args[0].val().obj().unwrap();
+        let arr_len = arr.total_field_count(&post_ctx.graphs_map);
+        if arr_len == 0 {
+            return Err(());
+        }
+        let idx_field_name = field_name!((0).to_string().as_str());
+        if let Some(result) = post_ctx.delete_field(arr.graph_id, arr.node, &idx_field_name) {
+            dirty!(post_ctx.temp_value(result))
+        } else {
+            Err(())
+        }
+    }
+
+    fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
+        debug_assert_eq!(children.len(), 1);
+        member_call_ast("shift", children)
+    }
+
+    fn arg_types(&self) -> &[ValueType] {
+        &self.arg_types
+    }
+}
+
