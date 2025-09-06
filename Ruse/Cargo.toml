@@ -57,3 +57,11 @@ boa_engine.workspace = true
 trace_evaluations=["ruse_synthesizer/trace_evaluations"]
 trace_embeddings=["ruse_synthesizer/trace_embeddings"]
 prune_graph_map=["ruse_synthesizer/prune_graph_map"]
+
+release_trace_max_level_info=["tracing/release_max_level_info", 
+                              "ruse_object_graph/release_trace_max_level_info",
+                              "ruse_ts_interpreter/release_trace_max_level_info",
+                              "ruse_synthesizer/release_trace_max_level_info",
+                              "ruse_ts_synthesizer/release_trace_max_level_info",
+                              "ruse_task_parser/release_trace_max_level_info",
+                              "ruse_prog_bank_in_mem/release_trace_max_level_info"]

@@ -16,7 +16,7 @@
         {
             "label": "build release",
             "type": "shell",
-            "command": "$HOME/.cargo/bin/cargo build --profile release",
+            "command": "$HOME/.cargo/bin/cargo build --profile release --features release_trace_max_level_info",
 			"problemMatcher": "$rustc",
 			"group": {
 				"kind": "build",

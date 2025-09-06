@@ -16,6 +16,8 @@ swc_ecma_ast.workspace = true
 
 tokio-util.workspace = true
 
+tracing.workspace = true
+
 [dev-dependencies]
 criterion.workspace = true
 tokio.workspace = true
@@ -24,3 +26,6 @@ ruse_prog_bank_in_mem.workspace = true
 [[bench]]
 name = "benches"
 harness = false
+
+[features]
+release_trace_max_level_info = ["tracing/release_max_level_info"]

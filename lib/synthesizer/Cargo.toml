@@ -30,6 +30,7 @@ test_helpers = []
 trace_evaluations = []
 trace_embeddings = []
 prune_graph_map = []
+release_trace_max_level_info = ["tracing/release_max_level_info"]
 
 [dev-dependencies]
 criterion.workspace = true

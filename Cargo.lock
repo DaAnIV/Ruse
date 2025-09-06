@@ -2925,6 +2925,7 @@ dependencies = [
  "petgraph-gen",
  "rand",
  "serde",
+ "tracing",
  "union-find",
 ]
 
@@ -3033,6 +3034,7 @@ dependencies = [
  "swc_ecma_ast",
  "tokio",
  "tokio-util",
+ "tracing",
 ]
 
 [[package]]

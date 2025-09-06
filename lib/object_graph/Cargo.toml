@@ -6,6 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+tracing.workspace = true
+
 hstr.workspace = true
 
 serde.workspace = true
@@ -27,6 +29,7 @@ criterion = { workspace = true, features = ["async_tokio"] }
 [features]
 default = ["generators"]
 generators = ["dep:petgraph", "dep:petgraph-gen"]
+release_trace_max_level_info = ["tracing/release_max_level_info"]
 
 [[bench]]
 name = "benches"

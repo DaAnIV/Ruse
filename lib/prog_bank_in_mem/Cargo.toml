@@ -22,6 +22,7 @@ rand.workspace = true
 serde_json.workspace = true
 
 [features]
+release_trace_max_level_info = ["tracing/release_max_level_info"]
 
 [dev-dependencies]
 criterion.workspace = true

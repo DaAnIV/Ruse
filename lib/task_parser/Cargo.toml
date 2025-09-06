@@ -23,3 +23,6 @@ wildmatch.workspace = true
 boa_engine.workspace = true
 
 tracing.workspace = true
+
+[features]
+release_trace_max_level_info = ["tracing/release_max_level_info"]
