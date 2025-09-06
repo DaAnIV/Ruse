@@ -269,6 +269,7 @@ impl Context {
         self.verify_values();
     }
 
+    #[cfg(debug_assertions)]
     fn verify_values(&self) -> bool {
         for (name, value) in self.values.iter() {
             if let Some(obj_val) = value.obj() {

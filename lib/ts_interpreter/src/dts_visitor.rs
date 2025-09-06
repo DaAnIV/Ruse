@@ -89,12 +89,14 @@ pub(crate) fn get_value_type_from_ts_type(type_ann: &ast::TsType) -> ValueType {
 }
 
 #[derive(Debug)]
+#[allow(unused)]
 pub(crate) struct DtsVarDecl {
     pub name: Id,
     pub var_type: Option<ValueType>,
 }
 
 #[derive(Debug)]
+#[allow(unused)]
 pub(crate) struct DtsFnDecl {
     pub name: Id,
     pub params: Vec<Vec<ValueType>>,
@@ -102,6 +104,7 @@ pub(crate) struct DtsFnDecl {
 }
 
 #[derive(Debug)]
+#[allow(unused)]
 pub(crate) struct DtsFieldDecl {
     pub name: Atom,
     pub var_type: Option<ValueType>,
@@ -111,6 +114,7 @@ pub(crate) struct DtsFieldDecl {
 }
 
 #[derive(Debug)]
+#[allow(unused)]
 pub(crate) struct DtsMethodDecl {
     pub name: Atom,
     pub kind: MethodKind,
@@ -121,6 +125,7 @@ pub(crate) struct DtsMethodDecl {
 }
 
 #[derive(Debug)]
+#[allow(unused)]
 pub(crate) struct DtsClassDecl {
     pub name: Id,
     pub obj_type: ObjectType,

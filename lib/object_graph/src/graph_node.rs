@@ -88,6 +88,8 @@ impl ObjectGraphNode {
             attributes: Attributes::default(),
         }
     }
+
+    #[allow(unused)]
     pub(crate) fn new_with_attrs(
         obj_type: ObjectType,
         fields: FieldsMap,
