@@ -305,13 +305,173 @@ mod ts_simple_opcodes_tests {
             vnum!(Number::from(1u64)).wrap(&update_out_ctx.graphs_map)
         );
     }
+
+    #[test]
+    fn test_array_reverse() {
+        let ctx = generate_context_from_array(
+            root_name!("x"),
+            &ValueType::Number,
+            [
+                vnum!(Number::from(1)),
+                vnum!(Number::from(5)),
+                vnum!(Number::from(3)),
+            ],
+        );
+        let ctx_arr = ContextArray::from(vec![ctx]);
+        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr);
+        let mut worker_ctx = create_js_worker_context(0);
+
+        let ctx = &syn_ctx.start_context[0];
+        let id = id_op("x");
+        let op = ArrayReverseOp::new(&ValueType::Number);
+
+        let mut id_out_ctx = ctx.clone();
+        let x_val = id
+            .eval(&[], &mut id_out_ctx, &syn_ctx, &mut worker_ctx)
+            .unwrap();
+
+        let mut update_out_ctx = id_out_ctx.clone();
+        let num_to_push = update_out_ctx.temp_value(vnum!(Number::from(1)));
+        let out = op
+            .eval(
+                &[&x_val.output, &num_to_push],
+                &mut update_out_ctx,
+                &syn_ctx,
+                &mut worker_ctx,
+            )
+            .unwrap();
+
+        let orig_array = ctx
+            .get_var_loc_value(&id.name, &syn_ctx)
+            .expect("Didn't find var")
+            .val()
+            .obj()
+            .unwrap()
+            .clone();
+        let updated_array = update_out_ctx
+            .get_var_loc_value(&id.name, &syn_ctx)
+            .expect("Didn't find var")
+            .val()
+            .obj()
+            .unwrap()
+            .clone();
+
+        assert_eq!(out.val().obj().unwrap().graph_id, updated_array.graph_id);
+        assert_eq!(out.val().obj().unwrap().node, updated_array.node);
+        assert_eq!(out.val().obj().unwrap().obj_type, updated_array.obj_type);
+
+        let total_field_count = orig_array.total_field_count(&ctx.graphs_map);
+        assert_eq!(
+            orig_array.total_field_count(&ctx.graphs_map),
+            updated_array.total_field_count(&update_out_ctx.graphs_map)
+        );
+
+        for i in 0..total_field_count {
+            assert_eq!(
+                updated_array
+                    .get_primitive_field_value(
+                        &field_name!(i.to_string()),
+                        &update_out_ctx.graphs_map
+                    )
+                    .unwrap()
+                    .number_value()
+                    .unwrap(),
+                orig_array
+                    .get_primitive_field_value(
+                        &field_name!((total_field_count - i - 1).to_string()),
+                        &ctx.graphs_map
+                    )
+                    .unwrap()
+                    .number_value()
+                    .unwrap()
+            );
+        }
+    }
+
+    #[test]
+    fn test_array_sort() {
+        let values = vec![
+            vnum!(Number::from(1)),
+            vnum!(Number::from(5)),
+            vnum!(Number::from(3)),
+        ];
+        let sorted_values = vec![
+            vnum!(Number::from(1)),
+            vnum!(Number::from(3)),
+            vnum!(Number::from(5)),
+        ];
+
+        let ctx = generate_context_from_array(root_name!("x"), &ValueType::Number, values);
+        let ctx_arr = ContextArray::from(vec![ctx]);
+        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr);
+        let mut worker_ctx = create_js_worker_context(0);
+
+        let ctx = &syn_ctx.start_context[0];
+        let id = id_op("x");
+        let op = ArraySortOp::new(&ValueType::Number);
+
+        let mut id_out_ctx = ctx.clone();
+        let x_val = id
+            .eval(&[], &mut id_out_ctx, &syn_ctx, &mut worker_ctx)
+            .unwrap();
+
+        let mut update_out_ctx = id_out_ctx.clone();
+        let num_to_push = update_out_ctx.temp_value(vnum!(Number::from(1)));
+        let out = op
+            .eval(
+                &[&x_val.output, &num_to_push],
+                &mut update_out_ctx,
+                &syn_ctx,
+                &mut worker_ctx,
+            )
+            .unwrap();
+
+        let orig_array = ctx
+            .get_var_loc_value(&id.name, &syn_ctx)
+            .expect("Didn't find var")
+            .val()
+            .obj()
+            .unwrap()
+            .clone();
+        let updated_array = update_out_ctx
+            .get_var_loc_value(&id.name, &syn_ctx)
+            .expect("Didn't find var")
+            .val()
+            .obj()
+            .unwrap()
+            .clone();
+
+        assert_eq!(out.val().obj().unwrap().graph_id, updated_array.graph_id);
+        assert_eq!(out.val().obj().unwrap().node, updated_array.node);
+        assert_eq!(out.val().obj().unwrap().obj_type, updated_array.obj_type);
+
+        let total_field_count = orig_array.total_field_count(&ctx.graphs_map);
+        assert_eq!(
+            orig_array.total_field_count(&ctx.graphs_map),
+            updated_array.total_field_count(&update_out_ctx.graphs_map)
+        );
+
+        for i in 0..total_field_count {
+            assert_eq!(
+                updated_array
+                    .get_primitive_field_value(
+                        &field_name!(i.to_string()),
+                        &update_out_ctx.graphs_map
+                    )
+                    .unwrap()
+                    .number_value()
+                    .unwrap(),
+                sorted_values[i].number_value().unwrap()
+            );
+        }
+    }
 }
 
 #[cfg(test)]
 mod ts_class_tests {
     use std::{collections::HashMap, sync::Arc};
 
-    use boa_engine::{js_str, JsValue};
+    use boa_engine::JsValue;
     use boa_engine::{js_string, property::Attribute};
     use graph_map_value::GraphMapWrap;
     use ruse_object_graph::{value::*, *};

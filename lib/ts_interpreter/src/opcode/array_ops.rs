@@ -653,3 +653,104 @@ impl ExprOpcode for ArrayJoinOp {
         &self.arg_types
     }
 }
+
+
+#[derive(Debug)]
+pub struct ArraySortOp {
+    arg_types: Vec<ValueType>,
+    elem_type: ValueType,
+}
+
+impl ArraySortOp {
+    pub fn new(elem_type: &ValueType) -> Self {
+        if !elem_type.is_primitive() {
+            unimplemented!("Array.prototype.sort with non-primitive type");
+        }
+        let arg_types = vec![ValueType::array_value_type(elem_type)];
+        Self { arg_types, elem_type: elem_type.clone() }
+    }
+
+    fn sort_ascending_lambda_expr() -> ast::ExprOrSpread {
+        let body_expr = ast::Expr::Bin(ast::BinExpr {
+            span: DUMMY_SP,
+            op: ast::BinaryOp::Sub,
+            left: ast::Expr::Ident("a".into()).into(),
+            right: ast::Expr::Ident("b".into()).into(),
+        });
+        let expr = ast::Expr::Arrow(ast::ArrowExpr {
+                span: DUMMY_SP,
+                params: vec![ast::Pat::Ident("a".into()), ast::Pat::Ident("b".into())],
+                body: ast::BlockStmtOrExpr::Expr(body_expr.into()).into(),
+                is_async: false,
+                is_generator: false,
+                type_params: None,
+                return_type: None,
+                ctxt: Default::default(),
+            });
+
+        ast::ExprOrSpread { spread: None, expr: expr.into() }
+    }
+}
+
+impl ExprOpcode for ArraySortOp {
+    fn op_name(&self) -> &str {
+        "Array.prototype.sort"
+    }
+
+    fn eval(
+        &self,
+        args: &[&LocValue],
+        post_ctx: &mut Context,
+        _syn_ctx: &SynthesizerContext,
+        _worker_ctx: &mut SynthesizerWorkerContext,
+    ) -> EvalResult {
+        let arr = args[0].val().obj().unwrap();
+        let graph = arr.graph(&post_ctx.graphs_map);
+
+        let mut values: Vec<Value> = arr.array_values_iterator(&post_ctx.graphs_map).collect();
+        values.sort_by(|a, b| match &self.elem_type {
+            ValueType::Number => a.number_value().unwrap().total_cmp(&b.number_value().unwrap()),
+            ValueType::Bool => a.bool_value().unwrap().cmp(&b.bool_value().unwrap()),
+            ValueType::String => a.string_value().unwrap().cmp(&b.string_value().unwrap()),
+            ValueType::Object(_object_type) => unimplemented!("Array.prototype.sort with non-primitive type"),
+            ValueType::Null => unreachable!(),
+        });
+        for (i, value) in values.iter().enumerate() {
+            post_ctx.set_field(graph.id, arr.node, field_name!(i.to_string()), &value);
+        }
+
+        dirty!(post_ctx.temp_value(Value::Object(arr.clone())))
+    }
+
+    fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
+        let callee_expr = ast::MemberExpr {
+            span: DUMMY_SP,
+            obj: TsExprAst::from(children[0].as_ref()).get_paren_expr(),
+            prop: ast::MemberProp::Ident(ast::IdentName::from("sort")),
+        };
+    
+        let mut args = vec![];    
+
+        match &self.elem_type {
+            ValueType::Number => args.push(Self::sort_ascending_lambda_expr()),
+            ValueType::Bool => args.push(Self::sort_ascending_lambda_expr()),
+            ValueType::String => (),
+            ValueType::Object(_object_type) => unimplemented!("Array.prototype.sort with non-primitive type"),
+            ValueType::Null => unreachable!(),
+        };
+
+        let expr = ast::CallExpr {
+            span: DUMMY_SP,
+            callee: ast::Callee::Expr(ast::Expr::Member(callee_expr).into()),
+            args,
+            type_args: None,
+            ctxt: Default::default(),
+        };
+    
+        TsExprAst::create(ast::Expr::Call(expr))
+    }
+
+    fn arg_types(&self) -> &[ValueType] {
+        &self.arg_types
+    }
+}
