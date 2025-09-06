@@ -1,9 +1,6 @@
 {
   "version": 2,
   "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/sypet/SyPet_09_eigenvalue.java",
-  "options": {
-    "strings": false
-  },
   "import": [
     "../../../classes/linear/matrix.ts",
     "../../../classes/linear/eigen.ts",

@@ -1,20 +1,24 @@
 {
   "version": 2,
-    "variables": {
-      "document": "DOM"
-    },
-    "stringLiterals": ["students"],
-    "returnType": "DOMElement",
-    "examples": [
-      {
-        "input": {
-          "document": "#../../doms/StudentsListDom.html"
-        },
-        "output": "#../../doms/StudentsListElement.html"
-      }
-    ],
-    "solution": {
-      "has_side_effects": "no",
-      "expected": [ "document.getElementById(\"students\")" ]
+  "variables": {
+    "document": "DOM"
+  },
+  "stringLiterals": [
+    "students"
+  ],
+  "returnType": "DOMElement",
+  "examples": [
+    {
+      "input": {
+        "document": "#../../doms/StudentsListDom.html"
+      },
+      "output": "#../../doms/StudentsListElement.html"
     }
+  ],
+  "solution": {
+    "has_side_effects": "no",
+    "expected": [
+      "document.getElementById(\"students\")"
+    ]
   }
+}

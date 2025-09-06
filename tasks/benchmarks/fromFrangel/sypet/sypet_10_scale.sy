@@ -1,11 +1,6 @@
 {
   "version": 2,
   "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/sypet/SyPet_10_scale.java",
-  "options": {
-    "strings": false,
-    "pure": true,
-    "expression": true
-  },
   "import": [
     "../../../classes/geom/"
   ],
