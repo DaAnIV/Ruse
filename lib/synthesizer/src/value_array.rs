@@ -15,6 +15,10 @@ impl ValueArray {
     pub fn iter(&self) -> impl std::iter::Iterator<Item = &LocValue> {
         self.0.iter()
     }
+
+    pub fn get(&self, index: usize) -> Option<&LocValue> {
+        self.0.get(index)
+    }
 }
 
 impl From<Vec<LocValue>> for ValueArray {

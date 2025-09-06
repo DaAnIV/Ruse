@@ -10,10 +10,7 @@ use crate::{
 };
 use dashmap::DashSet;
 use futures::FutureExt;
-use ruse_object_graph::{
-    value::Value,
-    ValueType,
-};
+use ruse_object_graph::ValueType;
 use serde::ser::SerializeStruct;
 use std::{
     fmt::Display, ops::Index, panic, sync::{Arc, atomic::*}, time::Instant
@@ -21,8 +18,6 @@ use std::{
 use tokio::{runtime::Handle, task::JoinSet};
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, info_span, trace, Instrument};
-
-const ALLOW_NON_FINITE_NUMBER: bool = false;
 
 #[repr(usize)]
 #[derive(Clone, Copy, Debug)]
@@ -514,25 +509,13 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
         if p.num_mutations() > self.max_mutations {
             return false;
         }
-        if !p.out_value().iter().all(|x| self.check_out_value(x.val())) {
-            return false;
-        }
+
         if !(self.valid)(p, &self.context, worker_ctx) {
             return false;
         }
 
         if !p.is_terminal() && self.bank.output_exists(p).await {
             return false;
-        }
-
-        true
-    }
-
-    fn check_out_value(&self, val: &Value) -> bool {
-        if let Some(num) = val.number_value() {
-            if !ALLOW_NON_FINITE_NUMBER && !num.0.is_finite() {
-                return false;
-            }
         }
 
         true

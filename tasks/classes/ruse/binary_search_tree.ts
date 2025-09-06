@@ -103,7 +103,7 @@ export class BinarySearchTreeNode {
             return
         }
 
-        if (this.is_left != null) {
+        if (this.is_left) {
             this.parent._left = undefined;
         } else {
             this.parent._right = undefined;

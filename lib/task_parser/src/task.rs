@@ -32,7 +32,7 @@ use wildmatch::WildMatch;
 use crate::{
     error::SnythesisTaskError,
     io_err, parse_err,
-    predicate_builder::{PredicateBuilder, ValidPredicateBuilder},
+    predicate_builder::*,
     skip_err,
     task_type::{JsonValuesMap, TaskType},
     var_ref::{set_var_refs, verify_no_var_ref_circle, REF_GRAPH_ID},
@@ -648,22 +648,40 @@ impl SnythesisTask {
 
         let output_type = self.inner.return_type.as_ref().map(|x| x.value_type());
 
-        let builder = PredicateBuilder {
-            output_type,
-            output_array,
-            state_array,
-            predicate_js,
-            graphs_map: predicate_graphs_map,
-        };
+        let mut predicate_builder = PredicateBuilder::new(predicate_graphs_map);
+        if let Some(output_type) = output_type {
+            predicate_builder.add_predicate(OutputTypePredicate { output_type });
+        }
 
-        Ok(builder.finalize())
+        if let Some(output_array) = output_array {
+            predicate_builder.add_predicate(OutputPredicate { output_array });
+        }
+
+        if let Some(state_array) = state_array {
+            predicate_builder.add_predicate(StatePredicate { state_array });
+        }
+
+        if let Some(predicate_js) = predicate_js {
+            predicate_builder.add_predicate(JsPredicate { predicate_js });
+        }
+
+        Ok(predicate_builder.finalize())
     }
 
+    const ALLOW_NON_FINITE_NUMBER: bool = false;
+
     fn get_valid_predicate(&self) -> Result<SynthesizerPredicate, SnythesisTaskError> {
-        let builder = ValidPredicateBuilder {
+        let mut predicate_builder = PredicateBuilder::new(GraphsMap::default());
+
+        predicate_builder.add_predicate(NumberValidPredicate {
+            allow_non_finite: Self::ALLOW_NON_FINITE_NUMBER,
+        });
+
+        predicate_builder.add_predicate(StringSizeValidPredicate {
             max_string_size: self.inner.max_string_size.unwrap_or(30),
-        };
-        Ok(builder.finalize())
+        });
+
+        Ok(predicate_builder.finalize())
     }
 
     fn get_opcodes(&self, max_seq_size: usize) -> OpcodesList {

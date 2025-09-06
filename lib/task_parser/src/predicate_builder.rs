@@ -4,70 +4,122 @@ use ruse_object_graph::GraphsMap;
 use ruse_object_graph::{value::Value, ValueType};
 use ruse_synthesizer::context::{SynthesizerWorkerContext, ValuesMap};
 use ruse_synthesizer::{context::SynthesizerContext, prog::SubProgram};
-use ruse_ts_interpreter::js_value::TryIntoJs;
-use ruse_ts_interpreter::js_worker_context::JsWorkerContextData;
-use ruse_ts_interpreter::ts_classes::TsClasses;
+use ruse_ts_interpreter::js_evaluator::JsEvaluator;
 
 pub type SynthesizerPredicate = Box<
     dyn Fn(&SubProgram, &SynthesizerContext, &mut SynthesizerWorkerContext) -> bool + Send + Sync,
 >;
 
-pub struct PredicateBuilder {
-    pub output_type: Option<ValueType>,
-    pub output_array: Option<Vec<Value>>,
-    pub state_array: Option<Vec<ValuesMap>>,
-    pub predicate_js: Option<Vec<String>>,
+pub trait Predicate: Send + Sync {
+    fn predicate(
+        &self,
+        p: &SubProgram,
+        syn_ctx: &SynthesizerContext,
+        worker_ctx: &mut SynthesizerWorkerContext,
+        graphs_map: &GraphsMap,
+    ) -> bool;
+}
 
-    pub graphs_map: GraphsMap,
+pub struct PredicateBuilder {
+    predicates: Vec<Box<dyn Predicate>>,
+    graphs_map: GraphsMap,
 }
 
 impl PredicateBuilder {
-    fn output_type_predicate(&self, p: &SubProgram, _syn_ctx: &SynthesizerContext) -> bool {
-        if let Some(output_type) = &self.output_type {
-            p.out_type() == output_type
-        } else {
-            true
+    pub fn new(graphs_map: GraphsMap) -> Self {
+        Self {
+            predicates: Vec::new(),
+            graphs_map,
         }
     }
 
-    fn output_predicate_inner(
+    /// Add a predicate to the builder.
+    /// The predicate would be run in the order they are added.
+    /// Short-circuiting is applied, i.e., if one predicate returns false,
+    /// the remaining predicates would not be executed.
+    pub fn add_predicate<P: Predicate + 'static>(&mut self, predicate: P) {
+        self.predicates.push(Box::new(predicate));
+    }
+
+    pub fn finalize(self) -> SynthesizerPredicate {
+        let predicates = self.predicates;
+        let graphs_map = self.graphs_map;
+        Box::new(
+            move |p: &SubProgram,
+                  syn_ctx: &SynthesizerContext,
+                  worker_ctx: &mut SynthesizerWorkerContext| {
+                for predicate in &predicates {
+                    if !predicate.predicate(p, syn_ctx, worker_ctx, &graphs_map) {
+                        return false;
+                    }
+                }
+                true
+            },
+        )
+    }
+}
+
+pub struct OutputTypePredicate {
+    pub output_type: ValueType,
+}
+
+impl Predicate for OutputTypePredicate {
+    fn predicate(
         &self,
-        output_array: &[Value],
         p: &SubProgram,
         _syn_ctx: &SynthesizerContext,
+        _worker_ctx: &mut SynthesizerWorkerContext,
+        _graphs_map: &GraphsMap,
+    ) -> bool {
+        p.out_type() == &self.output_type
+    }
+}
+
+pub struct OutputPredicate {
+    pub output_array: Vec<Value>,
+}
+
+impl Predicate for OutputPredicate {
+    fn predicate(
+        &self,
+        p: &SubProgram,
+        _syn_ctx: &SynthesizerContext,
+        _worker_ctx: &mut SynthesizerWorkerContext,
+        graphs_map: &GraphsMap,
     ) -> bool {
         for (actual, actual_ctx, expected) in
-            izip!(p.out_value().iter(), p.post_ctx().iter(), output_array)
+            izip!(p.out_value().iter(), p.post_ctx().iter(), self.output_array.iter())
         {
-            if actual.val().wrap(&actual_ctx.graphs_map) != expected.wrap(&self.graphs_map) {
+            if actual.val().wrap(&actual_ctx.graphs_map)
+                != expected.wrap(graphs_map)
+            {
                 return false;
             }
         }
 
         true
     }
+}
 
-    fn output_predicate(&self, p: &SubProgram, syn_ctx: &SynthesizerContext) -> bool {
-        if let Some(output_array) = &self.output_array {
-            return self.output_predicate_inner(output_array, p, syn_ctx);
-        } else {
-            true
-        }
-    }
+pub struct StatePredicate {
+    pub state_array: Vec<ValuesMap>,
+}
 
-    fn state_predicate_inner(
+impl Predicate for StatePredicate {
+    fn predicate(
         &self,
-        state_array: &[ValuesMap],
         p: &SubProgram,
         _syn_ctx: &SynthesizerContext,
+        _worker_ctx: &mut SynthesizerWorkerContext,
+        graphs_map: &GraphsMap,
     ) -> bool {
-        for (actual, expected) in p.post_ctx().iter().zip_eq(state_array) {
+        for (actual, expected) in p.post_ctx().iter().zip_eq(self.state_array.iter()) {
             for (var, value) in expected.iter() {
                 let actual_value = match actual.get_var_value(var) {
                     None => return false,
                     Some(v) => v,
                 };
-                if actual_value.wrap(&actual.graphs_map) != value.wrap(&self.graphs_map) {
+                if actual_value.wrap(&actual.graphs_map) != value.wrap(graphs_map) {
                     return false;
                 }
             }
@@ -75,50 +127,25 @@ impl PredicateBuilder {
 
         true
     }
+}
 
-    fn state_predicate(&self, p: &SubProgram, syn_ctx: &SynthesizerContext) -> bool {
-        if let Some(state_array) = &self.state_array {
-            return self.state_predicate_inner(state_array, p, syn_ctx);
-        } else {
-            true
-        }
-    }
+pub struct JsPredicate {
+    pub predicate_js: Vec<String>,
+}
 
-    fn js_predicate_inner(
+impl Predicate for JsPredicate {
+    fn predicate(
         &self,
-        predicate_js: &[String],
         p: &SubProgram,
         syn_ctx: &SynthesizerContext,
         worker_ctx: &mut SynthesizerWorkerContext,
+        _graphs_map: &GraphsMap,
     ) -> bool {
-        let classes = syn_ctx.data.downcast_ref::<TsClasses>().unwrap();
-        let worker_ctx = worker_ctx
-            .data
-            .downcast_mut::<JsWorkerContextData>()
-            .unwrap();
-        let mut engine_ctx = worker_ctx.get_engine_ctx(classes);
-
         debug_assert!(
-            p.post_ctx().len() == p.out_value().len() && p.post_ctx().len() == predicate_js.len()
+            p.post_ctx().len() == p.out_value().len() && p.post_ctx().len() == self.predicate_js.len()
         );
-
-        for (ctx, output, js) in izip!(p.post_ctx().iter(), p.out_value().iter(), predicate_js) {
-            engine_ctx.reset_with_context(ctx, classes);
-            let mut arg_names = Vec::with_capacity(ctx.variable_count() + 1);
-            let mut js_values = Vec::with_capacity(ctx.variable_count() + 1);
-            for (var, value) in ctx.variables() {
-                arg_names.push(var.as_str());
-                js_values.push(value.try_into_js(&mut engine_ctx).unwrap());
-            }
-            arg_names.push("__output__");
-            js_values.push(output.val().try_into_js(&mut engine_ctx).unwrap());
-
-            let code = format!("({}) => {{return {}}}", arg_names.join(", "), js);
-            let js_func = engine_ctx
-                .eval(boa_engine::Source::from_bytes(&code))
-                .unwrap();
-            let func = js_func.as_callable().unwrap();
-            match func.call(&boa_engine::JsValue::null(), &js_values, &mut engine_ctx) {
+        for (ctx, output, js) in izip!(p.post_ctx().iter(), p.out_value().iter(), self.predicate_js.iter()) {
+            match JsEvaluator::evaluate_get_js_value(js, ctx, output.val(), syn_ctx, worker_ctx) {
                 Ok(val) => {
                     if let Some(b) = val.as_boolean() {
                         if b {
@@ -133,63 +160,20 @@ impl PredicateBuilder {
 
         true
     }
-
-    fn js_predicate(
-        &self,
-        p: &SubProgram,
-        syn_ctx: &SynthesizerContext,
-        worker_ctx: &mut SynthesizerWorkerContext,
-    ) -> bool {
-        if let Some(predicate_js) = &self.predicate_js {
-            return self.js_predicate_inner(predicate_js, p, syn_ctx, worker_ctx);
-        } else {
-            true
-        }
-    }
-
-    fn predicate(
-        &self,
-        p: &SubProgram,
-        syn_ctx: &SynthesizerContext,
-        worker_ctx: &mut SynthesizerWorkerContext,
-    ) -> bool {
-        if !self.output_type_predicate(p, syn_ctx) {
-            return false;
-        }
-        if !self.output_predicate(p, syn_ctx) {
-            return false;
-        }
-        if !self.state_predicate(p, syn_ctx) {
-            return false;
-        }
-        if !self.js_predicate(p, syn_ctx, worker_ctx) {
-            return false;
-        }
-
-        true
-    }
-
-    pub fn finalize(self) -> SynthesizerPredicate {
-        Box::new(
-            move |p: &SubProgram,
-                  syn_ctx: &SynthesizerContext,
-                  worker_ctx: &mut SynthesizerWorkerContext| {
-                self.predicate(p, syn_ctx, worker_ctx)
-            },
-        )
-    }
+    
 }
 
-pub struct ValidPredicateBuilder {
+pub struct StringSizeValidPredicate {
     pub max_string_size: usize,
 }
 
-impl ValidPredicateBuilder {
+impl Predicate for StringSizeValidPredicate {
     fn predicate(
         &self,
         p: &SubProgram,
         _syn_ctx: &SynthesizerContext,
         _worker_ctx: &mut SynthesizerWorkerContext,
+        _graphs_map: &GraphsMap,
     ) -> bool {
         if p.out_type() == &ValueType::String {
             if p.out_value().iter().any(|x| {
@@ -201,14 +185,28 @@ impl ValidPredicateBuilder {
         }
         true
     }
+}
 
-    pub fn finalize(self) -> SynthesizerPredicate {
-        Box::new(
-            move |p: &SubProgram,
-                  syn_ctx: &SynthesizerContext,
-                  worker_ctx: &mut SynthesizerWorkerContext| {
-                self.predicate(p, syn_ctx, worker_ctx)
-            },
-        )
+pub struct NumberValidPredicate {
+    pub allow_non_finite: bool,
+}
+
+impl Predicate for NumberValidPredicate {
+    fn predicate(
+        &self,
+        p: &SubProgram,
+        _syn_ctx: &SynthesizerContext,
+        _worker_ctx: &mut SynthesizerWorkerContext,
+        _graphs_map: &GraphsMap,
+    ) -> bool {
+        if p.out_type() == &ValueType::Number {
+            for x in p.out_value().iter() {
+                let num_val = unsafe { x.val().number_value().unwrap_unchecked() }.0;
+                if !self.allow_non_finite && !num_val.is_finite() {
+                    return false;
+                }
+            }
+        }
+        true
     }
 }

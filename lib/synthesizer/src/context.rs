@@ -1019,6 +1019,10 @@ impl ContextArray {
             cur.extend_graphs_map(other);
         }
     }
+
+    pub fn get(&self, index: usize) -> Option<&Box<Context>> {
+        self.inner.get(index)
+    }
 }
 
 #[macro_export]

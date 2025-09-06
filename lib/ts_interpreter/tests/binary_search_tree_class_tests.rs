@@ -4,7 +4,7 @@ use itertools::Itertools;
 use ruse_object_graph::{
     class_name, field_name,
     graph_map_value::GraphMapWrap,
-    mermaid::{self, MermaidConfig, SubgraphConfig},
+    mermaid::{self, MermaidConfig},
     root_name,
     value::{ObjectValue, Value},
     vnull, vnum, ClassName, GraphsMap, Number,
@@ -14,12 +14,17 @@ use ruse_synthesizer::{
     op_chain,
     test::helpers::evaluate_chain,
 };
-use ruse_task_parser::predicate_builder::PredicateBuilder;
+use ruse_task_parser::predicate_builder::{JsPredicate, PredicateBuilder};
 use ruse_ts_interpreter::{
-    engine_context::EngineContext, js_worker_context::create_js_worker_context, test::ts_op_helpers::*, ts_class::MethodKind, ts_classes::{TsClasses, TsClassesBuilder}, ts_user_class::TsUserClass
+    engine_context::EngineContext,
+    js_worker_context::create_js_worker_context,
+    test::ts_op_helpers::*,
+    ts_class::MethodKind,
+    ts_classes::{TsClasses, TsClassesBuilder},
+    ts_user_class::TsUserClass,
 };
 
-const BINARY_SEARCH_TREE_TS_PATH: &str = "../../benchmarks/tasks/classes/binary_search_tree.ts";
+const BINARY_SEARCH_TREE_TS_PATH: &str = "../../tasks/classes/ruse/binary_search_tree.ts";
 
 fn create_binary_tree_inner(
     values: &[usize],
@@ -85,9 +90,6 @@ fn create_binary_tree(
 fn tree_mermaid_config(name: &str) -> MermaidConfig {
     let mut mermaid_config = MermaidConfig::default();
     mermaid_config.exclude_fields.insert("parent".to_owned());
-    mermaid_config.subgraph = Some(SubgraphConfig {
-        name: name.to_owned(),
-    });
     mermaid_config.prefix = Some(format!("{}", mermaid::EscapedName(name)));
 
     mermaid_config
@@ -295,7 +297,7 @@ impl<'a> TreeHelper<'a> {
         })
     }
 
-    fn find_value(&self, value: usize) -> Option<TreeHelper> {
+    fn find_value(&'_ self, value: usize) -> Option<TreeHelper<'_>> {
         let mut cur_node_opt = Some(self.clone());
         while let Some(cur_node) = cur_node_opt {
             if value == cur_node.value() {
@@ -512,18 +514,15 @@ fn check_delete_two_children() {
         .collect_vec();
     initial_trees[0].print_mermaid(&format!("initial_tree"));
 
-    let predicate = PredicateBuilder {
-        output_type: None,
-        output_array: None,
-        state_array: None,
-        predicate_js: Some(vec![
+    let mut predicate_builder = PredicateBuilder::new(GraphsMap::default());
+    predicate_builder.add_predicate(JsPredicate {
+        predicate_js: vec![
             get_predicate_js(10),
             get_predicate_js(2),
             get_predicate_js(5),
-        ]),
-        graphs_map: Default::default(),
-    }
-    .finalize();
+        ],
+    });
+    let predicate = predicate_builder.finalize();
 
     let node_to_delete_ident_op = id_op("node_to_delete");
 
