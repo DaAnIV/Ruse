@@ -579,11 +579,10 @@ impl ExprOpcode for ArrayReverseOp {
         _worker_ctx: &mut SynthesizerWorkerContext,
     ) -> EvalResult {
         let arr = args[0].val().obj().unwrap();
-        let graph = arr.graph(&post_ctx.graphs_map);
 
         let values: Vec<Value> = arr.array_values_iterator(&post_ctx.graphs_map).collect();
         for (i, value) in values.iter().rev().enumerate() {
-            post_ctx.set_field(graph.id, arr.node, field_name!(i.to_string()), &value);
+            post_ctx.set_field(arr.graph_id, arr.node, field_name!(i.to_string()), &value);
         }
 
         dirty!(post_ctx.temp_value(Value::Object(arr.clone())))
@@ -788,7 +787,13 @@ impl ExprOpcode for ArrayShiftOp {
         if arr_len == 0 {
             return Err(());
         }
-        let idx_field_name = field_name!((0).to_string().as_str());
+        let values: Vec<Value> = arr.array_values_iterator(&post_ctx.graphs_map).collect();
+        for (i, value) in values.iter().skip(1).enumerate() {
+            post_ctx.set_field(arr.graph_id, arr.node, field_name!(i.to_string()), &value);
+        }
+
+        // Delete the last field
+        let idx_field_name = field_name!((arr_len - 1).to_string().as_str());
         if let Some(result) = post_ctx.delete_field(arr.graph_id, arr.node, &idx_field_name) {
             dirty!(post_ctx.temp_value(result))
         } else {
