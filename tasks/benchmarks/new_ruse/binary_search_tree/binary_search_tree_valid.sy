@@ -1,14 +1,14 @@
 {
   "version": 2,
   "import": [
-    "../../classes/ruse/binary_search_tree.ts"
+    "../../../classes/ruse/binary_search_tree.ts"
   ],
   "variables": {
     "tree": "BinarySearchTreeNode"
   },
   "intLiterals": [],
   "stringLiterals": [],
-  "returnType": "Int",
+  "returnType": "Bool",
   "examples": [
     {
       "input": {
@@ -27,7 +27,7 @@
           ]
         }
       },
-      "output": 2
+      "output": true
     },
     {
       "input": {
@@ -54,13 +54,13 @@
           ]
         }
       },
-      "output": 3
+      "output": false
     }
   ],
   "solution": {
     "has_side_effects": "no",
     "expected": [
-      "tree.height"
+      "tree.valid()"
     ]
   }
 }

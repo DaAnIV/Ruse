@@ -1,7 +1,7 @@
 {
   "version": 2,
   "import": [
-    "../../classes/ruse/user.ts"
+    "../../../classes/ruse/user.ts"
   ],
   "variables": {
     "a": "User"

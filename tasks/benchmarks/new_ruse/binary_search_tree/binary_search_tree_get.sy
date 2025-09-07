@@ -1,7 +1,7 @@
 {
     "version": 2,
     "import": [
-        "../../classes/ruse/binary_search_tree.ts"
+        "../../../classes/ruse/binary_search_tree.ts"
     ],
     "variables": {
       "tree": "BinarySearchTreeNode"

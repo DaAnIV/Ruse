@@ -10,9 +10,9 @@
   "examples": [
     {
       "input": {
-        "document": "#../../doms/StudentsListDom.html"
+        "document": "#../../../doms/StudentsListDom.html"
       },
-      "output": "#../../doms/StudentsListElement.html"
+      "output": "#../../../doms/StudentsListElement.html"
     }
   ],
   "solution": {
