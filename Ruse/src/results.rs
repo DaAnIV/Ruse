@@ -1,7 +1,6 @@
 use std::{
     fs::File,
     path::{Path, PathBuf},
-    sync::Arc,
     time::Duration,
     vec,
 };
@@ -94,20 +93,19 @@ impl BenchmarkResult {
         self.error = Some(error.to_string());
     }
 
-    pub fn finish(
-        &mut self,
-        found: Option<Arc<SubProgram>>,
-        time: Duration,
-        statistics: CurrentStatistics,
-    ) {
+    pub fn set_total_time(&mut self, time: Duration) {
         self.total_time = Some(time);
-        if let Some(p) = found {
-            self.found = Some(ResultSolution {
-                has_side_effects: p.num_mutations() > 0,
-                num_mutations: p.num_mutations(),
-                found: p.get_code(),
-            });
-        }
+    }
+
+    pub fn set_found(&mut self, p: &SubProgram) {
+        self.found = Some(ResultSolution {
+            has_side_effects: p.num_mutations() > 0,
+            num_mutations: p.num_mutations(),
+            found: p.get_code(),
+        });
+    }
+
+    pub fn set_total_statistics(&mut self, statistics: CurrentStatistics) {
         self.total_statistics = Some(statistics);
     }
 

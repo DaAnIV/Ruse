@@ -114,6 +114,35 @@ enum SynthesizerResult {
     NotFound,
 }
 
+impl SynthesizerResult {
+    fn should_stop(&self) -> bool {
+        !matches!(self, SynthesizerResult::NotFound)
+    }
+}
+
+async fn run_iteration<P: ProgBank + 'static>(
+    synthesizer: &mut TsSynthesizer<P>,
+    cancel_token: &CancellationToken,
+    result: &mut BenchmarkResult,
+) -> SynthesizerResult {
+    let iteration_start = Instant::now();
+    let synthesizer_result = tokio::select! {
+        _ = cancel_token.cancelled() => SynthesizerResult::Cancelled,
+        v = synthesizer.run_iteration() => {
+            match v {
+                Ok(Some(p)) => SynthesizerResult::Found(p),
+                Err(e) => SynthesizerResult::Error(e.to_string()),
+                Ok(None) => SynthesizerResult::NotFound,
+            }
+        }
+    };
+    let iteration_took = iteration_start.elapsed();
+    debug!(target: "ruse::runner", "Iteration took {:.3}s", iteration_took.as_secs_f32());
+    result.add_iteration(iteration_took, synthesizer.statistics());
+
+    synthesizer_result
+}
+
 async fn run_synthesizer<P: ProgBank + 'static>(
     synthesizer: &mut TsSynthesizer<P>,
     result: &mut BenchmarkResult,
@@ -122,50 +151,34 @@ async fn run_synthesizer<P: ProgBank + 'static>(
 ) -> bool {
     let _span = info_span!(target: "ruse::runner", "synthesizer_run").entered();
 
-    let start = Instant::now();
     let mut synthesizer_result = SynthesizerResult::NotFound;
-    for _ in 0..max_iterations {
-        let iteration_start = Instant::now();
-        synthesizer_result = tokio::select! {
-            _ = cancel_token.cancelled() => SynthesizerResult::Cancelled,
-            v = synthesizer.run_iteration() => {
-                match v {
-                    Ok(Some(p)) => SynthesizerResult::Found(p),
-                    Err(e) => SynthesizerResult::Error(e.to_string()),
-                    Ok(None) => SynthesizerResult::NotFound,
-                }
-            }
-        };
-        let iteration_took = iteration_start.elapsed();
-        result.add_iteration(iteration_took, synthesizer.statistics());
-        match &synthesizer_result {
-            SynthesizerResult::NotFound => (),
-            _ => break,
+    for i in 0..max_iterations {
+        debug!(target: "ruse::runner", "Starting iteration {}", i);
+        synthesizer_result = run_iteration(synthesizer, &cancel_token, result).await;
+        if synthesizer_result.should_stop() {
+            break;
         }
     }
-    let took = start.elapsed();
-    let found = match synthesizer_result {
+
+    let success = match synthesizer_result {
         SynthesizerResult::Found(sub_program) => {
             info!(target: "ruse::runner", "Found \"{}\"", sub_program.get_code());
-            Some(sub_program)
+            result.set_found(&sub_program);
+            true
         }
         SynthesizerResult::Error(e) => {
             error!(target: "ruse::runner", "Error in synthesizer {}", &e);
             result.error_string(&e);
-            None
+            false
         }
-        SynthesizerResult::Cancelled => None,
+        SynthesizerResult::Cancelled => false,
         SynthesizerResult::NotFound => {
             error!(target: "ruse::runner", "Reached max iterations");
             let err = ReachedMaxIterationError {};
             result.error(&err);
-            None
+            false
         }
     };
-
-    let success = found.is_some();
-    result.finish(found, took, synthesizer.statistics());
-    info!(target: "ruse::runner", "Benchmark took {:.3}s", took.as_secs_f32());
 
     return success;
 }
@@ -218,12 +231,11 @@ async fn run_task_with_bank<P: ProgBank + 'static>(
             return Err(RunnerError::SynthesizerCreateError(e));
         }
     };
-    debug!(target: "ruse::runner", { 
+    debug!(target: "ruse::runner", {
         synthesizer.json = %synthesizer.json_display()
     }, "Benchmark {} Synthesizer", task_path.display());
 
     if bench_config.dry_run {
-        result.finish(None, Duration::from_secs(0), Default::default());
         return Ok(false);
     }
 
@@ -239,15 +251,20 @@ async fn run_task_with_bank<P: ProgBank + 'static>(
     );
 
     let mut max_vm_usage = Byte::from_u64(0);
+    let start = Instant::now();
     let res = watch_for_error(timeout, bench_config, &mut max_vm_usage).await;
+    let took = start.elapsed();
+
+    info!(target: "ruse::runner", "Benchmark took {:.3}s", took.as_secs_f32());
+
+    result.set_total_time(took);
+    result.set_total_statistics(synthesizer.statistics());
     result.set_max_vm_usage(max_vm_usage);
     match res {
         Ok(success) => Ok(success),
         Err(e) => {
             cancel_token.cancel();
             result.error(&e);
-            result.add_iteration(Duration::from_secs(0), synthesizer.statistics());
-            result.finish(None, bench_config.timeout, synthesizer.statistics());
             Err(e)
         }
     }
@@ -421,7 +438,6 @@ pub fn run_all_benchmarks<F: Formatter + Sync + Send + Clone + 'static>(
         if ctrlc {
             let mut result = BenchmarkResult::new(benchmark.as_path());
             result.error(&RunnerError::CtrlC);
-            result.finish(None, Duration::from_secs(0), Default::default());
             writer.write_result(&result, i);
         } else {
             let task_channel = run_task(benchmark.as_path(), i, &bench_config, &writer)
