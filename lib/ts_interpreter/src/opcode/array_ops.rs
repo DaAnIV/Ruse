@@ -794,11 +794,8 @@ impl ExprOpcode for ArrayShiftOp {
 
         // Delete the last field
         let idx_field_name = field_name!((arr_len - 1).to_string().as_str());
-        if let Some(result) = post_ctx.delete_field(arr.graph_id, arr.node, &idx_field_name) {
-            dirty!(post_ctx.temp_value(result))
-        } else {
-            Err(())
-        }
+        post_ctx.delete_field(arr.graph_id, arr.node, &idx_field_name).ok_or(())?;
+        dirty!(post_ctx.temp_value(values[0].clone()))
     }
 
     fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
