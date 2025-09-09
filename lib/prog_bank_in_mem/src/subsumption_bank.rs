@@ -28,7 +28,7 @@ impl ProgOutput {
         self.0.out_value()
     }
     fn effect(&self) -> Option<&ContextArray> {
-        if self.0.dirty() {
+        if self.0.num_mutations() > 0 {
             Some(self.0.post_ctx())
         } else {
             None
