@@ -264,6 +264,7 @@ async fn run_task_with_bank<P: ProgBank + 'static>(
         Ok(success) => Ok(success),
         Err(e) => {
             cancel_token.cancel();
+            result.add_iteration(Duration::default(), synthesizer.statistics());
             result.error(&e);
             Err(e)
         }
