@@ -125,7 +125,7 @@ impl LocValue {
         graphs_map: &GraphsMap,
         field_name: &FieldName,
     ) -> Option<Self> {
-        let obj = self.val().obj().unwrap();
+        let obj = self.val().obj()?;
         let field = obj.get_field_value(field_name, graphs_map)?;
         let attrs = obj.get_field_attrs(field_name, graphs_map)?;
         let loc = match &self.loc() {

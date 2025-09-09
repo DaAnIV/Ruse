@@ -185,7 +185,7 @@ impl fmt::Display for PrimitiveValue {
         match self {
             PrimitiveValue::Number(n) => write!(f, "{}", n),
             PrimitiveValue::Bool(b) => write!(f, "{}", b),
-            PrimitiveValue::String(s) => write!(f, "{}", s),
+            PrimitiveValue::String(s) => write!(f, "'{}'", s),
         }
     }
 }
