@@ -10,7 +10,7 @@
     "mat": "Matrix",
     "index": "Int"
   },
-  "returnType": "[number, number]",
+  "returnType": "[Double]",
   "examples": [
     {
       "input": {
@@ -27,8 +27,11 @@
       },
       "predicate_js": [
         "((eigenvalue) => {",
+        "if (eigenvalue.length != 2) { return false; }",
         "let epsilon = 1e-10;",
-        "Math.abs(eigenvalue[0] - 5) < epsilon && Math.abs(eigenvalue[1] - 5*Math.sqrt(7)) < epsilon",
+        "let expected = [5, 5*Math.sqrt(7)];",
+        "let result = Math.abs(eigenvalue[0] - expected[0]) < epsilon && Math.abs(eigenvalue[1] - expected[1]) < epsilon;",
+        "return result;",
         "})(__output__)"
       ]
       
@@ -48,8 +51,11 @@
       },
       "predicate_js": [
         "((eigenvalue) => {",
+        "if (eigenvalue.length != 2) { return false; }",
         "let epsilon = 1e-10;",
-        "Math.abs(eigenvalue[0] + 2) < epsilon && Math.abs(eigenvalue[1]) < epsilon",
+        "let expected = [-2, 0];",
+        "let result = Math.abs(eigenvalue[0] - expected[0]) < epsilon && Math.abs(eigenvalue[1] - expected[1]) < epsilon;",
+        "return result;",
         "})(__output__)"
       ]
     }
