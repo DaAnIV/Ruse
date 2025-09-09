@@ -11,6 +11,7 @@ use itertools::Itertools;
 use crate::{
     connected_components::*,
     field_name, graph_equality,
+    graph_walk::ObjectGraphWalker,
     value::{ObjectValue, Value},
     vobj, EdgeEndPoint, FieldName, FieldsMap, GraphIndex, NodeIndex, ObjectGraph, ObjectGraphNode,
     ObjectType, PointersMap, PrimitiveField, PrimitiveValue, RootName, ValueType,
@@ -144,6 +145,22 @@ impl GraphsMap {
             .unwrap()
             .neighbors(&node)
             .map(move |(_, edge)| (edge.graph.unwrap_or(graph), edge.node))
+    }
+
+    pub fn set_as_immutable(&mut self, root: &RootName) {
+        let nodes = if let Some(graph_root) = self.roots.get(root) {
+            ObjectGraphWalker::from_node(&self, graph_root.graph, graph_root.node)
+                .map(|(graph, node, _)| (graph.id, node))
+                .collect_vec()
+        } else {
+            vec![]
+        };
+
+        for (graph_id, node_id) in nodes {
+            let graph = Arc::make_mut(self.get_mut(&graph_id).unwrap());
+            let node = graph.get_mut_node(&node_id).unwrap();
+            node.attributes.readonly = true;
+        }
     }
 }
 

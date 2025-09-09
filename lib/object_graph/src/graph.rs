@@ -48,7 +48,7 @@ impl ObjectGraph {
         self.nodes.get(id)
     }
 
-    fn get_mut_node(&mut self, id: &NodeIndex) -> Option<&mut ObjectGraphNode> {
+    pub(crate) fn get_mut_node(&mut self, id: &NodeIndex) -> Option<&mut ObjectGraphNode> {
         Some(Arc::make_mut(self.nodes.get_mut(id)?))
     }
 

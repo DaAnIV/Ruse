@@ -156,12 +156,15 @@ impl SnythesisTaskExamples {
         Ok(())
     }
 
-    fn create_context(
+    fn create_context<'a, I>(
         &self,
         variables: &HashMap<String, TaskType>,
+        immutable: I,
         classes: &TsClasses,
         engine_ctx: &mut EngineContext,
-    ) -> Result<Box<Context>, SnythesisTaskError> {
+    ) -> Result<Box<Context>, SnythesisTaskError>
+    where
+        I: Iterator<Item = &'a String> {
         let id_gen = Arc::new(GraphIdGenerator::with_initial_values(
             classes.static_classes_gen_id.max_node_id(),
             classes.static_classes_gen_id.max_graph_id(),
@@ -180,6 +183,11 @@ impl SnythesisTaskExamples {
         )?;
         set_var_refs(variables, &mut values, &mut graphs_map)?;
         graphs_map.remove(REF_GRAPH_ID);
+
+        for var in immutable {
+            graphs_map.set_as_immutable(&root_name!(var.as_str()));   
+        }
+
         Ok(Context::with_values(values, graphs_map.into(), id_gen))
     }
 
@@ -804,7 +812,11 @@ impl SnythesisTask {
         let mut values = Vec::with_capacity(examples.len());
 
         for example in examples {
-            values.push(example.create_context(variables, &self.classes, engine_ctx)?);
+            if let Some(immutable) = &self.inner.immutable {
+                values.push(example.create_context(variables, immutable.iter(), &self.classes, engine_ctx)?);
+            } else {
+                values.push(example.create_context(variables, std::iter::empty(), &self.classes, engine_ctx)?);
+            }
         }
 
         Ok(values.into())
