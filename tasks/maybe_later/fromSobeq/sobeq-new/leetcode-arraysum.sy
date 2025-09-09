@@ -5,6 +5,7 @@
     "n": "Int",
     "runningSum": "[Int]"
   },
+  "intLiterals": [-1],
   "returnType": "[Int]",
   "examples": [
     {
@@ -43,7 +44,7 @@
   "solution": {
     "has_side_effects": "yes",
     "expected": [
-      "runningSum.push(runningSum.slice(-1) + n); runningSum"
+      "runningSum.push(runningSum.at(-1) + n); runningSum"
     ]
   }
 }
