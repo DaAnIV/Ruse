@@ -655,19 +655,19 @@ class LogViewer {
                     <div class="info-grid">
                         <div class="info-item">
                             <span class="info-label">OS:</span>
-                            <span class="info-value">${results.sysinfo?.name || 'Unknown'} ${results.sysinfo?.os || ''}</span>
+                            <span class="info-value">${results.metadata.sysinfo?.name || 'Unknown'} ${results.metadata.sysinfo?.os || ''}</span>
                         </div>
                         <div class="info-item">
                             <span class="info-label">Kernel:</span>
-                            <span class="info-value">${results.sysinfo?.kernel || 'Unknown'}</span>
+                            <span class="info-value">${results.metadata.sysinfo?.kernel || 'Unknown'}</span>
                         </div>
                         <div class="info-item">
                             <span class="info-label">CPU:</span>
-                            <span class="info-value">${results.sysinfo?.cpu || 'Unknown'}</span>
+                            <span class="info-value">${results.metadata.sysinfo?.cpu || 'Unknown'}</span>
                         </div>
                         <div class="info-item">
                             <span class="info-label">Cores:</span>
-                            <span class="info-value">${results.sysinfo?.cpu_core_count || 'Unknown'}</span>
+                            <span class="info-value">${results.metadata.sysinfo?.cpu_core_count || 'Unknown'}</span>
                         </div>
                     </div>
                 </div>
@@ -677,31 +677,31 @@ class LogViewer {
                     <div class="config-summary">
                         <div class="config-item">
                             <span class="config-label">Timeout:</span>
-                            <span class="config-value">${results.config?.timeout || 'Unknown'}s</span>
+                            <span class="config-value">${results.metadata.config?.timeout || 'Unknown'}s</span>
                         </div>
                         <div class="config-item">
                             <span class="config-label">Max Iterations:</span>
-                            <span class="config-value">${results.config?.max_iterations || 'Unknown'}</span>
+                            <span class="config-value">${results.metadata.config?.max_iterations || 'Unknown'}</span>
                         </div>
                         <div class="config-item">
                             <span class="config-label">Multi-thread:</span>
-                            <span class="config-value">${results.config?.multi_thread ? 'Yes' : 'No'}</span>
+                            <span class="config-value">${results.metadata.config?.multi_thread ? 'Yes' : 'No'}</span>
                         </div>
                         <div class="config-item">
-                            <span class="config-label">Max Context Depth:</span>
-                            <span class="config-value">${results.config?.max_context_depth || 'Unknown'}</span>
+                            <span class="config-label">Max Mutations:</span>
+                            <span class="config-value">${results.metadata.config?.max_mutations || 'Unknown'}</span>
                         </div>
                         <div class="config-item">
                             <span class="config-label">Iteration Workers:</span>
-                            <span class="config-value">${results.config?.iteration_workers_count || 'Unknown'}</span>
+                            <span class="config-value">${results.metadata.config?.iteration_workers_count || 'Unknown'}</span>
                         </div>
                         <div class="config-item">
                             <span class="config-label">Max Task Memory:</span>
-                            <span class="config-value">${results.config?.max_task_mem || 'Unknown'}</span>
+                            <span class="config-value">${results.metadata.config?.max_task_mem || 'Unknown'}</span>
                         </div>
                         <div class="config-item">
                             <span class="config-label">Bank Type:</span>
-                            <span class="config-value">${Object.keys(results.config?.bank_config)[0] || 'Unknown'}</span>
+                            <span class="config-value">${Object.keys(results.metadata.config?.bank_config)[0] || 'Unknown'}</span>
                         </div>
                     </div>
                                         
@@ -709,7 +709,7 @@ class LogViewer {
                     <div class="config-details" style="display: none;">
                         <h5>Full Configuration</h5>
                         <div class="full-config">
-                            <pre class="config-json">${JSON.stringify(results.config, null, 2)}</pre>
+                            <pre class="config-json">${JSON.stringify(results.metadata.config, null, 2)}</pre>
                         </div>
                     </div>
                 </div>
@@ -738,8 +738,9 @@ class LogViewer {
                                         <span>Evaluated: ${task.total_statistics.Evaluated}</span>
                                         <span>Bank Size: ${task.total_statistics.BankSize}</span>
                                         <span>Max Depth: ${task.total_statistics.MaxDepth}</span>
-                                        <span>Max Context Depth: ${task.total_statistics.MaxContextDepth}</span>
+                                        <span>Max Mutations: ${task.total_statistics.MaxMutatingOpcodes}</span>
                                         <span>Max Size: ${task.total_statistics.MaxSize}</span>
+                                        <span>Found Context: ${task.total_statistics.FoundContextCount}</span>
                                     </div>
 
                                     ${task.found ? `<div class="task-found">Found: ${task.found}</div>` : ''}
@@ -757,8 +758,9 @@ class LogViewer {
                                                 <span>Evaluated: ${iter.statistics.Evaluated}</span>
                                                 <span>Bank Size: ${iter.statistics.BankSize}</span>
                                                 <span>Max Depth: ${iter.statistics.MaxDepth}</span>
-                                                <span>Max Context Depth: ${iter.statistics.MaxContextDepth}</span>
+                                                <span>Max Mutations: ${iter.statistics.MaxMutatingOpcodes}</span>
                                                 <span>Max Size: ${iter.statistics.MaxSize}</span>
+                                                <span>Found Context: ${iter.statistics.FoundContextCount}</span>
                                             </div>
                                         </div>
                                     `).join('')}
@@ -997,7 +999,7 @@ class LogViewer {
                 html += `<div class="log-task">
                     <span class="task-label">Task:</span>
                     <span class="task-name">${this.escapeHtml(log._meta.span.task)}</span>
-                    ${(log._meta.span.iteration !== undefined) ? `<span class="task-iteration">(iteration: ${log._meta.span.iteration})</span>` : ''}
+                    ${(log._meta.span.iteration != null) ? `<span class="task-iteration">(iteration: ${log._meta.span.iteration})</span>` : ''}
                 </div>`;
             } else {
                 // Log without task belongs to "metadata" category

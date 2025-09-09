@@ -42,34 +42,47 @@ class LogPreprocessor {
     /**
      * Parse result file and extract metadata
      */
-    async parseResultFile(runId, resultFilePath) {
-        if (!fs.existsSync(resultFilePath)) {
-            throw new Error(`Result file not found: ${resultFilePath}`);
+    async parseResultFile(runId, resultDirPath) {
+        if (!fs.existsSync(resultDirPath)) {
+            throw new Error(`Result directory not found: ${resultDirPath}`);
         }
 
-        console.log(`Parsing result file: ${resultFilePath}`);
+        console.log(`Parsing result directory: ${resultDirPath}`);
         
         try {
-            const content = await fs.readFile(resultFilePath, 'utf8');
-            const result = JSON.parse(content);
+
+            let raw_tasks = [];
+            let raw_metadata = null;
+
+            fs.readdirSync(resultDirPath).forEach(file => {
+                const content = fs.readFileSync(path.join(resultDirPath, file), 'utf8');
+                if (file === 'metadata.json') {
+                    raw_metadata = JSON.parse(content);
+                } else {
+                    raw_tasks.push(JSON.parse(content));
+                }
+            });
             
             // Extract key information from result file
             const metadata = {
-                timestamp: result.timestamp,
-                runTime: new Date(result.timestamp * 1000).toISOString(),
-                sysinfo: result.sysinfo || {},
-                config: result.config || {},
-                taskCount: result.tasks ? result.tasks.length : 0,
-                passedTasks: result.tasks ? result.tasks.filter(t => !t.error).length : 0,
-                failedTasks: result.tasks ? result.tasks.filter(t => t.error).length : 0,
-                totalTime: this.calculateTotalTime(result.tasks || []),
-                averageTime: this.calculateAverageTime(result.tasks || []),
-                maxDepth: this.calculateMaxDepth(result.tasks || []),
-                maxSize: this.calculateMaxSize(result.tasks || [])
+                timestamp: raw_metadata.timestamp,
+                runTime: new Date(raw_metadata.timestamp * 1000).toISOString(),
+                sysinfo: raw_metadata.sysinfo || {},
+                config: raw_metadata.config || {},
+                taskCount: raw_tasks.length,
+                passedTasks: raw_tasks.filter(t => !t.error).length,
+                failedTasks: raw_tasks.filter(t => t.error).length,
+                totalTime: this.calculateTotalTime(raw_tasks || []),
+                averageTime: this.calculateAverageTime(raw_tasks || []),
+                maxDepth: this.calculateMaxDepth(raw_tasks || []),
+                maxSize: this.calculateMaxSize(raw_tasks || [])
             };
 
             return {
-                raw: result,
+                raw: {
+                    "tasks": raw_tasks,
+                    "metadata": raw_metadata
+                },
                 metadata: metadata
             };
         } catch (error) {
