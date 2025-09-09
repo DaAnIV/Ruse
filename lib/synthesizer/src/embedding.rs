@@ -43,8 +43,13 @@ pub fn merge_context_arrays(
         merged_post_ctx_vec.push(merged_post_ctx);
     }
 
-    let merged_pre_ctx = ContextArray::from(merged_pre_ctx_vec);
-    let merged_post_ctx = ContextArray::from(merged_post_ctx_vec);
+    let mut merged_pre_ctx = ContextArray::from(merged_pre_ctx_vec);
+    let mut merged_post_ctx = ContextArray::from(merged_post_ctx_vec);
+
+    // This is a conservative estimate of the depth
+    // If the contexts are equal this is exact, otherwise it may be an underestimate
+    merged_pre_ctx.depth = p_1_array.depth.max(p_2_array.depth);
+    merged_post_ctx.depth = q_1_array.depth.max(q_2_array.depth);
 
     Ok((merged_pre_ctx, merged_post_ctx))
 }

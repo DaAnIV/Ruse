@@ -510,6 +510,11 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
             return false;
         }
 
+        // Depth is an underestimate of the number of mutations from the initial context
+        if p.post_ctx().depth() > self.max_mutations {
+            return false;
+        }
+
         if !(self.valid)(p, &self.context, worker_ctx) {
             return false;
         }

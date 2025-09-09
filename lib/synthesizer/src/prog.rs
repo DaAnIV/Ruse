@@ -158,6 +158,7 @@ impl SubProgram {
 
         if dirty {
             self.num_mutating_opcodes += 1;
+            self.post_ctx.depth += 1;
         }
         self.dirty = Some(dirty);
         self.out_type = out_type;

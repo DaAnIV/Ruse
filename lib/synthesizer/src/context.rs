@@ -947,12 +947,17 @@ impl Display for ContextJsonDisplay {
 
 #[derive(Clone, Debug)]
 pub struct ContextArray {
+    pub(crate) depth: u32,
     inner: Vec<Box<Context>>,
 }
 
 impl ContextArray {
     pub fn len(&self) -> usize {
         self.inner.len()
+    }
+
+    pub fn depth(&self) -> u32 {
+        self.depth
     }
 
     pub fn is_empty(&self) -> bool {
@@ -990,6 +995,7 @@ impl ContextArray {
 
         Some(Self {
             inner: ctxs,
+            depth: self.depth,
         })
     }
 
@@ -1054,6 +1060,7 @@ impl Default for ContextArray {
                 GraphsMap::default().into(),
                 GraphIdGenerator::default().into(),
             )],
+            depth: 0,
         }
     }
 }
@@ -1063,6 +1070,7 @@ impl From<Vec<Box<Context>>> for ContextArray {
         assert!(!value.is_empty(), "Must have at least one example");
         let obj = ContextArray {
             inner: value,
+            depth: 0,
         };
         debug_assert!(obj.verify_contexts_vector());
         obj
