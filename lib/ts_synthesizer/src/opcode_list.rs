@@ -6,13 +6,13 @@ use std::sync::Arc;
 
 use swc_ecma_ast as ast;
 
-pub const ALL_BIN_NUM_OPCODES: [ast::BinaryOp; 4] = [
+pub const ALL_BIN_NUM_OPCODES: [ast::BinaryOp; 7] = [
     // ast::BinaryOp::NotEq,
-    // ast::BinaryOp::EqEqEq,
+    ast::BinaryOp::EqEqEq,
     // ast::BinaryOp::NotEqEq,
-    // ast::BinaryOp::Lt,
+    ast::BinaryOp::Lt,
     // ast::BinaryOp::LtEq,
-    // ast::BinaryOp::Gt,
+    ast::BinaryOp::Gt,
     // ast::BinaryOp::GtEq,
     // ast::BinaryOp::LShift,
     // ast::BinaryOp::RShift,
@@ -158,6 +158,7 @@ pub fn add_array_opcodes(opcodes: &mut OpcodesList, array_types: &[ValueType]) {
     for t in array_types {
         opcodes.push(Arc::new(opcode::ArrayLengthOp::new(t)));
         opcodes.push(Arc::new(opcode::ArrayIndexOp::new(t)));
+        opcodes.push(Arc::new(opcode::ArrayAtOp::new(t)));
         opcodes.push(Arc::new(opcode::ArraySliceOp::new(t, false)));
         opcodes.push(Arc::new(opcode::ArraySliceOp::new(t, true)));
         opcodes.push(Arc::new(opcode::ArrayConcatOp::new(t, 1)));

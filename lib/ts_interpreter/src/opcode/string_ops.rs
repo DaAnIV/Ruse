@@ -1,4 +1,3 @@
-use num_traits::cast::ToPrimitive;
 use ruse_object_graph::Number;
 use ruse_object_graph::{value::*, *};
 use ruse_synthesizer::location::*;
@@ -7,7 +6,7 @@ use ruse_synthesizer::{context::*, pure};
 use swc_common::DUMMY_SP;
 use swc_ecma_ast as ast;
 
-use crate::opcode::{get_end_index, get_start_index, member_call_ast, member_expr, TsExprAst};
+use crate::opcode::{get_index, member_call_ast, member_expr, TsExprAst, Wrapparound};
 
 #[derive(Debug)]
 pub struct StringSplitOp {
@@ -144,9 +143,9 @@ impl ExprOpcode for StringSliceOp {
     ) -> EvalResult {
         let string = args[0].val().string_value().unwrap();
 
-        let start = get_start_index(&args[1].val().number_value().unwrap(), string.len())?;
+        let start = get_index(&args[1].val().number_value().unwrap(), string.len(), Wrapparound::YesWithMax)?;
         let end = match args.get(2) {
-            Some(v) => get_end_index(&v.val().number_value().unwrap(), string.len())?,
+            Some(v) => get_index(&v.val().number_value().unwrap(), string.len(), Wrapparound::YesWithMax)?,
             None => string.len(),
         };
         if start >= end {
@@ -394,20 +393,10 @@ impl ExprOpcode for StringAtOp {
 
         let str_val = args[0].val().string_value().unwrap();
         let index = args[1].val().number_value().unwrap();
-        let index_isize = index.to_isize().ok_or(())?;
-
-        let index_usize = if index_isize >= 0 {
-            let index_usize = index_isize as usize;
-            if index_usize >= str_val.len() {
-                return Err(());
-            }
-            index_usize
-        } else {
-            if (-index_isize) as usize > str_val.len() {
-                return Err(());
-            }
-            (str_val.len() as isize + index_isize) as usize
-        };
+        let index_usize = get_index(&index, str_val.len(), Wrapparound::Yes)?;
+        if index_usize >= str_val.len() {
+            return Err(());
+        }
 
         let char_slice = &str_val[index_usize..=index_usize];
 
@@ -470,31 +459,19 @@ impl ExprOpcode for StringSubstringOp {
         debug_assert_eq!(args.len(), self.arg_types.len());
 
         let string = args[0].val().string_value().unwrap();
-        let istart = args[1].val().number_value().unwrap().0 as isize;
-        let iend = match args.get(2) {
-            Some(v) => v.val().number_value().unwrap().0 as isize,
-            None => string.len() as isize,
+        let istart = args[1].val().number_value().unwrap();
+        let end = match args.get(2) {
+            Some(v) => {
+                let num_size = v.val().number_value().unwrap();
+                get_index(&num_size, string.len(), Wrapparound::No)?
+            }
+            None => string.len(),
         };
-        let mut start = 0;
-        let mut end = 0;
 
-        if istart < 0 {
-            start = 0;
-        }
-        if istart > string.len() as isize {
-            start = string.len();
-        }
-        if iend > string.len() as isize {
-            end = string.len();
-        }
-        if iend < 0 {
-            end = 0;
-        }
+        let start = get_index(&istart, string.len(), Wrapparound::No)?;
 
         if start > end {
-            let temp = start;
-            start = end;
-            end = temp;
+            return Err(())
         }
 
         let substring = &string[start..end];

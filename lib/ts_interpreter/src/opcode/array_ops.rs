@@ -10,7 +10,7 @@ use std::cmp::min;
 use swc_common::DUMMY_SP;
 use swc_ecma_ast as ast;
 
-use crate::opcode::{get_end_index, get_start_index, member_call_ast, member_expr};
+use crate::opcode::{get_index, member_call_ast, member_expr, Wrapparound};
 
 use super::TsExprAst;
 
@@ -29,7 +29,7 @@ impl ArrayIndexOp {
 
 impl ExprOpcode for ArrayIndexOp {
     fn op_name(&self) -> &str {
-        "Array.prototype[Symbol.unscopables]"
+        "Array Index Op"
     }
 
     fn eval(
@@ -67,6 +67,60 @@ impl ExprOpcode for ArrayIndexOp {
         };
 
         TsExprAst::create(ast::Expr::Member(expr))
+    }
+
+    fn arg_types(&self) -> &[ValueType] {
+        &self.arg_types
+    }
+}
+
+
+#[derive(Debug)]
+pub struct ArrayAtOp {
+    arg_types: [ValueType; 2],
+}
+
+impl ArrayAtOp {
+    pub fn new(elem_type: &ValueType) -> Self {
+        Self {
+            arg_types: [ValueType::array_value_type(elem_type), ValueType::Number],
+        }
+    }
+}
+
+impl ExprOpcode for ArrayAtOp {
+    fn op_name(&self) -> &str {
+        "Array.prototype.at"
+    }
+
+    fn eval(
+        &self,
+        args: &[&LocValue],
+        post_ctx: &mut Context,
+        _syn_ctx: &SynthesizerContext,
+        _worker_ctx: &mut SynthesizerWorkerContext,
+    ) -> EvalResult {
+        debug_assert_eq!(args.len(), 2);
+
+        let arr = args[0].val().obj().unwrap();
+        let len = arr.total_field_count(&post_ctx.graphs_map);
+        let num = args[1].val().number_value().unwrap();
+        let index = get_index(&num, len, Wrapparound::Yes)?;
+        if index >= len {
+            return Err(());
+        }
+        let field_name = field_name!(index.to_string().as_str());
+
+        let field_value = args[0]
+            .get_obj_field_loc_value(&post_ctx.graphs_map, &field_name)
+            .ok_or(())?;
+
+        pure!(field_value)
+    }
+
+    fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
+        debug_assert_eq!(children.len(), 2);
+        member_call_ast("at", children)
     }
 
     fn arg_types(&self) -> &[ValueType] {
@@ -251,9 +305,9 @@ impl ExprOpcode for ArraySliceOp {
         let arr = args[0].val().obj().unwrap();
         let graph = arr.graph(&post_ctx.graphs_map);
         let arr_len = arr.total_field_count(&post_ctx.graphs_map);
-        let start = get_start_index(&args[1].val().number_value().unwrap(), arr_len)?;
+        let start = get_index(&args[1].val().number_value().unwrap(), arr_len, Wrapparound::YesWithMax)?;
         let end = match args.get(2) {
-            Some(v) => get_end_index(&v.val().number_value().unwrap(), arr_len)?,
+            Some(v) => get_index(&v.val().number_value().unwrap(), arr_len, Wrapparound::YesWithMax)?,
             None => arr_len,
         };
 
@@ -404,7 +458,7 @@ impl ExprOpcode for ArraySpliceOp {
         let arr = args[0].val().obj().unwrap();
         let graph = arr.graph(&post_ctx.graphs_map);
         let arr_len = arr.total_field_count(&post_ctx.graphs_map);
-        let start = get_start_index(&args[1].val().number_value().unwrap(), arr_len)?;
+        let start = get_index(&args[1].val().number_value().unwrap(), arr_len, Wrapparound::YesWithMax)?;
         let delete_count = match args.get(2) {
             Some(v) => {
                 let ivalue = v.val().number_value().unwrap().0 as isize;
@@ -708,7 +762,7 @@ impl ExprOpcode for ArraySortOp {
 
         let mut values: Vec<Value> = arr.array_values_iterator(&post_ctx.graphs_map).collect();
         values.sort_by(|a, b| match &self.elem_type {
-            ValueType::Number => a.number_value().unwrap().total_cmp(&b.number_value().unwrap()),
+            ValueType::Number => a.number_value().unwrap().partial_cmp(&b.number_value().unwrap()).unwrap(),
             ValueType::Bool => a.bool_value().unwrap().cmp(&b.bool_value().unwrap()),
             ValueType::String => a.string_value().unwrap().cmp(&b.string_value().unwrap()),
             ValueType::Object(_object_type) => unimplemented!("Array.prototype.sort with non-primitive type"),

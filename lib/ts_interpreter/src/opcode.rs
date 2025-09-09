@@ -1,4 +1,4 @@
-use std::{any::Any, sync::Arc};
+use std::{any::Any, cmp::max, sync::Arc};
 
 use num_traits::ToPrimitive;
 use ruse_object_graph::Number;
@@ -235,31 +235,31 @@ fn function_call_ast(callee_name: &str, children: &[Box<dyn ExprAst>]) -> Box<dy
     TsExprAst::create(ast::Expr::Call(expr))
 }
 
-fn get_start_index(value: &Number, len: usize) -> Result<usize, ()> {
-    let ilen = len as isize;
-    let ivalue = value.to_isize().ok_or(())?;
-
-    if ivalue >= ilen {
-        Ok(len)
-    } else if ivalue < -(ilen) {
-        Ok(0)
-    } else if ivalue < 0 {
-        Ok((ivalue + ilen) as usize)
-    } else {
-        Ok(ivalue as usize)
-    }
+enum Wrapparound {
+    YesWithMax,
+    Yes,
+    No,
 }
 
-fn get_end_index(value: &Number, len: usize) -> Result<usize, ()> {
+fn get_index(value: &Number, len: usize, wraparound: Wrapparound) -> Result<usize, ()> {
     let ilen = len as isize;
     let ivalue = value.to_isize().ok_or(())?;
 
     if ivalue >= ilen {
-        Ok(len)
-    } else if ivalue < -(ilen) {
-        Ok(0)
+        Ok(ilen as usize)
     } else if ivalue < 0 {
-        Ok((ivalue + ilen) as usize)
+        match wraparound {
+            Wrapparound::YesWithMax => Ok(max(ivalue + ilen, 0) as usize),
+            Wrapparound::Yes => {
+                let len = ivalue + ilen;
+                if len < 0 {
+                    Err(())
+                } else {
+                    Ok(len as usize)
+                }
+            },
+            Wrapparound::No => Ok(0),
+        }
     } else {
         Ok(ivalue as usize)
     }
