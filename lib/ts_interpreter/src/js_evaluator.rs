@@ -59,6 +59,7 @@ impl JsEvaluator {
         for (var, _) in ctx.variables() {
             arg_names.push(var.as_str());
         }
+        arg_names.push("__output__");
         let code = format!("({}) => {{return {}}}", arg_names.join(", "), js);
         engine_ctx.eval(boa_engine::Source::from_bytes(&code))
     }
