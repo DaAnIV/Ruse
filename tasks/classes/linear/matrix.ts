@@ -23,7 +23,7 @@ export class Matrix {
         return this.data[rowIndex][columnIndex];
     }
 
-    set(rowIndex: number, columnIndex: number, value: number) {
+    set(rowIndex: number, columnIndex: number, value: number): void {
         this.data[rowIndex][columnIndex] = value;
     }
 

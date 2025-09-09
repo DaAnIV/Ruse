@@ -62,15 +62,15 @@ export class EigenvalueDecomposition {
     return [this.d[index], this.e[index]];
   }
 
-  get realEigenvalues() {
+  get realEigenvalues(): Array<number> {
     return Array.from(this.d);
   }
 
-  get imaginaryEigenvalues() {
+  get imaginaryEigenvalues(): Array<number> {
     return Array.from(this.e);
   }
 
-  get eigenvectorMatrix() {
+  get eigenvectorMatrix(): Matrix {
     return this.V;
   }
 

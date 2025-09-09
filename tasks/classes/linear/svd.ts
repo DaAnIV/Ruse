@@ -507,7 +507,7 @@ export class SingularValueDecomposition {
         return this.s[0];
     }
 
-    get rank() {
+    get rank(): number {
         let tol = Math.max(this.m, this.n) * this.s[0] * Number.EPSILON;
         let r = 0;
         let s = this.s;
