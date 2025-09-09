@@ -686,7 +686,7 @@ impl SnythesisTask {
         });
 
         predicate_builder.add_predicate(StringSizeValidPredicate {
-            max_string_size: self.inner.max_string_size.unwrap_or(30),
+            max_string_size: self.inner.max_string_size.unwrap_or(100),
         });
 
         Ok(predicate_builder.finalize())
@@ -856,13 +856,13 @@ impl SnythesisTask {
             Self::DEFAULT_STRING_LITERALS.map(|x| x.to_string()),
         );
         if let Some(user_lit) = &inner.string_literals {
-            string_literals = HashSet::from_iter(user_lit.clone());
+            string_literals.extend(user_lit.iter().cloned());
         }
 
         let mut num_literals =
             HashSet::<_, BuildHasherDefault<DefaultHasher>>::from_iter(Self::DEFAULT_NUM_LITERALS);
         if let Some(user_lit) = &inner.int_literals {
-            num_literals = HashSet::from_iter(user_lit.clone());
+            num_literals.extend(user_lit.iter().cloned());
         }
 
         let mut builder = TsClassesBuilder::new();
