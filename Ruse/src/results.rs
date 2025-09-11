@@ -22,9 +22,10 @@ pub struct BenchmarksIteration {
 
 #[derive(Serialize, Debug, Clone)]
 struct ResultSolution {
-    has_side_effects: bool,
-    num_mutations: u32,
     found: String,
+    num_mutations: u32,
+    solution_size: u32,
+    solution_depth: u32,
 }
 
 #[derive(Serialize, Debug, Clone)]
@@ -99,9 +100,10 @@ impl BenchmarkResult {
 
     pub fn set_found(&mut self, p: &SubProgram) {
         self.found = Some(ResultSolution {
-            has_side_effects: p.num_mutations() > 0,
-            num_mutations: p.num_mutations(),
             found: p.get_code(),
+            num_mutations: p.num_mutations(),
+            solution_size: p.size(),
+            solution_depth: p.depth(),
         });
     }
 

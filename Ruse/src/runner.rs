@@ -449,6 +449,10 @@ pub fn run_all_benchmarks<F: Formatter + Sync + Send + Clone + 'static>(
                     ctrlc = true;
                 }
             }
+
+            if !bench_config.dry_run {
+                thread::sleep(Duration::from_secs(5)); // Give some time for the OS to reclaim memory
+            }
         }
     }
 }
