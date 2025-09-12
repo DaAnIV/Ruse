@@ -150,6 +150,8 @@ pub(crate) fn merge_context(
     let mut p1_hat_nodes_matches = HashSet::new();
     let mut q2_hat_nodes_matches = HashSet::new();
 
+    let mut outputs = Vec::new();
+
     let p_1_roots = context_reachable_graph_roots(p_1);
     let q_1_roots = context_reachable_graph_roots(q_1);
     let p_2_roots = context_reachable_graph_roots(p_2);
@@ -203,26 +205,36 @@ pub(crate) fn merge_context(
 
     embeddings_trace!("Intersecting roots graphs are equal");
 
-    for (var, _, _) in intersection {
-        if let Some(q_2_o) = q_2_roots.get(var) {
-            embed_root_object_value(
-                var,
-                q_2_o,
+    for (var, q_2_o) in &q_2_roots {
+        embed_root_object_value(
+            var,
+            q_2_o,
+            &mut q_2_map_hat,
+            q_2,
+            &new_nodes_2,
+            &mut q2_hat_nodes_matches,
+        )?;
+    }
+    for (var, p_1_o) in &p_1_roots {
+        embed_root_object_value(
+            var,
+            p_1_o,
+            &mut p_1_map_hat,
+            p_1,
+            &new_nodes_1,
+            &mut p1_hat_nodes_matches,
+        )?;
+    }
+
+    for output in q_2.outputs() {
+        outputs.push(output.clone());
+        if let Some(obj) = output.obj() {
+            embed_object_value(
+                obj,
                 &mut q_2_map_hat,
                 q_2,
                 &new_nodes_2,
                 &mut q2_hat_nodes_matches,
-            )?;
-        }
-
-        if let Some(p_1_o) = p_1_roots.get(var) {
-            embed_root_object_value(
-                var,
-                p_1_o,
-                &mut p_1_map_hat,
-                p_1,
-                &new_nodes_1,
-                &mut p1_hat_nodes_matches,
             )?;
         }
     }
@@ -236,16 +248,6 @@ pub(crate) fn merge_context(
             &new_nodes_1,
             &mut p1_hat_nodes_matches,
         )?;
-        if let Some(q_o_2) = q_2_roots.get(var) {
-            embed_root_object_value(
-                var,
-                q_o_2,
-                &mut q_2_map_hat,
-                q_2,
-                &new_nodes_2,
-                &mut q2_hat_nodes_matches,
-            )?;
-        }
     }
     for (var, o_1) in only_q_1 {
         embed_root_object_value(
@@ -256,19 +258,7 @@ pub(crate) fn merge_context(
             &new_nodes_2,
             &mut q2_hat_nodes_matches,
         )?;
-        if let Some(p_o_1) = p_1_roots.get(var) {
-            embed_root_object_value(
-                var,
-                p_o_1,
-                &mut p_1_map_hat,
-                p_1,
-                &new_nodes_1,
-                &mut p1_hat_nodes_matches,
-            )?;
-        }
     }
-
-    let mut outputs = Vec::new();
 
     for output in q_1.outputs() {
         outputs.push(output.clone());
@@ -277,18 +267,6 @@ pub(crate) fn merge_context(
                 obj,
                 &mut q_2_map_hat,
                 q_1,
-                &new_nodes_2,
-                &mut q2_hat_nodes_matches,
-            )?;
-        }
-    }
-    for output in q_2.outputs() {
-        outputs.push(output.clone());
-        if let Some(obj) = output.obj() {
-            embed_object_value(
-                obj,
-                &mut q_2_map_hat,
-                q_2,
                 &new_nodes_2,
                 &mut q2_hat_nodes_matches,
             )?;
