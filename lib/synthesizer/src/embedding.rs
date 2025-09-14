@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use crate::context::{Context, ContextArray};
 use itertools::{self, izip};
 use ruse_object_graph::{
-    graph_equality, graph_walk,
+    graph_equality,
     value::{ObjectValue, Value},
     GraphIndex, GraphsMap, NodeIndex, RootName,
 };
@@ -78,37 +78,6 @@ fn verify_matching_primitive_values(q_1: &Context, p_2: &Context) -> bool {
     return true;
 }
 
-fn context_reachable_graph_roots(ctx: &Context) -> HashMap<RootName, ObjectValue> {
-    let mut roots = HashMap::new();
-
-    let value_nodes = ctx.values.iter().filter_map(|(_, value)| {
-        if let Some(obj_val) = value.obj() {
-            Some((obj_val.graph_id, obj_val.node))
-        } else {
-            None
-        }
-    });
-
-    for (g, node_id, node) in
-        graph_walk::ObjectGraphWalker::from_nodes(&ctx.graphs_map, value_nodes)
-    {
-        if let Some(root_name) = ctx.graphs_map.node_root_names(&node_id) {
-            for r in root_name {
-                roots.insert(
-                    r.clone(),
-                    ObjectValue {
-                        obj_type: node.obj_type().clone(),
-                        graph_id: g.id,
-                        node: node_id,
-                    },
-                );
-            }
-        }
-    }
-
-    roots
-}
-
 pub(crate) fn merge_context(
     p_1: &Context,
     q_1: &Context,
@@ -131,12 +100,12 @@ pub(crate) fn merge_context(
     let mut p_1_map_hat = GraphsMap::default();
     let mut q_2_map_hat = GraphsMap::default();
 
-    for (n, v) in p_2.values.iter() {
+    for (n, v) in p_2.variables() {
         if !p_1_hat.contains_key(n) {
             p_1_hat.insert(n.clone(), v.clone());
         }
     }
-    for (n, v) in q_1.values.iter() {
+    for (n, v) in q_1.variables() {
         if !q_2_hat.contains_key(n) {
             q_2_hat.insert(n.clone(), v.clone());
         }
@@ -147,15 +116,20 @@ pub(crate) fn merge_context(
     q_2_map_hat.add_static_graphs(&q_2.graphs_map);
     q_2_map_hat.add_static_graphs(&q_1.graphs_map);
 
-    let mut p1_hat_nodes_matches = HashSet::new();
-    let mut q2_hat_nodes_matches = HashSet::new();
+    let mut p1_hat_nodes_matches = HashMap::new();
+    let mut q2_hat_nodes_matches = HashMap::new();
 
     let mut outputs = Vec::new();
 
-    let p_1_roots = context_reachable_graph_roots(p_1);
-    let q_1_roots = context_reachable_graph_roots(q_1);
-    let p_2_roots = context_reachable_graph_roots(p_2);
-    let q_2_roots = context_reachable_graph_roots(q_2);
+    let p_1_roots = p_1.object_variables().collect::<HashMap<_, _>>();
+    let q_1_roots = q_1.object_variables().collect::<HashMap<_, _>>();
+    let p_2_roots = p_2.object_variables().collect::<HashMap<_, _>>();
+    let q_2_roots = q_2.object_variables().collect::<HashMap<_, _>>();
+
+    // let (p_1_reachable, p_1_roots) = p_1.reachable_nodes_and_roots();
+    // let (q_1_reachable, q_1_roots) = q_1.reachable_nodes_and_roots();
+    // let (_p_2_reachable, p_2_roots) = p_2.reachable_nodes_and_roots();
+    // let (_q_2_reachable, q_2_roots) = q_2.reachable_nodes_and_roots();
 
     embeddings_trace!({
         p_1_roots = ?p_1_roots,
@@ -187,10 +161,9 @@ pub(crate) fn merge_context(
         only_q_1 = %only_q_1.iter().map(|x| x.0).join(", "),
     }, "Roots sets");
 
-    let new_nodes_1 = triplet_new_nodes(p_1, q_1);
-    let new_nodes_2 = HashSet::default();
+    let mut equal_nodes = HashMap::new();
 
-    if !graph_equality::equal_graphs_by_nodes(
+    if !graph_equality::equal_graphs_by_nodes_with_map(
         &q_1.graphs_map,
         &p_2.graphs_map,
         intersection
@@ -199,6 +172,7 @@ pub(crate) fn merge_context(
         intersection
             .iter()
             .map(|(_, _, o_2)| (o_2.graph_id, o_2.node)),
+        &mut equal_nodes,
     ) {
         return Err(());
     }
@@ -211,7 +185,7 @@ pub(crate) fn merge_context(
             q_2_o,
             &mut q_2_map_hat,
             q_2,
-            &new_nodes_2,
+            None,
             &mut q2_hat_nodes_matches,
         )?;
     }
@@ -221,7 +195,7 @@ pub(crate) fn merge_context(
             p_1_o,
             &mut p_1_map_hat,
             p_1,
-            &new_nodes_1,
+            None,
             &mut p1_hat_nodes_matches,
         )?;
     }
@@ -229,14 +203,13 @@ pub(crate) fn merge_context(
     for output in q_2.outputs() {
         outputs.push(output.clone());
         if let Some(obj) = output.obj() {
-            embed_object_value(
-                obj,
-                &mut q_2_map_hat,
-                q_2,
-                &new_nodes_2,
-                &mut q2_hat_nodes_matches,
-            )?;
+            embed_object_value(obj, &mut q_2_map_hat, q_2, None, &mut q2_hat_nodes_matches)?;
         }
+    }
+
+    for (nodes_1, nodes_2) in equal_nodes {
+        p1_hat_nodes_matches.insert(nodes_2, nodes_1);
+        q2_hat_nodes_matches.insert(nodes_1, nodes_2);
     }
 
     for (var, o_2) in only_p_2 {
@@ -245,7 +218,7 @@ pub(crate) fn merge_context(
             o_2,
             &mut p_1_map_hat,
             p_2,
-            &new_nodes_1,
+            Some((p_1, q_1)),
             &mut p1_hat_nodes_matches,
         )?;
     }
@@ -255,7 +228,7 @@ pub(crate) fn merge_context(
             o_1,
             &mut q_2_map_hat,
             q_1,
-            &new_nodes_2,
+            Some((p_2, q_2)),
             &mut q2_hat_nodes_matches,
         )?;
     }
@@ -267,7 +240,7 @@ pub(crate) fn merge_context(
                 obj,
                 &mut q_2_map_hat,
                 q_1,
-                &new_nodes_2,
+                Some((p_2, q_2)),
                 &mut q2_hat_nodes_matches,
             )?;
         }
@@ -285,42 +258,35 @@ pub(crate) fn merge_context(
     Ok((pre_ctx_hat, post_ctx_hat))
 }
 
-fn triplet_new_nodes(p_ctx: &Context, q_ctx: &Context) -> HashSet<NodeIndex> {
-    q_ctx
-        .reachable_nodes()
-        .difference(&p_ctx.reachable_nodes())
-        .map(|x| x.1)
-        .collect()
+fn embed_root_object_value(
+    var: &RootName,
+    obj_val: &ObjectValue,
+    map_hat: &mut GraphsMap,
+    ctx: &Context,
+    old_context: Option<(&Context, &Context)>,
+    matches: &mut HashMap<(GraphIndex, NodeIndex), (GraphIndex, NodeIndex)>,
+) -> Result<(), ()> {
+    embed_object_value(obj_val, map_hat, ctx, old_context, matches)?;
+    map_hat.set_as_root(var.clone(), obj_val.graph_id, obj_val.node);
+    Ok(())
 }
 
 fn embed_object_value(
     obj_val: &ObjectValue,
     map_hat: &mut GraphsMap,
-    old_ctx: &Context,
-    new_nodes: &HashSet<NodeIndex>,
-    matches: &mut HashSet<NodeIndex>,
+    ctx: &Context,
+    old_context: Option<(&Context, &Context)>,
+    matches: &mut HashMap<(GraphIndex, NodeIndex), (GraphIndex, NodeIndex)>,
 ) -> Result<(), ()> {
     embeddings_trace!({ value = ?obj_val }, "Embedding object");
     embed(
         map_hat,
         obj_val.graph_id,
-        &old_ctx.graphs_map,
+        &ctx.graphs_map,
         obj_val.node,
-        new_nodes,
+        old_context,
         matches,
     )
-}
-fn embed_root_object_value(
-    var: &RootName,
-    obj_val: &ObjectValue,
-    map_hat: &mut GraphsMap,
-    old_ctx: &Context,
-    new_nodes: &HashSet<NodeIndex>,
-    matches: &mut HashSet<NodeIndex>,
-) -> Result<(), ()> {
-    embed_object_value(obj_val, map_hat, old_ctx, new_nodes, matches)?;
-    map_hat.set_as_root(var.clone(), obj_val.graph_id, obj_val.node);
-    Ok(())
 }
 
 fn embed(
@@ -328,10 +294,10 @@ fn embed(
     graph_id: GraphIndex,
     graphs_map: &GraphsMap,
     node_id: NodeIndex,
-    new_nodes: &HashSet<NodeIndex>,
-    matches: &mut HashSet<NodeIndex>,
+    old_context: Option<(&Context, &Context)>,
+    matches: &mut HashMap<(GraphIndex, NodeIndex), (GraphIndex, NodeIndex)>,
 ) -> Result<(), ()> {
-    if matches.contains(&node_id) {
+    if matches.contains_key(&(graph_id, node_id)) {
         return Ok(());
     }
 
@@ -339,11 +305,11 @@ fn embed(
     let mut q = VecDeque::new();
 
     q.push_back((graph_id, node_id));
-    matches.insert(node_id);
+    matches.insert((graph_id, node_id), (graph_id, node_id));
     while let Some((cur_graph_id, cur_node_id)) = q.pop_front() {
         let graph = &graphs_map[cur_graph_id];
         if graph.is_static() {
-            matches.insert(cur_node_id);
+            matches.insert((cur_graph_id, cur_node_id), (cur_graph_id, cur_node_id));
             continue;
         }
         let node = graph.get_node(&cur_node_id).unwrap();
@@ -356,20 +322,25 @@ fn embed(
         );
 
         for (field_name, neig) in node.pointers_iter() {
+            let neig_graph = neig.graph.unwrap_or(cur_graph_id);
+
             edges.push((
                 field_name.clone(),
                 cur_graph_id,
                 cur_node_id,
-                neig.graph.unwrap_or(cur_graph_id),
+                neig_graph,
                 neig.node,
             ));
-            if matches.contains(&neig.node) {
-                if new_nodes.contains(&neig.node) {
-                    return Err(());
+            if let Some((hat_graph, hat_node)) = matches.get(&(neig_graph, neig.node)) {
+                if let Some((p, q)) = old_context {
+                    if p.contains_node(hat_graph, hat_node) != q.contains_node(hat_graph, hat_node)
+                    {
+                        return Err(());
+                    }
                 }
             } else {
-                q.push_back((neig.graph.unwrap_or(cur_graph_id), neig.node));
-                matches.insert(neig.node);
+                q.push_back((neig_graph, neig.node));
+                matches.insert((neig_graph, neig.node), (neig_graph, neig.node));
             }
         }
     }

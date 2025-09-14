@@ -65,7 +65,27 @@ where
     I1: IntoIterator<Item = (GraphIndex, NodeIndex)>,
     I2: IntoIterator<Item = (GraphIndex, NodeIndex)>,
 {
-    let mut equal_nodes: HashMap<(GraphIndex, NodeIndex), (GraphIndex, NodeIndex)> = HashMap::new();
+    let mut equal_nodes = HashMap::new();
+    equal_graphs_by_nodes_with_map(
+        graphs_map_a,
+        graphs_map_b,
+        nodes_a,
+        nodes_b,
+        &mut equal_nodes,
+    )
+}
+
+pub fn equal_graphs_by_nodes_with_map<I1, I2>(
+    graphs_map_a: &GraphsMap,
+    graphs_map_b: &GraphsMap,
+    nodes_a: I1,
+    nodes_b: I2,
+    equal_nodes: &mut HashMap<(GraphIndex, NodeIndex), (GraphIndex, NodeIndex)>,
+) -> bool
+where
+    I1: IntoIterator<Item = (GraphIndex, NodeIndex)>,
+    I2: IntoIterator<Item = (GraphIndex, NodeIndex)>,
+{
     let mut nodes_queue = VecDeque::new();
 
     nodes_queue.extend(nodes_a.into_iter().zip(nodes_b.into_iter()));

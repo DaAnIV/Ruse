@@ -417,6 +417,18 @@ impl Context {
         self.values.values()
     }
 
+    pub fn primitive_variables(&self) -> impl std::iter::Iterator<Item = (&VariableName, &PrimitiveValue)> {
+        self.values
+            .iter()
+            .filter_map(|(r, v)| v.primitive().map(|p| (r, p)))
+    }
+
+    pub fn object_variables(&self) -> impl std::iter::Iterator<Item = (&RootName, &ObjectValue)> {
+        self.values
+            .iter()
+            .filter_map(|(r, v)| v.obj().map(|o| (r, o)))
+    }
+
     fn extend_graphs_map(&mut self, other: &Context) {
         let graphs_map = Arc::make_mut(&mut self.graphs_map);
         graphs_map.extend(&other.graphs_map);
@@ -472,6 +484,14 @@ impl Context {
             }
             .into(),
         )
+    }
+
+    pub(crate) fn contains_node(&self, graph_id: &GraphIndex, node_id: &NodeIndex) -> bool {
+        if let Some(g) = self.graphs_map.get(graph_id) {
+            g.contains_node(node_id)
+        } else {
+            false
+        }
     }
 }
 
@@ -625,33 +645,49 @@ impl Context {
 }
 
 impl Context {
-    pub fn reachable_nodes(&self) -> HashSet<(GraphIndex, NodeIndex)> {
-        Self::reachable_nodes_from_iter(self.variable_values(), &self.graphs_map)
+    pub fn reachable_nodes_and_roots(
+        &self,
+    ) -> (
+        HashSet<(GraphIndex, NodeIndex)>,
+        HashMap<RootName, ObjectValue>,
+    ) {
+        Self::reachable_nodes_and_roots_from_iter(self.variable_values(), &self.graphs_map)
     }
 
-    fn reachable_nodes_from_iter<'a, I>(
+    fn reachable_nodes_and_roots_from_iter<'a, I>(
         values: I,
         graphs_map: &GraphsMap,
-    ) -> HashSet<(GraphIndex, NodeIndex)>
+    ) -> (
+        HashSet<(GraphIndex, NodeIndex)>,
+        HashMap<RootName, ObjectValue>,
+    )
     where
         I: Iterator<Item = &'a Value>,
     {
         let mut nodes = HashSet::new();
+        let mut roots = HashMap::new();
 
         for var in values {
             if let Value::Object(obj) = var {
-                Self::add_reachable_nodes(graphs_map, obj.graph_id, obj.node, &mut nodes);
+                Self::add_reachable_nodes_and_roots(
+                    graphs_map,
+                    obj.graph_id,
+                    obj.node,
+                    &mut nodes,
+                    &mut roots,
+                );
             }
         }
 
-        nodes
+        (nodes, roots)
     }
 
-    fn add_reachable_nodes(
+    fn add_reachable_nodes_and_roots(
         graphs_map: &GraphsMap,
         graph_id: GraphIndex,
         node_id: NodeIndex,
         seen: &mut HashSet<(GraphIndex, NodeIndex)>,
+        roots: &mut HashMap<RootName, ObjectValue>,
     ) {
         let mut q = VecDeque::new();
         q.push_back((graph_id, node_id));
@@ -662,6 +698,21 @@ impl Context {
 
             seen.insert((cur_graph_id, cur_node_id));
             let graph = &graphs_map[cur_graph_id];
+
+            if let Some(root_name) = graphs_map.node_root_names(&cur_node_id) {
+                let obj_type = graph.obj_type(&cur_node_id).unwrap();
+                for r in root_name {
+                    roots.insert(
+                        r.clone(),
+                        ObjectValue {
+                            obj_type: obj_type.clone(),
+                            graph_id: cur_graph_id,
+                            node: cur_node_id,
+                        },
+                    );
+                }
+            }
+
             for (_, neig) in graph.neighbors(&cur_node_id) {
                 q.push_back((neig.graph.unwrap_or(cur_graph_id), neig.node));
             }
