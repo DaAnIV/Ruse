@@ -9,6 +9,26 @@
   },
   "intLiterals": [],
   "stringLiterals": [],
+  "js_utils": [
+    "function inorder(root, prev) {",
+    " if (root === null)",
+    "   return true;",
+    " // Recursively check the left subtree",
+    " if (!inorder(root.left, prev))",
+    "   return false;",
+    " // Check the current node value against the previous value",
+    " if (prev[0] >= root.value)",
+    "   return false;",
+    " // Update the previous value to the current node's value",
+    " prev[0] = root.value;",
+    " // Recursively check the right subtree",
+    " return inorder(root.right, prev);",
+    "}",
+    "function binary_tree_valid(tree) {",
+    " let prev = [-Infinity];",
+    " return inorder(tree, prev);",
+    "}"
+  ],
   "common": {
     "input": {
       "tree": {
@@ -21,19 +41,19 @@
       "input": {
         "node_to_delete": "*tree._right"
       },
-      "predicate_js": "tree.size == 6 && tree.valid() && !tree.contains(10)"
+      "predicate_js": "tree.size == 6 && binary_tree_valid(tree) && !tree.contains(10)"
     },
     {
       "input": {
         "node_to_delete": "*tree._left"
       },
-      "predicate_js": "tree.size == 6 && tree.valid() && !tree.contains(2)"
+      "predicate_js": "tree.size == 6 && binary_tree_valid(tree) && !tree.contains(2)"
     },
     {
       "input": {
         "node_to_delete": "*tree"
       },
-      "predicate_js": "tree.size == 6 && tree.valid() && !tree.contains(5)"
+      "predicate_js": "tree.size == 6 && binary_tree_valid(tree) && !tree.contains(5)"
     }
   ],
   "opcodes": [

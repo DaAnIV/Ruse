@@ -164,7 +164,8 @@ impl SnythesisTaskExamples {
         engine_ctx: &mut EngineContext,
     ) -> Result<Box<Context>, SnythesisTaskError>
     where
-        I: Iterator<Item = &'a String> {
+        I: Iterator<Item = &'a String>,
+    {
         let id_gen = Arc::new(GraphIdGenerator::with_initial_values(
             classes.static_classes_gen_id.max_node_id(),
             classes.static_classes_gen_id.max_graph_id(),
@@ -185,7 +186,7 @@ impl SnythesisTaskExamples {
         graphs_map.remove(REF_GRAPH_ID);
 
         for var in immutable {
-            graphs_map.set_as_immutable(&root_name!(var.as_str()));   
+            graphs_map.set_as_immutable(&root_name!(var.as_str()));
         }
 
         Ok(Context::with_values(values, graphs_map.into(), id_gen))
@@ -330,6 +331,8 @@ struct SnythesisTaskInner {
     opcodes: Option<HashSet<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     common: Option<SnythesisTaskExamples>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    js_utils: Option<serde_json::Value>,
 }
 
 impl SnythesisTaskInner {
@@ -590,6 +593,17 @@ impl SnythesisTask {
         Ok(synthesizer)
     }
 
+    fn get_string_single_multi_line(value: &serde_json::Value) -> Result<String, SnythesisTaskError> {
+        if let Some(single_line) = value.as_str() {
+            return Ok(single_line.to_string());
+        }
+        let multi_lines: Vec<String> = serde_json::from_value(value.clone()).map_err(|e| {
+                    parse_err!("Failed to parse single/multi line as string or array of strings: {}", e)
+        })?;
+
+        Ok(multi_lines.join("\n"))
+    }
+
     fn get_predicate(
         &self,
         engine_ctx: &mut EngineContext,
@@ -640,17 +654,10 @@ impl SnythesisTask {
             None => None,
         };
 
-        let predicate_js: Option<Vec<String>> = examples
+        let predicate_js: Option<Result<Vec<String>, SnythesisTaskError>> = examples
             .iter()
             .map(|e| {
-                e.predicate_js.as_ref().map(|predicate| {
-                    if let Some(code_line) = predicate.as_str() {
-                        return code_line.to_string();
-                    }
-                    let code_lines: Vec<String> =
-                        serde_json::from_value(predicate.clone()).unwrap();
-                    code_lines.join("")
-                })
+                e.predicate_js.as_ref().map(|js| Self::get_string_single_multi_line(js))
             })
             .collect();
 
@@ -669,8 +676,17 @@ impl SnythesisTask {
             predicate_builder.add_predicate(StatePredicate { state_array });
         }
 
-        if let Some(predicate_js) = predicate_js {
-            predicate_builder.add_predicate(JsPredicate { predicate_js });
+        if let Some(predicate_js_res) = predicate_js {
+            let predicate_js = predicate_js_res?;
+
+            let predicate = match &self.inner.js_utils {
+                Some(js_utils_value) => {
+                    let utils = Self::get_string_single_multi_line(js_utils_value)?;
+                    JsPredicate::new_with_utils(predicate_js, utils.clone())
+                },
+                None => JsPredicate::new(predicate_js),
+            };
+            predicate_builder.add_predicate(predicate);
         }
 
         Ok(predicate_builder.finalize())
@@ -813,9 +829,19 @@ impl SnythesisTask {
 
         for example in examples {
             if let Some(immutable) = &self.inner.immutable {
-                values.push(example.create_context(variables, immutable.iter(), &self.classes, engine_ctx)?);
+                values.push(example.create_context(
+                    variables,
+                    immutable.iter(),
+                    &self.classes,
+                    engine_ctx,
+                )?);
             } else {
-                values.push(example.create_context(variables, std::iter::empty(), &self.classes, engine_ctx)?);
+                values.push(example.create_context(
+                    variables,
+                    std::iter::empty(),
+                    &self.classes,
+                    engine_ctx,
+                )?);
             }
         }
 

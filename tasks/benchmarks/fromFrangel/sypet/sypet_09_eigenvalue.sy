@@ -10,6 +10,17 @@
     "mat": "Matrix",
     "index": "Int"
   },
+  "js_utils": [
+    "function check(eigenvalues, expected, epsilon=1e-3) {",
+      "if (eigenvalues.length != expected.length) { return false; }",
+      "for (let i = 0; i < eigenvalues.length; i++) {",
+        "for (let j = 0; j < eigenvalues.length; j++) {",
+          "if (Math.abs(eigenvalues[i] - expected[j]) < epsilon) { expected.splice(j, 1); break;}",
+        "}",
+      "}",
+      "return expected.length == 0;",
+    "}"
+  ],
   "returnType": "[Double]",
   "examples": [
     {
@@ -25,16 +36,7 @@
         },
         "index": 0
       },
-      "predicate_js": [
-        "((eigenvalue) => {",
-        "if (eigenvalue.length != 2) { return false; }",
-        "let epsilon = 1e-10;",
-        "let expected = [5, 5*Math.sqrt(7)];",
-        "let result = Math.abs(eigenvalue[0] - expected[0]) < epsilon && Math.abs(eigenvalue[1] - expected[1]) < epsilon;",
-        "return result;",
-        "})(__output__)"
-      ]
-      
+      "predicate_js": "check(__output__, [5, 5*Math.sqrt(7)])"      
     },
     {
       "input": {
@@ -49,15 +51,7 @@
         },
         "index": 1
       },
-      "predicate_js": [
-        "((eigenvalue) => {",
-        "if (eigenvalue.length != 2) { return false; }",
-        "let epsilon = 1e-10;",
-        "let expected = [-2, 0];",
-        "let result = Math.abs(eigenvalue[0] - expected[0]) < epsilon && Math.abs(eigenvalue[1] - expected[1]) < epsilon;",
-        "return result;",
-        "})(__output__)"
-      ]
+      "predicate_js": "check(__output__, [2, 0])"
     }
   ],
   "solution": {

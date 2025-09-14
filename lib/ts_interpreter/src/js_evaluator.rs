@@ -9,10 +9,23 @@ use crate::{
     ts_classes::TsClasses,
 };
 
-pub struct JsEvaluator {}
+pub struct JsEvaluator {
+    utils_code: String,
+}
 
 impl JsEvaluator {
+    pub fn new_with_utils(utils_code: String) -> Self {
+        Self { utils_code }
+    }
+
+    pub fn new() -> Self {
+        Self {
+            utils_code: String::new(),
+        }
+    }
+
     pub fn evaluate_get_js_value(
+        &self,
         js: &str,
         ctx: &Context,
         output: &Value,
@@ -28,7 +41,7 @@ impl JsEvaluator {
 
         engine_ctx.reset_with_context(ctx, classes);
 
-        let js_func = Self::create_function(js, ctx, &mut engine_ctx)?;
+        let js_func = self.create_function(js, ctx, &mut engine_ctx)?;
         let func = js_func.as_callable().unwrap();
 
         let js_values = Self::get_js_args(ctx, output, engine_ctx)?;
@@ -51,6 +64,7 @@ impl JsEvaluator {
     }
 
     fn create_function(
+        &self,
         js: &str,
         ctx: &Context,
         engine_ctx: &mut EngineContext,
@@ -60,18 +74,24 @@ impl JsEvaluator {
             arg_names.push(var.as_str());
         }
         arg_names.push("__output__");
-        let code = format!("({}) => {{return {}}}", arg_names.join(", "), js);
+        let code = format!(
+            "({}) => {{{}\nreturn {}}}",
+            arg_names.join(", "),
+            &self.utils_code,
+            js
+        );
         engine_ctx.eval(boa_engine::Source::from_bytes(&code))
     }
 
     pub fn evaluate_get_value(
+        &self,
         js: &str,
         ctx: &Context,
         output: &Value,
         syn_ctx: &SynthesizerContext,
         worker_ctx: &mut SynthesizerWorkerContext,
     ) -> JsResult<Value> {
-        let js_value = Self::evaluate_get_js_value(js, ctx, output, syn_ctx, worker_ctx)?;
+        let js_value = self.evaluate_get_js_value(js, ctx, output, syn_ctx, worker_ctx)?;
         Self::convert_js_value(js_value, syn_ctx, worker_ctx)
     }
 

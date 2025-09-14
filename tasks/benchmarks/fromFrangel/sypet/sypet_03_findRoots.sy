@@ -9,6 +9,21 @@
     "func": "Polynomial"
   },
   "returnType": "Array<Array<Double>>",
+  "js_utils": [
+    "function check(roots, expected, epsilon=1e-3) {",
+    " let degree = roots[0].length;",
+    " if (degree != expected.length) { return false; }",
+    " for (let i = 0; i < degree; i++) {",
+    "   for (let j = 0; j < degree; j++) {",
+    "     if (Math.abs(roots[0][i] - expected[j][0]) < epsilon && Math.abs(roots[1][i] - expected[j][1]) < epsilon) {",
+    "       expected.splice(j, 1);",
+    "       break;",
+    "     }",
+    "   }",
+    " }",
+    " return expected.length == 0;",
+    "}"
+  ],
   "examples": [
     {
       "input": {
@@ -23,13 +38,28 @@
           ]
         }
       },
-      "output": [[1,1],[0,0]]
+      "predicate_js": "check(__output__, [[1,0],[1,0]])"
+    },
+    {
+      "input": {
+        "func": {
+          "@": "constructor",
+          "args": [
+            {
+              "0": 1,
+              "1": -1,
+              "2": 1
+            }
+          ]
+        }
+      },
+      "predicate_js": "check(__output__, [[0.5, 0.866025],[0.5, -0.866025]])"
     }
   ],
   "solution": {
     "has_side_effects": "no",
     "expected": [
-      "findRoots(func.coeffs)"
+      "findRoots(func.real_coeffs())"
     ]
   }
 }

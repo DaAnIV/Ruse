@@ -87,12 +87,12 @@ impl Predicate for OutputPredicate {
         _worker_ctx: &mut SynthesizerWorkerContext,
         graphs_map: &GraphsMap,
     ) -> bool {
-        for (actual, actual_ctx, expected) in
-            izip!(p.out_value().iter(), p.post_ctx().iter(), self.output_array.iter())
-        {
-            if actual.val().wrap(&actual_ctx.graphs_map)
-                != expected.wrap(graphs_map)
-            {
+        for (actual, actual_ctx, expected) in izip!(
+            p.out_value().iter(),
+            p.post_ctx().iter(),
+            self.output_array.iter()
+        ) {
+            if actual.val().wrap(&actual_ctx.graphs_map) != expected.wrap(graphs_map) {
                 return false;
             }
         }
@@ -130,7 +130,24 @@ impl Predicate for StatePredicate {
 }
 
 pub struct JsPredicate {
-    pub predicate_js: Vec<String>,
+    evaluator: JsEvaluator,
+    predicate_js: Vec<String>,
+}
+
+impl JsPredicate {
+    pub fn new(predicate_js: Vec<String>) -> Self {
+        Self {
+            evaluator: JsEvaluator::new(),
+            predicate_js,
+        }
+    }
+
+    pub fn new_with_utils(predicate_js: Vec<String>, utils_code: String) -> Self {
+        Self {
+            evaluator: JsEvaluator::new_with_utils(utils_code),
+            predicate_js,
+        }
+    }
 }
 
 impl Predicate for JsPredicate {
@@ -142,10 +159,18 @@ impl Predicate for JsPredicate {
         _graphs_map: &GraphsMap,
     ) -> bool {
         debug_assert!(
-            p.post_ctx().len() == p.out_value().len() && p.post_ctx().len() == self.predicate_js.len()
+            p.post_ctx().len() == p.out_value().len()
+                && p.post_ctx().len() == self.predicate_js.len()
         );
-        for (ctx, output, js) in izip!(p.post_ctx().iter(), p.out_value().iter(), self.predicate_js.iter()) {
-            match JsEvaluator::evaluate_get_js_value(js, ctx, output.val(), syn_ctx, worker_ctx) {
+        for (ctx, output, js) in izip!(
+            p.post_ctx().iter(),
+            p.out_value().iter(),
+            self.predicate_js.iter()
+        ) {
+            match self
+                .evaluator
+                .evaluate_get_js_value(js, ctx, output.val(), syn_ctx, worker_ctx)
+            {
                 Ok(val) => {
                     if let Some(b) = val.as_boolean() {
                         if b {
@@ -160,7 +185,6 @@ impl Predicate for JsPredicate {
 
         true
     }
-    
 }
 
 pub struct StringSizeValidPredicate {
