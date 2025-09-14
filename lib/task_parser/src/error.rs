@@ -182,3 +182,5 @@ impl std::fmt::Display for SnythesisTaskError {
         }
     }
 }
+
+pub type SynthesisTaskResult<T> = Result<T, SnythesisTaskError>;

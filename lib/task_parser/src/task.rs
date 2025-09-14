@@ -30,7 +30,7 @@ use tracing::debug;
 use wildmatch::WildMatch;
 
 use crate::{
-    error::SnythesisTaskError,
+    error::SynthesisTaskResult,
     io_err, parse_err,
     predicate_builder::*,
     skip_err,
@@ -42,7 +42,7 @@ use crate::{
 fn upgrade_values_map(
     map: &mut JsonValuesMap,
     types: &HashMap<String, TaskType>,
-) -> Result<(), SnythesisTaskError> {
+) -> SynthesisTaskResult<()> {
     for (k, v) in map.iter_mut() {
         let value_type = &match types.get(k) {
             Some(value_type) => value_type,
@@ -66,7 +66,7 @@ fn parse_json_values_map_roots<'a, M>(
     refs_graph_id: Option<GraphIndex>,
     classes: &TsClasses,
     engine_ctx: &mut EngineContext,
-) -> Result<ValuesMap, SnythesisTaskError>
+) -> SynthesisTaskResult<ValuesMap>
 where
     M: IntoIterator<Item = (&'a String, &'a serde_json::Value)>,
 {
@@ -105,7 +105,7 @@ pub(crate) fn parse_json_values_array<'a, V, T>(
     classes: &TsClasses,
     refs_graph_id: Option<GraphIndex>,
     engine_ctx: &mut EngineContext,
-) -> Result<Vec<Value>, SnythesisTaskError>
+) -> SynthesisTaskResult<Vec<Value>>
 where
     V: IntoIterator<Item = &'a serde_json::Value>,
     T: IntoIterator<Item = TaskType>,
@@ -143,7 +143,7 @@ impl SnythesisTaskExamples {
         &mut self,
         variables: &HashMap<String, TaskType>,
         return_type: &Option<TaskType>,
-    ) -> Result<(), SnythesisTaskError> {
+    ) -> SynthesisTaskResult<()> {
         upgrade_values_map(&mut self.input, variables)?;
         if let Some(state) = &mut self.state {
             upgrade_values_map(state, variables)?;
@@ -162,7 +162,7 @@ impl SnythesisTaskExamples {
         immutable: I,
         classes: &TsClasses,
         engine_ctx: &mut EngineContext,
-    ) -> Result<Box<Context>, SnythesisTaskError>
+    ) -> SynthesisTaskResult<Box<Context>>
     where
         I: Iterator<Item = &'a String>,
     {
@@ -344,7 +344,7 @@ impl SnythesisTaskInner {
         }
     }
 
-    fn verify(&self) -> Result<(), SnythesisTaskError> {
+    fn verify(&self) -> SynthesisTaskResult<()> {
         let variables = &self.variables;
         let examples = &self.examples;
 
@@ -498,7 +498,7 @@ impl SnythesisTaskInner {
         Ok(())
     }
 
-    fn upgrade_from_version_1(&mut self) -> Result<(), SnythesisTaskError> {
+    fn upgrade_from_version_1(&mut self) -> SynthesisTaskResult<()> {
         for example in &mut self.examples {
             example.upgrade_from_version_1(&self.variables, &self.return_type)?
         }
@@ -528,7 +528,7 @@ impl SnythesisTask {
         max_seq_size: usize,
         iteration_workers_count: usize,
         bank: P,
-    ) -> Result<TsSynthesizer<P>, SnythesisTaskError> {
+    ) -> SynthesisTaskResult<TsSynthesizer<P>> {
         let variables = &self.inner.variables;
 
         let mut engine_ctx = EngineContext::create_engine_ctx(&self.classes);
@@ -593,12 +593,15 @@ impl SnythesisTask {
         Ok(synthesizer)
     }
 
-    fn get_string_single_multi_line(value: &serde_json::Value) -> Result<String, SnythesisTaskError> {
+    fn get_string_single_multi_line(value: &serde_json::Value) -> SynthesisTaskResult<String> {
         if let Some(single_line) = value.as_str() {
             return Ok(single_line.to_string());
         }
         let multi_lines: Vec<String> = serde_json::from_value(value.clone()).map_err(|e| {
-                    parse_err!("Failed to parse single/multi line as string or array of strings: {}", e)
+            parse_err!(
+                "Failed to parse single/multi line as string or array of strings: {}",
+                e
+            )
         })?;
 
         Ok(multi_lines.join("\n"))
@@ -607,7 +610,7 @@ impl SnythesisTask {
     fn get_predicate(
         &self,
         engine_ctx: &mut EngineContext,
-    ) -> Result<SynthesizerPredicate, SnythesisTaskError> {
+    ) -> SynthesisTaskResult<SynthesizerPredicate> {
         let variables = &self.inner.variables;
         let examples = &self.inner.examples;
 
@@ -654,10 +657,12 @@ impl SnythesisTask {
             None => None,
         };
 
-        let predicate_js: Option<Result<Vec<String>, SnythesisTaskError>> = examples
+        let predicate_js: Option<SynthesisTaskResult<Vec<String>>> = examples
             .iter()
             .map(|e| {
-                e.predicate_js.as_ref().map(|js| Self::get_string_single_multi_line(js))
+                e.predicate_js
+                    .as_ref()
+                    .map(|js| Self::get_string_single_multi_line(js))
             })
             .collect();
 
@@ -683,7 +688,7 @@ impl SnythesisTask {
                 Some(js_utils_value) => {
                     let utils = Self::get_string_single_multi_line(js_utils_value)?;
                     JsPredicate::new_with_utils(predicate_js, utils.clone())
-                },
+                }
                 None => JsPredicate::new(predicate_js),
             };
             predicate_builder.add_predicate(predicate);
@@ -694,7 +699,7 @@ impl SnythesisTask {
 
     const ALLOW_NON_FINITE_NUMBER: bool = false;
 
-    fn get_valid_predicate(&self) -> Result<SynthesizerPredicate, SnythesisTaskError> {
+    fn get_valid_predicate(&self) -> SynthesisTaskResult<SynthesizerPredicate> {
         let mut predicate_builder = PredicateBuilder::new(GraphsMap::default());
 
         predicate_builder.add_predicate(NumberValidPredicate {
@@ -821,7 +826,7 @@ impl SnythesisTask {
     fn get_context_array(
         &self,
         engine_ctx: &mut EngineContext,
-    ) -> Result<ContextArray, SnythesisTaskError> {
+    ) -> SynthesisTaskResult<ContextArray> {
         let variables = &self.inner.variables;
         let examples = &self.inner.examples;
 
@@ -854,7 +859,7 @@ impl SnythesisTask {
             .to_string()
     }
 
-    pub fn check_if_skipped(path: &Path) -> Result<(), SnythesisTaskError> {
+    pub fn check_if_skipped(path: &Path) -> SynthesisTaskResult<()> {
         let reader = std::fs::File::open(path).map_err(|e| io_err!(e))?;
         let json: serde_json::Map<String, serde_json::Value> =
             serde_json::from_reader(reader).map_err(|e| parse_err!("json", e))?;
@@ -864,7 +869,7 @@ impl SnythesisTask {
         Ok(())
     }
 
-    pub fn from_json_file(path: &Path) -> Result<SnythesisTask, SnythesisTaskError> {
+    pub fn from_json_file(path: &Path) -> SynthesisTaskResult<SnythesisTask> {
         Self::check_if_skipped(path)?;
 
         let reader = std::fs::File::open(path).map_err(|e| io_err!(e))?;

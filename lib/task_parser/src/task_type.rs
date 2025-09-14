@@ -22,7 +22,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::json;
 
 use crate::{
-    error::SnythesisTaskError,
+    error::{SnythesisTaskError, SynthesisTaskResult},
     parse_err,
     task::parse_json_values_array,
     var_ref::{VarRef, REF_GRAPH_FIELD_NAME, REF_GRAPH_OBJ_TYPE},
@@ -83,7 +83,7 @@ impl TaskType {
         id_gen: &Arc<GraphIdGenerator>,
         refs_graph_id: Option<GraphIndex>,
         engine_ctx: &mut EngineContext,
-    ) -> Result<Value, SnythesisTaskError> {
+    ) -> SynthesisTaskResult<Value> {
         if let Some(expr) = Self::get_expr_value(value) {
             self.parse_expr_value(expr, classes, graphs_map, refs_graph_id, id_gen, engine_ctx)
         } else {
@@ -120,7 +120,7 @@ impl TaskType {
         id_gen: &Arc<GraphIdGenerator>,
         refs_graph_id: Option<GraphIndex>,
         engine_ctx: &mut EngineContext,
-    ) -> Result<Value, SnythesisTaskError> {
+    ) -> SynthesisTaskResult<Value> {
         match self {
             TaskType::Int => match value.as_i64() {
                 Some(num) => Ok(vnum!(ruse_object_graph::Number::from(num))),
@@ -348,7 +348,7 @@ impl TaskType {
         id_gen: &Arc<GraphIdGenerator>,
         refs_graph_id: Option<GraphIndex>,
         engine_ctx: &mut EngineContext,
-    ) -> Result<Value, SnythesisTaskError> {
+    ) -> SynthesisTaskResult<Value> {
         let mut values = HashMap::new();
         for (k, v) in fields {
             let key = field_name!(k.as_str());
@@ -391,7 +391,7 @@ impl TaskType {
         graphs_map: &mut GraphsMap,
         id_gen: &Arc<GraphIdGenerator>,
         engine_ctx: &mut EngineContext,
-    ) -> Result<Value, SnythesisTaskError> {
+    ) -> SynthesisTaskResult<Value> {
         let method_desc = if method_name == "constructor" {
             &class.description.constructor
         } else {
@@ -460,7 +460,7 @@ impl TaskType {
         graphs_map: &mut GraphsMap,
         id_gen: &Arc<GraphIdGenerator>,
         engine_ctx: &mut EngineContext,
-    ) -> Result<Value, SnythesisTaskError> {
+    ) -> SynthesisTaskResult<Value> {
         graphs_map.ensure_graph(graph_id); // Make sure graph exists
         engine_ctx.reset_with_graph(graph_id, graphs_map, classes, id_gen);
 
@@ -489,7 +489,7 @@ impl TaskType {
         graph_id: GraphIndex,
         graphs_map: &mut GraphsMap,
         id_gen: &GraphIdGenerator,
-    ) -> Result<Value, SnythesisTaskError> {
+    ) -> SynthesisTaskResult<Value> {
         match self {
             TaskType::Dom => {
                 let dom_value = match dom::DomLoader::load_dom(id_gen, graph_id, graphs_map, html) {
@@ -528,7 +528,7 @@ impl TaskType {
         refs_graph_id_opt: Option<GraphIndex>,
         id_gen: &GraphIdGenerator,
         _engine_ctx: &mut EngineContext,
-    ) -> Result<Value, SnythesisTaskError> {
+    ) -> SynthesisTaskResult<Value> {
         if let Some(static_ref) = ExprPrefix::StaticRef.get(value_string) {
             self.parse_static_ref_expr_value(static_ref, value_string, classes, graphs_map)
         } else if value_string == ExprPrefix::Null.as_str() {
@@ -564,7 +564,7 @@ impl TaskType {
         value_string: &str,
         classes: &TsClasses,
         graphs_map: &mut GraphsMap,
-    ) -> Result<Value, SnythesisTaskError> {
+    ) -> SynthesisTaskResult<Value> {
         let (class_name, field_name) = static_ref.split_once('.').ok_or(parse_err!(
             value_string,
             format!("The static ref expr contains no '.'")
@@ -624,7 +624,7 @@ impl TaskType {
         graphs_map: &mut GraphsMap,
         refs_graph_id: GraphIndex,
         id_gen: &GraphIdGenerator,
-    ) -> Result<Value, SnythesisTaskError> {
+    ) -> SynthesisTaskResult<Value> {
         if !self.is_object() {
             return Err(parse_err!(
                 value_string,
@@ -697,7 +697,7 @@ impl TaskType {
         }
     }
 
-    fn strip_string(value_string: &str) -> Result<&str, SnythesisTaskError> {
+    fn strip_string(value_string: &str) -> SynthesisTaskResult<&str> {
         let stripped = match value_string.trim().strip_prefix('\'') {
             Some(s1) => match s1.strip_suffix('\'') {
                 Some(s2) => s2,
@@ -715,7 +715,7 @@ impl TaskType {
     fn parse_string_collection(
         value_string: &str,
         is_set: bool,
-    ) -> Result<serde_json::Value, SnythesisTaskError> {
+    ) -> SynthesisTaskResult<serde_json::Value> {
         let mut part = String::new();
         let mut collected = Vec::new();
 
@@ -750,7 +750,7 @@ impl TaskType {
         }
     }
 
-    fn parse_int_set(value_string: &str) -> Result<serde_json::Value, SnythesisTaskError> {
+    fn parse_int_set(value_string: &str) -> SynthesisTaskResult<serde_json::Value> {
         if !value_string.starts_with('{') {
             return Err(parse_err!(value_string, "Missing opening bracket"));
         }
@@ -764,7 +764,7 @@ impl TaskType {
         }
     }
 
-    fn parse_double_set(value_string: &str) -> Result<serde_json::Value, SnythesisTaskError> {
+    fn parse_double_set(value_string: &str) -> SynthesisTaskResult<serde_json::Value> {
         if !value_string.starts_with('{') {
             return Err(parse_err!(value_string, "Missing opening bracket"));
         }
@@ -781,7 +781,7 @@ impl TaskType {
     pub fn json_value_from_string(
         &self,
         value_string: &str,
-    ) -> Result<serde_json::Value, SnythesisTaskError> {
+    ) -> SynthesisTaskResult<serde_json::Value> {
         match self {
             TaskType::Int => match value_string.parse::<i64>() {
                 Ok(num) => Ok(json!(num)),
@@ -845,7 +845,7 @@ impl TaskType {
         &self,
         dir: &Path,
         val: &mut serde_json::Value,
-    ) -> Result<(), SnythesisTaskError> {
+    ) -> SynthesisTaskResult<()> {
         if let Some(value_string) = val.as_str() {
             if let Some(html_path) = ExprPrefix::HtmlFile.get(value_string).map(PathBuf::from) {
                 if html_path.is_relative() {
@@ -865,7 +865,7 @@ impl TaskType {
         &self,
         html_path: &Path,
         expr_value: &str,
-    ) -> Result<serde_json::Value, SnythesisTaskError> {
+    ) -> SynthesisTaskResult<serde_json::Value> {
         match self {
             TaskType::Dom | TaskType::DOMElement => {
                 let data = fs::read(html_path).map_err(|_| {

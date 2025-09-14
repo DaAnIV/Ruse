@@ -1,6 +1,6 @@
 use std::collections::{HashMap, VecDeque};
 
-use crate::{error::SnythesisTaskError, parse_err, task_type::TaskType, verify_err};
+use crate::{error::SynthesisTaskResult, parse_err, task_type::TaskType, verify_err};
 use itertools::Itertools;
 use ruse_object_graph::{field_name, graph_walk, root_name, value::Value, GraphIndex, GraphsMap};
 use ruse_synthesizer::context::ValuesMap;
@@ -16,7 +16,7 @@ impl VarRef {
         &self,
         values: &ValuesMap,
         graphs_map: &GraphsMap,
-    ) -> Result<Value, SnythesisTaskError> {
+    ) -> SynthesisTaskResult<Value> {
         let value = values.get(self.var.as_str()).ok_or(parse_err!(
             format!("{}", self),
             "Pointing to an uninitialized value"
@@ -24,11 +24,7 @@ impl VarRef {
         self.walk_fields(value, graphs_map)
     }
 
-    fn walk_fields(
-        &self,
-        value: &Value,
-        graphs_map: &GraphsMap,
-    ) -> Result<Value, SnythesisTaskError> {
+    fn walk_fields(&self, value: &Value, graphs_map: &GraphsMap) -> SynthesisTaskResult<Value> {
         if self.fields.is_empty() {
             Ok(value.clone())
         } else {
@@ -76,7 +72,7 @@ impl std::fmt::Display for VarRef {
 pub(crate) fn verify_no_var_ref_circle(
     var: &str,
     variables: &HashMap<String, TaskType>,
-) -> Result<(), SnythesisTaskError> {
+) -> SynthesisTaskResult<()> {
     let mut count = 0;
     let mut cur_var = var.to_string();
     while let TaskType::VarRef(var_ref) = &variables[&cur_var] {
@@ -98,7 +94,7 @@ pub(crate) fn set_var_refs(
     variables: &HashMap<String, TaskType>,
     values: &mut ValuesMap,
     graphs_map: &mut GraphsMap,
-) -> Result<(), SnythesisTaskError> {
+) -> SynthesisTaskResult<()> {
     let mut refs = Vec::new();
     for (graph, node_id, node) in graph_walk::ObjectGraphWalker::from_graphs_map(graphs_map) {
         if graph.id == REF_GRAPH_ID {
