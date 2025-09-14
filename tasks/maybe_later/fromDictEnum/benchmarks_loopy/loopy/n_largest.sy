@@ -22,6 +22,6 @@
     }
   ],
   "solution": [
-    "n_largest = inp.sort((n1,n2) => n1 - n2).reverse().slice(0,n)"
+    "n_largest = inp.sort((a, b)=>a - b).reverse().slice(0,n)"
   ]
 }

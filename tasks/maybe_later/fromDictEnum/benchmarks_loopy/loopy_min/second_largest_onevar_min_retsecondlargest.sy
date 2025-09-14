@@ -21,6 +21,6 @@
     }
   ],
   "solution": [
-    "inp.slice(0).sort((n1,n2) => n1 - n2)[inp.length - 2]"
+    "inp.slice(0).sort((a, b)=>a - b)[inp.length - 2]"
   ]
 }

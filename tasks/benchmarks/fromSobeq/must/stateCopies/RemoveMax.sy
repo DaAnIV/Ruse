@@ -37,7 +37,7 @@
   "solution": {
     "has_side_effects": "yes",
     "expected": [
-      "list.sort((n1, n2) => n1 - n2).pop()"
+      "list.sort((a, b)=>a - b).pop()"
     ]
   }
 }

@@ -10,7 +10,7 @@ class Polynomial {
         return res;
     }
 
-    public degree() {
+    public degree(): number {
         var max = -1;
         for (var i of this['coeffs'].keys()) {
             if (this['coeffs'][i] != 0) {
@@ -20,7 +20,7 @@ class Polynomial {
         return max;
     }
 
-    public real_coeffs() {
+    public real_coeffs(): number[] {
         let deg = this.degree();
         let real_coeffs = new Array(deg + 1);
         for (let i = 0; i < deg + 1; i++) {

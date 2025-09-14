@@ -51,6 +51,6 @@
     ],
     "solution": {
       "has_side_effects": "no",
-      "expected": [ "tree.left.value" ]
+      "expected": [ "tree.right.value" ]
     }
   }

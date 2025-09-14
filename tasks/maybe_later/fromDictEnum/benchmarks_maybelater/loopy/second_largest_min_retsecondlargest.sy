@@ -33,6 +33,6 @@
     }
   ],
   "solution": [
-    "sorted = inp.slice(0).sort((n1,n2) => n1 - n2), sorted[inp.length - 2]"
+    "sorted = inp.slice(0).sort((a, b)=>a - b), sorted[inp.length - 2]"
   ]
 }

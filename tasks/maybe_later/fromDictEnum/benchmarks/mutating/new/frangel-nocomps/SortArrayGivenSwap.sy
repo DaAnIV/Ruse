@@ -27,8 +27,8 @@
   "solution": {
     "has_side_effects": "yes",
     "expected": [
-      "arr.sort((n1,n2) => n1 - n2)",
-      "arr.slice(0).sort((n1,n2) => n1 - n2)"
+      "arr.sort((a, b)=>a - b)",
+      "arr.slice(0).sort((a, b)=>a - b)"
     ]
   }
 }

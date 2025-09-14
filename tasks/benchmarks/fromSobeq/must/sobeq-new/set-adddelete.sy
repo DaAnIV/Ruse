@@ -40,7 +40,10 @@
   "solution": {
     "has_side_effects": "yes",
     "expected": [
-      "s2.delete(nums[i])"
+      "seen.add(s1).delete(s2)",
+      "seen.add(s2).delete(s1)",
+      "seen.add(s2), seen.delete(s1)",
+      "seen.add(s1), seen.delete(s2)"
     ]
   }
 }

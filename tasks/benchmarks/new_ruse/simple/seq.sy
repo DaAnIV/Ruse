@@ -47,7 +47,7 @@
   "solution": {
     "has_side_effects": "yes",
     "expected": [
-      "x.push(y); x"
+      "x.push(y), x"
     ]
   }
 }

@@ -28,11 +28,11 @@
   "solution": {
     "has_side_effects": "yes",
     "expected": [
-      "list.sort((n1,n2) => n1 - n2).reverse()[0]",
+      "list.sort((a, b)=>a - b).reverse()[0]",
       "list.sort((n1, n2) => n1 - n2).pop()",
-      "list.sort((n1,n2) => n1 - n2).pop()",
-      "list.sort((n1,n2) => n1 - n2)[list.length - 1]",
-      "list.sort((n1,n2) => n1 - n2)[-1 + list.length]"
+      "list.sort((a, b)=>a - b).pop()",
+      "list.sort((a, b)=>a - b)[list.length - 1]",
+      "list.sort((a, b)=>a - b)[-1 + list.length]"
     ]
   }
 }

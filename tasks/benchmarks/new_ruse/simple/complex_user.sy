@@ -9,8 +9,6 @@
     "b": "*c.user_b",
     "c": "ComplexUser"
   },
-  "intLiterals": [],
-  "stringLiterals": [" "],
   "returnType": "String",
   "examples": [
     {

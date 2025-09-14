@@ -1,30 +1,33 @@
 {
   "version": 2,
-  "classes": [
-    "export class User {\nconstructor(public name: string,\npublic surname: string) {}\n}"
+  "import": [
+    "../../../classes/ruse/user.ts"
   ],
   "variables": {
-    "a": "User"
+    "a": "User",
+    "b": "User"
   },
-  "intLiterals": [],
-  "stringLiterals": [" "],
   "returnType": "String",
   "examples": [
     {
       "input": {
-        "a": {"name": "'John'", "surname": "'Doe'"}
+        "a": {"name": "'John'", "surname": "'Doe'"},
+        "b": {"name": "'Alex'", "surname": "'Man'"}
       },
-      "output": "'John Doe'"
+      "output": "'John Alex'"
     },
     {
       "input": {
-        "a": {"name": "'Alan'", "surname": "'Wake'"}
+        "a": {"name": "'Alan'", "surname": "'Wake'"},
+        "b": {"name": "'Kevin'", "surname": "'Duck'"}
       },
-      "output": "'Alan Wake'"
+      "output": "'Alan Kevin'"
     }
   ],
   "solution": {
     "has_side_effects": "no",
-    "expected": [ "a.name + \" \" a.surname" ]
+    "expected": [
+      "a.name + \" \" b.name"
+    ]
   }
 }

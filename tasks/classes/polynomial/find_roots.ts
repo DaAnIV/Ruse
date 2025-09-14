@@ -1,3 +1,5 @@
+import { nextPow2 } from '../utils/np2';
+
 function near(a, b, c, d, tol) {
     var qa = a - c
     var qb = b - d
@@ -8,7 +10,7 @@ function near(a, b, c, d, tol) {
     return false
 }
 
-function solve(n, n_iters, tolerance, zr, zi, pr, pi) {
+function solve(n, n_iters, tolerance, zr, zi, pr, pi): [number[], number[]] {
     const EPSILON = 1e-8;
 
     var m = zr.length
@@ -130,10 +132,10 @@ function bound(n, pr, pi) {
     return 1.0 + Math.sqrt(b)
 }
 
-function findRoots(r_coeff: number[]) {
+function findRoots(r_coeff: number[]): [number[], number[]] {
     var n = r_coeff.length, i
     if (n <= 1) {
-        return []
+        return [[], []]
     }
     var nl = nextPow2(n);
     var pr = new Float64Array(nl);

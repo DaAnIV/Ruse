@@ -33,7 +33,8 @@
   "solution": {
     "has_side_effects": "no",
     "expected": [
-      "vec1.transpose().mmul(vec2)"
+      "vec1.transpose().mmul(vec2)",
+      "vec1.dot(vec2)"
     ]
   }
 }

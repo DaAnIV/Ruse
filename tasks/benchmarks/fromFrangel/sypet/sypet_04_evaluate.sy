@@ -56,7 +56,7 @@
   "solution": {
     "has_side_effects": "no",
     "expected": [
-      "(new SingularValueDecomposition(mat))"
+      "new SingularValueDecomposition(mat)"
     ]
   }
 }
