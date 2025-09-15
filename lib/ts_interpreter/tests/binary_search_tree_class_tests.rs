@@ -512,7 +512,7 @@ fn check_delete_two_children() {
             graphs_map: &c.graphs_map,
         })
         .collect_vec();
-    initial_trees[0].print_mermaid(&format!("initial_tree"));
+    // initial_trees[0].print_mermaid(&format!("initial_tree"));
 
     let mut predicate_builder = PredicateBuilder::new(GraphsMap::default());
     predicate_builder.add_predicate(JsPredicate::new(vec![
@@ -556,10 +556,10 @@ fn check_delete_two_children() {
             graphs_map: &c.graphs_map,
         })
         .collect_vec();
-    swap_trees
-        .iter()
-        .enumerate()
-        .for_each(|(i, x)| x.print_mermaid(&format!("swap_trees_{}", i)));
+    // swap_trees
+    //     .iter()
+    //     .enumerate()
+    //     .for_each(|(i, x)| x.print_mermaid(&format!("swap_trees_{}", i)));
 
     let final_trees = tree_objs
         .iter()
@@ -570,14 +570,30 @@ fn check_delete_two_children() {
         })
         .collect_vec();
 
-    final_trees
-        .iter()
-        .enumerate()
-        .for_each(|(i, x)| x.print_mermaid(&format!("final_tree_{}", i)));
+    // initial_trees[0].print_mermaid(&format!("initial_tree_{}", 0));
+    // swap_trees[0].print_mermaid(&format!("swap_tree_{}", 0));
+    // final_trees[0].print_mermaid(&format!("final_tree_{}", 0));
 
     // final_tree.check_fields(final_tree.value(), 3, 6);
     // assert!(final_tree.valid());
     // assert!(!final_tree.cotnains(node_to_delete_value));
 
+    // "tree.size == 6 && tree.valid() && !tree.contains({})",
+    // for (ctx, output) in izip!(
+    //     progs["final"].post_ctx().iter(),
+    //     progs["final"].out_value().iter(),
+    // ) {
+    //     let valid_result = JsEvaluator::evaluate_get_js_value(
+    //         "tree.valid()",
+    //         ctx,
+    //         output.val(),
+    //         &syn_ctx,
+    //         &mut worker_ctx,
+    //     );
+
+    //     println!(
+    //         "valid: {:?}", valid_result
+    //     );
+    // }
     assert!(predicate(&progs["final"], &syn_ctx, &mut worker_ctx));
 }
