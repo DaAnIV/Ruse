@@ -3,6 +3,7 @@ use downcast_rs::{impl_downcast, DowncastSync};
 use graph_equality::equal_graphs_by_nodes;
 use itertools::Itertools;
 use ruse_object_graph::{
+    connected_components::GraphsMapWeakComponents,
     dot::{Dot, DotConfig},
     graph_map_value::*,
     mermaid::{Mermaid, MermaidConfig},
@@ -417,7 +418,9 @@ impl Context {
         self.values.values()
     }
 
-    pub fn primitive_variables(&self) -> impl std::iter::Iterator<Item = (&VariableName, &PrimitiveValue)> {
+    pub fn primitive_variables(
+        &self,
+    ) -> impl std::iter::Iterator<Item = (&VariableName, &PrimitiveValue)> {
         self.values
             .iter()
             .filter_map(|(r, v)| v.primitive().map(|p| (r, p)))
@@ -434,7 +437,11 @@ impl Context {
         graphs_map.extend(&other.graphs_map);
     }
 
-    pub(crate) fn get_partial_context<'a, I>(&self, required_variables: I) -> Option<Box<Self>>
+    pub(crate) fn get_partial_context<'a, I>(
+        &self,
+        required_variables: I,
+        weak_components: &GraphsMapWeakComponents,
+    ) -> Option<Box<Self>>
     where
         I: IntoIterator<Item = &'a VariableName>,
     {
@@ -450,10 +457,7 @@ impl Context {
                     .iter()
                     .filter_map(|(name, val)| Some((name, val.obj()?)))
                 {
-                    if self
-                        .graphs_map
-                        .nodes_connected(obj_val.node, other_obj_val.node)
-                    {
+                    if weak_components.is_connected(obj_val.node, other_obj_val.node) {
                         connected_variables.insert(name);
                     }
                 }
@@ -1034,14 +1038,18 @@ impl ContextArray {
             .all(|(self_ctx, other_ctx)| self_ctx.subset(other_ctx))
     }
 
-    pub fn get_partial_context<'a, I>(&self, required_variables: I) -> Option<Self>
+    pub fn get_partial_context<'a, I>(
+        &self,
+        required_variables: I,
+        weak_components: &Vec<GraphsMapWeakComponents>,
+    ) -> Option<Self>
     where
         I: IntoIterator<Item = &'a VariableName> + Copy,
     {
         let mut ctxs = Vec::<Box<Context>>::with_capacity(self.len());
 
-        for ctx in self.iter() {
-            ctxs.push(ctx.get_partial_context(required_variables)?);
+        for (ctx, ctx_weak_components) in self.iter().zip_eq(weak_components.iter()) {
+            ctxs.push(ctx.get_partial_context(required_variables, ctx_weak_components)?);
         }
 
         Some(Self {
@@ -1079,6 +1087,13 @@ impl ContextArray {
 
     pub fn get(&self, index: usize) -> Option<&Box<Context>> {
         self.inner.get(index)
+    }
+
+    pub fn compute_weak_components(&self) -> Vec<GraphsMapWeakComponents> {
+        self.inner
+            .iter()
+            .map(|ctx| GraphsMapWeakComponents::from_graphs_map(&ctx.graphs_map))
+            .collect()
     }
 }
 

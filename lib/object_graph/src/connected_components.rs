@@ -5,7 +5,7 @@ use union_find::UnionFind;
 use crate::{graph_walk::ObjectGraphWalker, GraphsMap, NodeIndex};
 
 #[derive(Clone)]
-pub(crate) struct GraphsMapWeakComponents {
+pub struct GraphsMapWeakComponents {
     node_to_key: HashMap<NodeIndex, usize>,
     uf: union_find::QuickUnionUf<union_find::UnionByRank>,
 }

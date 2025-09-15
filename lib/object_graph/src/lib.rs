@@ -1,4 +1,4 @@
-mod connected_components;
+pub mod connected_components;
 pub mod dot;
 pub mod mermaid;
 pub mod generator;

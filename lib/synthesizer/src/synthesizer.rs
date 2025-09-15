@@ -10,7 +10,7 @@ use crate::{
 };
 use dashmap::DashSet;
 use futures::FutureExt;
-use ruse_object_graph::ValueType;
+use ruse_object_graph::{connected_components::GraphsMapWeakComponents, ValueType};
 use serde::ser::SerializeStruct;
 use std::{
     fmt::Display, ops::Index, panic, sync::{Arc, atomic::*}, time::Instant
@@ -231,8 +231,10 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
         self.found_contexts.insert(ctx.clone());
         self.statistics
             .inc_value(StatisticsTypes::FoundContextCount);
+        let weak_components = ctx.compute_weak_components();
+        
         for op in self.init_opcodes() {
-            let p = match self.get_program_from_init_opcode(op.clone(), ctx, worker_ctx) {
+            let p = match self.get_program_from_init_opcode(op.clone(), ctx, &weak_components, worker_ctx) {
                 Some(p) => p,
                 None => continue,
             };
@@ -492,11 +494,12 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
         &self,
         op: Arc<dyn ExprOpcode>,
         ctx: &ContextArray,
+        weak_components: &Vec<GraphsMapWeakComponents>,
         worker_ctx: &mut SynthesizerWorkerContext
     ) -> Option<Arc<SubProgram>> {
         debug_assert!(op.arg_types().is_empty());
 
-        let pre_ctx = ctx.get_partial_context(op.required_variables())?;
+        let pre_ctx = ctx.get_partial_context(op.required_variables(), weak_components)?;
         let post_ctx = pre_ctx.clone();
         let mut p = SubProgram::with_opcode(op.clone(), pre_ctx, post_ctx);
         match self.evaluate_program(&mut p, worker_ctx) {

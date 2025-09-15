@@ -367,8 +367,9 @@ pub mod helpers {
         syn_ctx: &SynthesizerContext,
         worker_ctx: &mut SynthesizerWorkerContext,
     ) -> Arc<SubProgram> {
+        let weak_components = ctx_arr.compute_weak_components();
         let op_ctx = ctx_arr
-            .get_partial_context(op.required_variables())
+            .get_partial_context(op.required_variables(), &weak_components)
             .unwrap();
         let mut prog = SubProgram::with_opcode(op, op_ctx.clone(), op_ctx.clone());
         assert!(evaluate_prog(&mut prog, &syn_ctx, worker_ctx));
@@ -1233,8 +1234,13 @@ mod embedding_tests {
         )]);
         let syn_ctx = SynthesizerContext::from_context_array(start_ctx.clone());
 
-        let x_ctx = &start_ctx.get_partial_context(&[root_name!("x")]).unwrap()[0];
-        let y_ctx = &start_ctx.get_partial_context(&[root_name!("y")]).unwrap()[0];
+        let weak_components = start_ctx.compute_weak_components();
+        let x_ctx = &start_ctx
+            .get_partial_context(&[root_name!("x")], &weak_components)
+            .unwrap()[0];
+        let y_ctx = &start_ctx
+            .get_partial_context(&[root_name!("y")], &weak_components)
+            .unwrap()[0];
 
         let (pre_merged_ctx, post_merged_ctx) = merge_context(x_ctx, x_ctx, y_ctx, y_ctx).unwrap();
 
@@ -1333,8 +1339,13 @@ mod embedding_tests {
         )]);
         let syn_ctx = SynthesizerContext::from_context_array(start_ctx.clone());
 
-        let x_ctx = &start_ctx.get_partial_context(&[root_name!("x")]).unwrap()[0];
-        let y_ctx = &start_ctx.get_partial_context(&[root_name!("y")]).unwrap()[0];
+        let weak_components = start_ctx.compute_weak_components();
+        let x_ctx = &start_ctx
+            .get_partial_context(&[root_name!("x")], &weak_components)
+            .unwrap()[0];
+        let y_ctx = &start_ctx
+            .get_partial_context(&[root_name!("y")], &weak_components)
+            .unwrap()[0];
 
         println!("x_ctx: {}", x_ctx);
         println!("y_ctx: {}", y_ctx);

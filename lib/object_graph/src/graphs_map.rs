@@ -9,7 +9,6 @@ use std::{
 use itertools::Itertools;
 
 use crate::{
-    connected_components::*,
     field_name, graph_equality,
     graph_walk::ObjectGraphWalker,
     value::{ObjectValue, Value},
@@ -31,7 +30,6 @@ pub struct GraphsMap {
     graphs: HashMap<GraphIndex, Arc<ObjectGraph>, BuildHasherDefault<DefaultHasher>>,
     roots: RootsMap,
     node_roots_names: NodeRootNamesMap,
-    weak_components: GraphsMapWeakComponents,
 }
 
 impl GraphsMap {
@@ -40,20 +38,17 @@ impl GraphsMap {
             graphs: Default::default(),
             roots: Default::default(),
             node_roots_names: Default::default(),
-            weak_components: GraphsMapWeakComponents::new(),
         };
     }
 
     pub fn insert_graph(&mut self, graph: Arc<ObjectGraph>) -> Option<Arc<ObjectGraph>> {
         let old = self.graphs.insert(graph.id, graph);
-        self.weak_components = GraphsMapWeakComponents::from_graphs_map(self);
 
         old
     }
 
     pub fn remove(&mut self, id: GraphIndex) -> Option<Arc<ObjectGraph>> {
         let old = self.graphs.remove(&id);
-        self.weak_components = GraphsMapWeakComponents::from_graphs_map(self);
 
         old
     }
@@ -63,7 +58,6 @@ impl GraphsMap {
             std::collections::hash_map::Entry::Occupied(_) => false,
             std::collections::hash_map::Entry::Vacant(vacant_entry) => {
                 vacant_entry.insert(graph);
-                self.weak_components = GraphsMapWeakComponents::from_graphs_map(self);
                 true
             }
         }
@@ -82,7 +76,6 @@ impl GraphsMap {
             std::collections::hash_map::Entry::Occupied(_) => (),
             std::collections::hash_map::Entry::Vacant(vacant_entry) => {
                 vacant_entry.insert(ObjectGraph::new(graph_id).into());
-                self.weak_components = GraphsMapWeakComponents::from_graphs_map(self);
             }
         };
     }
@@ -108,7 +101,6 @@ impl GraphsMap {
         for (key, value) in &other.graphs {
             self.graphs.entry(*key).or_insert(value.clone());
         }
-        self.weak_components = GraphsMapWeakComponents::from_graphs_map(self);
     }
 
     pub fn keys(&self) -> impl std::iter::Iterator<Item = &GraphIndex> {
@@ -121,7 +113,6 @@ impl GraphsMap {
                 self.insert_graph_if_new(g.clone());
             }
         }
-        self.weak_components = GraphsMapWeakComponents::from_graphs_map(self);
     }
 
     pub fn node_count(&self) -> usize {
@@ -233,14 +224,6 @@ impl GraphsMap {
         let graph = Arc::make_mut(self.get_mut(&graph).unwrap());
         let node = ObjectGraphNode::new(obj_type, fields, pointers);
         graph.add_node(id, node);
-        let edges = graph
-            .neighbors(&id)
-            .map(|(_, edge)| edge.node)
-            .collect_vec();
-        self.weak_components.add_new_node(id);
-        for b in edges {
-            self.weak_components.add_edge(id, b);
-        }
     }
 
     pub fn set_field(
@@ -294,7 +277,6 @@ impl GraphsMap {
         } else {
             graph.set_chain_edge(node_a, graph_b, node_b, field);
         }
-        self.weak_components.add_edge(node_a, node_b);
     }
 
     pub fn delete_field(
@@ -337,20 +319,7 @@ impl GraphsMap {
         let graph = Arc::make_mut(self.get_mut(&graph_id).unwrap());
         let old = graph.remove_edge(node, field)?;
 
-        self.weak_components = GraphsMapWeakComponents::from_graphs_map(self);
-
         Some((old.graph.unwrap_or(graph_id), old.node))
-    }
-
-    pub fn roots_connected(&self, root_a: &RootName, root_b: &RootName) -> bool {
-        self.nodes_connected(
-            self.get_root(root_a).unwrap().node,
-            self.get_root(root_b).unwrap().node,
-        )
-    }
-
-    pub fn nodes_connected(&self, node_a: NodeIndex, node_b: NodeIndex) -> bool {
-        self.weak_components.is_connected(node_a, node_b)
     }
 }
 
@@ -641,8 +610,6 @@ impl GraphsMap {
                     .insert_graph_and_chained_graphs(self.graphs[&root.graph].clone(), &self);
             }
         }
-        pruned_graphs_map.weak_components =
-            GraphsMapWeakComponents::from_graphs_map(&pruned_graphs_map);
         pruned_graphs_map
     }
 
