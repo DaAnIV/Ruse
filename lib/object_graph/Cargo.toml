@@ -30,6 +30,7 @@ criterion = { workspace = true, features = ["async_tokio"] }
 default = ["generators"]
 generators = ["dep:petgraph", "dep:petgraph-gen"]
 release_trace_max_level_info = ["tracing/release_max_level_info"]
+release_trace_max_level_debug = ["tracing/release_max_level_debug"]
 
 [[bench]]
 name = "benches"
