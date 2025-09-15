@@ -6,7 +6,13 @@ use crate::{engine_context::EngineContext, ts_classes::TsClasses};
 pub struct JsWorkerContextData {
     pub engine_ctx: Option<EngineContext>,
 }
-impl SynthesizerWorkerContextData for JsWorkerContextData {}
+impl SynthesizerWorkerContextData for JsWorkerContextData {
+    fn gc(&self) {
+        if let Some(engine_ctx) = &self.engine_ctx {
+            engine_ctx.gc();
+        }
+    }
+}
 
 impl JsWorkerContextData {
     pub fn get_engine_ctx(&mut self, classes: &TsClasses) -> &mut EngineContext {

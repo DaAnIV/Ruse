@@ -76,7 +76,9 @@ pub struct SynthesizerContext {
     pub data: Box<dyn SynthesizerContextData>,
 }
 
-pub trait SynthesizerWorkerContextData: DowncastSync {}
+pub trait SynthesizerWorkerContextData: DowncastSync {
+    fn gc(&self) {}
+}
 impl_downcast!(sync SynthesizerWorkerContextData);
 
 pub struct EmptySynthesizerData {}

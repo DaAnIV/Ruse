@@ -399,6 +399,7 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
                     self.found_token.cancel();
                     return found;
                 }
+                worker_ctx.data.gc();
             }
         }
 

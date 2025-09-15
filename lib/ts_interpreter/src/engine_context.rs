@@ -696,6 +696,12 @@ impl EngineContext {
         global_obj.define_property_or_throw(js_string!(name.as_str()), property, self)?;
         Ok(())
     }
+
+    pub fn gc(&self) {
+        if let EngineContext::Owning(_) = self {
+            boa_gc::force_collect();
+        }
+    }
 }
 
 impl From<&mut boa_engine::Context> for EngineContext {
