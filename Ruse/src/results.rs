@@ -37,6 +37,7 @@ pub struct BenchmarkResult {
     string_literals: Option<Vec<String>>,
     num_literals: Option<Vec<i64>>,
     iterations: Vec<BenchmarksIteration>,
+    iteration_count: usize,
     found: Option<ResultSolution>,
     total_time: Option<Duration>,
     total_statistics: Option<CurrentStatistics>,
@@ -52,6 +53,7 @@ impl BenchmarkResult {
             category: None,
             opcode_count: 0,
             iterations: vec![],
+            iteration_count: 0,
             string_literals: None,
             num_literals: None,
             found: None,
@@ -84,6 +86,7 @@ impl BenchmarkResult {
             time,
             statistics: iter_stats,
         });
+        self.iteration_count += 1;
     }
 
     pub fn error<E: std::error::Error>(&mut self, error: &E) {
