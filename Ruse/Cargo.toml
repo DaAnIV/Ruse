@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-mimalloc = { version = "*", features = ["v3"] }
+mimalloc = { version = "*", features = ["v3"], optional = true}
 
 fork = "*"
 
@@ -54,6 +54,8 @@ console-subscriber = "*"
 boa_engine.workspace = true
 
 [features]
+default = ["mimalloc"]
+mimalloc=["dep:mimalloc"]
 trace_evaluations=["ruse_synthesizer/trace_evaluations"]
 trace_embeddings=["ruse_synthesizer/trace_embeddings"]
 prune_graph_map=["ruse_synthesizer/prune_graph_map"]

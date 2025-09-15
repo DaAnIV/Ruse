@@ -25,10 +25,13 @@ use results::ResultsWriter;
 mod config;
 mod runner;
 
-use mimalloc::MiMalloc;
+#[cfg(feature = "mimalloc")]
+mod mimalloc {
+    use mimalloc::MiMalloc;
 
-#[global_allocator]
-static GLOBAL: MiMalloc = MiMalloc;
+    #[global_allocator]
+    static GLOBAL: MiMalloc = MiMalloc;
+}
 
 use crate::config::{BankArgs, BankTypeArg};
 
@@ -255,6 +258,10 @@ fn run_benchmarks(cli: &RunArgs) -> ExitCode {
     info!(target: "ruse::runner", "Max mutations: {}", bench_config.max_mutations);
     info!(target: "ruse::runner", "Workers count: {}", bench_config.iteration_workers_count);
     info!(target: "ruse::runner", "Bank config {}", bench_config.bank_config);
+    #[cfg(feature = "mimalloc")]
+    info!(target: "ruse::runner", "Using mimalloc allocator");
+    #[cfg(not(feature = "mimalloc"))]
+    info!(target: "ruse::runner", "Using default system allocator");
 
     if cli.tokio_console {
         console_subscriber::init();
