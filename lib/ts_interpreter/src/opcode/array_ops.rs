@@ -1,6 +1,6 @@
 use itertools::Itertools;
 use num_traits::ToPrimitive;
-use ruse_object_graph::{field_name, vnum, vobj, vstr, Number};
+use ruse_object_graph::{field_name, vnum, vobj, vstr, Number, PrimitiveValue};
 use ruse_object_graph::{value::Value, ValueType};
 use ruse_synthesizer::location::*;
 use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};
@@ -73,7 +73,6 @@ impl ExprOpcode for ArrayIndexOp {
         &self.arg_types
     }
 }
-
 
 #[derive(Debug)]
 pub struct ArrayAtOp {
@@ -305,9 +304,17 @@ impl ExprOpcode for ArraySliceOp {
         let arr = args[0].val().obj().unwrap();
         let graph = arr.graph(&post_ctx.graphs_map);
         let arr_len = arr.total_field_count(&post_ctx.graphs_map);
-        let start = get_index(&args[1].val().number_value().unwrap(), arr_len, Wrapparound::YesWithMax)?;
+        let start = get_index(
+            &args[1].val().number_value().unwrap(),
+            arr_len,
+            Wrapparound::YesWithMax,
+        )?;
         let end = match args.get(2) {
-            Some(v) => get_index(&v.val().number_value().unwrap(), arr_len, Wrapparound::YesWithMax)?,
+            Some(v) => get_index(
+                &v.val().number_value().unwrap(),
+                arr_len,
+                Wrapparound::YesWithMax,
+            )?,
             None => arr_len,
         };
 
@@ -458,7 +465,11 @@ impl ExprOpcode for ArraySpliceOp {
         let arr = args[0].val().obj().unwrap();
         let graph = arr.graph(&post_ctx.graphs_map);
         let arr_len = arr.total_field_count(&post_ctx.graphs_map);
-        let start = get_index(&args[1].val().number_value().unwrap(), arr_len, Wrapparound::YesWithMax)?;
+        let start = get_index(
+            &args[1].val().number_value().unwrap(),
+            arr_len,
+            Wrapparound::YesWithMax,
+        )?;
         let delete_count = match args.get(2) {
             Some(v) => {
                 let ivalue = v.val().number_value().unwrap().0 as isize;
@@ -692,7 +703,11 @@ impl ExprOpcode for ArrayJoinOp {
 
         let result = values
             .iter()
-            .map(|x| x.primitive().unwrap().to_string())
+            .map(|x| match x.primitive().unwrap() {
+                PrimitiveValue::Number(n) => n.to_string(),
+                PrimitiveValue::Bool(b) => b.to_string(),
+                PrimitiveValue::String(s) => s.to_string(),
+            })
             .join(&seperator);
 
         pure!(post_ctx.temp_value(vstr!(result.as_str())))
@@ -707,7 +722,6 @@ impl ExprOpcode for ArrayJoinOp {
     }
 }
 
-
 #[derive(Debug)]
 pub struct ArraySortOp {
     arg_types: Vec<ValueType>,
@@ -720,7 +734,10 @@ impl ArraySortOp {
             unimplemented!("Array.prototype.sort with non-primitive type");
         }
         let arg_types = vec![ValueType::array_value_type(elem_type)];
-        Self { arg_types, elem_type: elem_type.clone() }
+        Self {
+            arg_types,
+            elem_type: elem_type.clone(),
+        }
     }
 
     fn sort_ascending_lambda_expr() -> ast::ExprOrSpread {
@@ -731,17 +748,20 @@ impl ArraySortOp {
             right: ast::Expr::Ident("b".into()).into(),
         });
         let expr = ast::Expr::Arrow(ast::ArrowExpr {
-                span: DUMMY_SP,
-                params: vec![ast::Pat::Ident("a".into()), ast::Pat::Ident("b".into())],
-                body: ast::BlockStmtOrExpr::Expr(body_expr.into()).into(),
-                is_async: false,
-                is_generator: false,
-                type_params: None,
-                return_type: None,
-                ctxt: Default::default(),
-            });
+            span: DUMMY_SP,
+            params: vec![ast::Pat::Ident("a".into()), ast::Pat::Ident("b".into())],
+            body: ast::BlockStmtOrExpr::Expr(body_expr.into()).into(),
+            is_async: false,
+            is_generator: false,
+            type_params: None,
+            return_type: None,
+            ctxt: Default::default(),
+        });
 
-        ast::ExprOrSpread { spread: None, expr: expr.into() }
+        ast::ExprOrSpread {
+            spread: None,
+            expr: expr.into(),
+        }
     }
 }
 
@@ -762,10 +782,16 @@ impl ExprOpcode for ArraySortOp {
 
         let mut values: Vec<Value> = arr.array_values_iterator(&post_ctx.graphs_map).collect();
         values.sort_by(|a, b| match &self.elem_type {
-            ValueType::Number => a.number_value().unwrap().partial_cmp(&b.number_value().unwrap()).unwrap(),
+            ValueType::Number => a
+                .number_value()
+                .unwrap()
+                .partial_cmp(&b.number_value().unwrap())
+                .unwrap(),
             ValueType::Bool => a.bool_value().unwrap().cmp(&b.bool_value().unwrap()),
             ValueType::String => a.string_value().unwrap().cmp(&b.string_value().unwrap()),
-            ValueType::Object(_object_type) => unimplemented!("Array.prototype.sort with non-primitive type"),
+            ValueType::Object(_object_type) => {
+                unimplemented!("Array.prototype.sort with non-primitive type")
+            }
             ValueType::Null => unreachable!(),
         });
         for (i, value) in values.iter().enumerate() {
@@ -781,14 +807,16 @@ impl ExprOpcode for ArraySortOp {
             obj: TsExprAst::from(children[0].as_ref()).get_paren_expr(),
             prop: ast::MemberProp::Ident(ast::IdentName::from("sort")),
         };
-    
-        let mut args = vec![];    
+
+        let mut args = vec![];
 
         match &self.elem_type {
             ValueType::Number => args.push(Self::sort_ascending_lambda_expr()),
             ValueType::Bool => args.push(Self::sort_ascending_lambda_expr()),
             ValueType::String => (),
-            ValueType::Object(_object_type) => unimplemented!("Array.prototype.sort with non-primitive type"),
+            ValueType::Object(_object_type) => {
+                unimplemented!("Array.prototype.sort with non-primitive type")
+            }
             ValueType::Null => unreachable!(),
         };
 
@@ -799,7 +827,7 @@ impl ExprOpcode for ArraySortOp {
             type_args: None,
             ctxt: Default::default(),
         };
-    
+
         TsExprAst::create(ast::Expr::Call(expr))
     }
 
@@ -807,7 +835,6 @@ impl ExprOpcode for ArraySortOp {
         &self.arg_types
     }
 }
-
 
 #[derive(Debug)]
 pub struct ArrayShiftOp {
@@ -848,7 +875,9 @@ impl ExprOpcode for ArrayShiftOp {
 
         // Delete the last field
         let idx_field_name = field_name!((arr_len - 1).to_string().as_str());
-        post_ctx.delete_field(arr.graph_id, arr.node, &idx_field_name).ok_or(())?;
+        post_ctx
+            .delete_field(arr.graph_id, arr.node, &idx_field_name)
+            .ok_or(())?;
         dirty!(post_ctx.temp_value(values[0].clone()))
     }
 
@@ -861,4 +890,3 @@ impl ExprOpcode for ArrayShiftOp {
         &self.arg_types
     }
 }
-
