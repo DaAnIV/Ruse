@@ -449,9 +449,15 @@ pub fn run_all_benchmarks<F: Formatter + Sync + Send + Clone + 'static>(
                     ctrlc = true;
                 }
             }
+            if ctrlc {
+                continue;
+            }
 
-            if !bench_config.dry_run {
-                thread::sleep(Duration::from_secs(5)); // Give some time for the OS to reclaim memory
+            if let Some(sleep_time) = bench_config.sleep {
+                // Don't sleep on the last benchmark
+                if i < total_benchmarks - 1 {
+                    thread::sleep(sleep_time); // Give some time for the OS to reclaim memory
+                }
             }
         }
     }

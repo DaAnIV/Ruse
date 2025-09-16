@@ -10,7 +10,7 @@ use ruse_synthesizer::{prog::SubProgram, synthesizer::CurrentStatistics};
 
 use ruse_task_parser::SnythesisTaskCategory;
 use serde::Serialize;
-use serde_json::ser::{CompactFormatter, Formatter, PrettyFormatter};
+use serde_json::ser::{Formatter, PrettyFormatter};
 
 use crate::config::BenchmarkConfig;
 
@@ -200,12 +200,6 @@ where
         let file = std::fs::File::create(self.results_dir.join(name))
             .expect("Failed to create output file");
         serde_json::Serializer::with_formatter(file, self.formatter.clone())
-    }
-}
-
-impl ResultsWriter<CompactFormatter> {
-    pub fn from_path(path: &Path, config: &BenchmarkConfig) -> Self {
-        Self::from_path_with_formatter(path, config, CompactFormatter)
     }
 }
 

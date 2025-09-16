@@ -1,7 +1,7 @@
 use std::{path::PathBuf, time::Duration};
 
 use byte_unit::Byte;
-use clap::Parser;
+use clap::{Command, CommandFactory, Parser};
 use ruse_prog_bank_in_mem::args::SubsumptionBankArgs;
 use ruse_task_parser::BankConfig;
 use serde_with::{serde_as, DurationSeconds};
@@ -31,6 +31,29 @@ impl std::fmt::Display for BankTypeArg {
 #[derive(Clone, Debug)]
 pub enum BankArgs {
     SubsumptionBankArgs(SubsumptionBankArgs),
+}
+
+impl BankArgs {
+    fn help_template() -> &'static str {
+        "\
+{tab}{name}:
+{tab}{tab}{options}"
+    }
+
+    fn bank_commands() -> Vec<Command> {
+        vec![SubsumptionBankArgs::command().help_template(Self::help_template())]
+    }
+
+    pub fn help() -> String {
+        let mut help = String::new();
+        help.push_str("--bank-arg <arg>=<value>\n");
+
+        for mut command in Self::bank_commands() {
+            help.push_str(&command.render_help().to_string());
+        }
+
+        help
+    }
 }
 
 impl BankArgs {
@@ -67,4 +90,5 @@ pub struct BenchmarkConfig {
     #[serde(skip)]
     pub dry_run: bool,
     pub fork: bool,
+    pub sleep: Option<Duration>,
 }

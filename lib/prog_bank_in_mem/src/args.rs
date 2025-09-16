@@ -4,9 +4,10 @@ use crate::config::SubsumptionBankConfig;
 
 #[derive(clap::Parser, Clone, Debug)]
 #[command(
-    name = "subsumption-bank args",
+    name = "Subsumption Bank Options",
     no_binary_name = true,
-    override_usage = "--bank-arg <arg>=<value>"
+    override_usage = "--bank-arg <arg>=<value>",
+    disable_help_flag = true
 )]
 pub struct SubsumptionBankArgs {
     #[arg(long, value_parser = clap::value_parser!(BankKeys))]

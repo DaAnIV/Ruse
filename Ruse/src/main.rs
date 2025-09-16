@@ -76,7 +76,12 @@ struct RunArgs {
     output: std::path::PathBuf,
 
     /// Timeout per benchmark in seconds
-    #[arg(short, long, default_value_t = 300)]
+    #[arg(
+        short,
+        long,
+        default_value_t = 300,
+        help = "Timeout per benchmark in seconds"
+    )]
     timeout: u64,
 
     /// Max number of synthesizer iterations
@@ -98,31 +103,52 @@ struct RunArgs {
     #[command(flatten)]
     verbose: Verbosity<InfoLevel>,
 
-    #[arg(long, default_value_t = false)]
+    #[arg(long, default_value_t = false, hide = true)]
     single_thread: bool,
 
-    #[arg(long, default_value_t = false)]
+    #[arg(long, default_value_t = false, hide = true)]
     tokio_console: bool,
 
     /// Results are saved pretty json
     #[arg(long)]
     log: Option<std::path::PathBuf>,
 
-    /// Results are saved pretty json
-    #[arg(long, default_value_t = false)]
-    pretty: bool,
-
     #[arg(long, value_enum, default_value_t = BankTypeArg::SubsumptionBank)]
     bank_type: BankTypeArg,
 
-    #[arg(long, action = clap::ArgAction::Append, allow_hyphen_values = true)]
+    #[arg(long, action = clap::ArgAction::Append, allow_hyphen_values = true, help = BankArgs::help(), next_line_help=true)]
     bank_arg: Vec<String>,
 
-    #[arg(long, default_value_t = false)]
+    #[arg(
+        long,
+        default_value_t = false,
+        help = "Don't run benchmarks, just parse them",
+        hide_default_value = true
+    )]
     dry_run: bool,
 
-    #[arg(long, default_value_t = false)]
+    #[arg(
+        long,
+        default_value_t = false,
+        help = "Run benchmarks in the same process without forking",
+        hide_default_value = true
+    )]
     no_fork: bool,
+
+    #[arg(
+        long,
+        default_value_t = false,
+        help = "Don't sleep between benchmarks",
+        hide_default_value = true
+    )]
+    no_sleep: bool,
+
+    #[arg(
+        long,
+        default_value_t = 5,
+        help = "Sleep time between benchmarks in seconds"
+    )]
+    sleep_time: u64,
 }
 
 #[derive(clap::Args, Debug)]
@@ -228,6 +254,12 @@ fn set_logger(cli: &RunArgs) {
 fn construct_config(cli: &RunArgs) -> BenchmarkConfig {
     let bank_args = BankArgs::parse_by_bank_type(cli.bank_type, &cli.bank_arg);
 
+    let sleep = if cli.no_sleep || cli.dry_run {
+        None
+    } else {
+        Some(Duration::from_secs(cli.sleep_time))
+    };
+
     BenchmarkConfig {
         timeout: Duration::from_secs(cli.timeout),
         max_iterations: cli.max_iterations,
@@ -240,6 +272,7 @@ fn construct_config(cli: &RunArgs) -> BenchmarkConfig {
         bank_config: bank_args.into(),
         dry_run: cli.dry_run,
         fork: !cli.no_fork,
+        sleep,
     }
 }
 
@@ -275,19 +308,11 @@ fn run_benchmarks(cli: &RunArgs) -> ExitCode {
         }
     };
 
-    if cli.pretty {
-        runner::run_all_benchmarks(
-            &cli.benchmarks,
-            &bench_config,
-            ResultsWriter::from_path_pretty(results_path.as_path(), &bench_config),
-        );
-    } else {
-        runner::run_all_benchmarks(
-            &cli.benchmarks,
-            &bench_config,
-            ResultsWriter::from_path(results_path.as_path(), &bench_config),
-        );
-    }
+    runner::run_all_benchmarks(
+        &cli.benchmarks,
+        &bench_config,
+        ResultsWriter::from_path_pretty(results_path.as_path(), &bench_config),
+    );
 
     info!(target: "ruse::runner", "Results written to {:?}", results_path.as_path());
 
