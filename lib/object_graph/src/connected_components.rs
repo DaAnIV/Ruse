@@ -32,9 +32,7 @@ impl GraphsMapWeakComponents {
             }
         }
 
-        Self {
-            node_to_key,  uf
-        }
+        Self { node_to_key, uf }
     }
 
     pub fn add_new_node(&mut self, id: NodeIndex) {

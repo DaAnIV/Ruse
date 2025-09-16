@@ -5,8 +5,8 @@ use std::sync::Arc;
 
 use ruse_object_graph::{graph_map_value::*, ValueType};
 
-use crate::context::{ContextArray, SynthesizerWorkerContext};
 use crate::context::SynthesizerContext;
+use crate::context::{ContextArray, SynthesizerWorkerContext};
 use crate::location::*;
 use crate::opcode::*;
 use crate::value_array::ValueArray;
@@ -67,7 +67,9 @@ impl SubProgram {
 
         let size = children.iter().fold(0, |acc, x| acc + x.size) + 1;
         let depth = children.iter().fold(0, |acc, x| max(acc, x.depth)) + 1;
-        let num_mutations = children.iter().fold(0, |acc, x| acc + x.num_mutating_opcodes);
+        let num_mutations = children
+            .iter()
+            .fold(0, |acc, x| acc + x.num_mutating_opcodes);
 
         pre_ctx.iter_mut().for_each(|ctx| {
             ctx.clear_outputs();
@@ -114,16 +116,20 @@ impl SubProgram {
         })
     }
 
-    pub fn evaluate(&mut self, syn_ctx: &SynthesizerContext, worker_ctx: &mut SynthesizerWorkerContext) -> bool {
+    pub fn evaluate(
+        &mut self,
+        syn_ctx: &SynthesizerContext,
+        worker_ctx: &mut SynthesizerWorkerContext,
+    ) -> bool {
         let mut out_type: Option<ValueType> = None;
         let examples_count = self.pre_ctx().len();
         let mut out_value = Vec::with_capacity(examples_count);
         let mut dirty = false;
         let old_post_ctx = self.post_ctx.clone();
 
-        evaluate_trace!({ 
-            pre_ctx.json = %self.pre_ctx.json_display(), 
-            post_ctx.json = %self.post_ctx.json_display() 
+        evaluate_trace!({
+            pre_ctx.json = %self.pre_ctx.json_display(),
+            post_ctx.json = %self.post_ctx.json_display()
         }, "Evaluating: {}", self.get_code());
 
         for i in 0..examples_count {
@@ -281,9 +287,9 @@ impl Display for SubProgram {
 
 #[macro_export]
 macro_rules! trace_prog {
-    (target: $target:expr, $prog:expr, $($arg:tt)+) => {      
-        if tracing::enabled!(tracing::Level::TRACE) {   
-            tracing::trace!(target: $target, { 
+    (target: $target:expr, $prog:expr, $($arg:tt)+) => {
+        if tracing::enabled!(tracing::Level::TRACE) {
+            tracing::trace!(target: $target, {
                 prog = %$prog,
                 pre_ctx.json = %$prog.pre_ctx().json_display(),
                 post_ctx.json = %$prog.post_ctx().json_display(),
@@ -291,9 +297,9 @@ macro_rules! trace_prog {
              }, "{}. program \"{}\"", format!($($arg)+), $prog.get_code());
         }
     };
-    ($level:expr, target: $target:expr, $prog:expr, $($arg:tt)+) => {      
-        if tracing::enabled!($level) {   
-            tracing::event!(target: $target, $level, { 
+    ($level:expr, target: $target:expr, $prog:expr, $($arg:tt)+) => {
+        if tracing::enabled!($level) {
+            tracing::event!(target: $target, $level, {
                 prog = %$prog,
                 pre_ctx.json = %$prog.pre_ctx().json_display(),
                 post_ctx.json = %$prog.post_ctx().json_display(),

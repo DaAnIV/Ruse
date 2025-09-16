@@ -92,11 +92,12 @@ macro_rules! impl_string_type {
                 $type(hstr::Atom::from(value))
             }
         }
-        
+
         impl serde::Serialize for $type {
             fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
             where
-                S: serde::Serializer {
+                S: serde::Serializer,
+            {
                 serializer.serialize_str(self.as_str())
             }
         }
@@ -104,7 +105,8 @@ macro_rules! impl_string_type {
         impl<'de> serde::Deserialize<'de> for $type {
             fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
             where
-                D: serde::Deserializer<'de> {
+                D: serde::Deserializer<'de>,
+            {
                 let s = String::deserialize(deserializer)?;
                 Ok($type::new(s))
             }

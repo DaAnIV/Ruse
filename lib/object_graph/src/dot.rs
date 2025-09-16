@@ -1,6 +1,9 @@
 use core::fmt;
 use itertools::Itertools;
-use std::{collections::{HashMap, HashSet}, fmt::Write};
+use std::{
+    collections::{HashMap, HashSet},
+    fmt::Write,
+};
 
 use crate::{
     graph_node::ObjectGraphNode, graph_walk::ObjectGraphWalker, FieldName, FieldsMap, GraphIndex,
@@ -186,10 +189,8 @@ impl<'a> Dot<'a> {
     }
 
     pub fn from_graphs_map_with_config(graphs_map: &'a GraphsMap, config: DotConfig) -> Self {
-        let nodes: Vec<(GraphIndex, NodeIndex)> = graphs_map
-            .roots()
-            .map(|(_, r)| (r.graph, r.node))
-            .collect();
+        let nodes: Vec<(GraphIndex, NodeIndex)> =
+            graphs_map.roots().map(|(_, r)| (r.graph, r.node)).collect();
         Self::from_nodes_with_config(graphs_map, nodes, config)
     }
 

@@ -31,10 +31,7 @@ pub struct JsUserClassWrapper {
 }
 
 impl JsUserClassWrapper {
-    pub fn new(
-        desc: Arc<TsClassDescription>,
-        engine_ctx: &mut EngineContext,
-    ) -> JsResult<Self> {
+    pub fn new(desc: Arc<TsClassDescription>, engine_ctx: &mut EngineContext) -> JsResult<Self> {
         let constructor = Self::build_standard_constructor(&desc, engine_ctx)?;
         Ok(JsUserClassWrapper { desc, constructor })
     }

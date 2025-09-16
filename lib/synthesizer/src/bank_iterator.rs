@@ -102,7 +102,8 @@ impl<'a, P: ProgBank> BankIteratorInner<'a, P> {
                 .iter()
                 .zip(self.arg_types.iter())
                 .map(|(iteration, output_type)| (*iteration, output_type.clone())),
-        ).await;
+        )
+        .await;
         true
     }
 

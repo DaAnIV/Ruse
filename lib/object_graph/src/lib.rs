@@ -1,6 +1,5 @@
 pub mod connected_components;
 pub mod dot;
-pub mod mermaid;
 pub mod generator;
 mod graph;
 pub mod graph_equality;
@@ -9,6 +8,7 @@ mod graph_node;
 pub mod graph_walk;
 mod graphs_map;
 mod indices;
+pub mod mermaid;
 mod primitive_fields;
 mod string_types;
 pub mod value;

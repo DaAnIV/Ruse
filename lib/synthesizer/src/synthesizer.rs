@@ -1,19 +1,27 @@
 use crate::{
     bank::*,
-    bank_iterator::{BankIterator, bank_iterator},
-    context::{ContextArray, SynthesizerContext, SynthesizerContextJsonDisplay, SynthesizerWorkerContext, VariableName},
+    bank_iterator::{bank_iterator, BankIterator},
+    context::{
+        ContextArray, SynthesizerContext, SynthesizerContextJsonDisplay, SynthesizerWorkerContext,
+        VariableName,
+    },
     multi_programs_map_product::ProgramChildrenIterator,
     opcode::*,
     prog::SubProgram,
     prog_triplet::ProgTriplet,
-    prog_triplet_iterator::{ProgTripletIterator, prog_triplet_iterator}, trace_context_array, trace_prog
+    prog_triplet_iterator::{prog_triplet_iterator, ProgTripletIterator},
+    trace_context_array, trace_prog,
 };
 use dashmap::DashSet;
 use futures::FutureExt;
 use ruse_object_graph::{connected_components::GraphsMapWeakComponents, ValueType};
 use serde::ser::SerializeStruct;
 use std::{
-    fmt::Display, ops::Index, panic, sync::{Arc, atomic::*}, time::Instant
+    fmt::Display,
+    ops::Index,
+    panic,
+    sync::{atomic::*, Arc},
+    time::Instant,
 };
 use tokio::{runtime::Handle, task::JoinSet};
 use tokio_util::sync::CancellationToken;
@@ -152,7 +160,9 @@ impl serde::Serialize for CurrentStatistics {
     }
 }
 
-pub type SynthesizerPredicate = Box<dyn Fn(&SubProgram, &SynthesizerContext, &mut SynthesizerWorkerContext) -> bool + Send + Sync>;
+pub type SynthesizerPredicate = Box<
+    dyn Fn(&SubProgram, &SynthesizerContext, &mut SynthesizerWorkerContext) -> bool + Send + Sync,
+>;
 
 pub trait WorkerContextCreator: Send + Sync {
     fn create_worker_ctx(&self, index: usize) -> SynthesizerWorkerContext;
@@ -232,9 +242,14 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
         self.statistics
             .inc_value(StatisticsTypes::FoundContextCount);
         let weak_components = ctx.compute_weak_components();
-        
+
         for op in self.init_opcodes() {
-            let p = match self.get_program_from_init_opcode(op.clone(), ctx, &weak_components, worker_ctx) {
+            let p = match self.get_program_from_init_opcode(
+                op.clone(),
+                ctx,
+                &weak_components,
+                worker_ctx,
+            ) {
                 Some(p) => p,
                 None => continue,
             };
@@ -270,7 +285,9 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
         Ok(found_prog)
     }
 
-    async fn run_iteration_inner(self: Arc<Self>) -> anyhow::Result<(P::IterationBuilderType, Option<Arc<SubProgram>>)> {
+    async fn run_iteration_inner(
+        self: Arc<Self>,
+    ) -> anyhow::Result<(P::IterationBuilderType, Option<Arc<SubProgram>>)> {
         let iteration = self.bank.iteration_count();
 
         debug!(target: "ruse::synthesizer", "Starting iteration {}", iteration);
@@ -285,14 +302,21 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
             panic::AssertUnwindSafe(async move {
                 let mut current_iteration_map = self_clone.bank.create_iteration_builder();
                 let found = if self_clone.bank.iteration_count() == 0 {
-                    tokio::task::block_in_place(|| Handle::current().block_on(self_clone.run_init_iteration(&mut current_iteration_map)).in_current_span()).into_inner()
+                    tokio::task::block_in_place(|| {
+                        Handle::current()
+                            .block_on(self_clone.run_init_iteration(&mut current_iteration_map))
+                            .in_current_span()
+                    })
+                    .into_inner()
                 } else {
-                    self_clone.run_composite_iteration(&mut current_iteration_map)
+                    self_clone
+                        .run_composite_iteration(&mut current_iteration_map)
                         .await
                 };
                 Ok((current_iteration_map, found?))
             })
-            .catch_unwind().in_current_span(),
+            .catch_unwind()
+            .in_current_span(),
         )
         .await;
 
@@ -302,9 +326,9 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
         let new_evaluated = self.statistics.get_value(StatisticsTypes::Evaluated);
 
         debug!(target: "ruse::synthesizer", "Finished iteration {} in {:.2?}, evaluated {}, found {} new programs",
-            iteration, 
+            iteration,
             took,
-            new_evaluated - prev_evaluated, 
+            new_evaluated - prev_evaluated,
             new_bank_size - prev_bank_size);
         res?.map_err(|_e| anyhow::anyhow!("Panic in run_iteration_inner"))?
     }
@@ -319,7 +343,13 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
     ) -> anyhow::Result<Option<Arc<SubProgram>>> {
         let mut worker_ctx = self.create_worker_ctx(0);
         let mut batch_builder = current_iteration_map.create_batch_builder();
-        let found = self.init_context::<true>(&mut batch_builder, &self.context.start_context, &mut worker_ctx).await;
+        let found = self
+            .init_context::<true>(
+                &mut batch_builder,
+                &self.context.start_context,
+                &mut worker_ctx,
+            )
+            .await;
         current_iteration_map.add_batch(batch_builder).await;
         Ok(found)
     }
@@ -332,7 +362,8 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
         current_batch_map: &mut <P::IterationBuilderType as BankIterationBuilder>::BatchBuilderType,
     ) -> Option<Arc<SubProgram>> {
         for op in ops {
-            let Some(p) = self.get_program_from_composite_opcode(op.clone(), triplet, worker_ctx) else {
+            let Some(p) = self.get_program_from_composite_opcode(op.clone(), triplet, worker_ctx)
+            else {
                 continue;
             };
 
@@ -383,7 +414,8 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
         batch_builder: &mut <P::IterationBuilderType as BankIterationBuilder>::BatchBuilderType,
         i: usize,
     ) -> Option<Arc<SubProgram>> {
-        let worker_span = info_span!(target: "ruse::synthesizer", "composite iteration worker", worker_index = i);
+        let worker_span =
+            info_span!(target: "ruse::synthesizer", "composite iteration worker", worker_index = i);
         let _worker_span_guard = worker_span.enter();
         let mut worker_ctx = self.create_worker_ctx(i);
         for (arg_types, ops) in self.composite_opcodes() {
@@ -394,7 +426,9 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
                 if self.should_end_worker().await {
                     return None;
                 }
-                let found = self.composite_iter_batch(&triple, &ops, &mut worker_ctx, batch_builder).await;
+                let found = self
+                    .composite_iter_batch(&triple, &ops, &mut worker_ctx, batch_builder)
+                    .await;
                 if found.is_some() {
                     self.found_token.cancel();
                     return found;
@@ -406,7 +440,10 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
         None
     }
 
-    async fn init_new_found_ctx(self: Arc<Self>, current_iteration_map: &mut P::IterationBuilderType) {
+    async fn init_new_found_ctx(
+        self: Arc<Self>,
+        current_iteration_map: &mut P::IterationBuilderType,
+    ) {
         let mut worker_ctx = self.create_worker_ctx(0);
         let mut new_ctx = current_iteration_map.create_batch_builder();
         for p in current_iteration_map.iter_programs().await {
@@ -415,7 +452,8 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
             }
             if self.found_contexts.insert(p.post_ctx().clone()) {
                 trace!(target: "ruse::synthesizer", "New post context found by program \"{}\"", p.get_code());
-                self.init_context::<false>(&mut new_ctx, p.post_ctx(), &mut worker_ctx).await;
+                self.init_context::<false>(&mut new_ctx, p.post_ctx(), &mut worker_ctx)
+                    .await;
             }
         }
         current_iteration_map.add_batch(new_ctx).await;
@@ -431,15 +469,18 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
             let self_clone = self.clone();
             workers.spawn(
                 panic::AssertUnwindSafe(async move {
-                    let found = Self::composite_iteration_worker(self_clone, &mut batch_builder, i).await;
+                    let found =
+                        Self::composite_iteration_worker(self_clone, &mut batch_builder, i).await;
                     (batch_builder, found)
                 })
-                    .catch_unwind().in_current_span(),
+                .catch_unwind()
+                .in_current_span(),
             );
         }
 
         while let Some(worker_res) = workers.join_next().await {
-            let (worker_type_map, found) = worker_res?.map_err(|_e| anyhow::anyhow!("Panic in composite_iteration_worker"))?;
+            let (worker_type_map, found) =
+                worker_res?.map_err(|_e| anyhow::anyhow!("Panic in composite_iteration_worker"))?;
             if self.cancel_token.is_cancelled() {
                 return Ok(None);
             }
@@ -448,23 +489,35 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
                 while workers.join_next().await.is_some() {}
                 return Ok(found);
             }
-            tokio::task::block_in_place(|| Handle::current().block_on(current_iteration_map.add_batch(worker_type_map)));
+            tokio::task::block_in_place(|| {
+                Handle::current().block_on(current_iteration_map.add_batch(worker_type_map))
+            });
         }
 
         debug!(target: "ruse::synthesizer", "Initializing new contexts!");
 
-        tokio::task::block_in_place(|| Handle::current().block_on(self.init_new_found_ctx(current_iteration_map)));
+        tokio::task::block_in_place(|| {
+            Handle::current().block_on(self.init_new_found_ctx(current_iteration_map))
+        });
         Ok(None)
     }
 
-    async fn insert_iteration(self: &mut Arc<Self>, current_iteration_map: P::IterationBuilderType) {
+    async fn insert_iteration(
+        self: &mut Arc<Self>,
+        current_iteration_map: P::IterationBuilderType,
+    ) {
         Arc::get_mut(self)
             .unwrap()
             .bank
-            .end_iteration(current_iteration_map).await;
+            .end_iteration(current_iteration_map)
+            .await;
     }
 
-    fn evaluate_program(&self, p: &mut Arc<SubProgram>, worker_ctx: &mut SynthesizerWorkerContext) -> bool {
+    fn evaluate_program(
+        &self,
+        p: &mut Arc<SubProgram>,
+        worker_ctx: &mut SynthesizerWorkerContext,
+    ) -> bool {
         // trace!(target: "ruse::synthesizer", "Evaluating program {}", p.get_code());
         self.statistics.inc_value(StatisticsTypes::Evaluated);
         unsafe { Arc::get_mut(p).unwrap_unchecked() }.evaluate(&self.context, worker_ctx)
@@ -474,7 +527,7 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
         &self,
         op: Arc<dyn ExprOpcode>,
         triplet: &ProgTriplet,
-        worker_ctx: &mut SynthesizerWorkerContext
+        worker_ctx: &mut SynthesizerWorkerContext,
     ) -> Option<Arc<SubProgram>> {
         debug_assert!(!op.arg_types().is_empty());
 
@@ -496,7 +549,7 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
         op: Arc<dyn ExprOpcode>,
         ctx: &ContextArray,
         weak_components: &Vec<GraphsMapWeakComponents>,
-        worker_ctx: &mut SynthesizerWorkerContext
+        worker_ctx: &mut SynthesizerWorkerContext,
     ) -> Option<Arc<SubProgram>> {
         debug_assert!(op.arg_types().is_empty());
 
@@ -509,7 +562,11 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
         }
     }
 
-    async fn check_program(&self, p: &Arc<SubProgram>, worker_ctx: &mut SynthesizerWorkerContext) -> bool {
+    async fn check_program(
+        &self,
+        p: &Arc<SubProgram>,
+        worker_ctx: &mut SynthesizerWorkerContext,
+    ) -> bool {
         if p.num_mutations() > self.max_mutations {
             return false;
         }
@@ -530,7 +587,11 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
         true
     }
 
-    async fn insert_program(&self, p: Arc<SubProgram>, batch_builder: &mut <P::IterationBuilderType as BankIterationBuilder>::BatchBuilderType) -> bool {
+    async fn insert_program(
+        &self,
+        p: Arc<SubProgram>,
+        batch_builder: &mut <P::IterationBuilderType as BankIterationBuilder>::BatchBuilderType,
+    ) -> bool {
         if p.is_terminal() {
             trace_prog!(target: "ruse::synthesizer", p, "Terminal program.");
             return true;
@@ -544,8 +605,10 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
                 .max_value(StatisticsTypes::MaxDepth, p.depth().into());
             self.statistics
                 .max_value(StatisticsTypes::MaxSize, p.size().into());
-            self.statistics
-                .max_value(StatisticsTypes::MaxMutatingOpcodes, p.num_mutations() as u64);
+            self.statistics.max_value(
+                StatisticsTypes::MaxMutatingOpcodes,
+                p.num_mutations() as u64,
+            );
 
             return true;
         }
@@ -576,7 +639,8 @@ pub struct SynthesizerJsonDisplay {
 
 impl Display for SynthesizerJsonDisplay {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let value = serde_json::to_string_pretty(self).unwrap_or_else(|e| format!("Failed to serialize synthesizer: {}", e));
+        let value = serde_json::to_string_pretty(self)
+            .unwrap_or_else(|e| format!("Failed to serialize synthesizer: {}", e));
         write!(f, "{}", value)
     }
 }
@@ -588,7 +652,11 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
 
     pub(crate) fn json_display_struct(&self) -> SynthesizerJsonDisplay {
         SynthesizerJsonDisplay {
-            opcodes: self.opcodes.values().flat_map(|ops| ops.iter().map(|op| format!("{}:{:?}", op.op_name(), op))).collect(),
+            opcodes: self
+                .opcodes
+                .values()
+                .flat_map(|ops| ops.iter().map(|op| format!("{}:{:?}", op.op_name(), op)))
+                .collect(),
             context: self.context.json_display_struct(),
             max_mutations: self.max_mutations,
             worker_count: self.worker_count,

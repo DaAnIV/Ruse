@@ -420,9 +420,7 @@ pub trait TsBuiltinClass: TsClass {
 }
 
 pub trait BuiltinClassWrapper {
-    fn build_standard_constructor(
-        engine_ctx: &mut EngineContext,
-    ) -> JsResult<StandardConstructor>;
+    fn build_standard_constructor(engine_ctx: &mut EngineContext) -> JsResult<StandardConstructor>;
 
     fn wrap_object(
         map_obj: &ObjectValue,

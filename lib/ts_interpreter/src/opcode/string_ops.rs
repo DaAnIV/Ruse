@@ -143,9 +143,17 @@ impl ExprOpcode for StringSliceOp {
     ) -> EvalResult {
         let string = args[0].val().string_value().unwrap();
 
-        let start = get_index(&args[1].val().number_value().unwrap(), string.len(), Wrapparound::YesWithMax)?;
+        let start = get_index(
+            &args[1].val().number_value().unwrap(),
+            string.len(),
+            Wrapparound::YesWithMax,
+        )?;
         let end = match args.get(2) {
-            Some(v) => get_index(&v.val().number_value().unwrap(), string.len(), Wrapparound::YesWithMax)?,
+            Some(v) => get_index(
+                &v.val().number_value().unwrap(),
+                string.len(),
+                Wrapparound::YesWithMax,
+            )?,
             None => string.len(),
         };
         if start >= end {
@@ -471,7 +479,7 @@ impl ExprOpcode for StringSubstringOp {
         let start = get_index(&istart, string.len(), Wrapparound::No)?;
 
         if start > end {
-            return Err(())
+            return Err(());
         }
 
         let substring = &string[start..end];

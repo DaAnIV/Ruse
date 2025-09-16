@@ -3,9 +3,9 @@ mod tests {
     use rand::{rngs::StdRng, SeedableRng};
 
     use crate::dot;
-    use crate::mermaid;
     use crate::field_name;
     use crate::generator::object_graph_generator::*;
+    use crate::mermaid;
     use crate::root_name;
     use crate::GraphIndex;
     use crate::GraphsMap;

@@ -1,4 +1,7 @@
-use std::{collections::{HashMap, HashSet}, sync::Arc};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Arc,
+};
 
 use boa_engine::JsResult;
 use ruse_object_graph::{
@@ -97,7 +100,7 @@ impl TsGlobalClassBuilder {
             let exported = exports.contains(&func_id.0);
             let desc = if let Some(dts) = functions_dts.get(func_id) {
                 MethodDescription::from((decl, dts, exported))
-            } else {    
+            } else {
                 assert!(!exported, "Exported function {} without DTS", func_name);
                 MethodDescription::from(decl)
             };
@@ -180,12 +183,7 @@ impl TsGlobalClassBuilder {
 
         params
             .iter()
-            .map(|x| {
-                Arc::new(GlobalFunctionOp::new(
-                    method,
-                    x.clone(),
-                )) as Arc<dyn ExprOpcode>
-            })
+            .map(|x| Arc::new(GlobalFunctionOp::new(method, x.clone())) as Arc<dyn ExprOpcode>)
             .collect()
     }
 }

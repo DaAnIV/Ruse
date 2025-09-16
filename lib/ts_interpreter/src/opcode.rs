@@ -257,7 +257,7 @@ fn get_index(value: &Number, len: usize, wraparound: Wrapparound) -> Result<usiz
                 } else {
                     Ok(len as usize)
                 }
-            },
+            }
             Wrapparound::No => Ok(0),
         }
     } else {

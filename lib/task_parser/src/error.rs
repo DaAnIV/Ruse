@@ -8,7 +8,7 @@ trait SnythesisInnerTaskError: std::fmt::Debug + Sized {
 macro_rules! impl_inner_task_error {
     ($ty:ty) => {
         impl std::error::Error for $ty {}
-        
+
         impl std::fmt::Display for $ty {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 write!(f, "[{}:{}] {}", self.path(), self.line(), self.message())
@@ -25,9 +25,8 @@ macro_rules! impl_inner_task_error {
                 self.format_message()
             }
         }
-    }
+    };
 }
-
 
 #[derive(Debug)]
 pub struct TodoError {
@@ -61,7 +60,6 @@ pub struct VerifyError {
     pub line: u32,
     pub msg: String,
 }
-
 
 impl VerifyError {
     fn format_message(&self) -> String {
@@ -129,7 +127,7 @@ macro_rules! verify_err {
     ($msg:expr) => {
         $crate::error::SnythesisTaskError::Verify($crate::error::VerifyError {
             line: std::line!(),
-            path: std::file!().to_string(),            
+            path: std::file!().to_string(),
             msg: $msg.to_owned(),
         })
     };

@@ -115,8 +115,11 @@ fn graph_almost_eq(c: &mut Criterion) {
 
     let mut remaining = remove_amount;
     while remaining > 0 {
-        let chosen = zip(map2[GraphIndex(0)].node_ids().copied(), map2[GraphIndex(0)].node_ids().copied())
-            .choose_multiple(&mut rng, remaining);
+        let chosen = zip(
+            map2[GraphIndex(0)].node_ids().copied(),
+            map2[GraphIndex(0)].node_ids().copied(),
+        )
+        .choose_multiple(&mut rng, remaining);
         for (s, t) in chosen {
             if map2[GraphIndex(0)].contains_internal_edge(&s, &t) {
                 continue;

@@ -1,8 +1,6 @@
 use std::collections::{HashSet, VecDeque};
 
-use crate::{
-    graph_node::ObjectGraphNode, GraphIndex, GraphsMap, NodeIndex, ObjectGraph,
-};
+use crate::{graph_node::ObjectGraphNode, GraphIndex, GraphsMap, NodeIndex, ObjectGraph};
 
 pub struct ObjectGraphWalker<'a> {
     graphs_map: &'a GraphsMap,

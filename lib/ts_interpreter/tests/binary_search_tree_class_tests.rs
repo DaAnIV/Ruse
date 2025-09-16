@@ -516,11 +516,10 @@ fn check_delete_two_children() {
 
     let mut predicate_builder = PredicateBuilder::new(GraphsMap::default());
     predicate_builder.add_predicate(JsPredicate::new(vec![
-            get_predicate_js(10),
-            get_predicate_js(2),
-            get_predicate_js(5),
-        ],
-    ));
+        get_predicate_js(10),
+        get_predicate_js(2),
+        get_predicate_js(5),
+    ]));
     let predicate = predicate_builder.finalize();
 
     let node_to_delete_ident_op = id_op("node_to_delete");

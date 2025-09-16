@@ -7,7 +7,18 @@ pub type DefaultIx = usize;
 
 macro_rules! impl_index_type {
     ($name:ident) => {
-        #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
+        #[derive(
+            Clone,
+            Copy,
+            PartialEq,
+            Eq,
+            Hash,
+            Debug,
+            PartialOrd,
+            Ord,
+            serde::Serialize,
+            serde::Deserialize,
+        )]
         pub struct $name<Ix: Copy = DefaultIx>(pub Ix);
 
         impl<Ix: Copy> $name<Ix> {

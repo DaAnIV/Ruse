@@ -159,9 +159,7 @@ impl JsArrayWrapper {
 }
 
 impl BuiltinClassWrapper for JsArrayWrapper {
-    fn build_standard_constructor(
-        engine_ctx: &mut EngineContext,
-    ) -> JsResult<StandardConstructor> {
+    fn build_standard_constructor(engine_ctx: &mut EngineContext) -> JsResult<StandardConstructor> {
         let symbol_iterator = JsSymbol::iterator();
         let symbol_unscopables = JsSymbol::unscopables();
 

@@ -84,7 +84,10 @@ impl BankHasherBuilder {
     }
 
     pub fn new_with_keys(keys: BankKeys) -> Self {
-        Self { k0: keys.0, k1: keys.1 }
+        Self {
+            k0: keys.0,
+            k1: keys.1,
+        }
     }
 
     pub fn new_with_random_keys() -> Self {
