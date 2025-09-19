@@ -24,6 +24,16 @@
 			},
         },
         {
+            "label": "build release with embedding overhead",
+            "type": "shell",
+            "command": "$HOME/.cargo/bin/cargo build --profile release --features release_trace_max_level_debug --features check_embedding_overhead",
+			"problemMatcher": "$rustc",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+        },
+        {
             "label": "build profiling for bytehound",
             "type": "shell",
             "command": "$HOME/.cargo/bin/cargo build --profile profiling  --no-default-features --features release_trace_max_level_debug",

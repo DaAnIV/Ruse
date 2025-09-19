@@ -25,7 +25,7 @@ use std::{
 };
 use tokio::{runtime::Handle, task::JoinSet};
 use tokio_util::sync::CancellationToken;
-use tracing::{debug, info_span, trace, Instrument};
+use tracing::{debug, info, info_span, trace, Instrument};
 
 #[repr(usize)]
 #[derive(Clone, Copy, Debug)]
@@ -463,6 +463,9 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
         self: Arc<Self>,
         current_iteration_map: &mut P::IterationBuilderType,
     ) -> anyhow::Result<Option<Arc<SubProgram>>> {
+        #[cfg(feature = "check_embedding_overhead")]
+        self.print_embedding_overhead_statistics().await;
+
         let mut workers = JoinSet::new();
         for i in 0..self.worker_count {
             let mut batch_builder = current_iteration_map.create_batch_builder();
@@ -627,6 +630,48 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
     // pub fn print_all_programs(&self) {
     //     self.bank.print_all_programs()
     // }
+}
+
+#[cfg(feature = "check_embedding_overhead")]
+impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W> {
+    async fn print_embedding_overhead_statistics(&self) {
+        let mut total_programs_count = 0;
+        let mut embedded_programs_count = 0;
+        let mut total_took_without_embedding = Duration::from_secs(0);
+        let mut total_took_with_embedding = Duration::from_secs(0);
+
+        for (arg_types, _) in self.composite_opcodes() {
+            let mut children_iterator = bank_iterator(&self.bank, arg_types).await;
+            debug!(target: "ruse::synthesizer", "Programs count: {} for {:?}", children_iterator.remaining(), arg_types);
+
+            let mut programs_count = 0;
+            let started_without_embedding = Instant::now();
+            while let Some(_) = children_iterator.next().await {
+                programs_count += 1
+            }
+            total_took_without_embedding += started_without_embedding.elapsed();
+            total_programs_count += programs_count;
+
+            let children_iterator = bank_iterator(&self.bank, arg_types).await;
+            assert_eq!(programs_count, children_iterator.remaining());
+
+            let mut triplet_iterator = prog_triplet_iterator(children_iterator);
+            let started_with_embedding = Instant::now();
+            while let Some(_) = triplet_iterator.next().await {
+                embedded_programs_count += 1;
+            }
+            total_took_with_embedding += started_with_embedding.elapsed();
+        }
+
+        info!(target: "ruse::synthesizer", "Embedding overhead iteration {}.
+        Total programs count: {}, embedded programs count: {}, total took without embedding: {:.2?}, total took with embedding: {:.2?}",
+            self.bank.iteration_count(),
+            total_programs_count,
+            embedded_programs_count,
+            total_took_without_embedding,
+            total_took_with_embedding,
+        );
+    }
 }
 
 #[derive(serde::Serialize)]
