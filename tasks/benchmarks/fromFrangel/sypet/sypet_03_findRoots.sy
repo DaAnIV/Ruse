@@ -8,14 +8,14 @@
   "variables": {
     "func": "Polynomial"
   },
-  "returnType": "Array<Array<Double>>",
+  "returnType": "Array<Complex>",
   "js_utils": [
     "function check(roots, expected, epsilon=1e-3) {",
-    " let degree = roots[0].length;",
+    " let degree = roots.length;",
     " if (degree != expected.length) { return false; }",
     " for (let i = 0; i < degree; i++) {",
     "   for (let j = 0; j < degree; j++) {",
-    "     if (Math.abs(roots[0][i] - expected[j][0]) < epsilon && Math.abs(roots[1][i] - expected[j][1]) < epsilon) {",
+    "     if (Math.abs(roots[i].real - expected[j][0]) < epsilon && Math.abs(roots[i].imag - expected[j][1]) < epsilon) {",
     "       expected.splice(j, 1);",
     "       break;",
     "     }",

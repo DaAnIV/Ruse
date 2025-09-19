@@ -26,8 +26,8 @@
   "solution": {
     "has_side_effects": "yes",
     "expected": [
-      "arr.splice(beg++,1,18); beg",
-      "arr.splice(beg,1,18); beg++; beg"
+      "arr.splice(beg++,1,toadd); beg",
+      "arr.splice(beg,1,toadd); beg++; beg"
     ]
   }
 }

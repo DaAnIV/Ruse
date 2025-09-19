@@ -1,4 +1,5 @@
 import { nextPow2 } from '../utils/np2';
+import { Complex } from './complex';
 
 function near(a, b, c, d, tol) {
     var qa = a - c
@@ -132,7 +133,7 @@ function bound(n, pr, pi) {
     return 1.0 + Math.sqrt(b)
 }
 
-function findRoots(r_coeff: number[]): [number[], number[]] {
+function _findRoots(r_coeff: number[]): [number[], number[]] {
     var n = r_coeff.length, i
     if (n <= 1) {
         return [[], []]
@@ -183,6 +184,13 @@ function findRoots(r_coeff: number[]): [number[], number[]] {
         zi[i] = t * Math.sqrt(1.0 - c * c)
     }
     return solve(n, n_iters, tolerance, zr, zi, pr, pi)
+}
+
+function findRoots(r_coeff: number[]): Complex[] {
+    const [zr, zi] = _findRoots(r_coeff);
+    let complex_roots = zr.map((root, index) => new Complex(root, zi[index]));
+
+    return complex_roots;
 }
 
 export { findRoots }

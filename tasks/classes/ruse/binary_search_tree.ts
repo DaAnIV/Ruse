@@ -110,6 +110,7 @@ export class BinarySearchTreeNode {
         }
 
         let cur_parent: BinarySearchTreeNode | undefined = this.parent;
+        this.parent = undefined;
         while (cur_parent != null) {
             cur_parent._size -= 1;
             if (cur_parent._right != null) {

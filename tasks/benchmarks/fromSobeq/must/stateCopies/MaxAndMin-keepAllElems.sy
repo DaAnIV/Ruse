@@ -27,7 +27,7 @@
   "solution": {
     "has_side_effects": "yes",
     "expected": [
-    "arr.sort((a, b)=>a - b[0] + arr.reverse()[0]"
+    "arr.sort((a, b)=>a - b)[0] + arr.reverse()[0]"
     ]
   }
 }
