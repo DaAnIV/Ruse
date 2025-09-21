@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Field Parser - Ruse Viewer</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="fields-parser-styles.css">
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+        
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            themeVariables: {
+                primaryColor: '#667eea',
+                primaryTextColor: '#fff',
+                primaryBorderColor: '#667eea',
+                lineColor: '#333',
+                sectionBkgColor: '#f8f9fa',
+                altSectionBkgColor: '#ffffff',
+                gridColor: '#e9ecef',
+                secondaryColor: '#764ba2',
+                tertiaryColor: '#f8f9fa'
+            },
+            securityLevel: 'loose'
+        });
+        
+        // Make mermaid available globally for the app
+        window.mermaid = mermaid;
+
+        window.mermaid.parseError = function (err, hash) {
+            console.error('Mermaid parse error:', err);
+        };
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/date-fns/2.29.3/index.min.js"></script>
+</head>
+<body>
+    <div class="field-parser-container">
+        <a href="/" class="back-link">← Back to Ruse Viewer</a>
+        
+        <div class="field-parser-header">
+            <h1>🔧 Field Parser</h1>
+            <p>Parse and display log fields using the same rendering logic as the main viewer</p>
+        </div>
+        
+        <div class="field-parser-content">
+            <div class="input-section">
+                <h2 class="section-title">Input Fields</h2>
+                <form class="input-form" id="fieldParserForm">
+                    <div class="form-group">
+                        <label for="fieldsInput">Fields JSON:</label>
+                        <textarea 
+                            id="fieldsInput" 
+                            placeholder='Enter fields as JSON object, e.g.:
+{
+  "user_id": "12345",
+  "action": "login",
+  "timestamp": "2024-01-15T10:30:00Z",
+  "ip_address": "192.168.1.100",
+  "status": "success"
+}'
+                        ></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" id="clearBtn">Clear</button>
+                        <button type="submit" class="btn btn-primary">Parse Fields</button>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="output-section">
+                <h2 class="section-title">Parsed Output</h2>
+                <div class="output-content" id="outputContent">
+                    <div class="output-placeholder">
+                        Enter fields JSON and click "Parse Fields" to see the rendered output
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="example-section">
+            <h3>📝 Example Usage</h3>
+            <p>You can input fields in JSON format. The parser will filter out certain fields (message, panic.backtrace, panic.location) and extensions (.mermaid, .json) just like in the main log viewer.</p>
+            
+            <h4>Example Input:</h4>
+            <div class="example-json">{
+  "user_id": "12345",
+  "action": "create_post",
+  "timestamp": "2024-01-15T10:30:00Z",
+  "ip_address": "192.168.1.100",
+  "status": "success",
+  "post_id": "abc123",
+  "message": "This will be filtered out",
+  "panic.backtrace": "This will also be filtered out",
+  "data.mermaid": "This extension will be filtered out"
+}</div>
+            
+            <h4>Expected Output:</h4>
+            <p>The parser will display only the non-filtered fields in a clean, structured format similar to how they appear in the main log viewer.</p>
+        </div>
+    </div>
+
+    <!-- Mermaid Diagram Modal -->
+    <div id="mermaidModal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>Mermaid Diagram</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="mermaidModalContent">
+                    <div class="mermaid-modal-controls">
+                        <button id="toggleMermaidModal" class="btn btn-small">Show Raw Text</button>
+                    </div>
+                    <div id="mermaidModalDiagram" class="mermaid-modal-diagram">
+                        <!-- Mermaid diagram will be rendered here -->
+                    </div>
+                    <div id="mermaidModalRaw" class="mermaid-modal-raw" style="display: none;">
+                        <pre id="mermaidModalRawText"></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="fields-renderer.js"></script>
+    <script src="field-parser.js"></script>
+</body>
+</html>
