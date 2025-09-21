@@ -395,11 +395,12 @@ pub struct TsClassDescription {
     pub constructor: MethodDescription,
     pub extends: Option<ClassName>,
     pub is_abstract: bool,
+    pub type_parameters: Vec<String>,
 }
 
 pub trait TsClass: Send + Sync + Debug {
     fn obj_type(&self, template_types: Option<Vec<ValueType>>) -> ValueType;
-    fn is_parametrized(&self) -> bool;
+    fn type_parameters(&self) -> &[String];
     fn get_class_name(&self) -> &ClassName;
     fn get_class_id(&self) -> u64;
     fn wrap_as_js_object(

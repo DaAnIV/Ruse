@@ -28,9 +28,9 @@ mod tests {
         let mut graphs_map_1 = GraphsMap::default();
         let mut graphs_map_2 = GraphsMap::default();
 
-        let obj_name_a = ObjectType::class_obj_type("A");
-        let obj_name_b = ObjectType::class_obj_type("B");
-        let obj_name_c = ObjectType::class_obj_type("C");
+        let obj_name_a = ObjectType::class_obj_type("A", Vec::new());
+        let obj_name_b = ObjectType::class_obj_type("B", Vec::new());
+        let obj_name_c = ObjectType::class_obj_type("C", Vec::new());
         let root_name = root_name!("root");
         let field_name_a = field_name!("a");
         let field_name_b = field_name!("b");
@@ -94,9 +94,9 @@ mod tests {
         let mut map1 = GraphsMap::default();
         let mut map2 = GraphsMap::default();
 
-        let obj_name_a = ObjectType::class_obj_type("A");
-        let obj_name_b = ObjectType::class_obj_type("B");
-        let obj_name_c = ObjectType::class_obj_type("C");
+        let obj_name_a = ObjectType::class_obj_type("A", Vec::new());
+        let obj_name_b = ObjectType::class_obj_type("B", Vec::new());
+        let obj_name_c = ObjectType::class_obj_type("C", Vec::new());
         let root_name = root_name!("root");
         let field_name_a = field_name!("a");
         let field_name_b = field_name!("b");
@@ -160,10 +160,10 @@ mod tests {
         let mut map1 = GraphsMap::new();
         let mut map2 = GraphsMap::new();
 
-        let obj_name_a = ObjectType::class_obj_type("A");
-        let obj_name_b = ObjectType::class_obj_type("B");
-        let obj_name_b2 = ObjectType::class_obj_type("B2");
-        let obj_name_c = ObjectType::class_obj_type("C");
+        let obj_name_a = ObjectType::class_obj_type("A", Vec::new());
+        let obj_name_b = ObjectType::class_obj_type("B", Vec::new());
+        let obj_name_b2 = ObjectType::class_obj_type("B2", Vec::new());
+        let obj_name_c = ObjectType::class_obj_type("C", Vec::new());
         let root_name = root_name!("root");
         let field_name_a = field_name!("a");
         let field_name_b = field_name!("b");
@@ -226,9 +226,9 @@ mod tests {
         let mut map1 = GraphsMap::new();
         let mut map2 = GraphsMap::new();
 
-        let obj_name_a = ObjectType::class_obj_type("A");
-        let obj_name_b = ObjectType::class_obj_type("B");
-        let obj_name_c = ObjectType::class_obj_type("C");
+        let obj_name_a = ObjectType::class_obj_type("A", Vec::new());
+        let obj_name_b = ObjectType::class_obj_type("B", Vec::new());
+        let obj_name_c = ObjectType::class_obj_type("C", Vec::new());
         let root_name = root_name!("root");
         let field_name_a = field_name!("a");
         let field_name_b = field_name!("b");
@@ -352,7 +352,7 @@ mod tests {
 
         graphs_map.ensure_graph(graph_id);
 
-        let obj_name = ObjectType::class_obj_type("A");
+        let obj_name = ObjectType::class_obj_type("A", Vec::new());
         let field_name = field_name!("a");
         let n1 = graphs_map.add_simple_object(
             graph_id,
@@ -391,7 +391,7 @@ mod tests {
         let g1 = GraphIndex(0);
         let mut map1 = random_gnp_object_graph(g1, &mut rng1, 5, 0.2);
 
-        let obj_name_a = ObjectType::class_obj_type("A");
+        let obj_name_a = ObjectType::class_obj_type("A", Vec::new());
         let root_name = root_name!("root");
         let field_name_a = field_name!("a");
 

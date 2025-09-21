@@ -25,8 +25,6 @@ use crate::{
     ts_classes::TsClasses,
 };
 
-use swc_ecma_ast::ClassDecl;
-
 #[derive(Debug)]
 pub struct TsUserClass {
     pub description: Arc<TsClassDescription>,
@@ -185,8 +183,8 @@ impl TsClass for TsUserClass {
         wrapper.wrap_object(obj, engine_ctx)
     }
 
-    fn is_parametrized(&self) -> bool {
-        false
+    fn type_parameters(&self) -> &[String] {
+        &self.description.type_parameters
     }
 
     fn get_class_name(&self) -> &ClassName {
@@ -211,6 +209,7 @@ pub(crate) struct TsUserClassBuilder<'a> {
     gen_id: Arc<GraphIdGenerator>,
     super_class: Option<ClassName>,
     is_abstract: bool,
+    type_parameters: Vec<String>,
 
     visitor_failed: bool,
 }
@@ -262,7 +261,7 @@ impl<'a> Visit for TsUserClassBuilder<'a> {
 // Main functions
 impl<'a> TsUserClassBuilder<'a> {
     pub fn from_class_decl(
-        decl: &ClassDecl,
+        decl: &swc_ecma_ast::ClassDecl,
         dts: &'a DtsClassDecl,
         gen_id: Arc<GraphIdGenerator>,
     ) -> Self {
@@ -282,6 +281,7 @@ impl<'a> TsUserClassBuilder<'a> {
             super_class,
             is_abstract: decl.class.is_abstract,
             visitor_failed: false,
+            type_parameters: dts.type_parameters.clone(),
         };
 
         decl.visit_children_with(&mut class);
@@ -298,6 +298,7 @@ impl<'a> TsUserClassBuilder<'a> {
             methods: self.methods.clone(),
             extends: self.super_class.clone(),
             is_abstract: self.is_abstract,
+            type_parameters: self.type_parameters.clone(),
         });
 
         let static_graph_obj_type =

@@ -789,7 +789,7 @@ impl SnythesisTask {
         value_types.extend(
             classes
                 .classes_names()
-                .map(|x| ValueType::class_value_type(x.clone())),
+                .map(|x| ValueType::class_value_type(x.clone(), Vec::new())),
         );
         value_types.push(ValueType::array_value_type(&ValueType::Number));
         value_types.push(ValueType::array_value_type(&ValueType::String));
@@ -918,7 +918,7 @@ impl SnythesisTask {
         let classes = builder.finalize();
 
         for (var, var_type) in variables {
-            if let TaskType::Object(obj_type) = var_type {
+            if let TaskType::Object(obj_type, _) = var_type {
                 if classes
                     .get_user_class(&class_name!(obj_type.as_str()))
                     .is_none()

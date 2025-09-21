@@ -5,6 +5,7 @@ use std::{
     sync::Arc,
 };
 
+use itertools::Itertools;
 use ruse_object_graph::{
     class_name, field_name, fields, str_cached, value::Value, vbool, vnull, vnum, vobj, vstr,
     GraphIndex, GraphsMap, ObjectType, PrimitiveValue, ValueType,
@@ -14,7 +15,7 @@ use ruse_ts_interpreter::{
     dom::{self, DomLoader},
     engine_context::EngineContext,
     js_value::TryFromJs,
-    ts_class::MethodKind,
+    ts_class::{MethodKind, TsClass},
     ts_classes::TsClasses,
     ts_user_class::TsUserClass,
 };
@@ -22,11 +23,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::json;
 
 use crate::{
-    error::{SnythesisTaskError, SynthesisTaskResult},
-    parse_err,
-    task::parse_json_values_array,
-    var_ref::{VarRef, REF_GRAPH_FIELD_NAME, REF_GRAPH_OBJ_TYPE},
-    verify_err,
+    error::{SnythesisTaskError, SynthesisTaskResult}, parse_err, task::parse_json_values_array, task_type, var_ref::{VarRef, REF_GRAPH_FIELD_NAME, REF_GRAPH_OBJ_TYPE}, verify_err
 };
 
 pub(crate) type JsonValuesMap = serde_json::Map<String, serde_json::Value>;
@@ -70,7 +67,7 @@ pub(crate) enum TaskType {
     Dom,
     DOMElement,
     VarRef(VarRef),
-    Object(String),
+    Object(String, Vec<Box<TaskType>>),
 }
 
 impl TaskType {
@@ -267,11 +264,29 @@ impl TaskType {
                     node
                 ))
             }
-            TaskType::Object(s) => {
+            TaskType::Object(s, template_types) => {
                 let class_name = class_name!(s.as_str());
                 let class = classes
                     .get_user_class(&class_name)
                     .ok_or(verify_err!("object type {} is not defined", s))?;
+                let type_parameters_values = TsClasses::get_class_type_parameters(&class_name);
+                if type_parameters_values.len() != class.type_parameters().len() {
+                    return Err(verify_err!(
+                        "object type {} has {} type parameters, but {} were given",
+                        s,
+                        class.type_parameters().len(),
+                        type_parameters_values.len()
+                    ));
+                }
+
+                let template_types: HashMap<String, TaskType> = HashMap::from_iter(
+                    class
+                        .type_parameters()
+                        .iter()
+                        .zip_eq(type_parameters_values.iter())
+                        .map(|(s, v)| (s.clone(), TaskType::from(v.as_str()))),
+                );
+
                 let fields = value
                     .as_object()
                     .ok_or(parse_err!(value, "Value is not an object value"))?;
@@ -633,7 +648,7 @@ impl TaskType {
         }
 
         graphs_map.ensure_graph(refs_graph_id);
-        let obj_type = ObjectType::class_obj_type(&REF_GRAPH_OBJ_TYPE);
+        let obj_type = ObjectType::class_obj_type(&REF_GRAPH_OBJ_TYPE, Vec::new());
         let ref_id = graphs_map.add_simple_object_from_fields_map(
             refs_graph_id,
             id_gen.get_id_for_node(),
@@ -661,7 +676,7 @@ impl TaskType {
             TaskType::Dom => ValueType::Object(DomLoader::document_obj_type()),
             TaskType::DOMElement => ValueType::Object(DomLoader::element_obj_type()),
             TaskType::VarRef(_var_ref) => todo!(),
-            TaskType::Object(o) => ValueType::Object(ObjectType::class_obj_type(&o)),
+            TaskType::Object(o, template_types) => ValueType::Object(ObjectType::class_obj_type(&o, template_types.iter().map(|t| t.value_type()).collect())),
         }
     }
 
@@ -682,7 +697,7 @@ impl TaskType {
 
     pub(crate) fn is_object(&self) -> bool {
         match self {
-            TaskType::Object(_) => true,
+            TaskType::Object(_, _) => true,
             _ => false,
         }
     }
@@ -830,7 +845,7 @@ impl TaskType {
                 value_string,
                 "Doesn't support converting from string to object value"
             )),
-            TaskType::Object(_) => Err(parse_err!(
+            TaskType::Object(_, _) => Err(parse_err!(
                 value_string,
                 "Doesn't support converting from string to object value"
             )),
@@ -906,7 +921,18 @@ impl fmt::Display for TaskType {
             TaskType::Dom => write!(f, "dom"),
             TaskType::DOMElement => write!(f, "dom_element"),
             TaskType::VarRef(var_ref) => write!(f, "{}", var_ref),
-            TaskType::Object(o) => write!(f, "{}", o),
+            TaskType::Object(o, template_types) => {
+                write!(f, "{}", o)?;
+                if !template_types.is_empty() {
+                    write!(f, "<")?;
+                    for template_type in template_types {
+                        write!(f, "{}", template_type)?;
+                    }
+                }
+                write!(f, ">")?;
+                
+                Ok(())
+            }
         }
     }
 }
@@ -917,8 +943,8 @@ impl From<&ValueType> for TaskType {
             ValueType::Number => TaskType::Double,
             ValueType::Bool => TaskType::Bool,
             ValueType::String => TaskType::String,
-            ValueType::Object(ObjectType::Class(class_name)) => {
-                TaskType::Object(class_name.to_string())
+            ValueType::Object(ObjectType::Class(class_name, template_types)) => {
+                TaskType::Object(class_name.to_string(), template_types.iter().map(|t| TaskType::from(t.as_ref())).collect())
             }
             ValueType::Object(ObjectType::Array(inner_type)) => {
                 TaskType::Array(TaskType::from(inner_type.as_ref()).into())
@@ -990,7 +1016,9 @@ impl From<&str> for TaskType {
                 } else if let Some(var_ref) = ExprPrefix::FieldRef.get(&val) {
                     TaskType::VarRef(VarRef::from(var_ref))
                 } else {
-                    TaskType::Object(val.to_string())
+                    let type_parameters = TsClasses::get_class_type_parameters(&val);
+                    let base_name = TsClasses::get_class_basename(&val);
+                    TaskType::Object(base_name.to_string(), type_parameters.iter().map(|t| TaskType::from(t.as_ref())).collect())
                 }
             }
         }

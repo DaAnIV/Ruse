@@ -64,13 +64,25 @@ impl TsClasses {
             .map(|class| class.as_ref() as &dyn TsBuiltinClass)
     }
 
+    pub fn get_class_basename(name: &ClassName) -> &str {
+        name.split("<").next().unwrap()
+    }
+
+    pub fn get_class_type_parameters(name: &ClassName) -> Vec<String> {
+        if !name.contains("<") {
+            return vec![];
+        }
+        let params_str = name.split("<").nth(1).unwrap().split(">").next().unwrap();
+        params_str.split(",").map(|s| s.trim().to_string()).collect()
+    }
+
     pub fn get_user_class(&self, class: &ClassName) -> Option<&TsUserClass> {
-        let base_class_name = class.split("<").next().unwrap();
+        let base_class_name = Self::get_class_basename(class);
         self.user_classes.get(base_class_name)
     }
 
     pub fn get_user_class_mut(&mut self, class: &ClassName) -> Option<&mut TsUserClass> {
-        let base_class_name = class.split("<").next().unwrap();
+        let base_class_name = Self::get_class_basename(class);
         self.user_classes.get_mut(base_class_name)
     }
 

@@ -132,6 +132,7 @@ pub(crate) struct DtsClassDecl {
     pub props: HashMap<Atom, DtsFieldDecl>,
     pub methods: HashMap<(Atom, MethodKind), DtsMethodDecl>,
     pub constructor: Option<DtsMethodDecl>,
+    pub type_parameters: Vec<String>,
 }
 
 #[derive(Default)]
@@ -246,14 +247,22 @@ impl Visit for DtsVisitor {
 
     fn visit_class_decl(&mut self, node: &ClassDecl) {
         self.current_class = Some(node.ident.clone().into());
+
+        let type_parameters = if let Some(type_params) = &node.class.type_params {
+            type_params.params.iter().map(|param| param.name.sym.to_string()).collect()
+        } else {
+            Vec::new()
+        };
+
         self.classes.insert(
             node.ident.clone().into(),
             DtsClassDecl {
                 name: node.ident.clone().into(),
-                obj_type: ObjectType::class_obj_type(&node.ident.clone().sym.to_string()),
+                obj_type: ObjectType::class_obj_type(&node.ident.clone().sym.to_string(), type_parameters),
                 props: HashMap::new(),
                 methods: HashMap::new(),
                 constructor: None,
+                type_parameters,
             },
         );
         <ClassDecl as VisitWith<Self>>::visit_children_with(node, self)

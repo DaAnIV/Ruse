@@ -7,13 +7,13 @@ pub enum ObjectType {
     Array(Box<ValueType>),
     Set(Box<ValueType>),
     Map(Box<ValueType>, Box<ValueType>),
-    Class(ClassName),
+    Class(ClassName, Vec<ValueType>),
     DOM,
     DOMElement,
 }
 impl ObjectType {
-    pub fn class_obj_type(class_name: &str) -> ObjectType {
-        ObjectType::Class(class_name!(class_name))
+    pub fn class_obj_type(class_name: &str, template_types: Vec<ValueType>) -> ObjectType {
+        ObjectType::Class(class_name!(class_name), template_types)
     }
 
     pub fn array_obj_type(elem_type: &ValueType) -> ObjectType {
@@ -42,21 +42,21 @@ impl ObjectType {
 
     pub fn is_class_obj_type(&self, class_name: &ClassName) -> bool {
         match self {
-            ObjectType::Class(obj_class_name) => obj_class_name == class_name,
+            ObjectType::Class(obj_class_name, _) => obj_class_name == class_name,
             _ => false,
         }
     }
 
     pub fn class_name(&self) -> Option<&ClassName> {
         match self {
-            ObjectType::Class(class_name) => Some(class_name),
+            ObjectType::Class(class_name, _) => Some(class_name),
             _ => None,
         }
     }
 
     pub fn obj_type_base_name(&self) -> &str {
         match self {
-            ObjectType::Class(class_name) => class_name.as_str(),
+            ObjectType::Class(class_name, _) => class_name.as_str(),
             ObjectType::Array(_) => "Array",
             ObjectType::Set(_) => "Set",
             ObjectType::Map(_, _) => "Map",
@@ -76,8 +76,8 @@ pub enum ValueType {
 }
 
 impl ValueType {
-    pub fn class_value_type(class_name: ClassName) -> ValueType {
-        ValueType::Object(ObjectType::Class(class_name))
+    pub fn class_value_type(class_name: ClassName, template_types: Vec<ValueType>) -> ValueType {
+        ValueType::Object(ObjectType::Class(class_name, template_types))
     }
 
     pub fn array_value_type(elem_type: &ValueType) -> ValueType {
@@ -113,7 +113,18 @@ impl fmt::Display for ObjectType {
             ObjectType::Array(elem_type) => write!(f, "Array<{}>", elem_type),
             ObjectType::Set(elem_type) => write!(f, "Set<{}>", elem_type),
             ObjectType::Map(key_type, value_type) => write!(f, "Map<{},{}>", key_type, value_type),
-            ObjectType::Class(class_name) => write!(f, "{}", class_name),
+            ObjectType::Class(class_name, template_types) => { 
+                write!(f, "{}", class_name)?;
+                if !template_types.is_empty() {
+                    write!(f, "<")?;
+                    for template_type in template_types {
+                        write!(f, "{}", template_type)?;
+                    }
+                }
+                write!(f, ">")?;
+
+                Ok(())
+            },
             ObjectType::DOM => write!(f, "DOM"),
             ObjectType::DOMElement => write!(f, "DOMElement"),
         }

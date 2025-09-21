@@ -23,6 +23,7 @@ use super::jsiterator::{JsObjectIterator, JsObjectIteratorKind};
 #[derive(Debug)]
 pub struct BuiltinMapClass {
     class_name: ClassName,
+    type_parameters: Vec<String>,
     id: u64,
 }
 
@@ -32,6 +33,7 @@ impl BuiltinMapClass {
     pub(crate) fn new(id: u64) -> Self {
         Self {
             class_name: class_name!(Self::CLASS_NAME),
+            type_parameters: vec!["K".to_string(), "V".to_string()],
             id,
         }
     }
@@ -52,8 +54,8 @@ impl TsClass for BuiltinMapClass {
         JsMapWrapper::wrap_object(&obj, engine_ctx)
     }
 
-    fn is_parametrized(&self) -> bool {
-        false
+    fn type_parameters(&self) -> &[String] {
+        &self.type_parameters
     }
 
     fn get_class_name(&self) -> &ClassName {

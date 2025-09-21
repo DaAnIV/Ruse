@@ -42,7 +42,7 @@ pub mod object_graph_generator {
             ));
             let root_name = root_name!(generate_random_str(5, rng).to_ascii_uppercase());
             let obj_type =
-                ObjectType::class_obj_type(&generate_random_str(5, rng).to_ascii_uppercase());
+                ObjectType::class_obj_type(&generate_random_str(5, rng).to_ascii_uppercase(), Vec::new());
             graphs_map.add_simple_object(graph_id, id, obj_type, root_fields);
             graphs_map.set_as_root(root_name, graph_id, id);
             map.insert(r.into(), id);
@@ -57,6 +57,7 @@ pub mod object_graph_generator {
                     ));
                     let obj_type = ObjectType::class_obj_type(
                         &generate_random_str(5, rng).to_ascii_uppercase(),
+                        Vec::new(),
                     );
                     graphs_map.add_simple_object(graph_id, id, obj_type, data_fields);
                     map.insert(nx, id);
