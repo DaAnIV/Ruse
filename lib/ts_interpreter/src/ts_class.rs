@@ -164,7 +164,7 @@ impl From<(&ast::ClassMethod, &DtsMethodDecl)> for MethodDescription {
         let body_code = get_code(decl.function.body.as_ref().unwrap());
         let param_names: Vec<String> = find_pat_ids::<_, Ident>(&decl.function.params)
             .into_iter()
-            .map(|id| (id.sym.to_string()))
+            .map(|id| id.sym.to_string())
             .collect();
 
         MethodDescription {
@@ -187,7 +187,7 @@ impl From<(&ast::Constructor, &DtsMethodDecl)> for MethodDescription {
         let body_code = get_code(decl.body.as_ref().unwrap());
         let param_names: Vec<String> = find_pat_ids::<_, Ident>(&decl.params)
             .into_iter()
-            .map(|id| (id.sym.to_string()))
+            .map(|id| id.sym.to_string())
             .collect();
 
         MethodDescription {
@@ -209,7 +209,7 @@ impl From<&ast::Constructor> for MethodDescription {
         let body_code = get_code(decl.body.as_ref().unwrap());
         let param_names: Vec<String> = find_pat_ids::<_, Ident>(&decl.params)
             .into_iter()
-            .map(|id| (id.sym.to_string()))
+            .map(|id| id.sym.to_string())
             .collect();
         let access = decl.accessibility.unwrap_or(ast::Accessibility::Public);
         let has_rest_param = decl.params.iter().any(|param| match param {
@@ -243,7 +243,7 @@ impl From<&ast::ClassMethod> for MethodDescription {
         let body_code = get_code(value.function.body.as_ref().unwrap());
         let param_names: Vec<String> = find_pat_ids::<_, Ident>(&value.function.params)
             .into_iter()
-            .map(|id| (id.sym.to_string()))
+            .map(|id| id.sym.to_string())
             .collect();
 
         let has_rest_param = value
@@ -272,7 +272,7 @@ impl From<(&ast::FnDecl, &DtsFnDecl, bool)> for MethodDescription {
         let body_code = get_code(decl.function.body.as_ref().unwrap());
         let param_names: Vec<String> = find_pat_ids::<_, Ident>(&decl.function.params)
             .into_iter()
-            .map(|id| (id.sym.to_string()))
+            .map(|id| id.sym.to_string())
             .collect();
 
         let is_private = !exported;
@@ -296,7 +296,7 @@ impl From<&ast::FnDecl> for MethodDescription {
         let body_code = get_code(decl.function.body.as_ref().unwrap());
         let param_names: Vec<String> = find_pat_ids::<_, Ident>(&decl.function.params)
             .into_iter()
-            .map(|id| (id.sym.to_string()))
+            .map(|id| id.sym.to_string())
             .collect();
         let has_rest_param = decl.function.params.iter().any(|param| param.pat.is_rest());
 

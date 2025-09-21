@@ -102,7 +102,7 @@ impl ExprOpcode for ArrayLitOp {
         _syn_ctx: &SynthesizerContext,
         _worker_ctx: &mut SynthesizerWorkerContext,
     ) -> EvalResult {
-        let values = args.iter().map(|val| (val.val().clone()));
+        let values = args.iter().map(|val| val.val().clone());
 
         let arr = post_ctx.create_output_array_object(&self.elem_type, values);
 

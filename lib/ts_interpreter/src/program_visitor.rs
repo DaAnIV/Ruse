@@ -103,7 +103,7 @@ impl Visit for ProgramVisitor {
                 self.export.extend(
                     find_pat_ids::<_, Ident>(&v.decls)
                         .into_iter()
-                        .map(|id| (id.sym.clone())),
+                        .map(|id| id.sym.clone()),
                 );
             }
             _ => {}

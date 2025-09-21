@@ -122,25 +122,18 @@ struct RunArgs {
     #[arg(
         long,
         default_value_t = false,
-        help = "Don't run benchmarks, just parse them",
-        hide_default_value = true
+        help = "Don't run benchmarks, just parse them"
     )]
     dry_run: bool,
 
     #[arg(
         long,
         default_value_t = false,
-        help = "Run benchmarks in the same process without forking",
-        hide_default_value = true
+        help = "Run benchmarks in the same process without forking"
     )]
     no_fork: bool,
 
-    #[arg(
-        long,
-        default_value_t = false,
-        help = "Don't sleep between benchmarks",
-        hide_default_value = true
-    )]
+    #[arg(long, default_value_t = false, help = "Don't sleep between benchmarks")]
     no_sleep: bool,
 
     #[arg(
@@ -325,7 +318,10 @@ fn print_opcodes(cli: &PrintOpcodesArgs) -> ExitCode {
     });
 
     for full_path in cli.ts_files.iter() {
-        builder.add_files(&full_path).unwrap();
+        if let Err(e) = builder.add_files(&full_path) {
+            eprintln!("Error parsing {}: {}", full_path.display(), e);
+            return ExitCode::FAILURE;
+        }
     }
 
     let classes = builder.finalize();

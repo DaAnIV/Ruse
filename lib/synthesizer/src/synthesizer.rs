@@ -25,7 +25,7 @@ use std::{
 };
 use tokio::{runtime::Handle, task::JoinSet};
 use tokio_util::sync::CancellationToken;
-use tracing::{debug, info, info_span, trace, Instrument};
+use tracing::{debug, info_span, trace, Instrument};
 
 #[repr(usize)]
 #[derive(Clone, Copy, Debug)]
@@ -663,7 +663,7 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
             total_took_with_embedding += started_with_embedding.elapsed();
         }
 
-        info!(target: "ruse::synthesizer", "Embedding overhead iteration {}.
+        tracing::info!(target: "ruse::synthesizer", "Embedding overhead iteration {}.
         Total programs count: {}, embedded programs count: {}, total took without embedding: {:.2?}, total took with embedding: {:.2?}",
             self.bank.iteration_count(),
             total_programs_count,
