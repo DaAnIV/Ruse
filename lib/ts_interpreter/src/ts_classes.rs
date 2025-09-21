@@ -303,7 +303,10 @@ impl TsClassesBuilder {
             let mut fast_dts = swc_typescript::fast_dts::FastDts::new(
                 source_file.name.clone(),
                 unresolved_mark,
-                Default::default(),
+                swc_typescript::fast_dts::FastDtsOptions {
+                    internal_annotations: None,
+                    add_types_to_private_properties: true
+                },
             );
             let issues = fast_dts.transform(&mut dts_prog);
 

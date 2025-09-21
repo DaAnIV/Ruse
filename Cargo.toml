@@ -75,6 +75,7 @@ criterion = { version = "*", features = ["async_tokio"] }
 
 [patch.crates-io]
 union-find = { git = "https://github.com/DaAnIV/union-find-rs.git" }
+swc_typescript = { git = "https://github.com/DaAnIV/swc.git", package = "swc_typescript", branch = "typescript_dts_private_fields" }
 
 [profile.release]
 lto = "thin"
