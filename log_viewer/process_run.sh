@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# Set Node.js path
-export PATH="$HOME/nodejs/bin:$PATH"
-
 # Check if we have both log and result files
 if [ $# -eq 2 ]; then
     echo "Processing Ruse run with log file: $1 and result file: $2"

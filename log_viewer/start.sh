@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# Set Node.js path
-export PATH="$HOME/nodejs/bin:$PATH"
-
 echo "🔍 Starting Ruse Viewer..."
 echo "========================"
 echo "Server will be available at: http://localhost:3000"

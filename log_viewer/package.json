@@ -4,10 +4,10 @@
   "description": "A web application for viewing and analyzing Ruse runs",
   "main": "server.js",
   "scripts": {
-    "start": "PATH=$HOME/nodejs/bin:$PATH node server.js",
-    "dev": "PATH=$HOME/nodejs/bin:$PATH nodemon server.js",
-    "debug": "PATH=$HOME/nodejs/bin:$PATH node --inspect server.js",
-    "preprocess": "PATH=$HOME/nodejs/bin:$PATH node scripts/preprocess_logs.js"
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "debug": "node --inspect server.js",
+    "preprocess": "node scripts/preprocess_logs.js",
   },
   "dependencies": {
     "express": "^4.18.2",
@@ -22,7 +22,14 @@
   "devDependencies": {
     "nodemon": "^3.0.1"
   },
-  "keywords": ["ruse", "viewer", "log", "json", "filtering", "analysis"],
+  "keywords": [
+    "ruse",
+    "viewer",
+    "log",
+    "json",
+    "filtering",
+    "analysis"
+  ],
   "author": "",
   "license": "MIT"
 }
