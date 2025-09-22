@@ -743,7 +743,7 @@ class LogViewer {
                                         <span>Found Context: ${task.total_statistics.FoundContextCount}</span>
                                     </div>
 
-                                    ${task.found ? `<div class="task-found">Found: ${task.found}</div>` : ''}
+                                    ${task.found ? `<div class="task-found">Found: ${task.found.found}</div>` : ''}
                                     ${task.error ? `<div class="task-error">Error: ${task.error}</div>` : ''}
                                 </div>
                                 <div class="task-iterations">
@@ -984,6 +984,7 @@ class LogViewer {
                     <div class="log-message">${escapeHtml(message)}</div>
                     ${FieldsRenderer.renderLogFields(log)}
                     ${FieldsRenderer.renderExtensions(log._meta.extensions, index)}
+                    ${FieldsRenderer.renderSpans(log.spans, index)}
                     ${isPanic ? FieldsRenderer.renderPanicInfo(log._meta) : ''}
                 </div>
             </div>
