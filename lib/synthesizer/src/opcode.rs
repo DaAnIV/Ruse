@@ -1,5 +1,6 @@
+use std::cmp::Ordering;
 use std::collections::BTreeMap;
-use std::ops::Deref;
+use std::ops::{self, Deref};
 use std::sync::Arc;
 use std::{any::Any, fmt::Debug};
 
@@ -75,17 +76,63 @@ pub trait ExprOpcode: Debug + Sync + Send {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ArgTypesList(Vec<ValueType>);
+
+impl ArgTypesList {
+    pub fn empty() -> Self {
+        Self(vec![])
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+}
+
+impl From<&[ValueType]> for ArgTypesList {
+    fn from(arg_types: &[ValueType]) -> Self {
+        Self(arg_types.to_vec())
+    }
+}
+
+impl From<Vec<ValueType>> for ArgTypesList {
+    fn from(arg_types: Vec<ValueType>) -> Self {
+        Self(arg_types)
+    }
+}
+
+impl Ord for ArgTypesList {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.0.len().cmp(&other.0.len()).then(other.0.cmp(&self.0))
+    }
+}
+
+impl PartialOrd for ArgTypesList {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl ops::Deref for ArgTypesList {
+    type Target = [ValueType];
+
+    #[inline]
+    fn deref(&self) -> &[ValueType] {
+        &self.0
+    }
+}
+
 pub type OpcodesList = Vec<Arc<dyn ExprOpcode>>;
-pub type OpcodesMap = BTreeMap<Vec<ValueType>, Arc<OpcodesList>>;
+pub type OpcodesMap = BTreeMap<ArgTypesList, Arc<OpcodesList>>;
 
 pub fn sort_opcodes(opcodes: OpcodesList) -> OpcodesMap {
     let mut sorted_opcodes: OpcodesMap = OpcodesMap::default();
     for op in opcodes {
-        if let Some(arc_list) = sorted_opcodes.get_mut(op.arg_types()) {
+        if let Some(arc_list) = sorted_opcodes.get_mut(&op.arg_types().into()) {
             let list = Arc::get_mut(arc_list).unwrap();
             list.push(op);
         } else {
-            sorted_opcodes.insert(op.arg_types().to_vec(), Arc::new(vec![op]));
+            sorted_opcodes.insert(op.arg_types().into(), Arc::new(vec![op]));
         }
     }
 

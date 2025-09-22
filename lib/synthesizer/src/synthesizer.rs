@@ -215,10 +215,10 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
     }
 
     fn init_opcodes(&self) -> impl Iterator<Item = &Arc<dyn ExprOpcode>> {
-        self.opcodes[&vec![]].iter()
+        self.opcodes[&ArgTypesList::empty()].iter()
     }
 
-    fn composite_opcodes(&self) -> impl Iterator<Item = (&Vec<ValueType>, &Arc<OpcodesList>)> {
+    fn composite_opcodes(&self) -> impl Iterator<Item = (&ArgTypesList, &Arc<OpcodesList>)> {
         self.opcodes
             .iter()
             .filter(|(arg_types, _)| !arg_types.is_empty())
@@ -393,7 +393,7 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
     async fn worker_triple_iterator<'a>(
         &'a self,
         i: usize,
-        arg_types: &'a Vec<ValueType>,
+        arg_types: &'a [ValueType],
     ) -> ProgTripletIterator<BankIterator<'a, P>> {
         let mut children_iterator = bank_iterator(&self.bank, arg_types).await;
         let total_size = children_iterator.remaining();
