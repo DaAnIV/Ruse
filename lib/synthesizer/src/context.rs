@@ -493,11 +493,7 @@ impl Context {
     }
 
     pub(crate) fn contains_node(&self, graph_id: &GraphIndex, node_id: &NodeIndex) -> bool {
-        if let Some(g) = self.graphs_map.get(graph_id) {
-            g.contains_node(node_id)
-        } else {
-            false
-        }
+        self.graphs_map.contains_node(graph_id, node_id)
     }
 }
 

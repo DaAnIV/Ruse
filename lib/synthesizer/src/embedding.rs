@@ -297,16 +297,15 @@ fn embed(
     old_context: Option<(&Context, &Context)>,
     matches: &mut HashMap<(GraphIndex, NodeIndex), (GraphIndex, NodeIndex)>,
 ) -> Result<(), ()> {
-    if matches.contains_key(&(graph_id, node_id)) {
-        return Ok(());
-    }
-
     let mut edges = Vec::new();
     let mut q = VecDeque::new();
 
     q.push_back((graph_id, node_id));
     matches.insert((graph_id, node_id), (graph_id, node_id));
     while let Some((cur_graph_id, cur_node_id)) = q.pop_front() {
+        if map_hat.contains_node(&cur_graph_id, &cur_node_id) {
+            continue;
+        }
         let graph = &graphs_map[cur_graph_id];
         if graph.is_static() {
             matches.insert((cur_graph_id, cur_node_id), (cur_graph_id, cur_node_id));
@@ -339,9 +338,9 @@ fn embed(
                     }
                 }
             } else {
-                q.push_back((neig_graph, neig.node));
                 matches.insert((neig_graph, neig.node), (neig_graph, neig.node));
-            }
+            };
+            q.push_back((neig_graph, neig.node));
         }
     }
 

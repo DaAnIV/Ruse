@@ -89,6 +89,13 @@ impl GraphsMap {
         self.graphs.contains_key(&index)
     }
 
+    pub fn contains_node(&self, graph_id: &GraphIndex, node_id: &NodeIndex) -> bool {
+        self.graphs
+            .get(graph_id)
+            .map(|g| g.contains_node(node_id))
+            .unwrap_or(false)
+    }
+
     pub fn graph_indices(&self) -> impl std::iter::Iterator<Item = &GraphIndex> {
         self.graphs.keys()
     }
