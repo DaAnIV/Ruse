@@ -162,7 +162,7 @@ async fn run_synthesizer<P: ProgBank + 'static>(
 
     let success = match synthesizer_result {
         SynthesizerResult::Found(sub_program) => {
-            info!(target: "ruse::runner", "Found \"{}\"", sub_program.get_code());
+            info!(target: "ruse::runner", "Found '{}'", sub_program.get_code());
             result.set_found(&sub_program);
             true
         }
