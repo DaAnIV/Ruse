@@ -213,6 +213,66 @@ class FieldsRenderer {
         
         return html;
     }
+    static renderSpans(spans, logIndex = 0) {
+        if (!spans || !Array.isArray(spans) || spans.length === 0) return '';
+
+        let html = `
+            <div class="extension-content">
+                <div class="extension-title json-toggle" onclick="FieldsRenderer.toggleJsonSection('spans-${logIndex}')">
+                    <span class="json-toggle-icon" id="icon-spans-${logIndex}">▶</span>
+                    🔗 Spans (${spans.length})
+                </div>
+                <div class="json-content json-collapsible" id="spans-${logIndex}" style="display: none;">
+        `;
+
+        spans.forEach((span, spanIndex) => {
+            const spanId = `span-${logIndex}-${spanIndex}`;
+            
+            // Check if span has fields other than 'name'
+            const {name, ...otherFields} = span;
+            const hasOtherFields = Object.keys(otherFields).length > 0;
+            
+            html += `
+                <div class="span-item">
+                    <div class="span-header ${hasOtherFields ? 'json-toggle' : ''}" ${hasOtherFields ? `onclick="FieldsRenderer.toggleJsonSection('${spanId}')"` : ''}>
+                        ${hasOtherFields ? `<span class="json-toggle-icon" id="icon-${spanId}">▶</span>` : ''}
+                        <span class="span-name">${escapeHtml(name || 'Unnamed Span')}</span>
+                    </div>
+            `;
+            
+            if (hasOtherFields) {
+                html += `
+                    <div class="json-content json-collapsible" id="${spanId}" style="display: none;">
+                `;
+
+                html += FieldsRenderer.renderLogFields({fields: otherFields});
+
+                let extensions = {
+                    json: {}
+                };
+
+                for (const [key, value] of Object.entries(otherFields).filter(([key]) => key.endsWith('.json'))) {
+                    extensions.json[key.replace('.json', '')] = {raw: value};
+                }
+
+                html += FieldsRenderer.renderExtensions(extensions, spanId, false);
+
+                html += `
+                    </div>
+                `;
+            }
+            
+            html += `</div>`;
+        });
+
+        html += `
+                </div>
+            </div>
+        `;
+
+        return html;
+    }
+
 
     static renderPanicInfo(meta) {
         if (!meta.isPanic) return '';

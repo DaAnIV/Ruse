@@ -1147,6 +1147,48 @@ body {
     overflow: hidden;
 }
 
+/* Spans Styles */
+.span-item {
+    margin-bottom: 0.5rem;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+    background: #f8f9fa;
+}
+
+.span-header {
+    padding: 0.5rem 0.75rem;
+    background: #e9ecef;
+    border-bottom: 1px solid #dee2e6;
+    font-weight: 500;
+    color: #495057;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.span-header:hover {
+    background-color: #dee2e6;
+}
+
+.span-name {
+    font-family: monospace;
+    font-size: 0.875rem;
+    color: #007bff;
+}
+
+.span-item .json-content {
+    padding: 0.75rem;
+    background: white;
+    border-radius: 0 0 4px 4px;
+}
+
+.span-header:not(.json-toggle) {
+    cursor: default;
+}
+
+.span-header:not(.json-toggle):hover {
+    background-color: #e9ecef;
+}
+
 /* Mermaid Toggle Styles */
 .mermaid-toggle-btn {
     background: none;
