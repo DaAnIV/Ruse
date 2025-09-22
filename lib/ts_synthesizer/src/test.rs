@@ -32,7 +32,7 @@ mod tests {
         let mut builder = TsClassesBuilder::new();
 
         builder.add_classes(code).expect("Failed to add User class");
-        let classes = builder.finalize();
+        let classes = builder.finalize().unwrap();
 
         let user_class_name = class_name!("User");
         let user_class = classes.get_user_class(&user_class_name).unwrap();
@@ -131,7 +131,7 @@ mod tests {
         let mut builder = TsClassesBuilder::new();
 
         builder.add_classes(code).unwrap();
-        let classes = builder.finalize();
+        let classes = builder.finalize().unwrap();
 
         let point_class_name = class_name!("Point");
         let point_class = classes.get_user_class(&point_class_name).unwrap();

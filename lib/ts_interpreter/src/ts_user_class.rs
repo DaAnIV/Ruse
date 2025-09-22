@@ -265,7 +265,7 @@ impl<'a> TsUserClassBuilder<'a> {
         decl: &ClassDecl,
         dts: &'a DtsClassDecl,
         gen_id: Arc<GraphIdGenerator>,
-    ) -> Self {
+    ) -> Result<Self, ()> {
         let super_class = decl.class.super_class.as_deref().map(|super_class| {
             let ident = super_class.as_ident().unwrap();
             class_name!(ident.sym.as_str())
@@ -286,7 +286,11 @@ impl<'a> TsUserClassBuilder<'a> {
 
         decl.visit_children_with(&mut class);
 
-        class
+        if class.visitor_failed {
+            return Err(());
+        }
+
+        Ok(class)
     }
 
     pub fn finalize(self, classes: &mut TsClasses, graphs_map: &mut GraphsMap) {

@@ -324,7 +324,13 @@ fn print_opcodes(cli: &PrintOpcodesArgs) -> ExitCode {
         }
     }
 
-    let classes = builder.finalize();
+    let classes = match builder.finalize() {
+        Ok(classes) => classes,
+        Err(e) => {
+            eprintln!("Error building classes. {}", e);
+            return ExitCode::FAILURE;
+        }
+    };
 
     let composite_opcodes = if cli.only_ts {
         SnythesisTask::get_classes_opcodes(&classes, true)

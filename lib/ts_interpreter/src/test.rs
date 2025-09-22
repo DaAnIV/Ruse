@@ -500,7 +500,7 @@ mod ts_class_tests {
         let mut builder = TsClassesBuilder::new();
 
         builder.add_classes(code).expect("Failed to add User class");
-        let classes = builder.finalize();
+        let classes = builder.finalize().unwrap();
 
         let user_class_name = class_name!("User");
         let graph_id = id_gen.get_id_for_graph();
@@ -538,7 +538,7 @@ mod ts_class_tests {
         builder.add_classes(code).expect("Failed to add User class");
         let user_class_name = class_name!("User");
 
-        let classes = builder.finalize();
+        let classes = builder.finalize().unwrap();
 
         let user_class = classes.get_user_class(&user_class_name).unwrap();
         let opcodes = &user_class.member_opcodes;
@@ -571,7 +571,7 @@ mod ts_class_tests {
             .add_classes(code2)
             .expect("Failed to add Class class");
 
-        let classes = builder.finalize();
+        let classes = builder.finalize().unwrap();
 
         let student_class = classes.get_user_class(&class_name!("Student")).unwrap();
         let class_class = classes.get_user_class(&class_name!("Class")).unwrap();
@@ -624,7 +624,7 @@ mod ts_class_tests {
         builder.add_classes(code).expect("Failed to add User class");
         let user_class_name = class_name!("User");
 
-        let classes = builder.finalize();
+        let classes = builder.finalize().unwrap();
 
         let user_class = classes.get_user_class(&user_class_name).unwrap();
         let graph_id = id_gen.get_id_for_graph();
@@ -681,7 +681,7 @@ mod ts_class_tests {
             .add_classes(code2)
             .expect("Failed to add UserPair class");
 
-        let classes = builder.finalize();
+        let classes = builder.finalize().unwrap();
 
         let user_class = classes.get_user_class(&class_name!("User")).unwrap();
         let user_class_pair = classes.get_user_class(&class_name!("UserPair")).unwrap();
@@ -762,7 +762,7 @@ mod ts_class_tests {
         builder.add_classes(code).expect("Failed to add User class");
         let user_class_name = class_name!("User");
 
-        let classes = builder.finalize();
+        let classes = builder.finalize().unwrap();
 
         let graph_id = id_gen.get_id_for_graph();
         graphs_map.ensure_graph(graph_id);
@@ -848,7 +848,7 @@ mod ts_class_tests {
         builder.add_classes(code).expect("Failed to add User class");
         let user_class_name = class_name!("User");
 
-        let classes = builder.finalize();
+        let classes = builder.finalize().unwrap();
 
         {
             let user_class = classes.get_user_class(&user_class_name).unwrap();
@@ -957,7 +957,7 @@ mod ts_class_tests {
         builder.add_classes(code).expect("Failed to add User class");
         let user_class_name = class_name!("User");
 
-        let classes = builder.finalize();
+        let classes = builder.finalize().unwrap();
 
         let graph_id = id_gen.get_id_for_graph();
         graphs_map.ensure_graph(graph_id);
@@ -1009,7 +1009,7 @@ mod ts_class_tests {
 
         builder.add_classes(code).expect("Failed to add User class");
 
-        let classes = builder.finalize();
+        let classes = builder.finalize().unwrap();
 
         let graph_id = id_gen.get_id_for_graph();
         graphs_map.ensure_graph(graph_id);

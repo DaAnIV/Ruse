@@ -105,7 +105,7 @@ fn tests_construct_binary_tree() {
     builder
         .add_files(&BINARY_SEARCH_TREE_TS_PATH)
         .expect("Failed to add binary search tree class");
-    let classes = builder.finalize();
+    let classes = builder.finalize().unwrap();
     let binary_tree_class_name = binary_tree_class_name();
     let id_gen = Arc::new(GraphIdGenerator::default());
 
@@ -155,7 +155,7 @@ fn tests_binary_tree_contains() {
         .add_files(&BINARY_SEARCH_TREE_TS_PATH)
         .expect("Failed to add binary search tree class");
     let binary_tree_class_name = binary_tree_class_name();
-    let classes = builder.finalize();
+    let classes = builder.finalize().unwrap();
     let id_gen = Arc::new(GraphIdGenerator::default());
 
     let graph_id = id_gen.get_id_for_graph();
@@ -381,7 +381,7 @@ fn auto_constructor() {
     builder
         .add_files(&BINARY_SEARCH_TREE_TS_PATH)
         .expect("Failed to add binary search tree class");
-    let classes = builder.finalize();
+    let classes = builder.finalize().unwrap();
 
     let binary_tree_class_name = binary_tree_class_name();
 
@@ -481,7 +481,7 @@ fn check_delete_two_children() {
     builder
         .add_files(&BINARY_SEARCH_TREE_TS_PATH)
         .expect("Failed to add binary search tree class");
-    let classes = builder.finalize();
+    let classes = builder.finalize().unwrap();
 
     let binary_tree_class_name = binary_tree_class_name();
     let binary_tree_class = classes.get_user_class(&binary_tree_class_name).unwrap();

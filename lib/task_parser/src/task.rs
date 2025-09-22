@@ -915,7 +915,7 @@ impl SnythesisTask {
             }
         }
 
-        let classes = builder.finalize();
+        let classes = builder.finalize().map_err(|e| parse_err!("Failed to build classes", e))?;
 
         for (var, var_type) in variables {
             if let TaskType::Object(obj_type) = var_type {

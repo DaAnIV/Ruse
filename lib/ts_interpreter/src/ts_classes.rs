@@ -409,7 +409,7 @@ impl TsClassesBuilder {
         builtin_classes
     }
 
-    pub fn finalize(self) -> Box<TsClasses> {
+    pub fn finalize(self) -> Result<Box<TsClasses>, Error> {
         let builtin_classes = self.get_builtin_classes();
 
         let gen_id = Arc::new(GraphIdGenerator::with_initial_values(
@@ -441,10 +441,10 @@ impl TsClassesBuilder {
                 class_decl,
                 dts,
                 classes.static_classes_gen_id.clone(),
-            );
+            ).map_err(|_| anyhow::anyhow!("Failed to build user class {}", id.0))?;
             builder.finalize(&mut classes, &mut graphs_map);
         }
 
-        Box::new(classes)
+        Ok(Box::new(classes))
     }
 }
