@@ -284,6 +284,7 @@ fn run_benchmarks(cli: &RunArgs) -> ExitCode {
     info!(target: "ruse::runner", "Max mutations: {}", bench_config.max_mutations);
     info!(target: "ruse::runner", "Workers count: {}", bench_config.iteration_workers_count);
     info!(target: "ruse::runner", "Bank config {}", bench_config.bank_config);
+    info!(target: "ruse::runner", "Max sequence size: {}", bench_config.max_sequence_size);
     #[cfg(feature = "mimalloc")]
     info!(target: "ruse::runner", "Using mimalloc allocator");
     #[cfg(not(feature = "mimalloc"))]

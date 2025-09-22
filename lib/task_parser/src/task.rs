@@ -220,10 +220,6 @@ fn default_pure() -> bool {
     false
 }
 
-fn default_max_seq_size() -> Option<usize> {
-    Some(2)
-}
-
 fn default_version() -> u32 {
     1
 }
@@ -234,7 +230,6 @@ struct SnythesisTaskOptions {
     strings: bool,
     #[serde(default = "default_pure")]
     pure: bool,
-    #[serde(default = "default_max_seq_size")]
     max_seq_size: Option<usize>,
 }
 
@@ -243,7 +238,7 @@ impl Default for SnythesisTaskOptions {
         Self {
             strings: default_strings(),
             pure: default_pure(),
-            max_seq_size: default_max_seq_size(),
+            max_seq_size: None,
         }
     }
 }
