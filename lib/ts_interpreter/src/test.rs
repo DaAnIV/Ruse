@@ -31,6 +31,16 @@ pub mod ts_op_helpers {
         ))
     }
 
+    pub fn class_setter_op(class: &TsUserClass, method_name: &str) -> Arc<opcode::ClassMethodOp> {
+        Arc::new(opcode::ClassMethodOp::new(
+            class.description.class_name.clone(),
+            &class.description.methods[&(method_name.to_string(), MethodKind::Setter)],
+            class.description.methods[&(method_name.to_string(), MethodKind::Setter)].param_types
+                [0]
+            .clone(),
+        ))
+    }
+
     pub fn lit_number_op(val: usize) -> Arc<opcode::LitOp> {
         Arc::new(opcode::LitOp::Num(Number::from(val)))
     }
