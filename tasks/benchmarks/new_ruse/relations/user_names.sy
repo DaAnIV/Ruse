@@ -1,0 +1,43 @@
+{
+  "version": 2,
+  "import": [
+    "../../../classes/ruse/user.ts",
+    "../../../classes/ruse/tuple.ts"
+  ],
+  "variables": {
+    "a": "User",
+    "b": "User",
+    "c": "UserTuple"
+  },
+  "returnType": "String",
+  "examples": [
+    {
+      "input": {
+        "a": {"name": "'John'", "surname": "'Doe'"},
+        "b": {"name": "'Alex'", "surname": "'Man'"},
+        "c": {"values": [
+          {"name": "'John'", "surname": "'Doe'"},
+          {"name": "'Alex'", "surname": "'Man'"}
+        ]}
+      },
+      "output": "'John Alex'"
+    },
+    {
+      "input": {
+        "a": {"name": "'Alan'", "surname": "'Wake'"},
+        "b": {"name": "'Kevin'", "surname": "'Duck'"},
+        "c": {"values": [
+          {"name": "'Alan'", "surname": "'Wake'"},
+          {"name": "'Kevin'", "surname": "'Duck'"}
+        ]}
+      },
+      "output": "'Alan Kevin'"
+    }
+  ],
+  "solution": {
+    "has_side_effects": "no",
+    "expected": [
+      "a.name + \" \" b.name"
+    ]
+  }
+}
