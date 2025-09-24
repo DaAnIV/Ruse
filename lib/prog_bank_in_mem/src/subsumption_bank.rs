@@ -65,7 +65,7 @@ impl Hash for ProgOutput {
 #[derive(Debug)]
 pub struct SubsumptionProgramsMap {
     map: HashMap<ProgOutput, Vec<Arc<SubProgram>>, BankHasherBuilder>,
-    set: HashSet<Arc<SubProgram>, BankHasherBuilder>,
+    set: Vec<HashSet<Arc<SubProgram>, BankHasherBuilder>>,
 }
 
 enum MinmalProgResult<'a> {
@@ -78,7 +78,7 @@ impl SubsumptionProgramsMap {
     pub fn new_with_hasher(hash_builder: BankHasherBuilder) -> Self {
         Self {
             map: HashMap::with_hasher(hash_builder),
-            set: HashSet::with_hasher(hash_builder),
+            set: Default::default(),
         }
     }
 
@@ -100,6 +100,18 @@ impl SubsumptionProgramsMap {
         return MinmalProgResult::NonComparable;
     }
 
+    fn get_set_for_prog(&mut self, p: &Arc<SubProgram>) -> &mut HashSet<Arc<SubProgram>, BankHasherBuilder> {
+        let size = p.size() as usize;
+        self.set.resize_with(self.set.len().max(size), || HashSet::with_hasher(self.map.hasher().clone()));
+
+        &mut self.set[size - 1]
+    }
+
+    fn resize_set_for_progs<'a, I>(&mut self, p: I) where I: Iterator<Item = &'a Arc<SubProgram>> {
+        let max_size = p.map(|p| p.size() as usize).max().unwrap();
+        self.set.resize_with(self.set.len().max(max_size), || HashSet::with_hasher(self.map.hasher().clone()));
+    }
+
     pub(crate) fn insert(&mut self, p: Arc<SubProgram>) -> bool {
         let output: ProgOutput = p.clone().into();
         match self.map.entry(output) {
@@ -110,15 +122,14 @@ impl SubsumptionProgramsMap {
                     }
                 }
                 existing_progs.get_mut().push(p.clone());
-                self.set.insert(p);
-                true
             }
             Entry::Vacant(vacant_entry) => {
                 vacant_entry.insert(vec![p.clone()]);
-                self.set.insert(p);
-                true
             }
-        }
+        };
+
+        self.get_set_for_prog(&p).insert(p);
+        true
     }
 
     fn contains(&self, p: &Arc<SubProgram>) -> bool {
@@ -133,35 +144,39 @@ impl SubsumptionProgramsMap {
     }
 
     fn len(&self) -> usize {
-        self.set.len()
+        self.set.iter().map(|set| set.len()).sum()
     }
 
     fn iter(&self) -> impl Iterator<Item = &Arc<SubProgram>> + Send {
-        self.set.iter()
+        self.set.iter().flat_map(|set| set.iter())
     }
 
     fn take_minimal_prog(&mut self, mut other: Self) {
         for (out, progs) in other.map {
+            self.resize_set_for_progs(progs.iter());
+
             match self.map.entry(out) {
                 Entry::Occupied(mut existing_progs) => {
                     for p in progs {
-                        other.set.remove(&p);
+                        other.set[p.size() as usize - 1].remove(&p);
                         match Self::find_minmal(&p, existing_progs.get_mut()) {
                             MinmalProgResult::LargerProg(larger_p) => {
-                                self.set.remove(larger_p);
+                                self.set[larger_p.size() as usize - 1].remove(larger_p);
                                 *larger_p = p.clone();
-                                self.set.insert(p);
+                                self.set[p.size() as usize - 1].insert(p);
                             }
                             MinmalProgResult::SmallerProg => (),
                             MinmalProgResult::NonComparable => {
                                 existing_progs.get_mut().push(p.clone());
-                                self.set.insert(p);
+                                self.set[p.size() as usize - 1].insert(p);
                             }
                         }
                     }
                 }
                 Entry::Vacant(vacant_entry) => {
-                    self.set.extend(progs.iter().cloned());
+                    for p in progs.iter().cloned() {
+                        self.set[p.size() as usize - 1].insert(p);
+                    }
                     vacant_entry.insert(progs);
                 }
             }

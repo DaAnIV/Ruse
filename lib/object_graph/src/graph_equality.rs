@@ -2,6 +2,8 @@ use std::collections::{HashMap, VecDeque};
 
 use crate::{GraphIndex, GraphsMap, NodeIndex, RootName};
 
+pub type NodeMatcherMap = HashMap<(GraphIndex, NodeIndex), (GraphIndex, NodeIndex)>;
+
 fn get_root_nodes<'a, I>(
     graphs_map_a: &GraphsMap,
     graphs_map_b: &GraphsMap,
@@ -80,7 +82,7 @@ pub fn equal_graphs_by_nodes_with_map<I1, I2>(
     graphs_map_b: &GraphsMap,
     nodes_a: I1,
     nodes_b: I2,
-    equal_nodes: &mut HashMap<(GraphIndex, NodeIndex), (GraphIndex, NodeIndex)>,
+    equal_nodes: &mut NodeMatcherMap,
 ) -> bool
 where
     I1: IntoIterator<Item = (GraphIndex, NodeIndex)>,
