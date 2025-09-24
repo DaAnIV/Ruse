@@ -347,14 +347,14 @@ fn print_opcodes(cli: &PrintOpcodesArgs) -> ExitCode {
     let sorted_opcodes = sort_opcodes(composite_opcodes);
 
     println!("Composite opcodes:");
-    sorted_opcodes.iter().for_each(|(_, ops)| {
+    sorted_opcodes.composite_opcodes().for_each(|(_, ops)| {
         ops.iter().for_each(|op| println!("{}", op.op_name()));
     });
 
     if cli.print_summary {
         println!();
         println!("summary:");
-        sorted_opcodes.iter().for_each(|(arg_types, ops)| {
+        sorted_opcodes.composite_opcodes().for_each(|(arg_types, ops)| {
             println!(
                 "{0: <30} {1: <10}",
                 arg_types.iter().map(|x| x.to_string()).join(",") + ":",

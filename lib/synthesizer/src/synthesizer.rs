@@ -214,16 +214,6 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
         }
     }
 
-    fn init_opcodes(&self) -> impl Iterator<Item = &Arc<dyn ExprOpcode>> {
-        self.opcodes[&ArgTypesList::empty()].iter()
-    }
-
-    fn composite_opcodes(&self) -> impl Iterator<Item = (&ArgTypesList, &Arc<OpcodesList>)> {
-        self.opcodes
-            .iter()
-            .filter(|(arg_types, _)| !arg_types.is_empty())
-    }
-
     pub fn get_cancel_token(&self) -> CancellationToken {
         self.cancel_token.clone()
     }
@@ -243,7 +233,7 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
             .inc_value(StatisticsTypes::FoundContextCount);
         let weak_components = ctx.compute_weak_components();
 
-        for op in self.init_opcodes() {
+        for op in self.opcodes.init_opcodes() {
             let p = match self.get_program_from_init_opcode(
                 op.clone(),
                 ctx,
@@ -418,7 +408,7 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
             info_span!(target: "ruse::synthesizer", "composite iteration worker", worker_index = i);
         let _worker_span_guard = worker_span.enter();
         let mut worker_ctx = self.create_worker_ctx(i);
-        for (arg_types, ops) in self.composite_opcodes() {
+        for (arg_types, ops) in self.opcodes.composite_opcodes() {
             let span = info_span!(target: "ruse::synthesizer", "composite opcodes", arg_types = ?arg_types, ops = ?ops.iter().map(|op| op.op_name()).collect::<Vec<_>>());
             let _span_guard = span.enter();
             let mut iter = self.worker_triple_iterator(i, arg_types).await;
@@ -676,7 +666,7 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
 
 #[derive(serde::Serialize)]
 pub struct SynthesizerJsonDisplay {
-    opcodes: Vec<String>,
+    opcodes: serde_json::Value,
     context: SynthesizerContextJsonDisplay,
     max_mutations: u32,
     worker_count: usize,
@@ -697,11 +687,7 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
 
     pub(crate) fn json_display_struct(&self) -> SynthesizerJsonDisplay {
         SynthesizerJsonDisplay {
-            opcodes: self
-                .opcodes
-                .values()
-                .flat_map(|ops| ops.iter().map(|op| format!("{}:{:?}", op.op_name(), op)))
-                .collect(),
+            opcodes: self.opcodes.to_json(),
             context: self.context.json_display_struct(),
             max_mutations: self.max_mutations,
             worker_count: self.worker_count,

@@ -71,8 +71,8 @@ pub enum ValueType {
     Number,
     Bool,
     String,
-    Object(ObjectType),
     Null,
+    Object(ObjectType),
 }
 
 impl ValueType {

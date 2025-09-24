@@ -7,6 +7,7 @@ use std::{any::Any, fmt::Debug};
 use crate::context::{Context, SynthesizerContext, SynthesizerWorkerContext, VariableName};
 
 use crate::location::LocValue;
+use itertools::Itertools;
 use ruse_object_graph::ValueType;
 
 pub trait ExprAst: Any {
@@ -103,7 +104,7 @@ impl From<Vec<ValueType>> for ArgTypesList {
 
 impl Ord for ArgTypesList {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.0.len().cmp(&other.0.len()).then(other.0.cmp(&self.0))
+        self.0.len().cmp(&other.0.len()).then(self.0.cmp(&other.0))
     }
 }
 
@@ -122,23 +123,52 @@ impl ops::Deref for ArgTypesList {
     }
 }
 
+impl std::fmt::Display for ArgTypesList {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[{}]", self.0.iter().map(|x| x.to_string()).join(", "))
+    }
+}
+
 pub type OpcodesList = Vec<Arc<dyn ExprOpcode>>;
-pub type OpcodesMap = BTreeMap<ArgTypesList, Arc<OpcodesList>>;
+
+#[derive(Default, Debug)]
+pub struct OpcodesMap(BTreeMap<ArgTypesList, OpcodesList>);
+
+impl OpcodesMap {
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn to_json(&self) -> serde_json::Value {
+        let mut map = serde_json::Map::new();
+        for (k, v) in self.0.iter() {
+            let list = serde_json::Value::Array(v.iter().map(|x| x.op_name().into()).collect());
+            map.insert(k.to_string(), list);
+        }
+        map.into()
+    }
+
+    pub fn init_opcodes(&self) -> impl Iterator<Item = &Arc<dyn ExprOpcode>> {
+        self.0[&ArgTypesList::empty()].iter()
+    }
+
+    pub fn composite_opcodes(&self) -> impl Iterator<Item = (&ArgTypesList, &OpcodesList)> {
+        self.0.iter().filter(|(arg_types, _)| !arg_types.is_empty())
+    }
+}
 
 pub fn sort_opcodes(opcodes: OpcodesList) -> OpcodesMap {
     let mut sorted_opcodes: OpcodesMap = OpcodesMap::default();
     for op in opcodes {
-        if let Some(arc_list) = sorted_opcodes.get_mut(&op.arg_types().into()) {
-            let list = Arc::get_mut(arc_list).unwrap();
-            list.push(op);
+        if let Some(ops_list) = sorted_opcodes.0.get_mut(&op.arg_types().into()) {
+            ops_list.push(op);
         } else {
-            sorted_opcodes.insert(op.arg_types().into(), Arc::new(vec![op]));
+            sorted_opcodes.0.insert(op.arg_types().into(), vec![op]);
         }
     }
 
-    for (_, arc_list) in sorted_opcodes.iter_mut() {
-        let list = Arc::get_mut(arc_list).unwrap();
-        list.sort_by(|x, y| x.op_name().cmp(y.op_name()));
+    for (_, ops_list) in sorted_opcodes.0.iter_mut() {
+        ops_list.sort_by(|x, y| x.op_name().cmp(y.op_name()));
     }
 
     sorted_opcodes

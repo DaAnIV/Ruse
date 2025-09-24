@@ -9,6 +9,7 @@
     "b": "*c.values.1",
     "c": "UserTuple"
   },
+  "stringLiterals": [", "],
   "returnType": "String",
   "examples": [
     {
@@ -18,7 +19,7 @@
           {"name": "'Alex'", "surname": "'Man'"}
         ]}
       },
-      "output": "'John Alex'"
+      "output": "'John, Alex'"
     },
     {
       "input": {
@@ -27,13 +28,13 @@
           {"name": "'Kevin'", "surname": "'Duck'"}
         ]}
       },
-      "output": "'Alan Kevin'"
+      "output": "'Alan, Kevin'"
     }
   ],
   "solution": {
     "has_side_effects": "no",
     "expected": [
-      "a.name + \" \" b.name"
+      "a.name + \", \" + b.name"
     ]
   }
 }

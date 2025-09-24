@@ -9,6 +9,7 @@
     "c": "*a",
     "d": "*b"
   },
+  "stringLiterals": [", "],
   "returnType": "String",
   "examples": [
     {
@@ -16,20 +17,23 @@
         "a": {"name": "'John'", "surname": "'Doe'"},
         "b": {"name": "'Alex'", "surname": "'Man'"}
       },
-      "output": "'John Alex'"
+      "output": "'John, Alex'"
     },
     {
       "input": {
         "a": {"name": "'Alan'", "surname": "'Wake'"},
         "b": {"name": "'Kevin'", "surname": "'Duck'"}
       },
-      "output": "'Alan Kevin'"
+      "output": "'Alan, Kevin'"
     }
   ],
   "solution": {
     "has_side_effects": "no",
     "expected": [
-      "a.name + \" \" b.name"
+      "a.name + \", \" +  b.name",
+      "a.name + \", \" +  d.name",
+      "c.name + \", \" +  b.name",
+      "c.name + \", \" +  d.name"
     ]
   }
 }
