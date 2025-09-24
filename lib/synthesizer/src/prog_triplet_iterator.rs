@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     context::ContextArray,
-    embedding::{embeddings_trace, merge_context_arrays},
+    embedding::{embeddings_tracing, merge_context_arrays},
     multi_programs_map_product::ProgramChildrenIterator,
     prog::SubProgram,
     prog_triplet::ProgTriplet,
@@ -29,7 +29,7 @@ where
         cur_progs: &Vec<Arc<SubProgram>>,
         mut from: usize,
     ) -> Option<&(ContextArray, ContextArray)> {
-        embeddings_trace!(
+        embeddings_tracing::trace!(
             "trying to get ctxs for {}",
             cur_progs
                 .iter()
@@ -54,7 +54,7 @@ where
                     (ContextArray::default(), ContextArray::default()),
                 );
             }
-            embeddings_trace!(prog: cur_progs[0], "Adding context 0");
+            embeddings_tracing::trace!(prog: cur_progs[0], "Adding context 0");
             cur_ctxs[0] = (
                 cur_progs[0].pre_ctx().clone(),
                 cur_progs[0].post_ctx().clone(),
@@ -66,7 +66,7 @@ where
             let last_ctx = &cur_ctxs[i - 1];
             let p = &cur_progs[i];
 
-            embeddings_trace!(prog: p, "Adding context {}", i);
+            embeddings_tracing::trace!(prog: p, "Adding context {}", i);
 
             if let Ok(merged_ctx) =
                 merge_context_arrays(&last_ctx.0, &last_ctx.1, p.pre_ctx(), p.post_ctx())
