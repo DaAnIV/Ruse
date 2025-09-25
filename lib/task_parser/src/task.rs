@@ -328,6 +328,8 @@ struct SnythesisTaskInner {
     common: Option<SnythesisTaskExamples>,
     #[serde(skip_serializing_if = "Option::is_none")]
     js_utils: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    validate_js: Option<String>,
 }
 
 impl SnythesisTaskInner {
@@ -602,6 +604,18 @@ impl SnythesisTask {
         Ok(multi_lines.join("\n"))
     }
 
+    fn get_js_predicate(&self, js: Vec<String>) -> SynthesisTaskResult<JsPredicate> {
+        let predicate = match &self.inner.js_utils {
+            Some(js_utils_value) => {
+                let utils = Self::get_string_single_multi_line(js_utils_value)?;
+                JsPredicate::new_with_utils(js, utils.clone())
+            }
+            None => JsPredicate::new(js),
+        };
+
+        Ok(predicate)
+    }
+
     fn get_predicate(
         &self,
         engine_ctx: &mut EngineContext,
@@ -677,16 +691,7 @@ impl SnythesisTask {
         }
 
         if let Some(predicate_js_res) = predicate_js {
-            let predicate_js = predicate_js_res?;
-
-            let predicate = match &self.inner.js_utils {
-                Some(js_utils_value) => {
-                    let utils = Self::get_string_single_multi_line(js_utils_value)?;
-                    JsPredicate::new_with_utils(predicate_js, utils.clone())
-                }
-                None => JsPredicate::new(predicate_js),
-            };
-            predicate_builder.add_predicate(predicate);
+            predicate_builder.add_predicate(self.get_js_predicate(predicate_js_res?)?);
         }
 
         Ok(predicate_builder.finalize())
@@ -704,6 +709,12 @@ impl SnythesisTask {
         predicate_builder.add_predicate(StringSizeValidPredicate {
             max_string_size: self.inner.max_string_size.unwrap_or(100),
         });
+
+        if let Some(validate_js) = &self.inner.validate_js {
+            predicate_builder.add_predicate(
+                self.get_js_predicate(vec![validate_js.clone(); self.inner.examples.len()])?,
+            );
+        }
 
         Ok(predicate_builder.finalize())
     }
@@ -910,7 +921,9 @@ impl SnythesisTask {
             }
         }
 
-        let classes = builder.finalize().map_err(|e| parse_err!("Failed to build classes", e))?;
+        let classes = builder
+            .finalize()
+            .map_err(|e| parse_err!("Failed to build classes", e))?;
 
         for (var, var_type) in variables {
             if let TaskType::Object(obj_type) = var_type {
