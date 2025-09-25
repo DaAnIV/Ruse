@@ -180,7 +180,7 @@ pub struct Synthesizer<P: ProgBank, W: WorkerContextCreator + 'static> {
     valid: SynthesizerPredicate,
 
     worker_count: usize,
-    found_token: CancellationToken,
+    stop_workers_token: CancellationToken,
 
     statistics: Statistics,
 
@@ -208,7 +208,7 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
             predicate,
             valid,
             worker_count: iteration_workers_count,
-            found_token: CancellationToken::new(),
+            stop_workers_token: CancellationToken::new(),
             statistics: Default::default(),
             worker_context_creator,
         }
@@ -377,7 +377,7 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
     }
 
     async fn should_end_worker(&self) -> bool {
-        self.cancel_token.is_cancelled() || self.found_token.is_cancelled()
+        self.cancel_token.is_cancelled() || self.stop_workers_token.is_cancelled()
     }
 
     async fn worker_triple_iterator<'a>(
@@ -420,7 +420,7 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
                     .composite_iter_batch(&triple, &ops, &mut worker_ctx, batch_builder)
                     .await;
                 if found.is_some() {
-                    self.found_token.cancel();
+                    self.stop_workers_token.cancel();
                     return found;
                 }
                 worker_ctx.data.gc();
@@ -449,6 +449,12 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
         current_iteration_map.add_batch(new_ctx).await;
     }
 
+    async fn stop_workers_and_wait<T: 'static>(&self, workers: &mut JoinSet<T>) {
+        self.stop_workers_token.cancel();
+        workers.abort_all();
+        while workers.join_next().await.is_some() {}
+    }
+
     async fn run_composite_iteration(
         self: Arc<Self>,
         current_iteration_map: &mut P::IterationBuilderType,
@@ -472,19 +478,28 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
         }
 
         while let Some(worker_res) = workers.join_next().await {
-            let (worker_type_map, found) =
-                worker_res?.map_err(|_e| anyhow::anyhow!("Panic in composite_iteration_worker"))?;
-            if self.cancel_token.is_cancelled() {
-                return Ok(None);
+            match worker_res {
+                Ok(Ok((worker_type_map, found))) => {
+                    if found.is_some() {
+                        self.stop_workers_and_wait(&mut workers).await;
+                        return Ok(found);
+                    }
+                    if self.cancel_token.is_cancelled() {
+                        return Ok(None);
+                    }
+                    tokio::task::block_in_place(|| {
+                        Handle::current().block_on(current_iteration_map.add_batch(worker_type_map))
+                    });
+                }
+                Ok(Err(_e)) => {
+                    self.stop_workers_and_wait(&mut workers).await;
+                    return Err(anyhow::anyhow!("Panic in composite_iteration_worker"));
+                }
+                Err(_e) => {
+                    self.stop_workers_and_wait(&mut workers).await;
+                    return Err(anyhow::anyhow!("Failed to join worker"));
+                }
             }
-            if found.is_some() {
-                workers.abort_all();
-                while workers.join_next().await.is_some() {}
-                return Ok(found);
-            }
-            tokio::task::block_in_place(|| {
-                Handle::current().block_on(current_iteration_map.add_batch(worker_type_map))
-            });
         }
 
         debug!(target: "ruse::synthesizer", "Initializing new contexts!");
