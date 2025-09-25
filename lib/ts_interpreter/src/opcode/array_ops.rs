@@ -781,6 +781,13 @@ impl ExprOpcode for ArraySortOp {
         let graph = arr.graph(&post_ctx.graphs_map);
 
         let mut values: Vec<Value> = arr.array_values_iterator(&post_ctx.graphs_map).collect();
+        if self.elem_type == ValueType::Number
+            && values
+                .iter()
+                .any(|x| !x.number_value().unwrap().0.is_finite())
+        {
+            return Err(());
+        }
         values.sort_by(|a, b| match &self.elem_type {
             ValueType::Number => a
                 .number_value()
