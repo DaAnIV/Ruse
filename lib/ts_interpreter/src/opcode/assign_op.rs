@@ -123,11 +123,14 @@ impl ExprOpcode for AssignOp {
     ) -> EvalResult {
         debug_assert_eq!(args.len(), 2);
 
-        if args[0].loc.is_temp() {
+        let lhs = args[1];
+        let rhs = args[0];
+
+        if lhs.loc.is_temp() {
             return Err(());
         }
 
-        let res = match (&args[0].val(), &args[1].val()) {
+        let res = match (&lhs.val(), &rhs.val()) {
             (Value::Primitive(p), Value::Primitive(p2)) => match (p, p2) {
                 (PrimitiveValue::Number(lhs), PrimitiveValue::Number(rhs)) => {
                     self.eval_assign_num(*lhs, *rhs)
@@ -143,10 +146,10 @@ impl ExprOpcode for AssignOp {
             _ => return Err(()),
         }?;
 
-        let mut loc = args[0].loc.clone();
+        let mut loc = lhs.loc.clone();
         post_ctx.update_value(&res, &mut loc, syn_ctx);
 
-        dirty!(post_ctx.temp_value(Value::Null))
+        dirty!(rhs.clone())
     }
 
     fn arg_types(&self) -> &[ValueType] {
@@ -157,7 +160,7 @@ impl ExprOpcode for AssignOp {
         debug_assert_eq!(children.len(), 2);
 
         let left = ast::ParenExpr {
-            expr: TsExprAst::from(children[0].as_ref()).node.to_owned(),
+            expr: TsExprAst::from(children[1].as_ref()).node.to_owned(),
             span: DUMMY_SP,
         };
 
@@ -165,7 +168,7 @@ impl ExprOpcode for AssignOp {
             span: DUMMY_SP,
             op: self.op,
             left: ast::AssignTarget::Simple(ast::SimpleAssignTarget::Paren(left)),
-            right: TsExprAst::from(children[1].as_ref()).get_paren_expr(),
+            right: TsExprAst::from(children[0].as_ref()).get_paren_expr(),
         };
 
         TsExprAst::create(ast::Expr::Assign(expr))
