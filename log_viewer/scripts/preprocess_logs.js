@@ -369,7 +369,7 @@ class LogPreprocessor {
         // Get file size for progress tracking
         const stats = fs.statSync(logFilePath);
         const fileSize = stats.size;
-        const lines = child_process.execSync(`wc -l ${logFilePath}`).toString().trim().split(' ')[0];
+        const lines = parseInt(child_process.execSync(`wc -l ${logFilePath}`).toString().trim().split(' ')[0]);
 
         // Initialize MongoDB storage if available
         try {
@@ -397,6 +397,8 @@ class LogPreprocessor {
         const fileStream = fs.createReadStream(logFilePath, { encoding: 'utf8' });
         const rl = readline.createInterface({
             input: fileStream,
+            historySize: 0,
+            history: undefined,
             crlfDelay: Infinity // Handle Windows line endings
         });
 
@@ -433,7 +435,10 @@ class LogPreprocessor {
             lineNumber++;
             const trimmedLine = line.trim();
 
-            if (!trimmedLine) continue;
+            if (!trimmedLine) {
+                progressBar.increment(1, { validLogs: validLogCount });
+                continue;
+            }
 
             try {
                 const entry = JSON.parse(trimmedLine);
@@ -490,10 +495,10 @@ class LogPreprocessor {
                     }
                     metadata.stats.tasks[taskName].count++;
                 }
-                progressBar.increment(1, { validLogs: validLogCount });
             } catch (error) {
                 console.warn(`Failed to parse line ${lineNumber}: ${error.message}`);
             }
+            progressBar.increment(1, { validLogs: validLogCount });
         }
 
         // Complete progress bar
