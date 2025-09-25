@@ -27,3 +27,4 @@ tracing.workspace = true
 [features]
 release_trace_max_level_info = ["tracing/release_max_level_info"]
 release_trace_max_level_debug = ["tracing/release_max_level_debug"]
+js_predicate_code = []

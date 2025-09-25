@@ -165,11 +165,11 @@ impl Predicate for JsPredicate {
                 && p.post_ctx().len() == self.predicate_js.len()
         );
 
-        let extra_args: HashMap<&str, boa_engine::JsValue> = [(
-            "__code__",
-            boa_engine::JsValue::from(boa_engine::js_string!(p.get_code())),
-        )]
-        .into();
+        #[allow(unused_mut)]
+        let mut extra_args: HashMap<&str, boa_engine::JsValue> = HashMap::new();
+        
+        #[cfg(feature = "js_predicate_code")]
+        extra_args.insert("__code__", boa_engine::JsValue::from(boa_engine::js_string!(p.get_code())));
 
         for (ctx, output, js) in izip!(
             p.post_ctx().iter(),
