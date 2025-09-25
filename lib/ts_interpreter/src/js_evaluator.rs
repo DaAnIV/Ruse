@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use boa_engine::JsResult;
 use ruse_object_graph::value::Value;
 use ruse_synthesizer::context::{Context, SynthesizerContext, SynthesizerWorkerContext};
@@ -29,6 +31,7 @@ impl JsEvaluator {
         js: &str,
         ctx: &Context,
         output: &Value,
+        extra_args: &HashMap<&str, boa_engine::JsValue>,
         syn_ctx: &SynthesizerContext,
         worker_ctx: &mut SynthesizerWorkerContext,
     ) -> JsResult<boa_engine::JsValue> {
@@ -41,10 +44,10 @@ impl JsEvaluator {
 
         engine_ctx.reset_with_context(ctx, classes);
 
-        let js_func = self.create_function(js, ctx, &mut engine_ctx)?;
+        let js_func = self.create_function(js, ctx, extra_args, &mut engine_ctx)?;
         let func = js_func.as_callable().unwrap();
 
-        let js_values = Self::get_js_args(ctx, output, engine_ctx)?;
+        let js_values = Self::get_js_args(ctx, output, extra_args, engine_ctx)?;
 
         func.call(&boa_engine::JsValue::null(), &js_values, &mut engine_ctx)
     }
@@ -52,6 +55,7 @@ impl JsEvaluator {
     fn get_js_args(
         ctx: &Context,
         output: &Value,
+        extra_args: &HashMap<&str, boa_engine::JsValue>,
         engine_ctx: &mut EngineContext,
     ) -> JsResult<Vec<boa_engine::JsValue>> {
         let mut js_values = Vec::with_capacity(ctx.variable_count() + 1);
@@ -59,6 +63,7 @@ impl JsEvaluator {
             js_values.push(value.try_into_js(engine_ctx)?);
         }
         js_values.push(output.try_into_js(engine_ctx)?);
+        js_values.extend(extra_args.values().cloned());
 
         Ok(js_values)
     }
@@ -67,6 +72,7 @@ impl JsEvaluator {
         &self,
         js: &str,
         ctx: &Context,
+        extra_args: &HashMap<&str, boa_engine::JsValue>,
         engine_ctx: &mut EngineContext,
     ) -> JsResult<boa_engine::JsValue> {
         let mut arg_names: Vec<&str> = Vec::with_capacity(ctx.variable_count() + 1);
@@ -74,6 +80,7 @@ impl JsEvaluator {
             arg_names.push(var.as_str());
         }
         arg_names.push("__output__");
+        arg_names.extend(extra_args.keys());
         let code = format!(
             "({}) => {{{}\nreturn {}}}",
             arg_names.join(", "),
@@ -88,10 +95,12 @@ impl JsEvaluator {
         js: &str,
         ctx: &Context,
         output: &Value,
+        extra_args: &HashMap<&str, boa_engine::JsValue>,
         syn_ctx: &SynthesizerContext,
         worker_ctx: &mut SynthesizerWorkerContext,
     ) -> JsResult<Value> {
-        let js_value = self.evaluate_get_js_value(js, ctx, output, syn_ctx, worker_ctx)?;
+        let js_value =
+            self.evaluate_get_js_value(js, ctx, output, extra_args, syn_ctx, worker_ctx)?;
         Self::convert_js_value(js_value, syn_ctx, worker_ctx)
     }
 

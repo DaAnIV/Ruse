@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use itertools::{izip, Itertools};
 use ruse_object_graph::graph_map_value::GraphMapWrap;
 use ruse_object_graph::GraphsMap;
@@ -162,15 +164,26 @@ impl Predicate for JsPredicate {
             p.post_ctx().len() == p.out_value().len()
                 && p.post_ctx().len() == self.predicate_js.len()
         );
+
+        let extra_args: HashMap<&str, boa_engine::JsValue> = [(
+            "__code__",
+            boa_engine::JsValue::from(boa_engine::js_string!(p.get_code())),
+        )]
+        .into();
+
         for (ctx, output, js) in izip!(
             p.post_ctx().iter(),
             p.out_value().iter(),
             self.predicate_js.iter()
         ) {
-            match self
-                .evaluator
-                .evaluate_get_js_value(js, ctx, output.val(), syn_ctx, worker_ctx)
-            {
+            match self.evaluator.evaluate_get_js_value(
+                js,
+                ctx,
+                output.val(),
+                &extra_args,
+                syn_ctx,
+                worker_ctx,
+            ) {
                 Ok(val) => {
                     if let Some(b) = val.as_boolean() {
                         if b {
