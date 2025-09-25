@@ -149,7 +149,7 @@ impl ExprOpcode for AssignOp {
         let mut loc = lhs.loc.clone();
         post_ctx.update_value(&res, &mut loc, syn_ctx);
 
-        dirty!(rhs.clone())
+        dirty!(post_ctx.temp_value(vnull!()))
     }
 
     fn arg_types(&self) -> &[ValueType] {
