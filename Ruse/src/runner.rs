@@ -126,16 +126,16 @@ async fn run_iteration<P: ProgBank + 'static>(
     result: &mut BenchmarkResult,
 ) -> SynthesizerResult {
     let iteration_start = Instant::now();
-    let synthesizer_result = tokio::select! {
-        _ = cancel_token.cancelled() => SynthesizerResult::Cancelled,
-        v = synthesizer.run_iteration() => {
-            match v {
-                Ok(Some(p)) => SynthesizerResult::Found(p),
-                Err(e) => SynthesizerResult::Error(e.to_string()),
-                Ok(None) => SynthesizerResult::NotFound,
-            }
-        }
+    let mut synthesizer_result = match synthesizer.run_iteration().await {
+        Ok(Some(p)) => SynthesizerResult::Found(p),
+        Err(e) => SynthesizerResult::Error(e.to_string()),
+        Ok(None) => SynthesizerResult::NotFound,
     };
+
+    if cancel_token.is_cancelled() && !matches!(synthesizer_result, SynthesizerResult::Found(_)) {
+        synthesizer_result = SynthesizerResult::Cancelled;
+    }
+
     let iteration_took = iteration_start.elapsed();
     debug!(target: "ruse::runner", "Iteration took {:.3}s", iteration_took.as_secs_f32());
     result.add_iteration(iteration_took, synthesizer.statistics());
