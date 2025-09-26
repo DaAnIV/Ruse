@@ -66,8 +66,7 @@ def run_ruse(tasks, results_dir, *,
         "--max-iterations", str(max_iterations),
         "--max-mutations", str(max_mutations),
         "--max-sequence-size", str(max_sequence_size),
-        "--max-task-mem", max_memory_usage,
-        '--pretty']
+        "--max-task-mem", max_memory_usage]
 
     if log_file is not None:
         args.append("--log")
