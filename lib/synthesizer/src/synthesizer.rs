@@ -437,7 +437,7 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
         let mut worker_ctx = self.create_worker_ctx(0);
         let mut new_ctx = current_iteration_map.create_batch_builder();
         for p in current_iteration_map.iter_programs().await {
-            if self.cancel_token.is_cancelled() {
+            if self.should_end_worker().await {
                 return;
             }
             if self.found_contexts.insert(p.post_ctx().clone()) {
