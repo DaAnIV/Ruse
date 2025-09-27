@@ -582,7 +582,7 @@ mod bank_iterator_tests {
         iterator::multi_programs_map_product::{
             multi_programs_map_product, ProgramChildrenIterator,
         },
-        iterator::prog_triplet_iterator::prog_triplet_iterator,
+        iterator::prog_triple_iterator::prog_triple_iterator,
         pure,
         test::helpers::*,
     };
@@ -619,9 +619,9 @@ mod bank_iterator_tests {
             children_iterator.take(take_count);
         }
 
-        let mut iter = prog_triplet_iterator(children_iterator);
-        while let Some(triplet) = iter.next().await {
-            all_children.insert(all_children.len(), triplet.children);
+        let mut iter = prog_triple_iterator(children_iterator);
+        while let Some(triple) = iter.next().await {
+            all_children.insert(all_children.len(), triple.children);
         }
 
         all_children.iter().map(|x| x.value().clone()).collect()
@@ -686,17 +686,17 @@ mod bank_iterator_tests {
         let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default());
         let mut bank = TestBank::default();
         add_iteration(&mut bank, 2, &syn_ctx).await;
-        let mut iter = prog_triplet_iterator(
+        let mut iter = prog_triple_iterator(
             multi_programs_map_product(
                 &bank,
                 [(0, ValueType::Number), (0, ValueType::Number)].into_iter(),
             )
             .await,
         );
-        while let Some(triplet) = iter.next().await {
+        while let Some(triple) = iter.next().await {
             println!(
                 "{:#?}",
-                triplet
+                triple
                     .children
                     .iter()
                     .map(|p| p.out_value()[0].val.number_value().unwrap())
@@ -724,12 +724,12 @@ mod bank_iterator_tests {
             }
 
             let mut count = 0;
-            let mut triplet_iter = prog_triplet_iterator(children_iter);
-            while let Some(triplet) = triplet_iter.next().await {
+            let mut triple_iter = prog_triple_iterator(children_iter);
+            while let Some(triple) = triple_iter.next().await {
                 count += 1;
                 println!(
                     "{}",
-                    triplet
+                    triple
                         .children
                         .iter()
                         .map(|p| {
@@ -764,12 +764,12 @@ mod bank_iterator_tests {
             }
 
             let mut count = 0;
-            let mut triplet_iter = prog_triplet_iterator(children_iter);
-            while let Some(triplet) = triplet_iter.next().await {
+            let mut triple_iter = prog_triple_iterator(children_iter);
+            while let Some(triple) = triple_iter.next().await {
                 count += 1;
                 println!(
                     "{}",
-                    triplet
+                    triple
                         .children
                         .iter()
                         .map(|p| {
@@ -802,12 +802,12 @@ mod bank_iterator_tests {
         children_iter.take(3);
 
         let mut count = 0;
-        let mut triplet_iter = prog_triplet_iterator(children_iter);
-        while let Some(triplet) = triplet_iter.next().await {
+        let mut triple_iter = prog_triple_iterator(children_iter);
+        while let Some(triple) = triple_iter.next().await {
             count += 1;
             println!(
                 "{}",
-                triplet
+                triple
                     .children
                     .iter()
                     .map(|p| {

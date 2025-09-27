@@ -57,7 +57,7 @@ pub trait ExprOpcode: Debug + Sync + Send {
 
     // post_ctx contains the post context of the last argument or the pre context if there are no arguments.
     // It can be changed on mutating opcodes.
-    // For example: Think about the triplet - {x -> 3} ++x (4, {x -> 4})
+    // For example: Think about the triple - {x -> 3} ++x (4, {x -> 4})
     fn eval(
         &self,
         args: &[&LocValue],
