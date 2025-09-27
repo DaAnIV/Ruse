@@ -7,7 +7,7 @@ mod tests {
         self as object_graph, class_name, field_name, location::Location, root_name, value::Value,
         vnum, vstr, GraphsMap, ValueType,
     };
-    use ruse_prog_bank_in_mem::subsumption_bank::SubsumptionProgBank;
+    use ruse_bank_in_mem::subsumption_bank::SubsumptionProgBank;
     use ruse_synthesizer::context::{Context, ContextArray, GraphIdGenerator};
     use ruse_synthesizer::synthesizer_context::SynthesizerContext;
     use ruse_ts_interpreter::ts_classes::TsClassesBuilder;

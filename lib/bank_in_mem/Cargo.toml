@@ -1,5 +1,5 @@
 [package]
-name = "ruse_prog_bank_in_mem"
+name = "ruse_bank_in_mem"
 version = "0.1.0"
 edition = "2021"
 

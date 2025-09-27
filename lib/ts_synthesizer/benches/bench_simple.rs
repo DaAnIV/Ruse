@@ -1,6 +1,6 @@
 use criterion::*;
 use ruse_object_graph::*;
-use ruse_prog_bank_in_mem::subsumption_bank::SubsumptionProgBank;
+use ruse_bank_in_mem::subsumption_bank::SubsumptionProgBank;
 use ruse_synthesizer::context::{Context, ContextArray, GraphIdGenerator};
 use ruse_synthesizer::synthesizer_context::SynthesizerContext;
 use ruse_ts_synthesizer::*;

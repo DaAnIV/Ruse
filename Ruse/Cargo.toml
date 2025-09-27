@@ -15,7 +15,7 @@ ruse_ts_interpreter.workspace = true
 ruse_synthesizer.workspace = true
 ruse_ts_synthesizer.workspace = true
 ruse_task_parser.workspace = true
-ruse_prog_bank_in_mem.workspace = true
+ruse_bank_in_mem.workspace = true
 
 clap.workspace = true
 clap-verbosity-flag = "*"
@@ -67,7 +67,7 @@ release_trace_max_level_info=["tracing/release_max_level_info",
                               "ruse_synthesizer/release_trace_max_level_info",
                               "ruse_ts_synthesizer/release_trace_max_level_info",
                               "ruse_task_parser/release_trace_max_level_info",
-                              "ruse_prog_bank_in_mem/release_trace_max_level_info"]
+                              "ruse_bank_in_mem/release_trace_max_level_info"]
 
 release_trace_max_level_debug=["tracing/release_max_level_debug", 
                               "ruse_object_graph/release_trace_max_level_debug",
@@ -75,6 +75,6 @@ release_trace_max_level_debug=["tracing/release_max_level_debug",
                               "ruse_synthesizer/release_trace_max_level_debug",
                               "ruse_ts_synthesizer/release_trace_max_level_debug",
                               "ruse_task_parser/release_trace_max_level_debug",
-                              "ruse_prog_bank_in_mem/release_trace_max_level_debug"]
+                              "ruse_bank_in_mem/release_trace_max_level_debug"]
 
 js_predicate_code = ["ruse_task_parser/js_predicate_code"]
