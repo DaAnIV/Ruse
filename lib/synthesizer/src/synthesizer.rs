@@ -23,7 +23,7 @@ use std::{
     sync::{atomic::*, Arc},
     time::Instant,
 };
-use tokio::{runtime::Handle, task::JoinSet};
+use tokio::{runtime::Handle, select, task::JoinSet};
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, info_span, trace, Instrument};
 
@@ -437,7 +437,7 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
         let mut worker_ctx = self.create_worker_ctx(0);
         let mut new_ctx = current_iteration_map.create_batch_builder();
         for p in current_iteration_map.iter_programs().await {
-            if self.cancel_token.is_cancelled() {
+            if self.should_end_worker().await {
                 return;
             }
             if self.found_contexts.insert(p.post_ctx().clone()) {
@@ -477,7 +477,10 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
             );
         }
 
-        while let Some(worker_res) = workers.join_next().await {
+        while let Some(worker_res) = select! {
+            res = workers.join_next() => res,
+            _ = self.cancel_token.cancelled() => None,
+        } {
             match worker_res {
                 Ok(Ok((worker_type_map, found))) => {
                     if found.is_some() {
@@ -500,6 +503,11 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
                     return Err(anyhow::anyhow!("Failed to join worker"));
                 }
             }
+        }
+
+
+        if self.cancel_token.is_cancelled() {
+            return Err(anyhow::anyhow!("Synthesizer cancelled"));
         }
 
         debug!(target: "ruse::synthesizer", "Initializing new contexts!");
