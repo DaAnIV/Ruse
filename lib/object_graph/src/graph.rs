@@ -98,6 +98,10 @@ impl ObjectGraph {
         self.get_node(node)?.pointers_get(field)
     }
 
+    pub fn get_neighbor_id(&self, node: &NodeIndex, field: &FieldName) -> Option<(GraphIndex, NodeIndex)> {
+        self.get_neighbor(node, field).map(|e| (e.graph.unwrap_or(self.id), e.node))
+    }
+
     pub fn neighbors_count(&self, id: &NodeIndex) -> usize {
         let node = self.get_node(id).unwrap();
         node.pointers_len()

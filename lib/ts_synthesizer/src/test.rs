@@ -90,7 +90,7 @@ mod tests {
                     return false;
                 }
                 for (v, e) in p.out_value().iter().zip(expected_outputs) {
-                    if v.loc() != &Location::Temp {
+                    if matches!(v.loc(), Location::Temp) {
                         return false;
                     }
                     let v_str = unsafe { v.val().string_value().unwrap_unchecked() };
@@ -193,7 +193,7 @@ mod tests {
                     return false;
                 }
                 for (v, e) in p.out_value().iter().zip(expected_outputs) {
-                    if v.loc() != &Location::Temp {
+                    if matches!(v.loc(), Location::Temp) {
                         return false;
                     }
                     let v_num = unsafe { v.val().number_value().unwrap_unchecked() };

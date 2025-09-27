@@ -41,6 +41,29 @@ where
     }
 }
 
+pub fn equal_graphs_by_root_names_with_map<'a, I>(
+    graphs_map_a: &GraphsMap,
+    graphs_map_b: &GraphsMap,
+    roots: I,
+    equal_nodes: &mut NodeMatcherMap,
+) -> bool
+where
+    I: IntoIterator<Item = &'a RootName>,
+{
+    if let Some((graph_a_roots, graph_b_roots)) = get_root_nodes(graphs_map_a, graphs_map_b, roots)
+    {
+        equal_graphs_by_nodes_with_map(
+            graphs_map_a,
+            graphs_map_b,
+            graph_a_roots,
+            graph_b_roots,
+            equal_nodes,
+        )
+    } else {
+        false
+    }
+}
+
 pub fn equal_graphs_by_node(
     graphs_map_a: &GraphsMap,
     graphs_map_b: &GraphsMap,

@@ -1,5 +1,8 @@
 use crate::{
-    graph_map_value::*, value::Value, Attributes, FieldName, GraphIndex, GraphsMap, NodeIndex, RootName
+    graph_equality::{self, NodeMatcherMap},
+    graph_map_value::*,
+    value::Value,
+    Attributes, FieldName, GraphIndex, GraphsMap, NodeIndex, RootName,
 };
 use std::{fmt::Debug, fmt::Display, hash::Hash};
 
@@ -43,7 +46,7 @@ impl Hash for RootLoc {
     }
 }
 
-#[derive(PartialEq, Eq, Debug, Clone, Hash)]
+#[derive(Debug, Clone)]
 pub enum Location {
     Temp,
     Root(RootLoc),
@@ -80,6 +83,80 @@ impl Location {
         match &self {
             Location::ObjectField(l) => Some(l),
             _ => None,
+        }
+    }
+
+    fn get_node_id(&self, graphs_map: &GraphsMap) -> Option<(GraphIndex, NodeIndex)> {
+        match self {
+            Location::Root(l) => Some(
+                graphs_map
+                    .get_root(&l.root)
+                    .map(|r| (r.graph, r.node))
+                    .unwrap(),
+            ),
+            Location::ObjectField(l) => Some(
+                graphs_map
+                    .get(&l.graph)
+                    .and_then(|g| g.get_neighbor_id(&l.node, &l.field))
+                    .unwrap_or((l.graph, l.node)),
+            ),
+            Location::Temp => None,
+        }
+    }
+}
+
+impl Location {
+    fn eq(
+        &self,
+        self_graphs_map: &GraphsMap,
+        other: &Self,
+        other_graphs_map: &GraphsMap,
+        is_primitive: bool,
+    ) -> bool {
+        if self.is_temp() || other.is_temp() {
+            return self.is_temp() == other.is_temp();
+        }
+
+        if is_primitive {
+            match (self, other) {
+                (Location::Root(self_root_loc), Location::Root(other_root_loc)) => {
+                    return self_root_loc.root == other_root_loc.root;
+                }
+                (
+                    Location::ObjectField(self_object_field_loc),
+                    Location::ObjectField(other_object_field_loc),
+                ) => {
+                    if self_object_field_loc.field != other_object_field_loc.field {
+                        return false;
+                    }
+                }
+                _ => return false,
+            };
+        }
+
+        if self.var() == other.var() {
+            return true;
+        }
+
+        let self_node = self.get_node_id(self_graphs_map).unwrap();
+        let other_node = other.get_node_id(other_graphs_map).unwrap();
+
+        let mut equal_nodes = NodeMatcherMap::new();
+        equal_nodes.insert(self_node, other_node);
+        return graph_equality::equal_graphs_by_root_names_with_map(
+            self_graphs_map,
+            other_graphs_map,
+            self_graphs_map.common_roots(&other_graphs_map),
+            &mut equal_nodes,
+        );
+    }
+}
+
+impl Hash for Location {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        match self {
+            Location::Temp => state.write_u8(0),
+            _ => state.write_u8(1),
         }
     }
 }
@@ -155,6 +232,12 @@ impl GraphMapWrap<Self> for LocValue {
 impl GraphMapEq for LocValue {
     fn eq(&self, self_graphs_map: &GraphsMap, other: &Self, other_graphs_map: &GraphsMap) -> bool {
         self.val.wrap(self_graphs_map) == other.val.wrap(other_graphs_map)
+            && self.loc.eq(
+                self_graphs_map,
+                &other.loc,
+                other_graphs_map,
+                self.val.is_primitive(),
+            )
     }
 }
 

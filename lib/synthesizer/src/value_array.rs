@@ -96,6 +96,7 @@ impl<'a> Hash for WrappedValueArray<'a> {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         for (val, ctx) in izip!(self.value_arr.iter(), self.ctx_arr.iter(),) {
             val.wrap(&ctx.graphs_map).hash(state);
+            val.loc().hash(state);
         }
     }
 }

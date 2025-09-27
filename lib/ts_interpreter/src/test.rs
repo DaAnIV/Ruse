@@ -176,18 +176,14 @@ mod ts_simple_opcodes_tests {
             x_val.val().wrap(&ctx.graphs_map),
             vnum!(Number::from(7u64)).wrap(&ctx.graphs_map)
         );
-        assert_eq!(
+        assert!(matches!(
             x_val.loc(),
-            &Location::Root(RootLoc {
-                root: id.name.clone(),
-                attrs: Attributes::default()
-            })
-        );
+            Location::Root(x) if x.root == id.name.clone()));
         assert_eq!(
             out.val().wrap(&update_out_ctx.graphs_map),
             vnum!(Number::from(8u64)).wrap(&update_out_ctx.graphs_map)
         );
-        assert_eq!(out.loc(), &Location::Temp);
+        assert!(matches!(out.loc(), Location::Temp));
         assert_eq!(
             update_out_ctx
                 .get_var_loc_value(&id.name, syn_ctx.variables())
@@ -233,18 +229,14 @@ mod ts_simple_opcodes_tests {
             x_val.val().wrap(&ctx.graphs_map),
             vnum!(Number::from(7u64)).wrap(&ctx.graphs_map)
         );
-        assert_eq!(
+        assert!(matches!(
             x_val.loc(),
-            &Location::Root(RootLoc {
-                root: id.name.clone(),
-                attrs: Attributes::default()
-            })
-        );
+            Location::Root(x) if x.root == id.name.clone()));
         assert_eq!(
             out.val().wrap(&update_out_ctx.graphs_map),
             vnum!(Number::from(7u64)).wrap(&update_out_ctx.graphs_map)
         );
-        assert_eq!(out.loc(), &Location::Temp);
+        assert!(matches!(out.loc(), Location::Temp));
         assert_eq!(
             update_out_ctx
                 .get_var_loc_value(&id.name, syn_ctx.variables())
@@ -310,7 +302,7 @@ mod ts_simple_opcodes_tests {
             vnum!(Number::from(1)).wrap(&update_out_ctx.graphs_map)
         );
 
-        assert_eq!(out.loc(), &Location::Temp);
+        assert!(matches!(out.loc(), Location::Temp));
         assert_eq!(
             out.val().wrap(&update_out_ctx.graphs_map),
             vnum!(Number::from(1u64)).wrap(&update_out_ctx.graphs_map)

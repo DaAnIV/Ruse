@@ -160,6 +160,15 @@ impl GraphsMap {
             node.attributes.readonly = true;
         }
     }
+
+    pub(crate) fn common_roots<'a>(
+        &'a self,
+        other_graphs_map: &'a GraphsMap,
+    ) -> impl Iterator<Item = &'a RootName> {
+        self.roots
+            .keys()
+            .filter(|root| other_graphs_map.roots.contains_key(*root))
+    }
 }
 
 impl GraphsMap {
