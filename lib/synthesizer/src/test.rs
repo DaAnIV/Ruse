@@ -582,7 +582,7 @@ mod bank_iterator_tests {
         iterator::multi_programs_map_product::{
             multi_programs_map_product, ProgramChildrenIterator,
         },
-        iterator::prog_triple_iterator::prog_triple_iterator,
+        iterator::seq_triple_iterator::seq_triple_iterator,
         pure,
         test::helpers::*,
     };
@@ -619,7 +619,7 @@ mod bank_iterator_tests {
             children_iterator.take(take_count);
         }
 
-        let mut iter = prog_triple_iterator(children_iterator);
+        let mut iter = seq_triple_iterator(children_iterator);
         while let Some(triple) = iter.next().await {
             all_children.insert(all_children.len(), triple.children);
         }
@@ -686,7 +686,7 @@ mod bank_iterator_tests {
         let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default());
         let mut bank = TestBank::default();
         add_iteration(&mut bank, 2, &syn_ctx).await;
-        let mut iter = prog_triple_iterator(
+        let mut iter = seq_triple_iterator(
             multi_programs_map_product(
                 &bank,
                 [(0, ValueType::Number), (0, ValueType::Number)].into_iter(),
@@ -724,7 +724,7 @@ mod bank_iterator_tests {
             }
 
             let mut count = 0;
-            let mut triple_iter = prog_triple_iterator(children_iter);
+            let mut triple_iter = seq_triple_iterator(children_iter);
             while let Some(triple) = triple_iter.next().await {
                 count += 1;
                 println!(
@@ -764,7 +764,7 @@ mod bank_iterator_tests {
             }
 
             let mut count = 0;
-            let mut triple_iter = prog_triple_iterator(children_iter);
+            let mut triple_iter = seq_triple_iterator(children_iter);
             while let Some(triple) = triple_iter.next().await {
                 count += 1;
                 println!(
@@ -802,7 +802,7 @@ mod bank_iterator_tests {
         children_iter.take(3);
 
         let mut count = 0;
-        let mut triple_iter = prog_triple_iterator(children_iter);
+        let mut triple_iter = seq_triple_iterator(children_iter);
         while let Some(triple) = triple_iter.next().await {
             count += 1;
             println!(

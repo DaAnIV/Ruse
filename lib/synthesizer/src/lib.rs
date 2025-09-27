@@ -5,7 +5,6 @@ pub mod embedding;
 mod iterator;
 pub mod opcode;
 pub mod prog;
-mod prog_triple;
 pub mod synthesizer;
 pub mod value_array;
 

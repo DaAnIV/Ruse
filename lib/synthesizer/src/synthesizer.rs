@@ -4,12 +4,12 @@ use crate::{
         ContextArray, SynthesizerContext, SynthesizerContextJsonDisplay, SynthesizerWorkerContext,
         VariableName,
     },
+    iterator::seq_triple::SeqTriple,
     iterator::bank_iterator::{bank_iterator, BankIterator},
     iterator::multi_programs_map_product::ProgramChildrenIterator,
-    iterator::prog_triple_iterator::{prog_triple_iterator, ProgTripleIterator},
+    iterator::seq_triple_iterator::{seq_triple_iterator, SeqTripleIterator},
     opcode::*,
     prog::SubProgram,
-    prog_triple::ProgTriple,
     trace_context_array, trace_prog,
 };
 use dashmap::DashSet;
@@ -346,7 +346,7 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
 
     async fn composite_iter_batch(
         &self,
-        triple: &ProgTriple,
+        triple: &SeqTriple,
         ops: &OpcodesList,
         worker_ctx: &mut SynthesizerWorkerContext,
         current_batch_map: &mut <P::IterationBuilderType as BankIterationBuilder>::BatchBuilderType,
@@ -384,7 +384,7 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
         &'a self,
         i: usize,
         arg_types: &'a [ValueType],
-    ) -> ProgTripleIterator<BankIterator<'a, P>> {
+    ) -> SeqTripleIterator<BankIterator<'a, P>> {
         let mut children_iterator = bank_iterator(&self.bank, arg_types).await;
         let total_size = children_iterator.remaining();
         let skip = (total_size / self.worker_count) * i;
@@ -396,7 +396,7 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
         children_iterator.skip(skip).await;
         children_iterator.take(take);
 
-        prog_triple_iterator(children_iterator)
+        seq_triple_iterator(children_iterator)
     }
 
     async fn composite_iteration_worker(
@@ -541,7 +541,7 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
     fn get_program_from_composite_opcode(
         &self,
         op: Arc<dyn ExprOpcode>,
-        triple: &ProgTriple,
+        triple: &SeqTriple,
         worker_ctx: &mut SynthesizerWorkerContext,
     ) -> Option<Arc<SubProgram>> {
         debug_assert!(!op.arg_types().is_empty());
@@ -667,7 +667,7 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
             let children_iterator = bank_iterator(&self.bank, arg_types).await;
             assert_eq!(programs_count, children_iterator.remaining());
 
-            let mut triple_iterator = prog_triple_iterator(children_iterator);
+            let mut triple_iterator = seq_triple_iterator(children_iterator);
             let started_with_embedding = Instant::now();
             while let Some(_) = triple_iterator.next().await {
                 embedded_programs_count += 1;
