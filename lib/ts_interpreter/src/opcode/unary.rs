@@ -2,7 +2,7 @@ use ruse_object_graph::{location::*, value::*, *};
 use ruse_object_graph::{Number, PrimitiveValue};
 use ruse_synthesizer::dirty;
 use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};
-use ruse_synthesizer::{context::*, pure};
+use ruse_synthesizer::{context::*, pure, synthesizer_context::*};
 
 use swc_common::DUMMY_SP;
 use swc_ecma_ast as ast;
@@ -149,7 +149,7 @@ impl ExprOpcode for UpdateOp {
         };
 
         let mut loc = args[0].loc().clone();
-        if !post_ctx.update_value(&res.clone(), &mut loc, syn_ctx) {
+        if !post_ctx.update_value(&res.clone(), &mut loc, syn_ctx.variables()) {
             return Err(());
         }
 

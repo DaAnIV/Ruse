@@ -4,7 +4,7 @@ use ruse_object_graph::location::*;
 use ruse_object_graph::{field_name, vnum, vobj, vstr, Number, PrimitiveValue};
 use ruse_object_graph::{value::Value, ValueType};
 use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};
-use ruse_synthesizer::{context::*, dirty, pure};
+use ruse_synthesizer::{context::*, dirty, pure, synthesizer_context::*};
 use std::cmp::min;
 
 use swc_common::DUMMY_SP;

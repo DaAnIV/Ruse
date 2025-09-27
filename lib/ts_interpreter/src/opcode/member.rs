@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use ruse_object_graph::{location::*, ClassName, FieldName, ObjectGraph, ValueType};
-use ruse_synthesizer::context::*;
 use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};
+use ruse_synthesizer::{context::*, synthesizer_context::*};
 
 use ruse_synthesizer::pure;
 use swc_common::DUMMY_SP;

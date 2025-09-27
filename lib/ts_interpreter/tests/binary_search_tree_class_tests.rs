@@ -10,8 +10,9 @@ use ruse_object_graph::{
     vnull, vnum, ClassName, GraphsMap, Number,
 };
 use ruse_synthesizer::{
-    context::{Context, ContextArray, GraphIdGenerator, SynthesizerContext},
+    context::{Context, ContextArray, GraphIdGenerator},
     op_chain,
+    synthesizer_context::SynthesizerContext,
     test::helpers::evaluate_chain,
 };
 use ruse_task_parser::predicate_builder::{JsPredicate, PredicateBuilder};

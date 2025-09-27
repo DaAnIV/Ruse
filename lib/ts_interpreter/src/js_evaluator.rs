@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use boa_engine::JsResult;
 use ruse_object_graph::value::Value;
-use ruse_synthesizer::context::{Context, SynthesizerContext, SynthesizerWorkerContext};
+use ruse_synthesizer::{context::Context, synthesizer_context::*};
 
 use crate::{
     engine_context::EngineContext,

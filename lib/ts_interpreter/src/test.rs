@@ -54,13 +54,14 @@ pub mod ts_op_helpers {
 mod ts_simple_opcodes_tests {
     use std::sync::Arc;
 
-    use context::{Context, ContextArray, GraphIdGenerator, SynthesizerContext};
+    use context::{Context, ContextArray, GraphIdGenerator};
     use graph_map_value::GraphMapWrap;
     use ruse_object_graph::location::{Location, RootLoc};
     use ruse_object_graph::*;
     use ruse_synthesizer::opcode::ExprOpcode;
     use ruse_synthesizer::test::helpers::generate_context_from_array;
     use swc_ecma_ast as ast;
+    use synthesizer_context::SynthesizerContext;
 
     use crate::js_worker_context::create_js_worker_context;
     use crate::opcode::*;
@@ -165,7 +166,7 @@ mod ts_simple_opcodes_tests {
             )
             .unwrap();
         assert_eq!(
-            ctx.get_var_loc_value(&id.name, &syn_ctx)
+            ctx.get_var_loc_value(&id.name, syn_ctx.variables())
                 .expect("Didn't find var")
                 .val()
                 .wrap(&ctx.graphs_map),
@@ -189,7 +190,7 @@ mod ts_simple_opcodes_tests {
         assert_eq!(out.loc(), &Location::Temp);
         assert_eq!(
             update_out_ctx
-                .get_var_loc_value(&id.name, &syn_ctx)
+                .get_var_loc_value(&id.name, syn_ctx.variables())
                 .expect("Didn't find var")
                 .val()
                 .wrap(&update_out_ctx.graphs_map),
@@ -222,7 +223,7 @@ mod ts_simple_opcodes_tests {
             .eval(&[&x_val], &mut update_out_ctx, &syn_ctx, &mut worker_ctx)
             .unwrap();
         assert_eq!(
-            ctx.get_var_loc_value(&id.name, &syn_ctx)
+            ctx.get_var_loc_value(&id.name, syn_ctx.variables())
                 .expect("Didn't find var")
                 .val()
                 .wrap(&ctx.graphs_map),
@@ -246,7 +247,7 @@ mod ts_simple_opcodes_tests {
         assert_eq!(out.loc(), &Location::Temp);
         assert_eq!(
             update_out_ctx
-                .get_var_loc_value(&id.name, &syn_ctx)
+                .get_var_loc_value(&id.name, syn_ctx.variables())
                 .expect("Didn't find var")
                 .val()
                 .wrap(&update_out_ctx.graphs_map),
@@ -282,14 +283,14 @@ mod ts_simple_opcodes_tests {
             .unwrap();
 
         let orig_array = ctx
-            .get_var_loc_value(&id.name, &syn_ctx)
+            .get_var_loc_value(&id.name, syn_ctx.variables())
             .expect("Didn't find var")
             .val()
             .obj()
             .unwrap()
             .clone();
         let updated_array = update_out_ctx
-            .get_var_loc_value(&id.name, &syn_ctx)
+            .get_var_loc_value(&id.name, syn_ctx.variables())
             .expect("Didn't find var")
             .val()
             .obj()
@@ -352,14 +353,14 @@ mod ts_simple_opcodes_tests {
             .unwrap();
 
         let orig_array = ctx
-            .get_var_loc_value(&id.name, &syn_ctx)
+            .get_var_loc_value(&id.name, syn_ctx.variables())
             .expect("Didn't find var")
             .val()
             .obj()
             .unwrap()
             .clone();
         let updated_array = update_out_ctx
-            .get_var_loc_value(&id.name, &syn_ctx)
+            .get_var_loc_value(&id.name, syn_ctx.variables())
             .expect("Didn't find var")
             .val()
             .obj()
@@ -437,14 +438,14 @@ mod ts_simple_opcodes_tests {
             .unwrap();
 
         let orig_array = ctx
-            .get_var_loc_value(&id.name, &syn_ctx)
+            .get_var_loc_value(&id.name, syn_ctx.variables())
             .expect("Didn't find var")
             .val()
             .obj()
             .unwrap()
             .clone();
         let updated_array = update_out_ctx
-            .get_var_loc_value(&id.name, &syn_ctx)
+            .get_var_loc_value(&id.name, syn_ctx.variables())
             .expect("Didn't find var")
             .val()
             .obj()
@@ -485,9 +486,8 @@ mod ts_class_tests {
     use boa_engine::{js_string, property::Attribute};
     use graph_map_value::GraphMapWrap;
     use ruse_object_graph::{value::*, *};
-    use ruse_synthesizer::context::{
-        Context, ContextArray, GraphIdGenerator, SynthesizerContext, ValuesMap,
-    };
+    use ruse_synthesizer::context::{Context, ContextArray, GraphIdGenerator, ValuesMap};
+    use ruse_synthesizer::synthesizer_context::SynthesizerContext;
     use ruse_synthesizer::test::helpers::{get_composite_prog, get_init_prog};
 
     use crate::engine_context::EngineContext;
@@ -804,7 +804,7 @@ mod ts_class_tests {
         let mut engine_ctx = EngineContext::create_engine_ctx(classes_ref);
         engine_ctx.reset_with_mut_context(&mut ctx, classes_ref);
 
-        ctx.get_var_loc_value(&root_name!("u"), &syn_ctx)
+        ctx.get_var_loc_value(&root_name!("u"), syn_ctx.variables())
             .unwrap()
             .val()
             .try_into_js(&mut engine_ctx)
@@ -820,7 +820,9 @@ mod ts_class_tests {
         let js_code = boa_engine::Source::from_bytes("u.name = \"abc\"");
         let _res = engine_ctx.eval(js_code).unwrap();
 
-        let user_after = ctx.get_var_loc_value(&root_name!("u"), &syn_ctx).unwrap();
+        let user_after = ctx
+            .get_var_loc_value(&root_name!("u"), syn_ctx.variables())
+            .unwrap();
         let user_name_after = user_after
             .val()
             .obj()
@@ -915,7 +917,7 @@ mod ts_class_tests {
         );
         println!("{}\n", test_prog);
         let user_after = test_prog.post_ctx()[0]
-            .get_var_loc_value(&root_name!("user"), &syn_ctx)
+            .get_var_loc_value(&root_name!("user"), syn_ctx.variables())
             .unwrap();
         let user_name_after = user_after
             .val()
@@ -1103,9 +1105,10 @@ mod specific_bugs_tests {
         graph_map_value::GraphMapWrap, root_name, vnum, vstr, GraphsMap, Number, ValueType,
     };
     use ruse_synthesizer::{
-        context::{Context, ContextArray, GraphIdGenerator, SynthesizerContext, ValuesMap},
+        context::{Context, ContextArray, GraphIdGenerator, ValuesMap},
         embedding::merge_context_arrays,
         op_chain,
+        synthesizer_context::SynthesizerContext,
         test::helpers::{evaluate_chain, get_composite_prog, get_init_prog},
     };
 
@@ -1207,10 +1210,10 @@ mod specific_bugs_tests {
             [8, 7, 9].iter().map(|s| vnum!(Number::from(*s))),
         );
         let final_arr = progs["final"].post_ctx()[0]
-            .get_var_loc_value(&root_name!("arr"), &syn_ctx)
+            .get_var_loc_value(&root_name!("arr"), syn_ctx.variables())
             .unwrap();
         let expected_arr = expected_ctx
-            .get_var_loc_value(&root_name!("arr"), &syn_ctx)
+            .get_var_loc_value(&root_name!("arr"), syn_ctx.variables())
             .unwrap();
 
         println!(
@@ -1279,10 +1282,10 @@ mod specific_bugs_tests {
             [8, 7, 9].iter().map(|s| vnum!(Number::from(*s))),
         );
         let final_arr = progs["final"].post_ctx()[0]
-            .get_var_loc_value(&root_name!("arr"), &syn_ctx)
+            .get_var_loc_value(&root_name!("arr"), syn_ctx.variables())
             .unwrap();
         let expected_arr = expected_ctx
-            .get_var_loc_value(&root_name!("arr"), &syn_ctx)
+            .get_var_loc_value(&root_name!("arr"), syn_ctx.variables())
             .unwrap();
 
         assert_eq!(

@@ -7,5 +7,6 @@ pub mod opcode;
 pub mod prog;
 pub mod synthesizer;
 pub mod value_array;
+pub mod synthesizer_context;
 
 pub mod test;

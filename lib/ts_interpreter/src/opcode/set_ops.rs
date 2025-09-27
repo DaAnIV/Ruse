@@ -3,7 +3,7 @@ use ruse_object_graph::location::*;
 use ruse_object_graph::{field_name, ValueType};
 use ruse_object_graph::{vbool, vnum};
 use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};
-use ruse_synthesizer::{context::*, dirty, pure};
+use ruse_synthesizer::{context::*, dirty, pure, synthesizer_context::*};
 
 use crate::opcode::{member_call_ast, member_expr, TsExprAst};
 

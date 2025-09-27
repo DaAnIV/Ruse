@@ -1,7 +1,7 @@
 use ruse_object_graph::{location::*, value::*, *};
-use ruse_synthesizer::context::*;
 use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};
 use ruse_synthesizer::pure;
+use ruse_synthesizer::{context::*, synthesizer_context::*};
 
 use crate::dom;
 use crate::opcode::member_call_ast;

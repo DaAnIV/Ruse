@@ -21,15 +21,13 @@ pub mod helpers {
 
     use crate::{
         bank::*,
-        context::{
-            Context, ContextArray, GraphIdGenerator, SynthesizerContext, SynthesizerWorkerContext,
-            ValuesMap, VariableName,
-        },
+        context::{Context, ContextArray, GraphIdGenerator, ValuesMap, VariableName},
         dirty,
         embedding::merge_context_arrays,
         opcode::{EvalResult, ExprAst, ExprOpcode},
         prog::SubProgram,
         pure,
+        synthesizer_context::{SynthesizerContext, SynthesizerWorkerContext},
     };
     use tracing::level_filters::LevelFilter;
     use tracing_subscriber::{filter::Targets, prelude::*};
@@ -111,7 +109,7 @@ pub mod helpers {
             syn_ctx: &SynthesizerContext,
             _: &mut SynthesizerWorkerContext,
         ) -> EvalResult {
-            if let Some(var) = post_ctx.get_var_loc_value(&self.id, syn_ctx) {
+            if let Some(var) = post_ctx.get_var_loc_value(&self.id, syn_ctx.variables()) {
                 pure!(var)
             } else {
                 Err(())
@@ -208,7 +206,7 @@ pub mod helpers {
                 root: self.id.clone(),
                 attrs: Default::default(),
             });
-            post_ctx.update_value(&self.new_value, &mut loc, syn_ctx);
+            post_ctx.update_value(&self.new_value, &mut loc, syn_ctx.variables());
             self.returns.clone()
         }
 
@@ -577,13 +575,14 @@ mod bank_iterator_tests {
     use crate::{
         bank::*,
         bank_hasher::BankHasherBuilder,
-        context::{EmptySynthesizerData, GraphIdGenerator, SynthesizerWorkerContext},
+        context::GraphIdGenerator,
         iterator::bank_iterator::bank_iterator,
         iterator::multi_programs_map_product::{
             multi_programs_map_product, ProgramChildrenIterator,
         },
         iterator::seq_triple_iterator::seq_triple_iterator,
         pure,
+        synthesizer_context::{EmptySynthesizerData, SynthesizerWorkerContext},
         test::helpers::*,
     };
     use std::sync::Arc;
@@ -597,10 +596,8 @@ mod bank_iterator_tests {
     };
 
     use crate::{
-        bank::ProgBank,
-        context::{ContextArray, SynthesizerContext},
-        opcode::ExprOpcode,
-        prog::SubProgram,
+        bank::ProgBank, context::ContextArray, opcode::ExprOpcode, prog::SubProgram,
+        synthesizer_context::SynthesizerContext,
     };
 
     async fn run_gatherer(
@@ -1187,8 +1184,9 @@ mod embedding_tests {
     };
 
     use crate::{
-        context::{Context, ContextArray, GraphIdGenerator, SynthesizerContext},
+        context::{Context, ContextArray, GraphIdGenerator},
         embedding::merge_context,
+        synthesizer_context::SynthesizerContext,
     };
 
     #[test]
@@ -1257,19 +1255,23 @@ mod embedding_tests {
         assert!(post_merged_ctx.variable_names().contains(&root_name!("x")));
         assert!(post_merged_ctx.variable_names().contains(&root_name!("y")));
 
-        let x = x_ctx.get_var_loc_value(&root_name!("x"), &syn_ctx).unwrap();
-        let y = y_ctx.get_var_loc_value(&root_name!("y"), &syn_ctx).unwrap();
+        let x = x_ctx
+            .get_var_loc_value(&root_name!("x"), syn_ctx.variables())
+            .unwrap();
+        let y = y_ctx
+            .get_var_loc_value(&root_name!("y"), syn_ctx.variables())
+            .unwrap();
         let merged_pre_x = pre_merged_ctx
-            .get_var_loc_value(&root_name!("x"), &syn_ctx)
+            .get_var_loc_value(&root_name!("x"), syn_ctx.variables())
             .unwrap();
         let merged_pre_y = pre_merged_ctx
-            .get_var_loc_value(&root_name!("y"), &syn_ctx)
+            .get_var_loc_value(&root_name!("y"), syn_ctx.variables())
             .unwrap();
         let merged_post_x = post_merged_ctx
-            .get_var_loc_value(&root_name!("x"), &syn_ctx)
+            .get_var_loc_value(&root_name!("x"), syn_ctx.variables())
             .unwrap();
         let merged_post_y = post_merged_ctx
-            .get_var_loc_value(&root_name!("y"), &syn_ctx)
+            .get_var_loc_value(&root_name!("y"), syn_ctx.variables())
             .unwrap();
 
         assert_eq!(
@@ -1365,19 +1367,23 @@ mod embedding_tests {
         assert!(post_merged_ctx.variable_names().contains(&root_name!("x")));
         assert!(post_merged_ctx.variable_names().contains(&root_name!("y")));
 
-        let x = x_ctx.get_var_loc_value(&root_name!("x"), &syn_ctx).unwrap();
-        let y = y_ctx.get_var_loc_value(&root_name!("y"), &syn_ctx).unwrap();
+        let x = x_ctx
+            .get_var_loc_value(&root_name!("x"), syn_ctx.variables())
+            .unwrap();
+        let y = y_ctx
+            .get_var_loc_value(&root_name!("y"), syn_ctx.variables())
+            .unwrap();
         let merged_pre_x = pre_merged_ctx
-            .get_var_loc_value(&root_name!("x"), &syn_ctx)
+            .get_var_loc_value(&root_name!("x"), syn_ctx.variables())
             .unwrap();
         let merged_pre_y = pre_merged_ctx
-            .get_var_loc_value(&root_name!("y"), &syn_ctx)
+            .get_var_loc_value(&root_name!("y"), syn_ctx.variables())
             .unwrap();
         let merged_post_x = post_merged_ctx
-            .get_var_loc_value(&root_name!("x"), &syn_ctx)
+            .get_var_loc_value(&root_name!("x"), syn_ctx.variables())
             .unwrap();
         let merged_post_y = post_merged_ctx
-            .get_var_loc_value(&root_name!("y"), &syn_ctx)
+            .get_var_loc_value(&root_name!("y"), syn_ctx.variables())
             .unwrap();
 
         assert_eq!(
@@ -1407,11 +1413,10 @@ mod prog_tests {
     use std::sync::Arc;
 
     use crate::{
-        context::{
-            Context, ContextArray, GraphIdGenerator, SynthesizerContext, SynthesizerWorkerContext,
-        },
+        context::{Context, ContextArray, GraphIdGenerator},
         dirty,
         prog::SubProgram,
+        synthesizer_context::{SynthesizerContext, SynthesizerWorkerContext},
         test::helpers::*,
     };
     use ruse_object_graph::{root_name, vnum, GraphsMap, Number};

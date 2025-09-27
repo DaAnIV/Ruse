@@ -5,9 +5,10 @@ use ruse_object_graph::{
     class_name, root_name, value::Value, vnull, vnum, ClassName, GraphsMap, Number,
 };
 use ruse_synthesizer::{
-    context::{Context, ContextArray, GraphIdGenerator, SynthesizerContext, ValuesMap},
+    context::{Context, ContextArray, GraphIdGenerator, ValuesMap},
     embedding::merge_context_arrays,
     op_chain,
+    synthesizer_context::SynthesizerContext,
     test::helpers::{evaluate_chain, init_log},
 };
 use ruse_ts_interpreter::{

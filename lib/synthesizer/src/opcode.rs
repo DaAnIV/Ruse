@@ -4,7 +4,8 @@ use std::ops::{self, Deref};
 use std::sync::Arc;
 use std::{any::Any, fmt::Debug};
 
-use crate::context::{Context, SynthesizerContext, SynthesizerWorkerContext, VariableName};
+use crate::context::{Context, VariableName};
+use crate::synthesizer_context::*;
 
 use itertools::Itertools;
 use ruse_object_graph::{location::LocValue, ValueType};

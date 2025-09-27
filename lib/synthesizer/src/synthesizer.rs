@@ -1,15 +1,15 @@
 use crate::{
     bank::*,
-    context::{
-        ContextArray, SynthesizerContext, SynthesizerContextJsonDisplay, SynthesizerWorkerContext,
-        VariableName,
-    },
-    iterator::seq_triple::SeqTriple,
+    context::{ContextArray, VariableName},
     iterator::bank_iterator::{bank_iterator, BankIterator},
     iterator::multi_programs_map_product::ProgramChildrenIterator,
+    iterator::seq_triple::SeqTriple,
     iterator::seq_triple_iterator::{seq_triple_iterator, SeqTripleIterator},
     opcode::*,
     prog::SubProgram,
+    synthesizer_context::{
+        SynthesizerContext, SynthesizerContextJsonDisplay, SynthesizerWorkerContext,
+    },
     trace_context_array, trace_prog,
 };
 use dashmap::DashSet;

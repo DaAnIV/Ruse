@@ -8,7 +8,8 @@ mod tests {
         vnum, vstr, GraphsMap, ValueType,
     };
     use ruse_prog_bank_in_mem::subsumption_bank::SubsumptionProgBank;
-    use ruse_synthesizer::context::{Context, ContextArray, GraphIdGenerator, SynthesizerContext};
+    use ruse_synthesizer::context::{Context, ContextArray, GraphIdGenerator};
+    use ruse_synthesizer::synthesizer_context::SynthesizerContext;
     use ruse_ts_interpreter::ts_classes::TsClassesBuilder;
     use swc_ecma_ast as ast;
 
