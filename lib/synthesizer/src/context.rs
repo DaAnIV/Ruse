@@ -633,10 +633,17 @@ impl Context {
     }
 }
 
+#[derive(PartialEq, Eq)]
+pub enum ContextSubsetResult {
+    Subset,
+    Equal,
+    NotSubset,
+}
+
 impl Context {
-    pub fn subset(&self, other: &Self) -> bool {
+    pub fn subset(&self, other: &Self) -> ContextSubsetResult {
         if !self.variable_names().all(|v| other.values.contains_key(v)) {
-            return false;
+            return ContextSubsetResult::NotSubset;
         }
 
         let mut self_object_nodes = vec![];
@@ -650,7 +657,7 @@ impl Context {
                     Value::Primitive(other_primitive_value),
                 ) => {
                     if self_primitive_value != other_primitive_value {
-                        return false;
+                        return ContextSubsetResult::NotSubset;
                     }
                 }
                 (Value::Object(self_object_value), Value::Object(other_object_value)) => {
@@ -658,17 +665,26 @@ impl Context {
                     other_object_nodes.push((other_object_value.graph_id, other_object_value.node));
                 }
                 (_, _) => {
-                    return false;
+                    return ContextSubsetResult::NotSubset;
                 }
             }
         }
 
-        equal_graphs_by_nodes(
+        match equal_graphs_by_nodes(
             &self.graphs_map,
             &other.graphs_map,
             self_object_nodes,
             other_object_nodes,
-        )
+        ) {
+            true => {
+                if self.values.len() == other.values.len() {
+                    return ContextSubsetResult::Equal;
+                } else {
+                    return ContextSubsetResult::Subset;
+                }
+            },
+            false => ContextSubsetResult::NotSubset,
+        }
     }
 }
 
@@ -940,11 +956,20 @@ impl ContextArray {
         self.inner.iter_mut()
     }
 
-    pub fn subset(&self, other: &ContextArray) -> bool {
-        self.inner
+    pub fn subset(&self, other: &ContextArray) -> ContextSubsetResult {
+        if self.inner
             .iter()
             .zip_eq(other.inner.iter())
-            .all(|(self_ctx, other_ctx)| self_ctx.subset(other_ctx))
+            .any(|(self_ctx, other_ctx)| self_ctx.subset(other_ctx) == ContextSubsetResult::NotSubset)
+        {
+            return ContextSubsetResult::NotSubset;
+        }
+
+        if self.first().values.len() == other.first().values.len() {
+            return ContextSubsetResult::Equal;
+        }
+
+        return ContextSubsetResult::Subset;
     }
 
     pub fn get_partial_context<'a, I>(
@@ -972,9 +997,8 @@ impl ContextArray {
     }
 
     pub fn get_variables(&self) -> Arc<BTreeMap<VariableName, Variable>> {
-        let first = self.inner.first().unwrap();
         let mut all_vars = BTreeMap::<VariableName, Variable>::default();
-        for (name, val) in first.values.iter() {
+        for (name, val) in self.first().values.iter() {
             all_vars.insert(
                 name.clone(),
                 Variable {
@@ -992,6 +1016,10 @@ impl ContextArray {
         for (cur, other) in self.inner.iter_mut().zip(other.iter()) {
             cur.extend_graphs_map(other);
         }
+    }
+
+    fn first(&self) -> &Box<Context> {
+        self.inner.first().unwrap()
     }
 
     pub fn get(&self, index: usize) -> Option<&Box<Context>> {

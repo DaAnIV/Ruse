@@ -8,7 +8,10 @@ use itertools::Either;
 use ruse_object_graph::ValueType;
 
 use ruse_synthesizer::{
-    bank::*, bank_hasher::BankHasherBuilder, context::ContextArray, prog::SubProgram,
+    bank::*,
+    bank_hasher::BankHasherBuilder,
+    context::{ContextArray, ContextSubsetResult},
+    prog::SubProgram,
     value_array::ValueArray,
 };
 
@@ -54,6 +57,14 @@ impl PartialEq for ProgOutput {
     }
 }
 
+fn subsumption_partial_cmp(a: &SubProgram, b: &SubProgram) -> Option<std::cmp::Ordering> {
+    match a.pre_ctx().subset(b.pre_ctx()) {
+        ContextSubsetResult::Subset => Some(std::cmp::Ordering::Less),
+        ContextSubsetResult::Equal => Some(a.size().cmp(&b.size())),
+        ContextSubsetResult::NotSubset => None,
+    }
+}
+
 impl Hash for ProgOutput {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.out_type().hash(state);
@@ -68,12 +79,6 @@ pub struct SubsumptionProgramsMap {
     set: Vec<HashSet<Arc<SubProgram>, BankHasherBuilder>>,
 }
 
-enum MinmalProgResult<'a> {
-    LargerProg(&'a mut Arc<SubProgram>),
-    SmallerProg,
-    NonComparable,
-}
-
 impl SubsumptionProgramsMap {
     pub fn new_with_hasher(hash_builder: BankHasherBuilder) -> Self {
         Self {
@@ -82,54 +87,62 @@ impl SubsumptionProgramsMap {
         }
     }
 
-    fn find_minmal<'a>(
+    fn get_set_for_prog(
+        &mut self,
         p: &Arc<SubProgram>,
-        existing_progs: &'a mut Vec<Arc<SubProgram>>,
-    ) -> MinmalProgResult<'a> {
-        for ep in existing_progs {
-            if ep.pre_ctx() == p.pre_ctx() {
-                if p.size() < ep.size() {
-                    return MinmalProgResult::LargerProg(ep);
-                } else {
-                    return MinmalProgResult::SmallerProg;
-                }
-            } else if ep.pre_ctx().subset(p.pre_ctx()) {
-                return MinmalProgResult::SmallerProg;
-            }
-        }
-        return MinmalProgResult::NonComparable;
-    }
-
-    fn get_set_for_prog(&mut self, p: &Arc<SubProgram>) -> &mut HashSet<Arc<SubProgram>, BankHasherBuilder> {
+    ) -> &mut HashSet<Arc<SubProgram>, BankHasherBuilder> {
         let size = p.size() as usize;
-        self.set.resize_with(self.set.len().max(size), || HashSet::with_hasher(self.map.hasher().clone()));
+        self.set.resize_with(self.set.len().max(size), || {
+            HashSet::with_hasher(self.map.hasher().clone())
+        });
 
         &mut self.set[size - 1]
     }
 
-    fn resize_set_for_progs<'a, I>(&mut self, p: I) where I: Iterator<Item = &'a Arc<SubProgram>> {
-        let max_size = p.map(|p| p.size() as usize).max().unwrap();
-        self.set.resize_with(self.set.len().max(max_size), || HashSet::with_hasher(self.map.hasher().clone()));
-    }
-
     pub(crate) fn insert(&mut self, p: Arc<SubProgram>) -> bool {
         let output: ProgOutput = p.clone().into();
+        let mut grater_ep = None;
         match self.map.entry(output) {
             Entry::Occupied(mut existing_progs) => {
-                for ep in existing_progs.get().iter() {
-                    if ep.pre_ctx().subset(p.pre_ctx()) {
-                        return false;
+                let mut grater_ep_i = None;
+                for (i, ep) in existing_progs.get().iter().enumerate() {
+                    match subsumption_partial_cmp(ep, &p) {
+                        Some(std::cmp::Ordering::Less) => return false,
+                        Some(std::cmp::Ordering::Equal) => return false,
+                        Some(std::cmp::Ordering::Greater) => {
+                            // Same pre context, but p is smaller in AST size
+                            // So we replace the larger program with the smaller one
+                            grater_ep_i = Some(i);
+                            break;
+                        }
+                        None => (),
                     }
                 }
-                existing_progs.get_mut().push(p.clone());
+                if let Some(grater_ep_i) = grater_ep_i {
+                    grater_ep = Some(std::mem::replace(
+                        &mut existing_progs.get_mut()[grater_ep_i],
+                        p.clone(),
+                    ))
+                } else {
+                    existing_progs.get_mut().push(p.clone());
+                }
             }
             Entry::Vacant(vacant_entry) => {
                 vacant_entry.insert(vec![p.clone()]);
             }
         };
 
+        if let Some(grater_ep) = grater_ep {
+            self.get_set_for_prog(&grater_ep).remove(&grater_ep);
+        }
         self.get_set_for_prog(&p).insert(p);
         true
+    }
+
+    pub fn extend(&mut self, other: Self) {
+        for prog in other.into_iter() {
+            self.insert(prog);
+        }
     }
 
     fn contains(&self, p: &Arc<SubProgram>) -> bool {
@@ -137,7 +150,7 @@ impl SubsumptionProgramsMap {
         if let Some(progs) = self.map.get(&output) {
             progs
                 .iter()
-                .any(|other| other.pre_ctx().subset(p.pre_ctx()))
+                .any(|other| other.pre_ctx().subset(p.pre_ctx()) != ContextSubsetResult::NotSubset)
         } else {
             false
         }
@@ -151,36 +164,8 @@ impl SubsumptionProgramsMap {
         self.set.iter().flat_map(|set| set.iter())
     }
 
-    fn take_minimal_prog(&mut self, mut other: Self) {
-        for (out, progs) in other.map {
-            self.resize_set_for_progs(progs.iter());
-
-            match self.map.entry(out) {
-                Entry::Occupied(mut existing_progs) => {
-                    for p in progs {
-                        other.set[p.size() as usize - 1].remove(&p);
-                        match Self::find_minmal(&p, existing_progs.get_mut()) {
-                            MinmalProgResult::LargerProg(larger_p) => {
-                                self.set[larger_p.size() as usize - 1].remove(larger_p);
-                                *larger_p = p.clone();
-                                self.set[p.size() as usize - 1].insert(p);
-                            }
-                            MinmalProgResult::SmallerProg => (),
-                            MinmalProgResult::NonComparable => {
-                                existing_progs.get_mut().push(p.clone());
-                                self.set[p.size() as usize - 1].insert(p);
-                            }
-                        }
-                    }
-                }
-                Entry::Vacant(vacant_entry) => {
-                    for p in progs.iter().cloned() {
-                        self.set[p.size() as usize - 1].insert(p);
-                    }
-                    vacant_entry.insert(progs);
-                }
-            }
-        }
+    fn into_iter(self) -> impl Iterator<Item = Arc<SubProgram>> {
+        self.set.into_iter().flat_map(|set| set.into_iter())
     }
 }
 
@@ -242,7 +227,7 @@ impl BankIterationBuilder for SubsumptionTypeMap {
     async fn add_batch(&mut self, batch: Self::BatchBuilderType) {
         for (value_type, programs_map) in batch.maps.into_iter() {
             if let Some(cur_map) = self.maps.get_mut(&value_type) {
-                cur_map.take_minimal_prog(programs_map);
+                cur_map.extend(programs_map);
             } else {
                 self.maps.insert(value_type, programs_map);
             }

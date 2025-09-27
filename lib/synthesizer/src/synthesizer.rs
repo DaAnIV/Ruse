@@ -1,10 +1,12 @@
 use crate::{
     bank::*,
-    context::{ContextArray, VariableName},
-    iterator::bank_iterator::{bank_iterator, BankIterator},
-    iterator::multi_programs_map_product::ProgramChildrenIterator,
-    iterator::seq_triple::SeqTriple,
-    iterator::seq_triple_iterator::{seq_triple_iterator, SeqTripleIterator},
+    context::{ContextArray, ContextSubsetResult, VariableName},
+    iterator::{
+        bank_iterator::{bank_iterator, BankIterator},
+        multi_programs_map_product::ProgramChildrenIterator,
+        seq_triple::SeqTriple,
+        seq_triple_iterator::{seq_triple_iterator, SeqTripleIterator},
+    },
     opcode::*,
     prog::SubProgram,
     synthesizer_context::{
@@ -365,7 +367,7 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
                 continue;
             }
 
-            if p.pre_ctx().subset(&self.context.start_context)
+            if p.pre_ctx().subset(&self.context.start_context) != ContextSubsetResult::NotSubset
                 && (self.predicate)(&p, &self.context, worker_ctx)
             {
                 trace_prog!(tracing::Level::DEBUG, target: "ruse::synthesizer", &p, "Found");
