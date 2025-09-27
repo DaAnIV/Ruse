@@ -1,8 +1,7 @@
-use ruse_object_graph::{value::*, *};
+use ruse_object_graph::{location::*, value::*, *};
 use ruse_synthesizer::{
     context::{Context, SynthesizerContext, SynthesizerWorkerContext},
     dirty,
-    location::*,
     opcode::{EvalResult, ExprAst, ExprOpcode},
     pure,
 };

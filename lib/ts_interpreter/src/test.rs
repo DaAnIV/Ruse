@@ -56,8 +56,8 @@ mod ts_simple_opcodes_tests {
 
     use context::{Context, ContextArray, GraphIdGenerator, SynthesizerContext};
     use graph_map_value::GraphMapWrap;
+    use ruse_object_graph::location::{Location, RootLoc};
     use ruse_object_graph::*;
-    use ruse_synthesizer::location::{Location, VarLoc};
     use ruse_synthesizer::opcode::ExprOpcode;
     use ruse_synthesizer::test::helpers::generate_context_from_array;
     use swc_ecma_ast as ast;
@@ -177,8 +177,8 @@ mod ts_simple_opcodes_tests {
         );
         assert_eq!(
             x_val.loc(),
-            &Location::Var(VarLoc {
-                var: id.name.clone(),
+            &Location::Root(RootLoc {
+                root: id.name.clone(),
                 attrs: Attributes::default()
             })
         );
@@ -234,8 +234,8 @@ mod ts_simple_opcodes_tests {
         );
         assert_eq!(
             x_val.loc(),
-            &Location::Var(VarLoc {
-                var: id.name.clone(),
+            &Location::Root(RootLoc {
+                root: id.name.clone(),
                 attrs: Attributes::default()
             })
         );

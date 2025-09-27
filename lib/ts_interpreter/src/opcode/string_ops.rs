@@ -1,6 +1,5 @@
 use ruse_object_graph::Number;
-use ruse_object_graph::{value::*, *};
-use ruse_synthesizer::location::*;
+use ruse_object_graph::{location::*, value::*, *};
 use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};
 use ruse_synthesizer::{context::*, pure};
 use swc_common::DUMMY_SP;

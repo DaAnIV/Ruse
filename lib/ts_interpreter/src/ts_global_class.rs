@@ -6,12 +6,12 @@ use std::{
 use boa_engine::JsResult;
 use ruse_object_graph::{
     class_name,
+    location::LocValue,
     value::{ObjectValue, Value},
     FieldName, GraphIndex, GraphsMap, NodeIndex, ObjectGraph, ObjectType,
 };
 use ruse_synthesizer::{
     context::GraphIdGenerator,
-    location::LocValue,
     opcode::{ExprOpcode, OpcodesList},
 };
 use swc::atoms::Atom;

@@ -1,8 +1,8 @@
 use itertools::Itertools;
 use num_traits::ToPrimitive;
+use ruse_object_graph::location::*;
 use ruse_object_graph::{field_name, vnum, vobj, vstr, Number, PrimitiveValue};
 use ruse_object_graph::{value::Value, ValueType};
-use ruse_synthesizer::location::*;
 use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};
 use ruse_synthesizer::{context::*, dirty, pure};
 use std::cmp::min;

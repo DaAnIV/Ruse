@@ -2,14 +2,12 @@ use std::{collections::HashMap, fmt::Debug, sync::Arc};
 
 use boa_engine::{context::intrinsics::StandardConstructor, JsResult};
 use ruse_object_graph::{
-    class_name, field_name, fields, root_name, str_cached, vbool, vnull, vnum, vstr, Attributes,
-    ClassName, FieldName, GraphIndex, GraphsMap, NodeIndex, ObjectGraph, ObjectType,
-    PrimitiveValue, RootName, ValueType,
-};
-use ruse_synthesizer::{
-    context::GraphIdGenerator,
+    class_name, field_name, fields,
     location::{LocValue, Location, ObjectFieldLoc},
+    root_name, str_cached, vbool, vnull, vnum, vstr, Attributes, ClassName, FieldName, GraphIndex,
+    GraphsMap, NodeIndex, ObjectGraph, ObjectType, PrimitiveValue, RootName, ValueType,
 };
+use ruse_synthesizer::context::GraphIdGenerator;
 use swc_common::SourceMap;
 use swc_compiler_base::IdentCollector;
 use swc_ecma_ast::{self as ast, Ident};

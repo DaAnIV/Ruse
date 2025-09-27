@@ -6,9 +6,8 @@ use std::{any::Any, fmt::Debug};
 
 use crate::context::{Context, SynthesizerContext, SynthesizerWorkerContext, VariableName};
 
-use crate::location::LocValue;
 use itertools::Itertools;
-use ruse_object_graph::ValueType;
+use ruse_object_graph::{location::LocValue, ValueType};
 
 pub trait ExprAst: Any {
     fn to_string(&self) -> String;

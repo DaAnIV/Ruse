@@ -4,14 +4,11 @@ mod tests {
 
     use object_graph::{str_cached, Number};
     use ruse_object_graph::{
-        self as object_graph, class_name, field_name, root_name, value::Value, vnum, vstr,
-        GraphsMap, ValueType,
+        self as object_graph, class_name, field_name, location::Location, root_name, value::Value,
+        vnum, vstr, GraphsMap, ValueType,
     };
     use ruse_prog_bank_in_mem::subsumption_bank::SubsumptionProgBank;
-    use ruse_synthesizer::{
-        context::{Context, ContextArray, GraphIdGenerator, SynthesizerContext},
-        location::Location,
-    };
+    use ruse_synthesizer::context::{Context, ContextArray, GraphIdGenerator, SynthesizerContext};
     use ruse_ts_interpreter::ts_classes::TsClassesBuilder;
     use swc_ecma_ast as ast;
 

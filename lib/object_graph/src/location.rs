@@ -1,9 +1,7 @@
-use ruse_object_graph::{
-    graph_map_value::*, value::Value, Attributes, FieldName, GraphIndex, GraphsMap, NodeIndex,
+use crate::{
+    graph_map_value::*, value::Value, Attributes, FieldName, GraphIndex, GraphsMap, NodeIndex, RootName
 };
 use std::{fmt::Debug, fmt::Display, hash::Hash};
-
-use crate::context::VariableName;
 
 #[derive(Debug, Clone)]
 pub struct ObjectFieldLoc {
@@ -28,27 +26,27 @@ impl Hash for ObjectFieldLoc {
 }
 
 #[derive(Debug, Clone)]
-pub struct VarLoc {
-    pub var: VariableName,
+pub struct RootLoc {
+    pub root: RootName,
     pub attrs: Attributes,
 }
 
-impl Eq for VarLoc {}
-impl PartialEq for VarLoc {
+impl Eq for RootLoc {}
+impl PartialEq for RootLoc {
     fn eq(&self, other: &Self) -> bool {
-        self.var == other.var
+        self.root == other.root
     }
 }
-impl Hash for VarLoc {
+impl Hash for RootLoc {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.var.hash(state);
+        self.root.hash(state);
     }
 }
 
 #[derive(PartialEq, Eq, Debug, Clone, Hash)]
 pub enum Location {
     Temp,
-    Var(VarLoc),
+    Root(RootLoc),
     ObjectField(ObjectFieldLoc),
 }
 
@@ -64,16 +62,16 @@ impl Location {
     }
 
     pub fn is_var(&self) -> bool {
-        matches!(&self, Location::Var(_))
+        matches!(&self, Location::Root(_))
     }
 
     pub fn is_object_field(&self) -> bool {
         matches!(&self, Location::ObjectField(_))
     }
 
-    pub fn var(&self) -> Option<&'_ VarLoc> {
+    pub fn var(&self) -> Option<&'_ RootLoc> {
         match &self {
-            Location::Var(l) => Some(l),
+            Location::Root(l) => Some(l),
             _ => None,
         }
     }
@@ -90,7 +88,7 @@ impl Display for Location {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Location::Temp => write!(f, "Temp"),
-            Location::Var(var_loc) => write!(f, "{}", var_loc.var),
+            Location::Root(root_loc) => write!(f, "{}", root_loc.root),
             Location::ObjectField(object_field_loc) => write!(
                 f,
                 "{}:{}.{}",
@@ -115,7 +113,7 @@ impl LocValue {
     pub fn readonly(&self) -> bool {
         match &self.loc() {
             Location::Temp => false,
-            Location::Var(var_loc) => var_loc.attrs.readonly,
+            Location::Root(root_loc) => root_loc.attrs.readonly,
             Location::ObjectField(object_field_loc) => object_field_loc.attrs.readonly,
         }
     }
@@ -130,7 +128,7 @@ impl LocValue {
         let attrs = obj.get_field_attrs(field_name, graphs_map)?;
         let loc = match &self.loc() {
             Location::Temp => Location::Temp,
-            Location::Var(_l) => Location::ObjectField(ObjectFieldLoc {
+            Location::Root(_l) => Location::ObjectField(ObjectFieldLoc {
                 graph: obj.graph_id,
                 node: obj.node,
                 field: field_name.clone(),

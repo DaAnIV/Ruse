@@ -1,15 +1,15 @@
 use crate::{
     bank::*,
-    bank_iterator::{bank_iterator, BankIterator},
     context::{
         ContextArray, SynthesizerContext, SynthesizerContextJsonDisplay, SynthesizerWorkerContext,
         VariableName,
     },
-    multi_programs_map_product::ProgramChildrenIterator,
+    iterator::bank_iterator::{bank_iterator, BankIterator},
+    iterator::multi_programs_map_product::ProgramChildrenIterator,
+    iterator::prog_triplet_iterator::{prog_triplet_iterator, ProgTripletIterator},
     opcode::*,
     prog::SubProgram,
     prog_triplet::ProgTriplet,
-    prog_triplet_iterator::{prog_triplet_iterator, ProgTripletIterator},
     trace_context_array, trace_prog,
 };
 use dashmap::DashSet;
@@ -504,7 +504,6 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
                 }
             }
         }
-
 
         if self.cancel_token.is_cancelled() {
             return Err(anyhow::anyhow!("Synthesizer cancelled"));

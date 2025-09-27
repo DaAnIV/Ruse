@@ -1,7 +1,5 @@
 use opcode::EvalResult;
-use ruse_object_graph::value::*;
-use ruse_object_graph::*;
-use ruse_synthesizer::location::*;
+use ruse_object_graph::{location::*, value::*, *};
 use ruse_synthesizer::opcode::ExprOpcode;
 use ruse_synthesizer::*;
 use ruse_synthesizer::{context::*, opcode::ExprAst};

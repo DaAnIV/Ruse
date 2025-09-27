@@ -3,12 +3,12 @@ use std::{collections::HashMap, sync::Arc};
 use boa_engine::JsResult;
 use ruse_object_graph::{
     class_name,
+    location::LocValue,
     value::{ObjectValue, Value},
     ClassName, FieldName, GraphIndex, GraphsMap, NodeIndex, ObjectGraph, ObjectType, ValueType,
 };
 use ruse_synthesizer::{
     context::GraphIdGenerator,
-    location::LocValue,
     opcode::{ExprOpcode, OpcodesList},
 };
 use swc_ecma_visit::{Visit, VisitWith};

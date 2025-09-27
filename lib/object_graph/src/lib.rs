@@ -13,6 +13,7 @@ mod primitive_fields;
 mod string_types;
 pub mod value;
 mod value_type;
+pub mod location;
 
 pub use graph::*;
 pub use graph_node::*;

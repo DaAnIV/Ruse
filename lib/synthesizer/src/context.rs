@@ -1,4 +1,3 @@
-use crate::location::{LocValue, Location, VarLoc};
 use downcast_rs::{impl_downcast, DowncastSync};
 use graph_equality::equal_graphs_by_nodes;
 use itertools::Itertools;
@@ -6,6 +5,7 @@ use ruse_object_graph::{
     connected_components::GraphsMapWeakComponents,
     dot::{Dot, DotConfig},
     graph_map_value::*,
+    location::{LocValue, Location, RootLoc},
     mermaid::{Mermaid, MermaidConfig},
     value::{ObjectValue, Value},
     *,
@@ -317,8 +317,8 @@ impl Context {
         let readonly = syn_ctx.get_variable(var)?.immutable;
         Some(LocValue {
             val,
-            loc: Location::Var(VarLoc {
-                var: var.clone(),
+            loc: Location::Root(RootLoc {
+                root: var.clone(),
                 attrs: Attributes { readonly },
             }),
         })
@@ -339,8 +339,8 @@ impl Context {
         syn_ctx: &SynthesizerContext,
     ) -> bool {
         match loc {
-            Location::Var(l) => {
-                let var = syn_ctx.all_variables.get(&l.var).unwrap();
+            Location::Root(l) => {
+                let var = syn_ctx.all_variables.get(&l.root).unwrap();
                 assert!(var.value_type == new_val.val_type());
 
                 if var.immutable {
@@ -348,7 +348,7 @@ impl Context {
                 }
 
                 let mut new_values = (*self.values).clone();
-                new_values.insert(l.var.clone(), new_val.clone());
+                new_values.insert(l.root.clone(), new_val.clone());
 
                 self.set_values(new_values);
 

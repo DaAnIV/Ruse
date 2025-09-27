@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::{
     context::ContextArray,
     embedding::{embeddings_tracing, merge_context_arrays},
-    multi_programs_map_product::ProgramChildrenIterator,
+    iterator::multi_programs_map_product::ProgramChildrenIterator,
     prog::SubProgram,
     prog_triplet::ProgTriplet,
 };

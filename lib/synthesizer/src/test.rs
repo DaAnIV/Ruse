@@ -12,6 +12,7 @@ pub mod helpers {
     use ruse_object_graph::{
         field_name,
         generator::object_graph_generator::generate_random_str,
+        location::{LocValue, Location, RootLoc},
         root_name, str_cached,
         value::{ObjectValue, Value},
         vbool, FieldName, FieldsMap, GraphsMap, Number, ObjectType, PrimitiveValue, RootName,
@@ -26,7 +27,6 @@ pub mod helpers {
         },
         dirty,
         embedding::merge_context_arrays,
-        location::{LocValue, Location, VarLoc},
         opcode::{EvalResult, ExprAst, ExprOpcode},
         prog::SubProgram,
         pure,
@@ -204,8 +204,8 @@ pub mod helpers {
             syn_ctx: &SynthesizerContext,
             _: &mut SynthesizerWorkerContext,
         ) -> EvalResult {
-            let mut loc = Location::Var(VarLoc {
-                var: self.id.clone(),
+            let mut loc = Location::Root(RootLoc {
+                root: self.id.clone(),
                 attrs: Default::default(),
             });
             post_ctx.update_value(&self.new_value, &mut loc, syn_ctx);
@@ -577,10 +577,12 @@ mod bank_iterator_tests {
     use crate::{
         bank::*,
         bank_hasher::BankHasherBuilder,
-        bank_iterator::bank_iterator,
         context::{EmptySynthesizerData, GraphIdGenerator, SynthesizerWorkerContext},
-        multi_programs_map_product::{multi_programs_map_product, ProgramChildrenIterator},
-        prog_triplet_iterator::prog_triplet_iterator,
+        iterator::bank_iterator::bank_iterator,
+        iterator::multi_programs_map_product::{
+            multi_programs_map_product, ProgramChildrenIterator,
+        },
+        iterator::prog_triplet_iterator::prog_triplet_iterator,
         pure,
         test::helpers::*,
     };
@@ -588,12 +590,15 @@ mod bank_iterator_tests {
 
     use dashmap::DashMap;
     use itertools::Itertools;
-    use ruse_object_graph::{value::Value, vnum, Number, ValueType};
+    use ruse_object_graph::{
+        location::{LocValue, Location},
+        value::Value,
+        vnum, Number, ValueType,
+    };
 
     use crate::{
         bank::ProgBank,
         context::{ContextArray, SynthesizerContext},
-        location::{LocValue, Location},
         opcode::ExprOpcode,
         prog::SubProgram,
     };
