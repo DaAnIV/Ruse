@@ -3,16 +3,16 @@ use std::sync::Arc;
 use crate::{
     context::ContextArray,
     embedding::{embeddings_tracing, merge_context_arrays},
-    multi_programs_map_product::ProgramChildrenIterator,
+    iterator::multi_programs_map_product::ProgramChildrenIterator,
+    iterator::seq_triple::SeqTriple,
     prog::SubProgram,
-    prog_triplet::ProgTriplet,
 };
 use Option::{self as CurrentItems, None as NotYetPopulated, Some as Populated};
 
 #[cfg(feature = "trace_embeddings")]
 use itertools::Itertools;
 
-pub struct ProgTripletIterator<I>
+pub struct SeqTripleIterator<I>
 where
     I: ProgramChildrenIterator,
 {
@@ -20,7 +20,7 @@ where
     cur_ctxs: CurrentItems<Vec<(ContextArray, ContextArray)>>,
 }
 
-impl<I> ProgTripletIterator<I>
+impl<I> SeqTripleIterator<I>
 where
     I: ProgramChildrenIterator,
 {
@@ -82,25 +82,25 @@ where
     }
 }
 
-pub fn prog_triplet_iterator<I>(children_iterator: I) -> ProgTripletIterator<I>
+pub fn seq_triple_iterator<I>(children_iterator: I) -> SeqTripleIterator<I>
 where
     I: ProgramChildrenIterator,
 {
-    ProgTripletIterator {
+    SeqTripleIterator {
         children_iterator,
         cur_ctxs: NotYetPopulated,
     }
 }
 
-impl<I> ProgTripletIterator<I>
+impl<I> SeqTripleIterator<I>
 where
     I: ProgramChildrenIterator,
 {
-    pub async fn next(&mut self) -> Option<ProgTriplet> {
+    pub async fn next(&mut self) -> Option<SeqTriple> {
         while let Some((i, cur_progs_ptr)) = self.children_iterator.next().await {
             let cur_progs = unsafe { cur_progs_ptr.as_ref().unwrap_unchecked() };
             if let Some((pre_ctx, post_ctx)) = self.get_ctxs(cur_progs, i) {
-                return Some(ProgTriplet::new(
+                return Some(SeqTriple::new(
                     pre_ctx.clone(),
                     cur_progs.clone(),
                     post_ctx.clone(),

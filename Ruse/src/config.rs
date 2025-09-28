@@ -2,7 +2,7 @@ use std::{path::PathBuf, time::Duration};
 
 use byte_unit::Byte;
 use clap::{Command, CommandFactory, Parser};
-use ruse_prog_bank_in_mem::args::SubsumptionBankArgs;
+use ruse_bank_in_mem::args::SubsumptionBankArgs;
 use ruse_task_parser::BankConfig;
 use serde_with::{serde_as, DurationSeconds};
 

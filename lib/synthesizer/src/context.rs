@@ -1,11 +1,10 @@
-use crate::location::{LocValue, Location, VarLoc};
-use downcast_rs::{impl_downcast, DowncastSync};
 use graph_equality::equal_graphs_by_nodes;
 use itertools::Itertools;
 use ruse_object_graph::{
     connected_components::GraphsMapWeakComponents,
     dot::{Dot, DotConfig},
     graph_map_value::*,
+    location::{LocValue, Location, RootLoc},
     mermaid::{Mermaid, MermaidConfig},
     value::{ObjectValue, Value},
     *,
@@ -29,6 +28,8 @@ pub struct Variable {
     pub value_type: ValueType,
     pub immutable: bool,
 }
+
+pub type VariableMap = BTreeMap<VariableName, Variable>;
 
 #[derive(Debug)]
 pub struct GraphIdGenerator {
@@ -64,96 +65,6 @@ impl GraphIdGenerator {
 impl Default for GraphIdGenerator {
     fn default() -> Self {
         Self::with_initial_values(0.into(), 0.into())
-    }
-}
-
-pub trait SynthesizerContextData: DowncastSync {}
-impl_downcast!(sync SynthesizerContextData);
-
-pub struct SynthesizerContext {
-    all_variables: Arc<BTreeMap<VariableName, Variable>>,
-    pub start_context: ContextArray,
-    pub data: Box<dyn SynthesizerContextData>,
-}
-
-pub trait SynthesizerWorkerContextData: DowncastSync {
-    fn gc(&self) {}
-}
-impl_downcast!(sync SynthesizerWorkerContextData);
-
-pub struct EmptySynthesizerData {}
-impl SynthesizerContextData for EmptySynthesizerData {}
-impl SynthesizerWorkerContextData for EmptySynthesizerData {}
-
-pub struct SynthesizerWorkerContext {
-    pub index: usize,
-    pub data: Box<dyn SynthesizerWorkerContextData>,
-}
-impl Default for SynthesizerWorkerContext {
-    fn default() -> Self {
-        Self {
-            index: 0,
-            data: Box::new(EmptySynthesizerData {}),
-        }
-    }
-}
-
-impl SynthesizerContext {
-    pub fn from_context_array(context_array: ContextArray) -> Self {
-        Self::from_context_array_with_data(context_array, Box::new(EmptySynthesizerData {}))
-    }
-    pub fn from_context_array_with_data(
-        context_array: ContextArray,
-        data: Box<dyn SynthesizerContextData>,
-    ) -> Self {
-        Self {
-            all_variables: context_array.get_variables(),
-            start_context: context_array,
-            data,
-        }
-    }
-    pub fn get_variable(&self, name: &VariableName) -> Option<&Variable> {
-        self.all_variables.get(name)
-    }
-
-    pub fn set_immutable(&mut self, var: &VariableName) {
-        let all_variables = Arc::get_mut(&mut self.all_variables).unwrap();
-        let var = all_variables.get_mut(var).unwrap();
-        var.immutable = true;
-    }
-
-    pub fn variables_count(&self) -> usize {
-        self.all_variables.len()
-    }
-}
-
-#[derive(serde::Serialize)]
-pub struct SynthesizerContextJsonDisplay {
-    all_variables: HashMap<String, String>,
-    start_context: Vec<ContextJsonDisplay>,
-}
-
-impl SynthesizerContext {
-    pub fn json_display(&self) -> impl Display {
-        self.json_display_struct()
-    }
-
-    pub fn json_display_struct(&self) -> SynthesizerContextJsonDisplay {
-        SynthesizerContextJsonDisplay {
-            all_variables: self
-                .all_variables
-                .iter()
-                .map(|(k, v)| (k.to_string(), v.value_type.to_string()))
-                .collect(),
-            start_context: self.start_context.json_display_struct().contexts,
-        }
-    }
-}
-
-impl Display for SynthesizerContextJsonDisplay {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let value = serde_json::to_string_pretty(self).unwrap();
-        write!(f, "{}", value)
     }
 }
 
@@ -311,14 +222,14 @@ impl Context {
     pub fn get_var_loc_value(
         &self,
         var: &VariableName,
-        syn_ctx: &SynthesizerContext,
+        variables: &VariableMap,
     ) -> Option<LocValue> {
         let val = self.values.get(var)?.clone();
-        let readonly = syn_ctx.get_variable(var)?.immutable;
+        let readonly = variables.get(var)?.immutable;
         Some(LocValue {
             val,
-            loc: Location::Var(VarLoc {
-                var: var.clone(),
+            loc: Location::Root(RootLoc {
+                root: var.clone(),
                 attrs: Attributes { readonly },
             }),
         })
@@ -336,11 +247,11 @@ impl Context {
         &mut self,
         new_val: &Value,
         loc: &mut Location,
-        syn_ctx: &SynthesizerContext,
+        variables: &VariableMap,
     ) -> bool {
         match loc {
-            Location::Var(l) => {
-                let var = syn_ctx.all_variables.get(&l.var).unwrap();
+            Location::Root(l) => {
+                let var = variables.get(&l.root).unwrap();
                 assert!(var.value_type == new_val.val_type());
 
                 if var.immutable {
@@ -348,7 +259,7 @@ impl Context {
                 }
 
                 let mut new_values = (*self.values).clone();
-                new_values.insert(l.var.clone(), new_val.clone());
+                new_values.insert(l.root.clone(), new_val.clone());
 
                 self.set_values(new_values);
 
@@ -923,7 +834,7 @@ impl Context {
 }
 
 #[derive(serde::Serialize)]
-struct ContextJsonDisplay {
+pub struct ContextJsonDisplay {
     values: HashMap<String, String>,
     outputs: HashMap<String, String>,
     #[serde(rename(serialize = "ctx.mermaid"))]
@@ -937,7 +848,7 @@ impl Context {
         self.get_json_wrapper()
     }
 
-    fn get_json_wrapper(&self) -> ContextJsonDisplay {
+    pub fn get_json_wrapper(&self) -> ContextJsonDisplay {
         ContextJsonDisplay {
             values: self
                 .variables()
@@ -1195,7 +1106,7 @@ impl ContextArray {
 
 #[derive(serde::Serialize)]
 pub struct ContextArrayJsonDisplay {
-    contexts: Vec<ContextJsonDisplay>,
+    pub contexts: Vec<ContextJsonDisplay>,
 }
 
 impl Display for ContextArrayJsonDisplay {

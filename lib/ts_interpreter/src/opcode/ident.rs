@@ -1,7 +1,6 @@
-use ruse_object_graph::ValueType;
-use ruse_synthesizer::context::*;
-use ruse_synthesizer::location::*;
+use ruse_object_graph::{location::*, ValueType};
 use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};
+use ruse_synthesizer::{context::*, synthesizer_context::*};
 
 use ruse_synthesizer::pure;
 use swc_common::DUMMY_SP;
@@ -38,7 +37,9 @@ impl ExprOpcode for IdentOp {
     ) -> EvalResult {
         debug_assert_eq!(args.len(), 0);
 
-        let value = post_ctx.get_var_loc_value(&self.name, syn_ctx).ok_or(())?;
+        let value = post_ctx
+            .get_var_loc_value(&self.name, syn_ctx.variables())
+            .ok_or(())?;
 
         pure!(value)
     }

@@ -29,8 +29,8 @@ dependencies = [
  "itertools 0.14.0",
  "mimalloc",
  "procfs",
+ "ruse_bank_in_mem",
  "ruse_object_graph",
- "ruse_prog_bank_in_mem",
  "ruse_synthesizer",
  "ruse_task_parser",
  "ruse_ts_interpreter",
@@ -2912,6 +2912,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "ruse_bank_in_mem"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "criterion",
+ "getrandom 0.2.16",
+ "itertools 0.13.0",
+ "rand",
+ "ruse_object_graph",
+ "ruse_synthesizer",
+ "serde",
+ "serde_json",
+ "siphasher 0.3.11",
+ "tracing",
+]
+
+[[package]]
 name = "ruse_object_graph"
 version = "0.1.0"
 dependencies = [
@@ -2927,24 +2945,6 @@ dependencies = [
  "serde",
  "tracing",
  "union-find",
-]
-
-[[package]]
-name = "ruse_prog_bank_in_mem"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "clap",
- "criterion",
- "getrandom 0.3.3",
- "itertools 0.14.0",
- "rand",
- "ruse_object_graph",
- "ruse_synthesizer",
- "serde",
- "serde_json",
- "siphasher 1.0.1",
- "tracing",
 ]
 
 [[package]]
@@ -2976,8 +2976,8 @@ dependencies = [
  "anyhow",
  "boa_engine",
  "itertools 0.14.0",
+ "ruse_bank_in_mem",
  "ruse_object_graph",
- "ruse_prog_bank_in_mem",
  "ruse_synthesizer",
  "ruse_ts_interpreter",
  "ruse_ts_synthesizer",
@@ -3027,8 +3027,8 @@ dependencies = [
  "anyhow",
  "criterion",
  "itertools 0.14.0",
+ "ruse_bank_in_mem",
  "ruse_object_graph",
- "ruse_prog_bank_in_mem",
  "ruse_synthesizer",
  "ruse_ts_interpreter",
  "swc_ecma_ast",

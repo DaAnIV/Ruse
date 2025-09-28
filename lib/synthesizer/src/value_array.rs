@@ -1,9 +1,9 @@
 use std::{collections::HashMap, fmt::Display, hash::Hash, ops::Index};
 
 use itertools::izip;
-use ruse_object_graph::graph_map_value::GraphMapWrap;
+use ruse_object_graph::{graph_map_value::GraphMapWrap, location::LocValue};
 
-use crate::{context::ContextArray, location::LocValue};
+use crate::context::ContextArray;
 
 #[derive(Debug)]
 pub struct ValueArray(Vec<LocValue>);

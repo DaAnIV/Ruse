@@ -1,10 +1,10 @@
-use ruse_object_graph::{value::*, *};
+use ruse_object_graph::{location::*, value::*, *};
 use ruse_synthesizer::{
-    context::{Context, SynthesizerContext, SynthesizerWorkerContext},
+    context::Context,
     dirty,
-    location::*,
     opcode::{EvalResult, ExprAst, ExprOpcode},
     pure,
+    synthesizer_context::*,
 };
 use swc_common::DUMMY_SP;
 use swc_ecma_ast as ast;

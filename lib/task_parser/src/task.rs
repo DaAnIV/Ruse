@@ -13,11 +13,10 @@ use ruse_object_graph::{
 };
 use ruse_synthesizer::{
     bank::ProgBank,
-    context::{
-        Context, ContextArray, GraphIdGenerator, SynthesizerContext, ValuesMap, VariableName,
-    },
+    context::{Context, ContextArray, GraphIdGenerator, ValuesMap, VariableName},
     opcode::{ExprOpcode, OpcodesList},
     synthesizer::SynthesizerPredicate,
+    synthesizer_context::SynthesizerContext,
 };
 use ruse_ts_interpreter::{
     engine_context::EngineContext,

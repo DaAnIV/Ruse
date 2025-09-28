@@ -3,12 +3,11 @@ use std::fmt::{Debug, Display};
 use std::hash::Hash;
 use std::sync::Arc;
 
-use ruse_object_graph::{graph_map_value::*, ValueType};
+use ruse_object_graph::{graph_map_value::*, location::*, ValueType};
 
-use crate::context::SynthesizerContext;
-use crate::context::{ContextArray, SynthesizerWorkerContext};
-use crate::location::*;
+use crate::context::ContextArray;
 use crate::opcode::*;
+use crate::synthesizer_context::*;
 use crate::value_array::ValueArray;
 
 #[cfg(feature = "trace_evaluations")]

@@ -12,6 +12,7 @@ pub mod helpers {
     use ruse_object_graph::{
         field_name,
         generator::object_graph_generator::generate_random_str,
+        location::{LocValue, Location, RootLoc},
         root_name, str_cached,
         value::{ObjectValue, Value},
         vbool, FieldName, FieldsMap, GraphsMap, Number, ObjectType, PrimitiveValue, RootName,
@@ -20,16 +21,13 @@ pub mod helpers {
 
     use crate::{
         bank::*,
-        context::{
-            Context, ContextArray, GraphIdGenerator, SynthesizerContext, SynthesizerWorkerContext,
-            ValuesMap, VariableName,
-        },
+        context::{Context, ContextArray, GraphIdGenerator, ValuesMap, VariableName},
         dirty,
         embedding::merge_context_arrays,
-        location::{LocValue, Location, VarLoc},
         opcode::{EvalResult, ExprAst, ExprOpcode},
         prog::SubProgram,
         pure,
+        synthesizer_context::{SynthesizerContext, SynthesizerWorkerContext},
     };
     use tracing::level_filters::LevelFilter;
     use tracing_subscriber::{filter::Targets, prelude::*};
@@ -111,7 +109,7 @@ pub mod helpers {
             syn_ctx: &SynthesizerContext,
             _: &mut SynthesizerWorkerContext,
         ) -> EvalResult {
-            if let Some(var) = post_ctx.get_var_loc_value(&self.id, syn_ctx) {
+            if let Some(var) = post_ctx.get_var_loc_value(&self.id, syn_ctx.variables()) {
                 pure!(var)
             } else {
                 Err(())
@@ -204,11 +202,11 @@ pub mod helpers {
             syn_ctx: &SynthesizerContext,
             _: &mut SynthesizerWorkerContext,
         ) -> EvalResult {
-            let mut loc = Location::Var(VarLoc {
-                var: self.id.clone(),
+            let mut loc = Location::Root(RootLoc {
+                root: self.id.clone(),
                 attrs: Default::default(),
             });
-            post_ctx.update_value(&self.new_value, &mut loc, syn_ctx);
+            post_ctx.update_value(&self.new_value, &mut loc, syn_ctx.variables());
             self.returns.clone()
         }
 
@@ -577,25 +575,29 @@ mod bank_iterator_tests {
     use crate::{
         bank::*,
         bank_hasher::BankHasherBuilder,
-        bank_iterator::bank_iterator,
-        context::{EmptySynthesizerData, GraphIdGenerator, SynthesizerWorkerContext},
-        multi_programs_map_product::{multi_programs_map_product, ProgramChildrenIterator},
-        prog_triplet_iterator::prog_triplet_iterator,
+        context::GraphIdGenerator,
+        iterator::bank_iterator::bank_iterator,
+        iterator::multi_programs_map_product::{
+            multi_programs_map_product, ProgramChildrenIterator,
+        },
+        iterator::seq_triple_iterator::seq_triple_iterator,
         pure,
+        synthesizer_context::{EmptySynthesizerData, SynthesizerWorkerContext},
         test::helpers::*,
     };
     use std::sync::Arc;
 
     use dashmap::DashMap;
     use itertools::Itertools;
-    use ruse_object_graph::{value::Value, vnum, Number, ValueType};
+    use ruse_object_graph::{
+        location::{LocValue, Location},
+        value::Value,
+        vnum, Number, ValueType,
+    };
 
     use crate::{
-        bank::ProgBank,
-        context::{ContextArray, SynthesizerContext},
-        location::{LocValue, Location},
-        opcode::ExprOpcode,
-        prog::SubProgram,
+        bank::ProgBank, context::ContextArray, opcode::ExprOpcode, prog::SubProgram,
+        synthesizer_context::SynthesizerContext,
     };
 
     async fn run_gatherer(
@@ -614,9 +616,9 @@ mod bank_iterator_tests {
             children_iterator.take(take_count);
         }
 
-        let mut iter = prog_triplet_iterator(children_iterator);
-        while let Some(triplet) = iter.next().await {
-            all_children.insert(all_children.len(), triplet.children);
+        let mut iter = seq_triple_iterator(children_iterator);
+        while let Some(triple) = iter.next().await {
+            all_children.insert(all_children.len(), triple.children);
         }
 
         all_children.iter().map(|x| x.value().clone()).collect()
@@ -681,17 +683,17 @@ mod bank_iterator_tests {
         let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default());
         let mut bank = TestBank::default();
         add_iteration(&mut bank, 2, &syn_ctx).await;
-        let mut iter = prog_triplet_iterator(
+        let mut iter = seq_triple_iterator(
             multi_programs_map_product(
                 &bank,
                 [(0, ValueType::Number), (0, ValueType::Number)].into_iter(),
             )
             .await,
         );
-        while let Some(triplet) = iter.next().await {
+        while let Some(triple) = iter.next().await {
             println!(
                 "{:#?}",
-                triplet
+                triple
                     .children
                     .iter()
                     .map(|p| p.out_value()[0].val.number_value().unwrap())
@@ -719,12 +721,12 @@ mod bank_iterator_tests {
             }
 
             let mut count = 0;
-            let mut triplet_iter = prog_triplet_iterator(children_iter);
-            while let Some(triplet) = triplet_iter.next().await {
+            let mut triple_iter = seq_triple_iterator(children_iter);
+            while let Some(triple) = triple_iter.next().await {
                 count += 1;
                 println!(
                     "{}",
-                    triplet
+                    triple
                         .children
                         .iter()
                         .map(|p| {
@@ -759,12 +761,12 @@ mod bank_iterator_tests {
             }
 
             let mut count = 0;
-            let mut triplet_iter = prog_triplet_iterator(children_iter);
-            while let Some(triplet) = triplet_iter.next().await {
+            let mut triple_iter = seq_triple_iterator(children_iter);
+            while let Some(triple) = triple_iter.next().await {
                 count += 1;
                 println!(
                     "{}",
-                    triplet
+                    triple
                         .children
                         .iter()
                         .map(|p| {
@@ -797,12 +799,12 @@ mod bank_iterator_tests {
         children_iter.take(3);
 
         let mut count = 0;
-        let mut triplet_iter = prog_triplet_iterator(children_iter);
-        while let Some(triplet) = triplet_iter.next().await {
+        let mut triple_iter = seq_triple_iterator(children_iter);
+        while let Some(triple) = triple_iter.next().await {
             count += 1;
             println!(
                 "{}",
-                triplet
+                triple
                     .children
                     .iter()
                     .map(|p| {
@@ -1182,8 +1184,9 @@ mod embedding_tests {
     };
 
     use crate::{
-        context::{Context, ContextArray, GraphIdGenerator, SynthesizerContext},
+        context::{Context, ContextArray, GraphIdGenerator},
         embedding::merge_context,
+        synthesizer_context::SynthesizerContext,
     };
 
     #[test]
@@ -1252,19 +1255,23 @@ mod embedding_tests {
         assert!(post_merged_ctx.variable_names().contains(&root_name!("x")));
         assert!(post_merged_ctx.variable_names().contains(&root_name!("y")));
 
-        let x = x_ctx.get_var_loc_value(&root_name!("x"), &syn_ctx).unwrap();
-        let y = y_ctx.get_var_loc_value(&root_name!("y"), &syn_ctx).unwrap();
+        let x = x_ctx
+            .get_var_loc_value(&root_name!("x"), syn_ctx.variables())
+            .unwrap();
+        let y = y_ctx
+            .get_var_loc_value(&root_name!("y"), syn_ctx.variables())
+            .unwrap();
         let merged_pre_x = pre_merged_ctx
-            .get_var_loc_value(&root_name!("x"), &syn_ctx)
+            .get_var_loc_value(&root_name!("x"), syn_ctx.variables())
             .unwrap();
         let merged_pre_y = pre_merged_ctx
-            .get_var_loc_value(&root_name!("y"), &syn_ctx)
+            .get_var_loc_value(&root_name!("y"), syn_ctx.variables())
             .unwrap();
         let merged_post_x = post_merged_ctx
-            .get_var_loc_value(&root_name!("x"), &syn_ctx)
+            .get_var_loc_value(&root_name!("x"), syn_ctx.variables())
             .unwrap();
         let merged_post_y = post_merged_ctx
-            .get_var_loc_value(&root_name!("y"), &syn_ctx)
+            .get_var_loc_value(&root_name!("y"), syn_ctx.variables())
             .unwrap();
 
         assert_eq!(
@@ -1360,19 +1367,23 @@ mod embedding_tests {
         assert!(post_merged_ctx.variable_names().contains(&root_name!("x")));
         assert!(post_merged_ctx.variable_names().contains(&root_name!("y")));
 
-        let x = x_ctx.get_var_loc_value(&root_name!("x"), &syn_ctx).unwrap();
-        let y = y_ctx.get_var_loc_value(&root_name!("y"), &syn_ctx).unwrap();
+        let x = x_ctx
+            .get_var_loc_value(&root_name!("x"), syn_ctx.variables())
+            .unwrap();
+        let y = y_ctx
+            .get_var_loc_value(&root_name!("y"), syn_ctx.variables())
+            .unwrap();
         let merged_pre_x = pre_merged_ctx
-            .get_var_loc_value(&root_name!("x"), &syn_ctx)
+            .get_var_loc_value(&root_name!("x"), syn_ctx.variables())
             .unwrap();
         let merged_pre_y = pre_merged_ctx
-            .get_var_loc_value(&root_name!("y"), &syn_ctx)
+            .get_var_loc_value(&root_name!("y"), syn_ctx.variables())
             .unwrap();
         let merged_post_x = post_merged_ctx
-            .get_var_loc_value(&root_name!("x"), &syn_ctx)
+            .get_var_loc_value(&root_name!("x"), syn_ctx.variables())
             .unwrap();
         let merged_post_y = post_merged_ctx
-            .get_var_loc_value(&root_name!("y"), &syn_ctx)
+            .get_var_loc_value(&root_name!("y"), syn_ctx.variables())
             .unwrap();
 
         assert_eq!(
@@ -1402,11 +1413,10 @@ mod prog_tests {
     use std::sync::Arc;
 
     use crate::{
-        context::{
-            Context, ContextArray, GraphIdGenerator, SynthesizerContext, SynthesizerWorkerContext,
-        },
+        context::{Context, ContextArray, GraphIdGenerator},
         dirty,
         prog::SubProgram,
+        synthesizer_context::{SynthesizerContext, SynthesizerWorkerContext},
         test::helpers::*,
     };
     use ruse_object_graph::{root_name, vnum, GraphsMap, Number};

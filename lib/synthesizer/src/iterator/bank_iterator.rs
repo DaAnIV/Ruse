@@ -5,11 +5,11 @@ use std::ops::RangeInclusive;
 use std::sync::Arc;
 use Option::{self as State, None as ProductEnded, Some as ProductInProgress};
 
-use crate::multi_programs_map_product::{MultiProgramsMaps, ProgramChildrenIterator};
+use crate::iterator::multi_programs_map_product::{MultiProgramsMaps, ProgramChildrenIterator};
 use crate::prog::SubProgram;
 use crate::{
     bank::ProgBank,
-    multi_programs_map_product::{multi_programs_map_end, multi_programs_map_product},
+    iterator::multi_programs_map_product::{multi_programs_map_end, multi_programs_map_product},
 };
 
 pub struct BankIterator<'a, B: ProgBank> {

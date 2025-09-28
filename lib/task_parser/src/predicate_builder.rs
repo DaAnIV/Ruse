@@ -4,8 +4,9 @@ use itertools::{izip, Itertools};
 use ruse_object_graph::graph_map_value::GraphMapWrap;
 use ruse_object_graph::GraphsMap;
 use ruse_object_graph::{value::Value, ValueType};
-use ruse_synthesizer::context::{SynthesizerWorkerContext, ValuesMap};
-use ruse_synthesizer::{context::SynthesizerContext, prog::SubProgram};
+use ruse_synthesizer::context::ValuesMap;
+use ruse_synthesizer::prog::SubProgram;
+use ruse_synthesizer::synthesizer_context::*;
 use ruse_ts_interpreter::js_evaluator::JsEvaluator;
 
 pub type SynthesizerPredicate = Box<
@@ -167,9 +168,12 @@ impl Predicate for JsPredicate {
 
         #[allow(unused_mut)]
         let mut extra_args: HashMap<&str, boa_engine::JsValue> = HashMap::new();
-        
+
         #[cfg(feature = "js_predicate_code")]
-        extra_args.insert("__code__", boa_engine::JsValue::from(boa_engine::js_string!(p.get_code())));
+        extra_args.insert(
+            "__code__",
+            boa_engine::JsValue::from(boa_engine::js_string!(p.get_code())),
+        );
 
         for (ctx, output, js) in izip!(
             p.post_ctx().iter(),

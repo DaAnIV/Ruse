@@ -1,10 +1,8 @@
 use opcode::EvalResult;
-use ruse_object_graph::value::*;
-use ruse_object_graph::*;
-use ruse_synthesizer::location::*;
+use ruse_object_graph::{location::*, value::*, *};
 use ruse_synthesizer::opcode::ExprOpcode;
 use ruse_synthesizer::*;
-use ruse_synthesizer::{context::*, opcode::ExprAst};
+use ruse_synthesizer::{context::*, opcode::ExprAst, synthesizer_context::*};
 use swc_common::{util::take::Take, DUMMY_SP};
 use swc_ecma_ast as ast;
 

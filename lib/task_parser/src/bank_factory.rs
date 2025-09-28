@@ -1,6 +1,6 @@
 use std::fmt;
 
-use ruse_prog_bank_in_mem::{config::SubsumptionBankConfig, subsumption_bank::SubsumptionProgBank};
+use ruse_bank_in_mem::{config::SubsumptionBankConfig, subsumption_bank::SubsumptionProgBank};
 use ruse_synthesizer::bank::ProgBank;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Deserialize, serde::Serialize)]

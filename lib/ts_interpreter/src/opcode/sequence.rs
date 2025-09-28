@@ -1,8 +1,7 @@
 use itertools::Itertools;
-use ruse_object_graph::ValueType;
-use ruse_synthesizer::context::*;
-use ruse_synthesizer::location::*;
+use ruse_object_graph::{location::*, ValueType};
 use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};
+use ruse_synthesizer::{context::*, synthesizer_context::*};
 
 use ruse_synthesizer::pure;
 use swc_common::DUMMY_SP;

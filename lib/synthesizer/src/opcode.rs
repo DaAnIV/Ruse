@@ -4,11 +4,11 @@ use std::ops::{self, Deref};
 use std::sync::Arc;
 use std::{any::Any, fmt::Debug};
 
-use crate::context::{Context, SynthesizerContext, SynthesizerWorkerContext, VariableName};
+use crate::context::{Context, VariableName};
+use crate::synthesizer_context::*;
 
-use crate::location::LocValue;
 use itertools::Itertools;
-use ruse_object_graph::ValueType;
+use ruse_object_graph::{location::LocValue, ValueType};
 
 pub trait ExprAst: Any {
     fn to_string(&self) -> String;
@@ -58,7 +58,7 @@ pub trait ExprOpcode: Debug + Sync + Send {
 
     // post_ctx contains the post context of the last argument or the pre context if there are no arguments.
     // It can be changed on mutating opcodes.
-    // For example: Think about the triplet - {x -> 3} ++x (4, {x -> 4})
+    // For example: Think about the triple - {x -> 3} ++x (4, {x -> 4})
     fn eval(
         &self,
         args: &[&LocValue],

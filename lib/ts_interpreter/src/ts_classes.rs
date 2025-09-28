@@ -6,7 +6,8 @@ use std::{
 
 use anyhow::Error;
 use ruse_object_graph::{ClassName, GraphIndex, GraphsMap, NodeIndex, ObjectType};
-use ruse_synthesizer::context::{GraphIdGenerator, SynthesizerContextData};
+use ruse_synthesizer::context::GraphIdGenerator;
+use ruse_synthesizer::synthesizer_context::SynthesizerContextData;
 use swc_common::{
     errors::{ColorConfig, Handler},
     Mark, SourceFile, SourceMap,
@@ -305,7 +306,7 @@ impl TsClassesBuilder {
                 unresolved_mark,
                 swc_typescript::fast_dts::FastDtsOptions {
                     internal_annotations: None,
-                    add_types_to_private_properties: true
+                    add_types_to_private_properties: true,
                 },
             );
             let issues = fast_dts.transform(&mut dts_prog);
@@ -441,7 +442,8 @@ impl TsClassesBuilder {
                 class_decl,
                 dts,
                 classes.static_classes_gen_id.clone(),
-            ).map_err(|_| anyhow::anyhow!("Failed to build user class {}", id.0))?;
+            )
+            .map_err(|_| anyhow::anyhow!("Failed to build user class {}", id.0))?;
             builder.finalize(&mut classes, &mut graphs_map);
         }
 

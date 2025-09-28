@@ -1,4 +1,4 @@
-use ruse_synthesizer::context::{SynthesizerWorkerContext, SynthesizerWorkerContextData};
+use ruse_synthesizer::synthesizer_context::*;
 
 use crate::{engine_context::EngineContext, ts_classes::TsClasses};
 

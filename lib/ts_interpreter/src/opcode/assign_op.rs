@@ -1,7 +1,7 @@
-use ruse_object_graph::{value::*, *};
+use ruse_object_graph::{location::*, value::*, *};
 use ruse_object_graph::{Number, PrimitiveValue};
 use ruse_synthesizer::opcode::{EvalResult, ExprAst, ExprOpcode};
-use ruse_synthesizer::{context::*, dirty, location::*};
+use ruse_synthesizer::{context::*, dirty, synthesizer_context::*};
 
 use swc_common::DUMMY_SP;
 use swc_ecma_ast as ast;
@@ -147,7 +147,7 @@ impl ExprOpcode for AssignOp {
         }?;
 
         let mut loc = lhs.loc.clone();
-        post_ctx.update_value(&res, &mut loc, syn_ctx);
+        post_ctx.update_value(&res, &mut loc, syn_ctx.variables());
 
         dirty!(post_ctx.temp_value(vnull!()))
     }

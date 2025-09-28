@@ -1,9 +1,10 @@
 use ruse_synthesizer::{
     bank::ProgBank,
-    context::{SynthesizerContext, SynthesizerWorkerContext, VariableName},
+    context::VariableName,
     opcode::OpcodesList,
     prog::SubProgram,
     synthesizer::{CurrentStatistics, Synthesizer, SynthesizerPredicate, WorkerContextCreator},
+    synthesizer_context::{SynthesizerContext, SynthesizerWorkerContext},
 };
 use ruse_ts_interpreter::js_worker_context::create_js_worker_context;
 use tokio_util::sync::CancellationToken;

@@ -4,13 +4,13 @@ use std::sync::Arc;
 use crate::{context::ContextArray, prog::SubProgram};
 
 #[derive(Clone)]
-pub struct ProgTriplet {
+pub struct SeqTriple {
     pub pre_ctx: ContextArray,
     pub children: Vec<Arc<SubProgram>>,
     pub post_ctx: ContextArray,
 }
 
-impl ProgTriplet {
+impl SeqTriple {
     pub fn new(
         pre_ctx: ContextArray,
         children: Vec<Arc<SubProgram>>,
@@ -24,7 +24,7 @@ impl ProgTriplet {
     }
 }
 
-impl Display for ProgTriplet {
+impl Display for SeqTriple {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "pre ctx: {}", &self.pre_ctx)?;
         writeln!(f, "children: [")?;
