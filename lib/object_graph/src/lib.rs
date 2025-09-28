@@ -25,4 +25,4 @@ pub use string_types::*;
 pub use value_type::*;
 pub use graph_id_generator::GraphIdGenerator;
 
-mod test;
+mod tests;

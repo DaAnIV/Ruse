@@ -1,5 +1,5 @@
 #[cfg(test)]
-mod tests {
+mod graphs_tests {
     use rand::{rngs::StdRng, SeedableRng};
 
     use crate::dot;
