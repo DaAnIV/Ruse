@@ -12,6 +12,7 @@ archive/
 benchmarks_output/
 __pycache__
 results/
+!experiments/results
 failed/
 node_modules
 .metals

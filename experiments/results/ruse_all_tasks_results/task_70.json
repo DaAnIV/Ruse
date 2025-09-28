@@ -15,7 +15,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 28468889
+        "nanos": 28037385
       },
       "statistics": {
         "Evaluated": 9,
@@ -29,7 +29,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 151581505
+        "nanos": 138174321
       },
       "statistics": {
         "Evaluated": 1132,
@@ -42,12 +42,12 @@
     },
     {
       "time": {
-        "secs": 4,
-        "nanos": 141744947
+        "secs": 2,
+        "nanos": 798845488
       },
       "statistics": {
         "Evaluated": 332196,
-        "BankSize": 6430,
+        "BankSize": 6406,
         "FoundContextCount": 4,
         "MaxMutatingOpcodes": 0,
         "MaxDepth": 3,
@@ -56,38 +56,38 @@
     },
     {
       "time": {
-        "secs": 8,
-        "nanos": 707933457
+        "secs": 3,
+        "nanos": 838546116
       },
       "statistics": {
-        "Evaluated": 54407,
-        "BankSize": 18008,
+        "Evaluated": 7956,
+        "BankSize": 1708,
         "FoundContextCount": 0,
         "MaxMutatingOpcodes": 0,
         "MaxDepth": 4,
-        "MaxSize": 15
+        "MaxSize": 13
       }
     }
   ],
   "iteration_count": 4,
   "found": {
-    "found": "(new Vector2D(vec.columns, vec.trace())).toArray()",
+    "found": "(new SingularValueDecomposition(mat)).solve(vec.transpose()).to1DArray()",
     "num_mutations": 0,
     "solution_size": 6,
     "solution_depth": 4
   },
   "total_time": {
-    "secs": 13,
-    "nanos": 30153943
+    "secs": 6,
+    "nanos": 804025711
   },
   "total_statistics": {
-    "Evaluated": 386603,
-    "BankSize": 24438,
+    "Evaluated": 340152,
+    "BankSize": 8114,
     "FoundContextCount": 4,
     "MaxMutatingOpcodes": 0,
     "MaxDepth": 4,
-    "MaxSize": 15
+    "MaxSize": 13
   },
-  "max_vm_usage": "898.359296 MB",
+  "max_vm_usage": "797.700096 MB",
   "error": null
 }

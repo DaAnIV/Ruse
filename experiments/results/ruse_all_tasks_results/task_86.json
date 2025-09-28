@@ -15,7 +15,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 3830806
+        "nanos": 3804999
       },
       "statistics": {
         "Evaluated": 7,
@@ -29,7 +29,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 19343333
+        "nanos": 28381189
       },
       "statistics": {
         "Evaluated": 24,
@@ -43,7 +43,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 9807718
+        "nanos": 5748715
       },
       "statistics": {
         "Evaluated": 58,
@@ -57,7 +57,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 16262978
+        "nanos": 10483759
       },
       "statistics": {
         "Evaluated": 112,
@@ -71,10 +71,10 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 48638565
+        "nanos": 41599209
       },
       "statistics": {
-        "Evaluated": 90,
+        "Evaluated": 91,
         "BankSize": 34,
         "FoundContextCount": 8,
         "MaxMutatingOpcodes": 1,
@@ -85,23 +85,23 @@
   ],
   "iteration_count": 5,
   "found": {
-    "found": "tree2.inc_value(), tree3.inc_value(), tree1.inc_value()",
+    "found": "tree2.inc_value(), tree1.inc_value(), tree3.inc_value()",
     "num_mutations": 3,
     "solution_size": 7,
     "solution_depth": 3
   },
   "total_time": {
     "secs": 0,
-    "nanos": 98234342
+    "nanos": 90247027
   },
   "total_statistics": {
-    "Evaluated": 202,
+    "Evaluated": 203,
     "BankSize": 94,
     "FoundContextCount": 21,
     "MaxMutatingOpcodes": 1,
     "MaxDepth": 2,
     "MaxSize": 2
   },
-  "max_vm_usage": "34.820096 MB",
+  "max_vm_usage": "33.619968 MB",
   "error": null
 }

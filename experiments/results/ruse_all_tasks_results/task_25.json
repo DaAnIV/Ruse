@@ -16,7 +16,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 556728
+        "nanos": 548018
       },
       "statistics": {
         "Evaluated": 6,
@@ -30,11 +30,11 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 54711590
+        "nanos": 50476547
       },
       "statistics": {
         "Evaluated": 512,
-        "BankSize": 58,
+        "BankSize": 56,
         "FoundContextCount": 3,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 2,
@@ -44,11 +44,11 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 267421717
+        "nanos": 306519114
       },
       "statistics": {
-        "Evaluated": 157458,
-        "BankSize": 5367,
+        "Evaluated": 150206,
+        "BankSize": 5280,
         "FoundContextCount": 25,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 3,
@@ -57,33 +57,38 @@
     },
     {
       "time": {
-        "secs": 0,
-        "nanos": 0
+        "secs": 1425,
+        "nanos": 642681226
       },
       "statistics": {
-        "Evaluated": 2085780610,
-        "BankSize": 12434174,
+        "Evaluated": 1133314773,
+        "BankSize": 8458760,
         "FoundContextCount": 3,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 4,
-        "MaxSize": 38
+        "MaxSize": 37
       }
     }
   ],
   "iteration_count": 4,
-  "found": null,
+  "found": {
+    "found": "\" \".replaceAll(\"\", _arg_0).replaceAll(_arg_0.slice(1), \".\").replaceAll(\" \" + _arg_0[0], _arg_0.slice(1)[_arg_0.indexOf(\" \")])",
+    "num_mutations": 0,
+    "solution_size": 22,
+    "solution_depth": 4
+  },
   "total_time": {
-    "secs": 2349,
-    "nanos": 614617
+    "secs": 1426,
+    "nanos": 832656
   },
   "total_statistics": {
-    "Evaluated": 2085938035,
-    "BankSize": 12439541,
+    "Evaluated": 1133464979,
+    "BankSize": 8464040,
     "FoundContextCount": 28,
     "MaxMutatingOpcodes": 1,
     "MaxDepth": 4,
-    "MaxSize": 38
+    "MaxSize": 37
   },
-  "max_vm_usage": "107.407183872 GB",
-  "error": "OOM"
+  "max_vm_usage": "73.0691584 GB",
+  "error": null
 }

@@ -17,7 +17,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 418075
+        "nanos": 567797
       },
       "statistics": {
         "Evaluated": 7,
@@ -31,7 +31,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 51226923
+        "nanos": 46172841
       },
       "statistics": {
         "Evaluated": 783,
@@ -45,11 +45,11 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 554069972
+        "nanos": 913927954
       },
       "statistics": {
-        "Evaluated": 552508,
-        "BankSize": 14113,
+        "Evaluated": 552352,
+        "BankSize": 13965,
         "FoundContextCount": 44,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 3,
@@ -58,38 +58,38 @@
     },
     {
       "time": {
-        "secs": 0,
-        "nanos": 596589596
+        "secs": 1,
+        "nanos": 296323308
       },
       "statistics": {
-        "Evaluated": 513318,
-        "BankSize": 37943,
+        "Evaluated": 686569,
+        "BankSize": 28858,
         "FoundContextCount": 4,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 4,
-        "MaxSize": 19
+        "MaxSize": 21
       }
     }
   ],
   "iteration_count": 4,
   "found": {
-    "found": "_arg_0.replaceAll(\">\", \"<\").replaceAll(\"<\", \"\").slice((-1) - (1 + 1))",
+    "found": "(_arg_0.replaceAll(\"\", \"<\") + _arg_0.replaceAll(\">\", \"\")).slice((-1) - (1 + 1))",
     "num_mutations": 0,
-    "solution_size": 14,
+    "solution_size": 16,
     "solution_depth": 4
   },
   "total_time": {
-    "secs": 1,
-    "nanos": 202874680
+    "secs": 2,
+    "nanos": 257577268
   },
   "total_statistics": {
-    "Evaluated": 1065826,
-    "BankSize": 52056,
+    "Evaluated": 1238921,
+    "BankSize": 42823,
     "FoundContextCount": 48,
     "MaxMutatingOpcodes": 1,
     "MaxDepth": 4,
-    "MaxSize": 19
+    "MaxSize": 21
   },
-  "max_vm_usage": "371.392512 MB",
+  "max_vm_usage": "328.036352 MB",
   "error": null
 }

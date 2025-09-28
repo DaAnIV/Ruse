@@ -15,7 +15,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 28328123
+        "nanos": 28568726
       },
       "statistics": {
         "Evaluated": 8,
@@ -29,7 +29,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 62998105
+        "nanos": 50371894
       },
       "statistics": {
         "Evaluated": 22,
@@ -50,7 +50,7 @@
   },
   "total_time": {
     "secs": 0,
-    "nanos": 91693583
+    "nanos": 79210059
   },
   "total_statistics": {
     "Evaluated": 30,
@@ -60,6 +60,6 @@
     "MaxDepth": 2,
     "MaxSize": 2
   },
-  "max_vm_usage": "38.68672 MB",
+  "max_vm_usage": "39.231488 MB",
   "error": null
 }
