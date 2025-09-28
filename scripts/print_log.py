@@ -5,7 +5,7 @@ import subprocess
 import select
 import os
 
-def tail_log(filename):
+def print_log(filename, tail):
     # Check if terminal supports colors
     use_colors = os.getenv('TERM') != 'dumb' and os.getenv('NO_COLOR') is None
 
@@ -13,6 +13,8 @@ def tail_log(filename):
         'INFO': '\033[38;5;10m',        # Green for INFO
         'WARNING': '\033[38;5;11m',     # Yellow for WARNING
         'ERROR': '\033[38;5;9m',        # Red for ERROR
+        'DEBUG': '\033[38;5;255m',        # White for DEBUG
+        'TRACE': '\033[38;5;255m',        # White for TRACE
 
         'timestamp': '\033[38;5;238m',  # Light gray for timestamp
         'thread_id': '\033[38;5;44m',   # Cyan for thread_id
@@ -23,7 +25,13 @@ def tail_log(filename):
         'DEFAULT': '\033[0m',           # Reset
     }
 
-    for line in sh.tail('-F', filename, _iter=True):
+    if tail:
+        lines = sh.tail('-F', filename, _iter=True)
+    else:
+        with open(filename, 'r') as f:
+            lines = f.readlines()
+
+    for line in lines:
             log = json.loads(line)
             
             # Extract timestamp and format it
@@ -51,5 +59,6 @@ def tail_log(filename):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('filename', type=str)
+    parser.add_argument('-t', '--tail', action='store_true')
     args = parser.parse_args()
-    tail_log(args.filename)
+    print_log(args.filename, args.tail)
