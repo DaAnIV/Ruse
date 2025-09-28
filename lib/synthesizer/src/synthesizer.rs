@@ -8,6 +8,7 @@ use crate::{
         seq_triple_iterator::{seq_triple_iterator, SeqTripleIterator},
     },
     opcode::*,
+    partial_context::PartialContextBuilder,
     prog::SubProgram,
     synthesizer_context::{
         SynthesizerContext, SynthesizerContextJsonDisplay, SynthesizerWorkerContext,
@@ -16,7 +17,7 @@ use crate::{
 };
 use dashmap::DashSet;
 use futures::FutureExt;
-use ruse_object_graph::{connected_components::GraphsMapWeakComponents, ValueType};
+use ruse_object_graph::ValueType;
 use serde::ser::SerializeStruct;
 use std::{
     fmt::Display,
@@ -233,13 +234,12 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
         self.found_contexts.insert(ctx.clone());
         self.statistics
             .inc_value(StatisticsTypes::FoundContextCount);
-        let weak_components = ctx.compute_weak_components();
+        let partial_context_builder = PartialContextBuilder::new(ctx);
 
         for op in self.opcodes.init_opcodes() {
             let p = match self.get_program_from_init_opcode(
                 op.clone(),
-                ctx,
-                &weak_components,
+                &partial_context_builder,
                 worker_ctx,
             ) {
                 Some(p) => p,
@@ -564,13 +564,12 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
     fn get_program_from_init_opcode(
         &self,
         op: Arc<dyn ExprOpcode>,
-        ctx: &ContextArray,
-        weak_components: &Vec<GraphsMapWeakComponents>,
+        partial_context_builder: &PartialContextBuilder,
         worker_ctx: &mut SynthesizerWorkerContext,
     ) -> Option<Arc<SubProgram>> {
         debug_assert!(op.arg_types().is_empty());
 
-        let pre_ctx = ctx.get_partial_context(op.required_variables(), weak_components)?;
+        let pre_ctx = partial_context_builder.get_partial_context(op.required_variables())?;
         let post_ctx = pre_ctx.clone();
         let mut p = SubProgram::with_opcode(op.clone(), pre_ctx, post_ctx);
         match self.evaluate_program(&mut p, worker_ctx) {

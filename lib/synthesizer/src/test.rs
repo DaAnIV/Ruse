@@ -25,6 +25,7 @@ pub mod helpers {
         dirty,
         embedding::merge_context_arrays,
         opcode::{EvalResult, ExprAst, ExprOpcode},
+        partial_context::PartialContextBuilder,
         prog::SubProgram,
         pure,
         synthesizer_context::{SynthesizerContext, SynthesizerWorkerContext},
@@ -365,9 +366,9 @@ pub mod helpers {
         syn_ctx: &SynthesizerContext,
         worker_ctx: &mut SynthesizerWorkerContext,
     ) -> Arc<SubProgram> {
-        let weak_components = ctx_arr.compute_weak_components();
-        let op_ctx = ctx_arr
-            .get_partial_context(op.required_variables(), &weak_components)
+        let partial_context_builder = PartialContextBuilder::new(ctx_arr);
+        let op_ctx = partial_context_builder
+            .get_partial_context(op.required_variables())
             .unwrap();
         let mut prog = SubProgram::with_opcode(op, op_ctx.clone(), op_ctx.clone());
         assert!(evaluate_prog(&mut prog, &syn_ctx, worker_ctx));
@@ -1186,6 +1187,7 @@ mod embedding_tests {
     use crate::{
         context::{Context, ContextArray},
         embedding::merge_context,
+        partial_context::PartialContextBuilder,
         synthesizer_context::SynthesizerContext,
     };
 
@@ -1237,12 +1239,12 @@ mod embedding_tests {
         )]);
         let syn_ctx = SynthesizerContext::from_context_array(start_ctx.clone());
 
-        let weak_components = start_ctx.compute_weak_components();
-        let x_ctx = &start_ctx
-            .get_partial_context(&[root_name!("x")], &weak_components)
+        let partial_context_builder = PartialContextBuilder::new(&start_ctx);
+        let x_ctx = &partial_context_builder
+            .get_partial_context(&[root_name!("x")])
             .unwrap()[0];
-        let y_ctx = &start_ctx
-            .get_partial_context(&[root_name!("y")], &weak_components)
+        let y_ctx = &partial_context_builder
+            .get_partial_context(&[root_name!("y")])
             .unwrap()[0];
 
         let (pre_merged_ctx, post_merged_ctx) = merge_context(x_ctx, x_ctx, y_ctx, y_ctx).unwrap();
@@ -1346,12 +1348,12 @@ mod embedding_tests {
         )]);
         let syn_ctx = SynthesizerContext::from_context_array(start_ctx.clone());
 
-        let weak_components = start_ctx.compute_weak_components();
-        let x_ctx = &start_ctx
-            .get_partial_context(&[root_name!("x")], &weak_components)
+        let partial_context_builder = PartialContextBuilder::new(&start_ctx);
+        let x_ctx = &partial_context_builder
+            .get_partial_context(&[root_name!("x")])
             .unwrap()[0];
-        let y_ctx = &start_ctx
-            .get_partial_context(&[root_name!("y")], &weak_components)
+        let y_ctx = &partial_context_builder
+            .get_partial_context(&[root_name!("y")])
             .unwrap()[0];
 
         println!("x_ctx: {}", x_ctx);

@@ -33,6 +33,7 @@ prune_graph_map = []
 check_embedding_overhead = []
 release_trace_max_level_info = ["tracing/release_max_level_info"]
 release_trace_max_level_debug = ["tracing/release_max_level_debug"]
+dont_take_variable_closure = []
 
 [dev-dependencies]
 criterion.workspace = true

@@ -24,6 +24,16 @@
 			},
         },
         {
+            "label": "build release without variable closure",
+            "type": "shell",
+            "command": "$HOME/.cargo/bin/cargo build --profile release --features release_trace_max_level_debug --features dont_take_variable_closure",
+			"problemMatcher": "$rustc",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+        },
+        {
             "label": "build release with embedding overhead",
             "type": "shell",
             "command": "$HOME/.cargo/bin/cargo build --profile release --features release_trace_max_level_debug --features check_embedding_overhead",

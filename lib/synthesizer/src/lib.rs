@@ -1,6 +1,7 @@
 pub mod bank;
 pub mod bank_hasher;
 pub mod context;
+mod partial_context;
 pub mod embedding;
 mod iterator;
 pub mod opcode;
