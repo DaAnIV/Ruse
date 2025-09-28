@@ -1,0 +1,79 @@
+{
+  "path": "../tasks/benchmarks/fromFrangel/sypet/sypet_03_findRoots.sy",
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/sypet/SyPet_03_findRoots.java",
+  "category": "Full OOP:Without Side Effects",
+  "opcode_count": 1532,
+  "string_literals": [
+    " ",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 1829325
+      },
+      "statistics": {
+        "Evaluated": 5,
+        "BankSize": 5,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 61290731
+      },
+      "statistics": {
+        "Evaluated": 261,
+        "BankSize": 20,
+        "FoundContextCount": 0,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 12431297
+      },
+      "statistics": {
+        "Evaluated": 2314,
+        "BankSize": 18,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 3,
+        "MaxSize": 7
+      }
+    }
+  ],
+  "iteration_count": 3,
+  "found": {
+    "found": "findRoots(func.real_coeffs())",
+    "num_mutations": 0,
+    "solution_size": 3,
+    "solution_depth": 3
+  },
+  "total_time": {
+    "secs": 0,
+    "nanos": 75920410
+  },
+  "total_statistics": {
+    "Evaluated": 2575,
+    "BankSize": 38,
+    "FoundContextCount": 2,
+    "MaxMutatingOpcodes": 0,
+    "MaxDepth": 3,
+    "MaxSize": 7
+  },
+  "max_vm_usage": "36.880384 MB",
+  "error": null
+}

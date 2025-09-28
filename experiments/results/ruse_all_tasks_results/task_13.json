@@ -1,0 +1,80 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/may/probe/exceljet1modified.sy",
+  "source": "https=//exceljet.net/formula/get-domain-from-email-address",
+  "category": "Primitive:Without Side Effects",
+  "opcode_count": 881,
+  "string_literals": [
+    " ",
+    "_",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 502480
+      },
+      "statistics": {
+        "Evaluated": 7,
+        "BankSize": 7,
+        "FoundContextCount": 4,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 52009269
+      },
+      "statistics": {
+        "Evaluated": 805,
+        "BankSize": 113,
+        "FoundContextCount": 10,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 1982702
+      },
+      "statistics": {
+        "Evaluated": 480,
+        "BankSize": 100,
+        "FoundContextCount": 4,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 3,
+        "MaxSize": 8
+      }
+    }
+  ],
+  "iteration_count": 3,
+  "found": {
+    "found": "_arg_1.replaceAll(\"_\", \"\").slice(_arg_1.indexOf(\"_\"))",
+    "num_mutations": 0,
+    "solution_size": 8,
+    "solution_depth": 3
+  },
+  "total_time": {
+    "secs": 0,
+    "nanos": 54922106
+  },
+  "total_statistics": {
+    "Evaluated": 1285,
+    "BankSize": 213,
+    "FoundContextCount": 14,
+    "MaxMutatingOpcodes": 1,
+    "MaxDepth": 3,
+    "MaxSize": 8
+  },
+  "max_vm_usage": "29.097984 MB",
+  "error": null
+}

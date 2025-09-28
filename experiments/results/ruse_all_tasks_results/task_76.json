@@ -1,0 +1,88 @@
+{
+  "path": "../tasks/benchmarks/fromFrangel/github/elasticsearch_split.sy",
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/github/ElasticSearchSplit.java",
+  "category": "Primitive Objects:Without Side Effects",
+  "opcode_count": 881,
+  "string_literals": [
+    " ",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 1334130
+      },
+      "statistics": {
+        "Evaluated": 7,
+        "BankSize": 7,
+        "FoundContextCount": 5,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 160039741
+      },
+      "statistics": {
+        "Evaluated": 786,
+        "BankSize": 102,
+        "FoundContextCount": 24,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 2,
+        "nanos": 513238237
+      },
+      "statistics": {
+        "Evaluated": 964039,
+        "BankSize": 35888,
+        "FoundContextCount": 1608,
+        "MaxMutatingOpcodes": 3,
+        "MaxDepth": 3,
+        "MaxSize": 13
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 0
+      },
+      "statistics": {
+        "Evaluated": 47018106,
+        "BankSize": 7881097,
+        "FoundContextCount": 24,
+        "MaxMutatingOpcodes": 3,
+        "MaxDepth": 4,
+        "MaxSize": 22
+      }
+    }
+  ],
+  "iteration_count": 4,
+  "found": null,
+  "total_time": {
+    "secs": 49,
+    "nanos": 699422
+  },
+  "total_statistics": {
+    "Evaluated": 47982117,
+    "BankSize": 7916982,
+    "FoundContextCount": 1632,
+    "MaxMutatingOpcodes": 3,
+    "MaxDepth": 4,
+    "MaxSize": 22
+  },
+  "max_vm_usage": "111.71670016 GB",
+  "error": "OOM"
+}

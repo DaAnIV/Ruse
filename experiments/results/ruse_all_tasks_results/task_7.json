@@ -1,0 +1,79 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/may/probe/stackoverflow2modified.sy",
+  "source": "https=//stackoverflow.com/questions/26262269/how-to-find-all-the-strings-in-a-cell-that-contains-a-given-substring-in-excel",
+  "category": "Primitive:Without Side Effects",
+  "opcode_count": 879,
+  "string_literals": [
+    " ",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 442816
+      },
+      "statistics": {
+        "Evaluated": 5,
+        "BankSize": 5,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 52705682
+      },
+      "statistics": {
+        "Evaluated": 315,
+        "BankSize": 32,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 19977214
+      },
+      "statistics": {
+        "Evaluated": 9735,
+        "BankSize": 633,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 3,
+        "MaxSize": 11
+      }
+    }
+  ],
+  "iteration_count": 3,
+  "found": {
+    "found": "\" \".replaceAll(\"\", _arg_0).substring(-1, _arg_0.lastIndexOf(\" \"))",
+    "num_mutations": 0,
+    "solution_size": 10,
+    "solution_depth": 3
+  },
+  "total_time": {
+    "secs": 0,
+    "nanos": 73480108
+  },
+  "total_statistics": {
+    "Evaluated": 10050,
+    "BankSize": 665,
+    "FoundContextCount": 4,
+    "MaxMutatingOpcodes": 1,
+    "MaxDepth": 3,
+    "MaxSize": 11
+  },
+  "max_vm_usage": "29.10208 MB",
+  "error": null
+}

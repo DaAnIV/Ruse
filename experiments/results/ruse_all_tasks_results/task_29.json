@@ -1,0 +1,80 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/may/probe/stackoverflow1modified.sy",
+  "source": "https=//stackoverflow.com/questions/11891093/excel-function-to-replace-substring",
+  "category": "Primitive:Without Side Effects",
+  "opcode_count": 880,
+  "string_literals": [
+    " ",
+    " Inc",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 572807
+      },
+      "statistics": {
+        "Evaluated": 6,
+        "BankSize": 6,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 50374617
+      },
+      "statistics": {
+        "Evaluated": 512,
+        "BankSize": 67,
+        "FoundContextCount": 3,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 3465756
+      },
+      "statistics": {
+        "Evaluated": 1073,
+        "BankSize": 227,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 3,
+        "MaxSize": 9
+      }
+    }
+  ],
+  "iteration_count": 3,
+  "found": {
+    "found": "_arg_0.split(\" Inc\").shift()",
+    "num_mutations": 0,
+    "solution_size": 4,
+    "solution_depth": 3
+  },
+  "total_time": {
+    "secs": 0,
+    "nanos": 54895766
+  },
+  "total_statistics": {
+    "Evaluated": 1585,
+    "BankSize": 294,
+    "FoundContextCount": 5,
+    "MaxMutatingOpcodes": 1,
+    "MaxDepth": 3,
+    "MaxSize": 9
+  },
+  "max_vm_usage": "28.033024 MB",
+  "error": null
+}

@@ -1,0 +1,79 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/may/LooPy/MaxDouble.sy",
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/MaxDouble.java",
+  "category": "Primitive Objects:With Side Effects",
+  "opcode_count": 879,
+  "string_literals": [
+    " ",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 602070
+      },
+      "statistics": {
+        "Evaluated": 5,
+        "BankSize": 5,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 52577329
+      },
+      "statistics": {
+        "Evaluated": 320,
+        "BankSize": 41,
+        "FoundContextCount": 9,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 7074758
+      },
+      "statistics": {
+        "Evaluated": 1057,
+        "BankSize": 361,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 2,
+        "MaxDepth": 3,
+        "MaxSize": 8
+      }
+    }
+  ],
+  "iteration_count": 3,
+  "found": {
+    "found": "list.sort((a, b)=>a - b).pop()",
+    "num_mutations": 2,
+    "solution_size": 3,
+    "solution_depth": 3
+  },
+  "total_time": {
+    "secs": 0,
+    "nanos": 60707448
+  },
+  "total_statistics": {
+    "Evaluated": 1377,
+    "BankSize": 402,
+    "FoundContextCount": 11,
+    "MaxMutatingOpcodes": 2,
+    "MaxDepth": 3,
+    "MaxSize": 8
+  },
+  "max_vm_usage": "29.544448 MB",
+  "error": null
+}

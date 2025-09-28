@@ -1,0 +1,93 @@
+{
+  "path": "../tasks/benchmarks/fromFrangel/sypet/sypet_06_solveLinearMatrixInput.sy",
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/sypet/SyPet_06_solveLinear.java",
+  "category": "Full OOP:Without Side Effects",
+  "opcode_count": 2505,
+  "string_literals": [
+    " ",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 28468889
+      },
+      "statistics": {
+        "Evaluated": 9,
+        "BankSize": 9,
+        "FoundContextCount": 4,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 151581505
+      },
+      "statistics": {
+        "Evaluated": 1132,
+        "BankSize": 57,
+        "FoundContextCount": 0,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 2,
+        "MaxSize": 5
+      }
+    },
+    {
+      "time": {
+        "secs": 4,
+        "nanos": 141744947
+      },
+      "statistics": {
+        "Evaluated": 332196,
+        "BankSize": 6430,
+        "FoundContextCount": 4,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 3,
+        "MaxSize": 13
+      }
+    },
+    {
+      "time": {
+        "secs": 8,
+        "nanos": 707933457
+      },
+      "statistics": {
+        "Evaluated": 54407,
+        "BankSize": 18008,
+        "FoundContextCount": 0,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 4,
+        "MaxSize": 15
+      }
+    }
+  ],
+  "iteration_count": 4,
+  "found": {
+    "found": "(new Vector2D(vec.columns, vec.trace())).toArray()",
+    "num_mutations": 0,
+    "solution_size": 6,
+    "solution_depth": 4
+  },
+  "total_time": {
+    "secs": 13,
+    "nanos": 30153943
+  },
+  "total_statistics": {
+    "Evaluated": 386603,
+    "BankSize": 24438,
+    "FoundContextCount": 4,
+    "MaxMutatingOpcodes": 0,
+    "MaxDepth": 4,
+    "MaxSize": 15
+  },
+  "max_vm_usage": "898.359296 MB",
+  "error": null
+}

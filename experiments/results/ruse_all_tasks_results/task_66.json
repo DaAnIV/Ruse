@@ -1,0 +1,79 @@
+{
+  "path": "../tasks/benchmarks/fromFrangel/sypet/sypet_08_predict.sy",
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/sypet/SyPet_08_predict.java",
+  "category": "Full OOP:Without Side Effects",
+  "opcode_count": 3717,
+  "string_literals": [
+    " ",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 595707
+      },
+      "statistics": {
+        "Evaluated": 6,
+        "BankSize": 6,
+        "FoundContextCount": 4,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 91343960
+      },
+      "statistics": {
+        "Evaluated": 349,
+        "BankSize": 43,
+        "FoundContextCount": 4,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 132170648
+      },
+      "statistics": {
+        "Evaluated": 41585,
+        "BankSize": 1678,
+        "FoundContextCount": 4,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 3,
+        "MaxSize": 11
+      }
+    }
+  ],
+  "iteration_count": 3,
+  "found": {
+    "found": "(new LinearRegression(data)).predict(value)",
+    "num_mutations": 0,
+    "solution_size": 4,
+    "solution_depth": 3
+  },
+  "total_time": {
+    "secs": 0,
+    "nanos": 224343929
+  },
+  "total_statistics": {
+    "Evaluated": 41934,
+    "BankSize": 1721,
+    "FoundContextCount": 8,
+    "MaxMutatingOpcodes": 1,
+    "MaxDepth": 3,
+    "MaxSize": 11
+  },
+  "max_vm_usage": "38.670336 MB",
+  "error": null
+}

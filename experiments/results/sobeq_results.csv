@@ -1,0 +1,197 @@
+name,time (ms),ast size (raw),ast size (postprocessed),correct,store type,store size,subsumed by discarding,pruned by OE,solution,ismut
+"mutating/Frangel/IsAllPositive.sy",904,14,14,incorrect,Subsume,37652,169,102100,"[1].join('') === arr.join(' ').slice(arr.length,arr.push(0))",t
+"mutating/Frangel/IsIncreasing.sy",968,8,8,correct,Subsume,43046,167,112899,"arr.join('') === arr.sort((n1,n2) => n1 - n2).join('')",t
+"mutating/leetcode/leetcode-adddominos.sy",3600000,,,timeout,Subsume,26579467,539429,1304179078,"Timeout", 
+"mutating/leetcode/leetcode-arraypermutations-mut.sy",4263,7,7,incorrect,Subsume,295464,8117,393150,"(ans.push(nums[n]), ans)",t
+"mutating/leetcode/leetcode-arraysum.sy",3600000,,,timeout,Subsume,74618057,4827386,569825606,"Timeout", 
+"mutating/leetcode/leetcode-setdelete.sy",94,5,5,correct,Subsume,5597,928,18262,"s2.delete(nums[i])",t
+"mutating/new/ArrayCounter.sy",1234,6,6,correct,Subsume,61490,2171,165014,"(count[index]++, count)",t
+"mutating/new/ArraySwap.sy",620390,8,8,correct,Subsume,9362647,85021,149931883,"arr.push(arr.splice(i,1)[0])",t
+"mutating/new/MaxAndMin.sy",631,7,7,incorrect,Subsume,35568,126,81911,"arr.sort((n1,n2) => n1 - n2)[0] + arr.pop()",t
+"mutating/new/MaxAndMinWithN.sy",4925,10,10,incorrect,Subsume,204771,10607,546371,"arr.sort((n1,n2) => n1 - n2)[n - 1] + arr[0]",t
+"mutating/new/MoveFromAToB.sy",47,4,4,na,Subsume,2213,210,6415,"b.push(a.pop())",t
+"mutating/new/buffer-add.sy",955,13,8,incorrect,Subsume,31397,14061,294362,"arr.splice(beg, 1, toadd), beg++, beg",t
+"mutating/new/frangel-nocomps/MaxDouble.sy",42,3,3,correct,Subsume,1992,41,4497,"list.sort((n1,n2) => n1 - n2).pop()",t
+"mutating/new/frangel-nocomps/SortArrayGivenSwap.sy",2,2,2,correct,Subsume,33,1,89,"arr.sort((n1,n2) => n1 - n2)",t
+"mutating/new/loopy/fill_fibonacci_loopy_window.sy",17300,8,8,correct,Subsume,710910,1010,4401149,"out.push(out[1] + out.shift())",t
+"mutating/new/loopy/get_range_loopy_for.sy",364,5,5,correct,Subsume,5472,2600,105070,"out.push(start + i)",t
+"mutating/new/loopy/get_range_loopy_while.sy",4681,10,9,incorrect,Subsume,236850,18482,614722,"out.push(start + i), i++, i",t
+"mutating/new/loopy/rotate_queue.sy",76,4,4,correct,Subsume,4007,187,13658,"inp.push(inp.shift())",t
+"mutating/new/partition-k-largest.sy",90,5,5,na,Subsume,5864,393,16024,"nums.sort((n1,n2) => n1 - n2).splice(-k)",t
+"mutating/new/set-adddelete.sy",167,9,7,incorrect,Subsume,3824,261,49853,"(seen.add(s1), seen.delete(s2))",t
+"mutating/new/sum-two-arrays-destructive.sy",3600000,,,timeout,Subsume,61291439,9474672,919770372,"Timeout", 
+"mutating/stackoverflow/DigitsToString.sy",23,4,4,correct,Subsume,753,50,2520,"digits.reverse().join('')",t
+"mutating/stateCopies/ArrayCounter-mustmut.sy",1207,6,6,incorrect,Subsume,61490,2171,165014,"(count[index]++, count)",t
+"mutating/stateCopies/MaxAndMin-keepAllElems.sy",3600023,,,timeout,Subsume,15604721,5378,398044952,"Timeout", 
+"mutating/stateCopies/RemoveMax.sy",40,3,3,incorrect,Subsume,1992,41,4497,"list.sort((n1,n2) => n1 - n2).pop()",t
+"mutating/stateCopies/SortArrayGivenSwap-mustmut.sy",2,2,2,correct,Subsume,33,1,89,"arr.sort((n1,n2) => n1 - n2)",t
+"mutating/stateCopies/leetcode-arraypermutations-mustmut.sy",7644,7,7,incorrect,Subsume,295464,8117,393150,"(ans.push(nums[n]), ans)",t
+"non-mutating/Frangel/DelimitedStringConcat.sy",181,5,5,correct,Subsume,5183,800,21975,"a2 + a0.join(a1)",f
+"non-mutating/Frangel/RotateQueue.sy",77,8,8,incorrect,Subsume,2533,230,10326,"queue.slice(amount).concat(queue.slice(0,amount))",f
+"non-mutating/Frangel/UppercaseFirstChar.sy",1151612,9,9,correct,Subsume,3293003,39,79420389,"str.slice(0,1).toUpperCase() + str.slice(1)",f
+"non-mutating/RotateQueueOnce.sy",22,8,8,correct,Subsume,728,23,1736,"queue.concat(queue).slice(1,queue.push(0))",t
+"non-mutating/new/frangel-nocomps/AddArrayToListOrNull.sy",3,3,3,correct,Subsume,28,2,85,"arr.concat(list)",f
+"non-mutating/new/leetcode/leetcode-arraypermutation.sy",401,6,6,correct,Subsume,16900,2481,36469,"ans.concat(nums.splice(n,1))",t
+"non-mutating/new/probe/17212077modified.sy",248101,12,10,correct,Subsume,3346118,1124,83538110,"_arg_0.slice(0,2) + _arg_0.slice(_arg_0.lastIndexOf('/'))",f
+"non-mutating/new/probe/38871714modified.sy",2106,7,7,incorrect,Subsume,55928,186,507413,"_arg_0.replaceAll('<','').replaceAll('>','')",f
+"non-mutating/new/probe/43606446modified.sy",692223,11,6,correct,Subsume,694974,3269,346088621,"_arg_0.replace('>','').slice(-3)",f
+"non-mutating/new/probe/clean-and-reformat-telephone-numbersmodified.sy",3600000,,,timeout,Subsume,159004,506,3861554,"Timeout", 
+"non-mutating/new/probe/count-total-words-in-a-cellmodified.sy",118,4,4,correct,Subsume,2498,15,17348,"_arg_0.split(' ').length",f
+"non-mutating/new/probe/exceljet1modified.sy",34,7,7,correct,Subsume,602,97,6480,"_arg_1.slice(1).slice(_arg_1.indexOf('_'))",f
+"non-mutating/new/probe/exceljet2modified.sy",18,7,7,correct,Subsume,311,6,2564,"_arg_0.slice(1).slice(_arg_0.lastIndexOf('.'))",f
+"non-mutating/new/probe/exceljet3modified.sy",12,7,7,correct,Subsume,210,13,1099,"_arg_0.slice(1).slice(_arg_0.indexOf(' '))",f
+"non-mutating/new/probe/exceljet4modified.sy",20,8,8,incorrect,Subsume,283,29,2361,"_arg_0.replace('//','').slice(_arg_0.indexOf('//'))",f
+"non-mutating/new/probe/extract-nth-word-from-text-stringmodified.sy",635,7,7,correct,Subsume,6841,119,31683,"_arg_0.split(' ')[_arg_1 - 1]",f
+"non-mutating/new/probe/extract-text-between-parenthesesmodified.sy",33,9,8,incorrect,Subsume,621,11,7024,"_arg_0.slice(1).slice(_arg_0.indexOf('<'),-1)",f
+"non-mutating/new/probe/extract-word-containing-specific-textmodified.sy",3742648,,,timeout,Subsume,827193,65,140850395,"Timeout", 
+"non-mutating/new/probe/extract-word-that-begins-with-specific-charactermodified.sy",3668534,,,timeout,Subsume,2036484,65,304670908,"Timeout", 
+"non-mutating/new/probe/get-first-name-from-name-with-commamodified.sy",399837,27,25,incorrect,Subsume,4259725,32459,179593940,"(' ' + _arg_0).replace(',','  ').slice(_arg_0.replace(',','').lastIndexOf(_arg_0.slice(1,_arg_1)),_arg_0.replace(',',_arg_0).lastIndexOf(_arg_0.slice(1,_arg_1)))",f
+"non-mutating/new/probe/get-last-wordmodified.sy",13,7,7,correct,Subsume,214,5,1071,"_arg_0.slice(1).slice(_arg_0.lastIndexOf(' '))",f
+"non-mutating/new/probe/get-middle-name-from-full-namemodified.sy",41894,9,9,correct,Subsume,231542,61,12028023,"_arg_0.slice(_arg_0.indexOf(' '),_arg_0.lastIndexOf(' ')).trim()",f
+"non-mutating/new/probe/initials_smallmodified.sy",3600002,,,timeout,Subsume,19303514,761,419981118,"Timeout", 
+"non-mutating/new/probe/phone-10-longmodified.sy",1550,7,7,incorrect,Subsume,17818,385,441303,"_arg_0.replace(' ',' (').replace('-',') ')",f
+"non-mutating/new/probe/phone-5-longmodified.sy",18,6,6,correct,Subsume,292,6,2303,"_arg_0.slice(1,_arg_0.indexOf(' '))",f
+"non-mutating/new/probe/phone-6-long-repeatmodified.sy",172941,9,9,correct,Subsume,756733,527,120676102,"_arg_0.slice(_arg_0.indexOf(' '),_arg_0.indexOf('-')).trim()",f
+"non-mutating/new/probe/remove-text-by-positionmodified.sy",21,7,7,correct,Subsume,366,7,2924,"_arg_0.slice(1).slice(_arg_0.lastIndexOf('/'))",f
+"non-mutating/new/probe/split-text-string-at-specific-charactermodified.sy",428,7,7,correct,Subsume,9319,247,77140,"_arg_0.split('_')[_arg_1 - 1]",f
+"non-mutating/new/probe/stackoverflow1modified.sy",27,6,6,incorrect,Subsume,747,9,3869,"_arg_0.slice(0,_arg_0.indexOf(' Inc'))",f
+"non-mutating/new/probe/stackoverflow2modified.sy",13,6,6,incorrect,Subsume,265,5,1147,"_arg_0.slice(0,_arg_0.lastIndexOf(' '))",f
+"non-mutating/new/probe/stackoverflow4modified.sy",3600000,,,timeout,Subsume,3000063,5671,-1588209658,"Timeout", 
+"non-mutating/new/probe/stackoverflow6modified.sy",24,8,8,incorrect,Subsume,484,10,3445,"_arg_0.replace('= ','').slice(_arg_0.indexOf('= '))",f
+"non-mutating/new/probe/stackoverflow7modified.sy",32,5,5,incorrect,Subsume,511,62,3463,"_arg_0.replace(_arg_1,'').trim()",f
+"non-mutating/new/probe/strip-html-from-text-or-numbersmodified.sy",3,4,4,incorrect,Subsume,54,3,128,"_arg_0.replaceAll('<b>','')",f
+"non-mutating/new/stackoverflow/FirstAndLast.sy",61,10,8,incorrect,Subsume,1828,42,6001,"(names.splice(1,1), names.join(' '))",t
+"non-mutating/new/stackoverflow/NegativeIndex.sy",10,6,5,incorrect,Subsume,64,29,281,"str.indexOf(char) - 4",f
+"mutating/Frangel/IsAllPositive.sy",2864,17,16,incorrect,Pure OE,345426,0,17440,"arr.join('')[arr[0]] === arr.join('').slice(arr.push(0),-1)",t
+"mutating/Frangel/IsIncreasing.sy",3467,8,8,correct,Pure OE,380896,0,19665,"arr.join('') === arr.sort((n1,n2) => n1 - n2).join('')",t
+"mutating/leetcode/leetcode-adddominos.sy",3600000,,,timeout,Pure OE,30830859,0,1656674725,"Timeout", 
+"mutating/leetcode/leetcode-arraypermutations-mut.sy",3628130,10,10,incorrect,Pure OE,99969728,0,962278118,"ans.concat(nums.slice(n)).slice(0,ans.push(0))",t
+"mutating/leetcode/leetcode-arraysum.sy",3601122,,,timeout,Pure OE,39190091,0,373604676,"Timeout", 
+"mutating/leetcode/leetcode-setdelete.sy",3600178,,,timeout,Pure OE,15599107,0,168129723,"Timeout", 
+"mutating/new/ArrayCounter.sy",3600009,,,timeout,Pure OE,939285,0,34249781,"Timeout", 
+"mutating/new/ArraySwap.sy",3600047,,,timeout,Pure OE,2743094,0,49221158,"Timeout", 
+"mutating/new/MaxAndMin.sy",2931,7,7,incorrect,Pure OE,343887,0,14163,"arr.sort((n1,n2) => n1 - n2)[0] + arr.pop()",t
+"mutating/new/MaxAndMinWithN.sy",3600007,,,timeout,Pure OE,2130293,0,25466685,"Timeout", 
+"mutating/new/MoveFromAToB.sy",42,4,4,na,Pure OE,909,0,5026,"b.push(a.pop())",t
+"mutating/new/buffer-add.sy",3600000,,,timeout,Pure OE,189345,0,15526212,"Timeout", 
+"mutating/new/frangel-nocomps/MaxDouble.sy",32,3,3,correct,Pure OE,3893,0,2637,"list.sort((n1,n2) => n1 - n2).pop()",t
+"mutating/new/frangel-nocomps/SortArrayGivenSwap.sy",2,2,2,correct,Pure OE,33,0,90,"arr.sort((n1,n2) => n1 - n2)",t
+"mutating/new/loopy/fill_fibonacci_loopy_window.sy",63732,8,8,correct,Pure OE,10811452,0,1510350,"out.push(out[1] + out.shift())",t
+"mutating/new/loopy/get_range_loopy_for.sy",3600505,,,timeout,Pure OE,25544050,0,275266922,"Timeout", 
+"mutating/new/loopy/get_range_loopy_while.sy",3600374,,,timeout,Pure OE,25544050,0,275266925,"Timeout", 
+"mutating/new/loopy/rotate_queue.sy",3602488,,,timeout,Pure OE,94032545,0,950636731,"Timeout", 
+"mutating/new/partition-k-largest.sy",3600000,,,timeout,Pure OE,5388972,0,73609416,"Timeout", 
+"mutating/new/set-adddelete.sy",3600000,,,timeout,Pure OE,33563648,0,1190058741,"Timeout", 
+"mutating/new/sum-two-arrays-destructive.sy",3600000,,,timeout,Pure OE,8946215,0,411782272,"Timeout", 
+"mutating/stackoverflow/DigitsToString.sy",19,4,4,correct,Pure OE,1486,0,1837,"digits.reverse().join('')",t
+"mutating/stateCopies/ArrayCounter-mustmut.sy",3600010,,,timeout,Pure OE,939285,0,33840409,"Timeout", 
+"mutating/stateCopies/MaxAndMin-keepAllElems.sy",3600001,,,timeout,Pure OE,359801672,0,38352638,"Timeout", 
+"mutating/stateCopies/RemoveMax.sy",35,3,3,incorrect,Pure OE,3893,0,2637,"list.sort((n1,n2) => n1 - n2).pop()",t
+"mutating/stateCopies/SortArrayGivenSwap-mustmut.sy",2,2,2,correct,Pure OE,33,0,90,"arr.sort((n1,n2) => n1 - n2)",t
+"mutating/stateCopies/leetcode-arraypermutations-mustmut.sy",3600342,,,timeout,Pure OE,100663296,0,991155682,"Timeout", 
+"non-mutating/Frangel/DelimitedStringConcat.sy",57,5,5,correct,Pure OE,2945,0,15334,"a2 + a0.join(a1)",f
+"non-mutating/Frangel/RotateQueue.sy",35,8,8,incorrect,Pure OE,820,0,7673,"queue.slice(amount).concat(queue.slice(0,amount))",f
+"non-mutating/Frangel/UppercaseFirstChar.sy",1130576,9,9,correct,Pure OE,3292977,0,79319129,"str.slice(0,1).toUpperCase() + str.slice(1)",f
+"non-mutating/RotateQueueOnce.sy",20,8,8,correct,Pure OE,1136,0,1351,"queue.concat(queue).slice(1,queue.push(0))",t
+"non-mutating/new/frangel-nocomps/AddArrayToListOrNull.sy",2,3,3,correct,Pure OE,28,0,87,"arr.concat(list)",f
+"non-mutating/new/leetcode/leetcode-arraypermutation.sy",170,6,6,correct,Pure OE,2498,0,17345,"ans.concat(nums.splice(n,1))",t
+"non-mutating/new/probe/17212077modified.sy",230198,12,10,correct,Pure OE,3345936,0,82819997,"_arg_0.slice(0,2) + _arg_0.slice(_arg_0.lastIndexOf('/'))",f
+"non-mutating/new/probe/38871714modified.sy",2381,7,7,incorrect,Pure OE,55928,0,507599,"_arg_0.replaceAll('<','').replaceAll('>','')",f
+"non-mutating/new/probe/43606446modified.sy",616142,11,6,correct,Pure OE,694943,0,346091921,"_arg_0.replace('>','').slice(-3)",f
+"non-mutating/new/probe/clean-and-reformat-telephone-numbersmodified.sy",3600000,,,timeout,Pure OE,158732,0,3858096,"Timeout", 
+"non-mutating/new/probe/count-total-words-in-a-cellmodified.sy",130,4,4,correct,Pure OE,2486,0,17371,"_arg_0.split(' ').length",f
+"non-mutating/new/probe/exceljet1modified.sy",35,7,7,correct,Pure OE,532,0,6425,"_arg_1.slice(1).slice(_arg_1.indexOf('_'))",f
+"non-mutating/new/probe/exceljet2modified.sy",16,7,7,correct,Pure OE,290,0,2591,"_arg_0.slice(1).slice(_arg_0.lastIndexOf('.'))",f
+"non-mutating/new/probe/exceljet3modified.sy",10,7,7,correct,Pure OE,210,0,1112,"_arg_0.slice(1).slice(_arg_0.indexOf(' '))",f
+"non-mutating/new/probe/exceljet4modified.sy",16,8,8,incorrect,Pure OE,283,0,2390,"_arg_0.replace('//','').slice(_arg_0.indexOf('//'))",f
+"non-mutating/new/probe/extract-nth-word-from-text-stringmodified.sy",585,7,7,correct,Pure OE,6558,0,30923,"_arg_0.split(' ')[_arg_1 - 1]",f
+"non-mutating/new/probe/extract-text-between-parenthesesmodified.sy",30,9,8,incorrect,Pure OE,581,0,7075,"_arg_0.slice(1).slice(_arg_0.indexOf('<'),-1)",f
+"non-mutating/new/probe/extract-word-containing-specific-textmodified.sy",3757138,,,timeout,Pure OE,827155,0,140601785,"Timeout", 
+"non-mutating/new/probe/extract-word-that-begins-with-specific-charactermodified.sy",3621119,,,timeout,Pure OE,2036448,0,304305900,"Timeout", 
+"non-mutating/new/probe/get-first-name-from-name-with-commamodified.sy",302671,27,25,incorrect,Pure OE,3120608,0,165680322,"(' ' + _arg_0).replace(',','  ').slice(_arg_0.replace(',','').lastIndexOf(_arg_0.slice(1,_arg_1)),_arg_0.replace(',',_arg_0).lastIndexOf(_arg_0.slice(1,_arg_1)))",f
+"non-mutating/new/probe/get-last-wordmodified.sy",11,7,7,correct,Pure OE,206,0,1084,"_arg_0.slice(1).slice(_arg_0.lastIndexOf(' '))",f
+"non-mutating/new/probe/get-middle-name-from-full-namemodified.sy",41651,9,9,correct,Pure OE,231539,0,12028087,"_arg_0.slice(_arg_0.indexOf(' '),_arg_0.lastIndexOf(' ')).trim()",f
+"non-mutating/new/probe/initials_smallmodified.sy",3600000,,,timeout,Pure OE,19308499,0,440551230,"Timeout", 
+"non-mutating/new/probe/phone-10-longmodified.sy",1634,7,7,incorrect,Pure OE,17817,0,441689,"_arg_0.replace(' ',' (').replace('-',') ')",f
+"non-mutating/new/probe/phone-5-longmodified.sy",13,6,6,correct,Pure OE,269,0,2332,"_arg_0.slice(1,_arg_0.indexOf(' '))",f
+"non-mutating/new/probe/phone-6-long-repeatmodified.sy",153636,9,9,correct,Pure OE,756724,0,120676638,"_arg_0.slice(_arg_0.indexOf(' '),_arg_0.indexOf('-')).trim()",f
+"non-mutating/new/probe/remove-text-by-positionmodified.sy",17,7,7,correct,Pure OE,345,0,2952,"_arg_0.slice(1).slice(_arg_0.lastIndexOf('/'))",f
+"non-mutating/new/probe/split-text-string-at-specific-charactermodified.sy",589,7,7,correct,Pure OE,9066,0,76239,"_arg_0.split('_')[_arg_1 - 1]",f
+"non-mutating/new/probe/stackoverflow1modified.sy",27,6,6,incorrect,Pure OE,720,0,3905,"_arg_0.slice(0,_arg_0.indexOf(' Inc'))",f
+"non-mutating/new/probe/stackoverflow2modified.sy",10,6,6,incorrect,Pure OE,257,0,1160,"_arg_0.slice(0,_arg_0.lastIndexOf(' '))",f
+"non-mutating/new/probe/stackoverflow4modified.sy",3600000,,,timeout,Pure OE,4961360,0,-1292994497,"Timeout", 
+"non-mutating/new/probe/stackoverflow6modified.sy",21,8,8,incorrect,Pure OE,457,0,3482,"_arg_0.replace('= ','').slice(_arg_0.indexOf('= '))",f
+"non-mutating/new/probe/stackoverflow7modified.sy",23,5,5,incorrect,Pure OE,477,0,3559,"_arg_0.replace(_arg_1,'').trim()",f
+"non-mutating/new/probe/strip-html-from-text-or-numbersmodified.sy",3,4,4,incorrect,Pure OE,46,0,139,"_arg_0.replaceAll('<b>','')",f
+"non-mutating/new/stackoverflow/FirstAndLast.sy",92,10,8,incorrect,Pure OE,5588,0,3016,"(names.splice(1,1), names.join(' '))",t
+"non-mutating/new/stackoverflow/NegativeIndex.sy",8,6,6,correct,Pure OE,63,0,311,"str.indexOf(char) - str.length",f
+"mutating/Frangel/IsAllPositive.sy",3601520,,,timeout,No-OE,386632074,0,0,"Timeout", 
+"mutating/Frangel/IsIncreasing.sy",4014073,,,timeout,No-OE,410801365,0,0,"Timeout", 
+"mutating/leetcode/leetcode-adddominos.sy",3600047,,,timeout,No-OE,41902802,0,0,"Timeout", 
+"mutating/leetcode/leetcode-arraypermutations-mut.sy",3600000,,,timeout,No-OE,102058396,0,0,"Timeout", 
+"mutating/leetcode/leetcode-arraysum.sy",3600016,,,timeout,No-OE,196706586,0,0,"Timeout", 
+"mutating/leetcode/leetcode-setdelete.sy",5572,5,5,correct,No-OE,912892,0,0,"s2.delete(nums[i])",t
+"mutating/new/ArrayCounter.sy",3813190,,,timeout,No-OE,334126164,0,0,"Timeout", 
+"mutating/new/ArraySwap.sy",3600000,,,timeout,No-OE,138849650,0,0,"Timeout", 
+"mutating/new/MaxAndMin.sy",3760595,,,timeout,No-OE,411109907,0,0,"Timeout", 
+"mutating/new/MaxAndMinWithN.sy",4332531,,,timeout,No-OE,333985785,0,0,"Timeout", 
+"mutating/new/MoveFromAToB.sy",2636,4,4,na,No-OE,510192,0,0,"b.push(a.pop())",t
+"mutating/new/buffer-add.sy",159853,13,8,incorrect,No-OE,26344852,0,0,"arr.splice(beg, 1, toadd), beg++, beg",t
+"mutating/new/frangel-nocomps/MaxDouble.sy",1584,3,3,correct,No-OE,458555,0,0,"list.sort((n1,n2) => n1 - n2).pop()",t
+"mutating/new/frangel-nocomps/SortArrayGivenSwap.sy",2,2,2,correct,No-OE,123,0,0,"arr.sort((n1,n2) => n1 - n2)",t
+"mutating/new/loopy/fill_fibonacci_loopy_window.sy",3840714,,,timeout,No-OE,410094012,0,0,"Timeout", 
+"mutating/new/loopy/get_range_loopy_for.sy",14524,5,5,correct,No-OE,4383860,0,0,"out.push(start + i)",t
+"mutating/new/loopy/get_range_loopy_while.sy",3600028,,,timeout,No-OE,223864489,0,0,"Timeout", 
+"mutating/new/loopy/rotate_queue.sy",4445,4,4,correct,No-OE,1023287,0,0,"inp.push(inp.shift())",t
+"mutating/new/partition-k-largest.sy",2886,5,5,na,No-OE,902905,0,0,"nums.sort((n1,n2) => n1 - n2).splice(-k)",t
+"mutating/new/set-adddelete.sy",3600249,,,timeout,No-OE,24460859,0,0,"Timeout", 
+"mutating/new/sum-two-arrays-destructive.sy",3607044,,,timeout,No-OE,290108286,0,0,"Timeout", 
+"mutating/stackoverflow/DigitsToString.sy",1126,4,4,correct,No-OE,315662,0,0,"digits.reverse().join('')",t
+"mutating/stateCopies/ArrayCounter-mustmut.sy",3608383,,,timeout,No-OE,333791425,0,0,"Timeout", 
+"mutating/stateCopies/MaxAndMin-keepAllElems.sy",3811718,,,timeout,No-OE,411669480,0,0,"Timeout", 
+"mutating/stateCopies/RemoveMax.sy",2313,3,3,incorrect,No-OE,458555,0,0,"list.sort((n1,n2) => n1 - n2).pop()",t
+"mutating/stateCopies/SortArrayGivenSwap-mustmut.sy",1,2,2,correct,No-OE,123,0,0,"arr.sort((n1,n2) => n1 - n2)",t
+"mutating/stateCopies/leetcode-arraypermutations-mustmut.sy",3600000,,,timeout,No-OE,102058396,0,0,"Timeout", 
+"non-mutating/Frangel/DelimitedStringConcat.sy",3088,5,5,correct,No-OE,852705,0,0,"a2 + a0.join(a1)",f
+"non-mutating/Frangel/RotateQueue.sy",2903,8,8,incorrect,No-OE,847772,0,0,"queue.slice(amount).concat(queue.slice(0,amount))",f
+"non-mutating/Frangel/UppercaseFirstChar.sy",3600024,,,timeout,No-OE,2246720,0,0,"Timeout", 
+"non-mutating/RotateQueueOnce.sy",1087,8,8,correct,No-OE,263532,0,0,"queue.concat(queue).slice(1,queue.push(0))",t
+"non-mutating/new/frangel-nocomps/AddArrayToListOrNull.sy",2,3,3,correct,No-OE,115,0,0,"arr.concat(list)",f
+"non-mutating/new/leetcode/leetcode-arraypermutation.sy",4178,6,6,correct,No-OE,1077535,0,0,"ans.concat(nums.splice(n,1))",t
+"non-mutating/new/probe/17212077modified.sy",3600156,,,timeout,No-OE,15428084,0,0,"Timeout", 
+"non-mutating/new/probe/38871714modified.sy",292505,7,7,incorrect,No-OE,75601844,0,0,"_arg_0.replaceAll('<','').replaceAll('>','')",f
+"non-mutating/new/probe/43606446modified.sy",3600811,,,timeout,No-OE,78705627,0,0,"Timeout", 
+"non-mutating/new/probe/clean-and-reformat-telephone-numbersmodified.sy",3649376,,,timeout,No-OE,255548363,0,0,"Timeout", 
+"non-mutating/new/probe/count-total-words-in-a-cellmodified.sy",11450,4,4,correct,No-OE,2196251,0,0,"_arg_0.split(' ').length",f
+"non-mutating/new/probe/exceljet1modified.sy",879,7,7,correct,No-OE,247940,0,0,"_arg_1.slice(1).slice(_arg_1.indexOf('_'))",f
+"non-mutating/new/probe/exceljet2modified.sy",272,7,7,correct,No-OE,84797,0,0,"_arg_0.slice(1).slice(_arg_0.lastIndexOf('.'))",f
+"non-mutating/new/probe/exceljet3modified.sy",99,7,7,correct,No-OE,26722,0,0,"_arg_0.slice(1).slice(_arg_0.indexOf(' '))",f
+"non-mutating/new/probe/exceljet4modified.sy",260,8,8,incorrect,No-OE,93873,0,0,"_arg_0.replace('//','').slice(_arg_0.indexOf('//'))",f
+"non-mutating/new/probe/extract-nth-word-from-text-stringmodified.sy",23183,7,7,correct,No-OE,3848210,0,0,"_arg_0.split(' ')[_arg_1 - 1]",f
+"non-mutating/new/probe/extract-text-between-parenthesesmodified.sy",1301,10,8,incorrect,No-OE,305684,0,0,"_arg_0.slice(1).slice(_arg_0.indexOf('<'),-1)",f
+"non-mutating/new/probe/extract-word-containing-specific-textmodified.sy",3600217,,,timeout,No-OE,15428195,0,0,"Timeout", 
+"non-mutating/new/probe/extract-word-that-begins-with-specific-charactermodified.sy",3600474,,,timeout,No-OE,15428195,0,0,"Timeout", 
+"non-mutating/new/probe/get-first-name-from-name-with-commamodified.sy",3600543,,,timeout,No-OE,22911391,0,0,"Timeout", 
+"non-mutating/new/probe/get-last-wordmodified.sy",137,7,7,correct,No-OE,24977,0,0,"_arg_0.slice(1).slice(_arg_0.lastIndexOf(' '))",f
+"non-mutating/new/probe/get-middle-name-from-full-namemodified.sy",3600057,,,timeout,No-OE,2368330,0,0,"Timeout", 
+"non-mutating/new/probe/initials_smallmodified.sy",3600133,,,timeout,No-OE,15428078,0,0,"Timeout", 
+"non-mutating/new/probe/phone-10-longmodified.sy",668470,7,7,incorrect,No-OE,130072588,0,0,"_arg_0.replace(' ',' (').replace('-',') ')",f
+"non-mutating/new/probe/phone-5-longmodified.sy",442,8,6,correct,No-OE,96310,0,0,"_arg_0.slice(1,_arg_0.indexOf(' '))",f
+"non-mutating/new/probe/phone-6-long-repeatmodified.sy",3600401,,,timeout,No-OE,15428195,0,0,"Timeout", 
+"non-mutating/new/probe/remove-text-by-positionmodified.sy",428,7,7,correct,No-OE,84802,0,0,"_arg_0.slice(1).slice(_arg_0.lastIndexOf('/'))",f
+"non-mutating/new/probe/split-text-string-at-specific-charactermodified.sy",88003,7,7,correct,No-OE,21997053,0,0,"_arg_0.split('_')[_arg_1 - 1]",f
+"non-mutating/new/probe/stackoverflow1modified.sy",271,8,6,incorrect,No-OE,96950,0,0,"_arg_0.slice(0,_arg_0.indexOf(' Inc'))",f
+"non-mutating/new/probe/stackoverflow2modified.sy",144,8,6,incorrect,No-OE,28738,0,0,"_arg_0.slice(0,_arg_0.lastIndexOf(' '))",f
+"non-mutating/new/probe/stackoverflow4modified.sy",3601834,,,timeout,No-OE,261433039,0,0,"Timeout", 
+"non-mutating/new/probe/stackoverflow6modified.sy",522,8,8,incorrect,No-OE,87661,0,0,"_arg_0.replace('= ','').slice(_arg_0.indexOf('= '))",f
+"non-mutating/new/probe/stackoverflow7modified.sy",279,5,5,incorrect,No-OE,85807,0,0,"_arg_0.replace(_arg_1,'').trim()",f
+"non-mutating/new/probe/strip-html-from-text-or-numbersmodified.sy",2,4,4,incorrect,No-OE,185,0,0,"_arg_0.replaceAll('<b>','')",f
+"non-mutating/new/stackoverflow/FirstAndLast.sy",581246,10,8,incorrect,No-OE,67082544,0,0,"(names.splice(1,1), names.join(' '))",t
+"non-mutating/new/stackoverflow/NegativeIndex.sy",112,6,5,incorrect,No-OE,3551,0,0,"str.indexOf(char) - 4",f
+"sobeq_from_ruse/x_y_mut_inc.sy",105,9,8,correct,Subsume,672,211,0,"x++, y++, x + y",t
+"sobeq_from_ruse/ab.sy",4,3,3,correct,Subsume,37,16,0,"a + b",f
+"sobeq_from_ruse/abc.sy",67,5,5,correct,Subsume,899,169,0,"a + (b + c)",f
+"sobeq_from_ruse/abcd.sy",50,7,7,incorrect,Subsume,925,309,0,"(a + ' ') + (c + d)",f
+"sobeq_from_ruse/elasticsearch_mergePaths.sy",62,5,5,correct,Subsume,1665,258,0,"path + ('.' + field)",f
+"sobeq_from_ruse/elasticsearch_split.sy",3604837,,,timeout,Subsume,21517368,664971,0,"Timeout", 
+"sobeq_from_ruse/seq.sy",13,5,5,correct,Subsume,166,15,0,"(x.push(y), x)",t

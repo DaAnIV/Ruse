@@ -1,0 +1,94 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/may/probe/extract-word-containing-specific-textmodified.sy",
+  "source": "https=//exceljet.net/formula/extract-word-containing-specific-text",
+  "category": "Primitive:Without Side Effects",
+  "opcode_count": 880,
+  "string_literals": [
+    " ",
+    "_",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 511296
+      },
+      "statistics": {
+        "Evaluated": 6,
+        "BankSize": 6,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 50094692
+      },
+      "statistics": {
+        "Evaluated": 512,
+        "BankSize": 57,
+        "FoundContextCount": 3,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 366197608
+      },
+      "statistics": {
+        "Evaluated": 189409,
+        "BankSize": 5134,
+        "FoundContextCount": 27,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 3,
+        "MaxSize": 13
+      }
+    },
+    {
+      "time": {
+        "secs": 13,
+        "nanos": 277964776
+      },
+      "statistics": {
+        "Evaluated": 15195999,
+        "BankSize": 1317125,
+        "FoundContextCount": 3,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 4,
+        "MaxSize": 25
+      }
+    }
+  ],
+  "iteration_count": 4,
+  "found": {
+    "found": "_arg_0.split(\" \").sort()[_arg_0.length / _arg_0.indexOf(\"_\")]",
+    "num_mutations": 0,
+    "solution_size": 11,
+    "solution_depth": 4
+  },
+  "total_time": {
+    "secs": 13,
+    "nanos": 695355591
+  },
+  "total_statistics": {
+    "Evaluated": 15385408,
+    "BankSize": 1322259,
+    "FoundContextCount": 30,
+    "MaxMutatingOpcodes": 1,
+    "MaxDepth": 4,
+    "MaxSize": 25
+  },
+  "max_vm_usage": "7.332356096 GB",
+  "error": null
+}

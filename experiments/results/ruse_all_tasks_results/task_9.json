@@ -1,0 +1,79 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/may/probe/extract-nth-word-from-text-stringmodified.sy",
+  "source": "https=//exceljet.net/formula/extract-nth-word-from-text-string",
+  "category": "Primitive:Without Side Effects",
+  "opcode_count": 880,
+  "string_literals": [
+    " ",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 501952
+      },
+      "statistics": {
+        "Evaluated": 6,
+        "BankSize": 6,
+        "FoundContextCount": 4,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 50859351
+      },
+      "statistics": {
+        "Evaluated": 519,
+        "BankSize": 58,
+        "FoundContextCount": 6,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 56822619
+      },
+      "statistics": {
+        "Evaluated": 39412,
+        "BankSize": 2485,
+        "FoundContextCount": 4,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 3,
+        "MaxSize": 9
+      }
+    }
+  ],
+  "iteration_count": 3,
+  "found": {
+    "found": "_arg_0.split(\" \")[--_arg_1]",
+    "num_mutations": 1,
+    "solution_size": 6,
+    "solution_depth": 3
+  },
+  "total_time": {
+    "secs": 0,
+    "nanos": 108424323
+  },
+  "total_statistics": {
+    "Evaluated": 39931,
+    "BankSize": 2543,
+    "FoundContextCount": 10,
+    "MaxMutatingOpcodes": 1,
+    "MaxDepth": 3,
+    "MaxSize": 9
+  },
+  "max_vm_usage": "28.028928 MB",
+  "error": null
+}

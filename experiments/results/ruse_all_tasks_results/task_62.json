@@ -1,0 +1,89 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/must/sobeq-new/leetcode-arraysum.sy",
+  "source": "https://leetcode.com/problems/running-sum-of-1d-array/",
+  "category": "Primitive Objects:With Side Effects",
+  "opcode_count": 882,
+  "string_literals": [
+    " ",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1,
+    -1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 1502204
+      },
+      "statistics": {
+        "Evaluated": 8,
+        "BankSize": 8,
+        "FoundContextCount": 5,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 68505283
+      },
+      "statistics": {
+        "Evaluated": 1196,
+        "BankSize": 130,
+        "FoundContextCount": 43,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 10,
+        "nanos": 794387064
+      },
+      "statistics": {
+        "Evaluated": 1733075,
+        "BankSize": 68895,
+        "FoundContextCount": 5279,
+        "MaxMutatingOpcodes": 3,
+        "MaxDepth": 3,
+        "MaxSize": 12
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 0
+      },
+      "statistics": {
+        "Evaluated": 32921144,
+        "BankSize": 12578022,
+        "FoundContextCount": 43,
+        "MaxMutatingOpcodes": 3,
+        "MaxDepth": 4,
+        "MaxSize": 17
+      }
+    }
+  ],
+  "iteration_count": 4,
+  "found": null,
+  "total_time": {
+    "secs": 42,
+    "nanos": 1434980
+  },
+  "total_statistics": {
+    "Evaluated": 34654181,
+    "BankSize": 12646898,
+    "FoundContextCount": 5322,
+    "MaxMutatingOpcodes": 3,
+    "MaxDepth": 4,
+    "MaxSize": 17
+  },
+  "max_vm_usage": "109.583425536 GB",
+  "error": "OOM"
+}
