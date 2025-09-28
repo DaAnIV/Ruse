@@ -13,7 +13,7 @@ use ruse_object_graph::{
 };
 use ruse_synthesizer::{
     bank::ProgBank,
-    context::{Context, ContextArray, GraphIdGenerator, ValuesMap, VariableName},
+    context::{Context, ContextArray, ValuesMap, VariableName},
     opcode::{ExprOpcode, OpcodesList},
     synthesizer::SynthesizerPredicate,
     synthesizer_context::SynthesizerContext,

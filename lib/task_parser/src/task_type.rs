@@ -7,9 +7,8 @@ use std::{
 
 use ruse_object_graph::{
     class_name, field_name, fields, str_cached, value::Value, vbool, vnull, vnum, vobj, vstr,
-    GraphIndex, GraphsMap, ObjectType, PrimitiveValue, ValueType,
+    GraphIdGenerator, GraphIndex, GraphsMap, ObjectType, PrimitiveValue, ValueType,
 };
-use ruse_synthesizer::context::GraphIdGenerator;
 use ruse_ts_interpreter::{
     dom::{self, DomLoader},
     engine_context::EngineContext,

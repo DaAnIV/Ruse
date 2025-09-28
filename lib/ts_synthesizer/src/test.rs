@@ -3,12 +3,12 @@ mod tests {
     use std::{collections::HashMap, sync::Arc};
 
     use object_graph::{str_cached, Number};
+    use ruse_bank_in_mem::subsumption_bank::SubsumptionProgBank;
     use ruse_object_graph::{
         self as object_graph, class_name, field_name, location::Location, root_name, value::Value,
-        vnum, vstr, GraphsMap, ValueType,
+        vnum, vstr, GraphIdGenerator, GraphsMap, ValueType,
     };
-    use ruse_bank_in_mem::subsumption_bank::SubsumptionProgBank;
-    use ruse_synthesizer::context::{Context, ContextArray, GraphIdGenerator};
+    use ruse_synthesizer::context::{Context, ContextArray};
     use ruse_synthesizer::synthesizer_context::SynthesizerContext;
     use ruse_ts_interpreter::ts_classes::TsClassesBuilder;
     use swc_ecma_ast as ast;

@@ -8,12 +8,9 @@ use ruse_object_graph::{
     class_name,
     location::LocValue,
     value::{ObjectValue, Value},
-    FieldName, GraphIndex, GraphsMap, NodeIndex, ObjectGraph, ObjectType,
+    FieldName, GraphIdGenerator, GraphIndex, GraphsMap, NodeIndex, ObjectGraph, ObjectType,
 };
-use ruse_synthesizer::{
-    context::GraphIdGenerator,
-    opcode::{ExprOpcode, OpcodesList},
-};
+use ruse_synthesizer::opcode::{ExprOpcode, OpcodesList};
 use swc::atoms::Atom;
 
 use crate::{

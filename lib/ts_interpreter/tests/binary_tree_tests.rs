@@ -2,10 +2,11 @@ use std::sync::Arc;
 
 use itertools::Itertools;
 use ruse_object_graph::{
-    class_name, root_name, value::Value, vnull, vnum, ClassName, GraphsMap, Number,
+    class_name, root_name, value::Value, vnull, vnum, ClassName, GraphIdGenerator, GraphsMap,
+    Number,
 };
 use ruse_synthesizer::{
-    context::{Context, ContextArray, GraphIdGenerator, ValuesMap},
+    context::{Context, ContextArray, ValuesMap},
     embedding::merge_context_arrays,
     op_chain,
     synthesizer_context::SynthesizerContext,

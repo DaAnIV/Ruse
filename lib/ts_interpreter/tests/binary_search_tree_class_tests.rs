@@ -7,10 +7,10 @@ use ruse_object_graph::{
     mermaid::{self, MermaidConfig},
     root_name,
     value::{ObjectValue, Value},
-    vnull, vnum, ClassName, GraphsMap, Number,
+    vnull, vnum, ClassName, GraphIdGenerator, GraphsMap, Number,
 };
 use ruse_synthesizer::{
-    context::{Context, ContextArray, GraphIdGenerator},
+    context::{Context, ContextArray},
     op_chain,
     synthesizer_context::SynthesizerContext,
     test::helpers::evaluate_chain,

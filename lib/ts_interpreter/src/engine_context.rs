@@ -13,9 +13,10 @@ use boa_gc::{Finalize, GcRef, GcRefMut, Trace};
 use ruse_object_graph::{
     class_name, temp_value,
     value::{ObjectValue, Value},
-    vnull, ClassName, FieldName, GraphIndex, GraphsMap, ObjectType, PrimitiveValue, ValueType,
+    vnull, ClassName, FieldName, GraphIdGenerator, GraphIndex, GraphsMap, ObjectType,
+    PrimitiveValue, ValueType,
 };
-use ruse_synthesizer::context::{Context, GraphIdGenerator};
+use ruse_synthesizer::context::Context;
 use tracing::trace;
 
 use crate::{

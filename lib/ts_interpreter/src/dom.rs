@@ -1,9 +1,8 @@
 use html_parser::{self, Dom};
 use ruse_object_graph::{
-    field_name, fields, root_name, str_cached, FieldsMap, GraphIndex, GraphsMap, NodeIndex,
-    ObjectType, PrimitiveValue, RootName,
+    field_name, fields, root_name, str_cached, FieldsMap, GraphIdGenerator, GraphIndex, GraphsMap,
+    NodeIndex, ObjectType, PrimitiveValue, RootName,
 };
-use ruse_synthesizer::context::GraphIdGenerator;
 
 pub struct DomLoader {}
 

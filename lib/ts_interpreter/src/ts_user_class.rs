@@ -5,12 +5,10 @@ use ruse_object_graph::{
     class_name,
     location::LocValue,
     value::{ObjectValue, Value},
-    ClassName, FieldName, GraphIndex, GraphsMap, NodeIndex, ObjectGraph, ObjectType, ValueType,
+    ClassName, FieldName, GraphIdGenerator, GraphIndex, GraphsMap, NodeIndex, ObjectGraph,
+    ObjectType, ValueType,
 };
-use ruse_synthesizer::{
-    context::GraphIdGenerator,
-    opcode::{ExprOpcode, OpcodesList},
-};
+use ruse_synthesizer::opcode::{ExprOpcode, OpcodesList};
 use swc_ecma_visit::{Visit, VisitWith};
 use tracing::error;
 

@@ -699,22 +699,22 @@ macro_rules! vnull {
 #[macro_export]
 macro_rules! vbool {
     ($e:expr) => {
-        $crate::value::Value::Primitive(ruse_object_graph::PrimitiveValue::Bool($e))
+        $crate::value::Value::Primitive($crate::PrimitiveValue::Bool($e))
     };
 }
 
 #[macro_export]
 macro_rules! vnum {
     ($e:expr) => {
-        $crate::value::Value::Primitive(ruse_object_graph::PrimitiveValue::Number($e))
+        $crate::value::Value::Primitive($crate::PrimitiveValue::Number($e))
     };
 }
 
 #[macro_export]
 macro_rules! vstr {
     ($x:expr) => {
-        $crate::value::Value::Primitive(ruse_object_graph::PrimitiveValue::String(
-            ruse_object_graph::StringValue::from($x),
+        $crate::value::Value::Primitive($crate::PrimitiveValue::String(
+            $crate::StringValue::from($x),
         ))
     };
 }

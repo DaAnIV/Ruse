@@ -15,13 +15,13 @@ pub mod helpers {
         location::{LocValue, Location, RootLoc},
         root_name, str_cached,
         value::{ObjectValue, Value},
-        vbool, FieldName, FieldsMap, GraphsMap, Number, ObjectType, PrimitiveValue, RootName,
-        ValueType,
+        vbool, FieldName, FieldsMap, GraphIdGenerator, GraphsMap, Number, ObjectType,
+        PrimitiveValue, RootName, ValueType,
     };
 
     use crate::{
         bank::*,
-        context::{Context, ContextArray, GraphIdGenerator, ValuesMap, VariableName},
+        context::{Context, ContextArray, ValuesMap, VariableName},
         dirty,
         embedding::merge_context_arrays,
         opcode::{EvalResult, ExprAst, ExprOpcode},
@@ -575,7 +575,6 @@ mod bank_iterator_tests {
     use crate::{
         bank::*,
         bank_hasher::BankHasherBuilder,
-        context::GraphIdGenerator,
         iterator::bank_iterator::bank_iterator,
         iterator::multi_programs_map_product::{
             multi_programs_map_product, ProgramChildrenIterator,
@@ -592,7 +591,7 @@ mod bank_iterator_tests {
     use ruse_object_graph::{
         location::{LocValue, Location},
         value::Value,
-        vnum, Number, ValueType,
+        vnum, GraphIdGenerator, Number, ValueType,
     };
 
     use crate::{
@@ -1180,11 +1179,12 @@ mod embedding_tests {
 
     use itertools::Itertools;
     use ruse_object_graph::{
-        field_name, graph_map_value::GraphMapWrap, root_name, vobj, vstr, GraphsMap, ObjectType,
+        field_name, graph_map_value::GraphMapWrap, root_name, vobj, vstr, GraphIdGenerator,
+        GraphsMap, ObjectType,
     };
 
     use crate::{
-        context::{Context, ContextArray, GraphIdGenerator},
+        context::{Context, ContextArray},
         embedding::merge_context,
         synthesizer_context::SynthesizerContext,
     };
@@ -1413,13 +1413,13 @@ mod prog_tests {
     use std::sync::Arc;
 
     use crate::{
-        context::{Context, ContextArray, GraphIdGenerator},
+        context::{Context, ContextArray},
         dirty,
         prog::SubProgram,
         synthesizer_context::{SynthesizerContext, SynthesizerWorkerContext},
         test::helpers::*,
     };
-    use ruse_object_graph::{root_name, vnum, GraphsMap, Number};
+    use ruse_object_graph::{root_name, vnum, GraphIdGenerator, GraphsMap, Number};
 
     #[test]
     fn modify_post_ctx_test() {

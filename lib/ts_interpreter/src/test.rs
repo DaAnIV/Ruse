@@ -54,9 +54,9 @@ pub mod ts_op_helpers {
 mod ts_simple_opcodes_tests {
     use std::sync::Arc;
 
-    use context::{Context, ContextArray, GraphIdGenerator};
+    use context::{Context, ContextArray};
     use graph_map_value::GraphMapWrap;
-    use ruse_object_graph::location::{Location, RootLoc};
+    use ruse_object_graph::location::Location;
     use ruse_object_graph::*;
     use ruse_synthesizer::opcode::ExprOpcode;
     use ruse_synthesizer::test::helpers::generate_context_from_array;
@@ -478,7 +478,7 @@ mod ts_class_tests {
     use boa_engine::{js_string, property::Attribute};
     use graph_map_value::GraphMapWrap;
     use ruse_object_graph::{value::*, *};
-    use ruse_synthesizer::context::{Context, ContextArray, GraphIdGenerator, ValuesMap};
+    use ruse_synthesizer::context::{Context, ContextArray, ValuesMap};
     use ruse_synthesizer::synthesizer_context::SynthesizerContext;
     use ruse_synthesizer::test::helpers::{get_composite_prog, get_init_prog};
 
@@ -1094,10 +1094,11 @@ mod specific_bugs_tests {
     use std::sync::Arc;
 
     use ruse_object_graph::{
-        graph_map_value::GraphMapWrap, root_name, vnum, vstr, GraphsMap, Number, ValueType,
+        graph_map_value::GraphMapWrap, root_name, vnum, vstr, GraphIdGenerator, GraphsMap, Number,
+        ValueType,
     };
     use ruse_synthesizer::{
-        context::{Context, ContextArray, GraphIdGenerator, ValuesMap},
+        context::{Context, ContextArray, ValuesMap},
         embedding::merge_context_arrays,
         op_chain,
         synthesizer_context::SynthesizerContext,

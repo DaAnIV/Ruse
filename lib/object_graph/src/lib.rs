@@ -14,6 +14,7 @@ mod string_types;
 pub mod value;
 mod value_type;
 pub mod location;
+mod graph_id_generator;
 
 pub use graph::*;
 pub use graph_node::*;
@@ -22,5 +23,6 @@ pub use indices::{GraphIndex, NodeIndex};
 pub use primitive_fields::*;
 pub use string_types::*;
 pub use value_type::*;
+pub use graph_id_generator::GraphIdGenerator;
 
 mod test;
