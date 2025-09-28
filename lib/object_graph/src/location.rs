@@ -115,12 +115,20 @@ impl Location {
     ) -> bool {
         if self.is_temp() || other.is_temp() {
             return self.is_temp() == other.is_temp();
+        }            
+        match (self, other) {
+            (Location::Root(self_root_loc), Location::Root(other_root_loc)) => {
+                if self_root_loc.root == other_root_loc.root {
+                    return true;
+                }
+            }
+            _ => ()
         }
 
         if is_primitive {
             match (self, other) {
-                (Location::Root(self_root_loc), Location::Root(other_root_loc)) => {
-                    return self_root_loc.root == other_root_loc.root;
+                (Location::Root(_), Location::Root(_)) => {
+                    return false;
                 }
                 (
                     Location::ObjectField(self_object_field_loc),
@@ -132,10 +140,6 @@ impl Location {
                 }
                 _ => return false,
             };
-        }
-
-        if self.var() == other.var() {
-            return true;
         }
 
         let self_node = self.get_node_id(self_graphs_map).unwrap();

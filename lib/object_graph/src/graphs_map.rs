@@ -160,15 +160,6 @@ impl GraphsMap {
             node.attributes.readonly = true;
         }
     }
-
-    pub(crate) fn common_roots<'a>(
-        &'a self,
-        other_graphs_map: &'a GraphsMap,
-    ) -> impl Iterator<Item = &'a RootName> {
-        self.roots
-            .keys()
-            .filter(|root| other_graphs_map.roots.contains_key(*root))
-    }
 }
 
 impl GraphsMap {
@@ -216,7 +207,23 @@ impl GraphsMap {
         let root_names = self.node_roots_names.get(node_id)?;
         Some(root_names.iter())
     }
+
+    pub(crate) fn common_roots<'a>(
+        &'a self,
+        other_graphs_map: &'a GraphsMap,
+    ) -> impl Iterator<Item = &'a RootName> {
+        self.roots
+            .keys()
+            .filter(|root| other_graphs_map.roots.contains_key(*root))
+    }
 }
+
+impl GraphsMap {
+    pub fn obj_type(&self, graph_id: GraphIndex, node_id: NodeIndex) -> Option<&ObjectType> {
+        self.get(&graph_id).and_then(|g| g.obj_type(&node_id))
+    }
+}
+
 
 impl GraphsMap {
     pub fn construct_node(
