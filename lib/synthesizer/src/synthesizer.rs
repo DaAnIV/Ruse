@@ -468,7 +468,7 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
         for i in 0..self.worker_count {
             let mut batch_builder = current_iteration_map.create_batch_builder();
             let self_clone = self.clone();
-            workers.spawn(
+            workers.spawn_blocking(move || { Handle::current().block_on(
                 panic::AssertUnwindSafe(async move {
                     let found =
                         Self::composite_iteration_worker(self_clone, &mut batch_builder, i).await;
@@ -476,7 +476,7 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
                 })
                 .catch_unwind()
                 .in_current_span(),
-            );
+            )});
         }
 
         while let Some(worker_res) = select! {
