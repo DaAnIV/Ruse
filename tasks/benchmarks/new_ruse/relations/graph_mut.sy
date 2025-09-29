@@ -3,7 +3,6 @@
     "import": [
       "../../../classes/ruse/graph.ts"
     ],
-    "returnType": "Int",
     "variables": {
       "graph1": "GraphNode",
       "graph2": "GraphNode",
@@ -23,18 +22,18 @@
             "@js": "new GraphNode(7, new GraphNode(5))"
           }
         },
-        "output": "18"
+        "predicate_js": "graph1.value == 6 && graph2.value == 7 && graph3.value == 8"
       }
     ],
     "solution": {
       "has_side_effects": "yes",
       "expected": [
-        "graph1.value + graph2.value + graph3.value",
-        "graph1.value + graph3.value + graph2.value",
-        "graph2.value + graph1.value + graph3.value",
-        "graph2.value + graph3.value + graph1.value",
-        "graph3.value + graph1.value + graph2.value",
-        "graph3.value + graph2.value + graph1.value"
+        "graph1.inc_value(); graph2.inc_value(); graph3.inc_value()",
+        "graph1.inc_value(); graph3.inc_value(); graph2.inc_value()",
+        "graph2.inc_value(); graph1.inc_value(); graph3.inc_value()",
+        "graph2.inc_value(); graph3.inc_value(); graph1.inc_value()",
+        "graph3.inc_value(); graph1.inc_value(); graph2.inc_value()",
+        "graph3.inc_value(); graph2.inc_value(); graph1.inc_value()"
       ]
     }
   }

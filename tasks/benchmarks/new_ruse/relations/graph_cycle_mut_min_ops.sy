@@ -8,7 +8,6 @@
     "graph2": "*graph1.neighbors.0",
     "graph3": "*graph2.neighbors.0"
   },
-  "returnType": "Int",
   "intLiterals": [],
   "examples": [
     {
@@ -27,18 +26,22 @@
           ]
         }
       },
-      "output": "18"
+      "predicate_js": "graph1.value == 6 && graph2.value == 7 && graph3.value == 8"
     }
+  ],
+  "opcodes": [
+    "GraphNode.inc_value",
+    "Sequence[Null,Null,Null]"
   ],
   "solution": {
     "has_side_effects": "yes",
     "expected": [
-      "graph1.value + graph2.value + graph3.value",
-      "graph1.value + graph3.value + graph2.value",
-      "graph2.value + graph1.value + graph3.value",
-      "graph2.value + graph3.value + graph1.value",
-      "graph3.value + graph1.value + graph2.value",
-      "graph3.value + graph2.value + graph1.value"
+      "graph1.inc_value(); graph2.inc_value(); graph3.inc_value()",
+      "graph1.inc_value(); graph3.inc_value(); graph2.inc_value()",
+      "graph2.inc_value(); graph1.inc_value(); graph3.inc_value()",
+      "graph2.inc_value(); graph3.inc_value(); graph1.inc_value()",
+      "graph3.inc_value(); graph1.inc_value(); graph2.inc_value()",
+      "graph3.inc_value(); graph2.inc_value(); graph1.inc_value()"
     ]
   }
 }
