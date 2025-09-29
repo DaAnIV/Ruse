@@ -10,8 +10,4 @@ export class GraphNode {
     public inc_value(delta: number): void {
         this.value += delta;
     }
-    
-    public add_neighbor(neighbor: GraphNode): void {
-        this.neighbors.push(neighbor);
-    }
 }

@@ -18,9 +18,9 @@
             "  let graph1 = new GraphNode(5);",
             "  let graph2 = new GraphNode(6);",
             "  let graph3 = new GraphNode(7);",
-            "  graph1.add_neighbor(graph2);",
-            "  graph2.add_neighbor(graph3);",
-            "  graph3.add_neighbor(graph1);",
+            "  graph1.neighbors.push(graph2);",
+            "  graph2.neighbors.push(graph3);",
+            "  graph3.neighbors.push(graph1);",
             "  return graph1;",
             "})()"
           ]
@@ -28,10 +28,6 @@
       },
       "predicate_js": "graph1.value == 6 && graph2.value == 7 && graph3.value == 8"
     }
-  ],
-  "opcodes": [
-    "GraphNode.inc_value",
-    "Sequence[Null,Null,Null]"
   ],
   "solution": {
     "has_side_effects": "yes",

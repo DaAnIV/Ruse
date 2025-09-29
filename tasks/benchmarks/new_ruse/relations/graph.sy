@@ -23,7 +23,7 @@
             "@js": "new GraphNode(7, new GraphNode(5))"
           }
         },
-        "output": "18"
+        "output": 18
       }
     ],
     "solution": {
