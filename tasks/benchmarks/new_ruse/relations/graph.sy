@@ -27,7 +27,7 @@
       }
     ],
     "solution": {
-      "has_side_effects": "yes",
+      "has_side_effects": "no",
       "expected": [
         "graph1.value + graph2.value + graph3.value",
         "graph1.value + graph3.value + graph2.value",
