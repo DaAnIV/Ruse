@@ -463,20 +463,24 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
     ) -> anyhow::Result<Option<Arc<SubProgram>>> {
         #[cfg(feature = "check_embedding_overhead")]
         self.print_embedding_overhead_statistics().await;
-
         let mut workers = JoinSet::new();
         for i in 0..self.worker_count {
             let mut batch_builder = current_iteration_map.create_batch_builder();
             let self_clone = self.clone();
-            workers.spawn_blocking(move || { Handle::current().block_on(
-                panic::AssertUnwindSafe(async move {
-                    let found =
-                        Self::composite_iteration_worker(self_clone, &mut batch_builder, i).await;
-                    (batch_builder, found)
-                })
-                .catch_unwind()
-                .in_current_span(),
-            )});
+
+            let current_span = tracing::Span::current();
+            workers.spawn_blocking(move || {
+                Handle::current().block_on(
+                    panic::AssertUnwindSafe(async move {
+                        let _span = current_span.enter();
+                        let found =
+                            Self::composite_iteration_worker(self_clone, &mut batch_builder, i)
+                                .await;
+                        (batch_builder, found)
+                    })
+                    .catch_unwind(),
+                )
+            });
         }
 
         while let Some(worker_res) = select! {
@@ -492,8 +496,10 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
                     if self.cancel_token.is_cancelled() {
                         return Ok(None);
                     }
-                    tokio::task::block_in_place(|| {
-                        Handle::current().block_on(current_iteration_map.add_batch(worker_type_map))
+                    let _ = tokio::task::block_in_place(|| {
+                        Handle::current()
+                            .block_on(current_iteration_map.add_batch(worker_type_map))
+                            .in_current_span()
                     });
                 }
                 Ok(Err(_e)) => {
@@ -513,8 +519,10 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
 
         debug!(target: "ruse::synthesizer", "Initializing new contexts!");
 
-        tokio::task::block_in_place(|| {
-            Handle::current().block_on(self.init_new_found_ctx(current_iteration_map))
+        let _ = tokio::task::block_in_place(|| {
+            Handle::current()
+                .block_on(self.init_new_found_ctx(current_iteration_map))
+                .in_current_span()
         });
         Ok(None)
     }
