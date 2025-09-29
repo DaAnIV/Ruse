@@ -1,0 +1,95 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/must/sobeq-new/leetcode-adddominos.sy",
+  "source": "https://leetcode.com/discuss/interview-question/2042532/on-line-assessment-code-from-one-of-big-tech-companies",
+  "category": "Primitive Objects:With Side Effects",
+  "opcode_count": 882,
+  "string_literals": [
+    " ",
+    "-",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1,
+    2
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 370521
+      },
+      "statistics": {
+        "Evaluated": 8,
+        "BankSize": 8,
+        "FoundContextCount": 4,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 44139761
+      },
+      "statistics": {
+        "Evaluated": 976,
+        "BankSize": 73,
+        "FoundContextCount": 8,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 364673612
+      },
+      "statistics": {
+        "Evaluated": 338488,
+        "BankSize": 8209,
+        "FoundContextCount": 280,
+        "MaxMutatingOpcodes": 2,
+        "MaxDepth": 3,
+        "MaxSize": 13
+      }
+    },
+    {
+      "time": {
+        "secs": 81,
+        "nanos": 198886001
+      },
+      "statistics": {
+        "Evaluated": 63013914,
+        "BankSize": 10720202,
+        "FoundContextCount": 8,
+        "MaxMutatingOpcodes": 3,
+        "MaxDepth": 4,
+        "MaxSize": 27
+      }
+    }
+  ],
+  "iteration_count": 4,
+  "found": {
+    "found": "set.add(\"-\".replaceAll(\"\", dom).slice(2, -2))",
+    "num_mutations": 1,
+    "solution_size": 10,
+    "solution_depth": 4
+  },
+  "total_time": {
+    "secs": 81,
+    "nanos": 608646276
+  },
+  "total_statistics": {
+    "Evaluated": 63352402,
+    "BankSize": 10728411,
+    "FoundContextCount": 288,
+    "MaxMutatingOpcodes": 3,
+    "MaxDepth": 4,
+    "MaxSize": 27
+  },
+  "max_vm_usage": "61.551599616 GB",
+  "error": null
+}

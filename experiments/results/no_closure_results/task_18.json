@@ -1,0 +1,94 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/may/probe/extract-word-containing-specific-textmodified.sy",
+  "source": "https=//exceljet.net/formula/extract-word-containing-specific-text",
+  "category": "Primitive:Without Side Effects",
+  "opcode_count": 880,
+  "string_literals": [
+    " ",
+    "_",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 468150
+      },
+      "statistics": {
+        "Evaluated": 6,
+        "BankSize": 6,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 42546245
+      },
+      "statistics": {
+        "Evaluated": 512,
+        "BankSize": 62,
+        "FoundContextCount": 3,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 276609674
+      },
+      "statistics": {
+        "Evaluated": 225215,
+        "BankSize": 5242,
+        "FoundContextCount": 27,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 3,
+        "MaxSize": 13
+      }
+    },
+    {
+      "time": {
+        "secs": 15,
+        "nanos": 182365818
+      },
+      "statistics": {
+        "Evaluated": 14615164,
+        "BankSize": 1357489,
+        "FoundContextCount": 3,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 4,
+        "MaxSize": 25
+      }
+    }
+  ],
+  "iteration_count": 4,
+  "found": {
+    "found": "\"_\".replaceAll(\"\", _arg_0).split(\" \")[_arg_0.length / _arg_0.indexOf(\" \")]",
+    "num_mutations": 0,
+    "solution_size": 13,
+    "solution_depth": 4
+  },
+  "total_time": {
+    "secs": 15,
+    "nanos": 502491705
+  },
+  "total_statistics": {
+    "Evaluated": 14840379,
+    "BankSize": 1362731,
+    "FoundContextCount": 30,
+    "MaxMutatingOpcodes": 1,
+    "MaxDepth": 4,
+    "MaxSize": 25
+  },
+  "max_vm_usage": "8.211443712 GB",
+  "error": null
+}

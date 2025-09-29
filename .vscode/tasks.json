@@ -24,9 +24,10 @@
 			},
         },
         {
-            "label": "build release without variable closure",
+        {
+            "label": "build release with variable closure",
             "type": "shell",
-            "command": "$HOME/.cargo/bin/cargo build --profile release --features release_trace_max_level_debug --features dont_take_variable_closure",
+            "command": "$HOME/.cargo/bin/cargo build --profile release --features release_trace_max_level_debug --features take_variable_closure",
 			"problemMatcher": "$rustc",
 			"group": {
 				"kind": "build",

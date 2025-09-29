@@ -1,0 +1,80 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/may/probe/stackoverflow6modified.sy",
+  "source": "https=//stackoverflow.com/questions/28627624/excel-single-cell-to-multiple-rows-and-get-substring",
+  "category": "Primitive:Without Side Effects",
+  "opcode_count": 880,
+  "string_literals": [
+    " ",
+    "= ",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 451362
+      },
+      "statistics": {
+        "Evaluated": 6,
+        "BankSize": 6,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 44273218
+      },
+      "statistics": {
+        "Evaluated": 512,
+        "BankSize": 59,
+        "FoundContextCount": 3,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 1122463
+      },
+      "statistics": {
+        "Evaluated": 325,
+        "BankSize": 67,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 3,
+        "MaxSize": 8
+      }
+    }
+  ],
+  "iteration_count": 3,
+  "found": {
+    "found": "_arg_0.split(\"= \").pop()",
+    "num_mutations": 0,
+    "solution_size": 4,
+    "solution_depth": 3
+  },
+  "total_time": {
+    "secs": 0,
+    "nanos": 46112157
+  },
+  "total_statistics": {
+    "Evaluated": 837,
+    "BankSize": 126,
+    "FoundContextCount": 5,
+    "MaxMutatingOpcodes": 1,
+    "MaxDepth": 3,
+    "MaxSize": 8
+  },
+  "max_vm_usage": "28.381184 MB",
+  "error": null
+}

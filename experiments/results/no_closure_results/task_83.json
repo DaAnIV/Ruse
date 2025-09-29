@@ -1,0 +1,107 @@
+{
+  "path": "../tasks/benchmarks/new_ruse/binary_search_tree/binary_search_tree_delete_two_children.sy",
+  "source": null,
+  "category": "Full OOP:With Side Effects",
+  "opcode_count": 16,
+  "string_literals": [
+    " ",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 6289926
+      },
+      "statistics": {
+        "Evaluated": 6,
+        "BankSize": 6,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 46654918
+      },
+      "statistics": {
+        "Evaluated": 30,
+        "BankSize": 21,
+        "FoundContextCount": 1,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 3
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 66020927
+      },
+      "statistics": {
+        "Evaluated": 556,
+        "BankSize": 246,
+        "FoundContextCount": 43,
+        "MaxMutatingOpcodes": 2,
+        "MaxDepth": 3,
+        "MaxSize": 7
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 603726363
+      },
+      "statistics": {
+        "Evaluated": 7780,
+        "BankSize": 3946,
+        "FoundContextCount": 615,
+        "MaxMutatingOpcodes": 3,
+        "MaxDepth": 4,
+        "MaxSize": 10
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 548731227
+      },
+      "statistics": {
+        "Evaluated": 18538,
+        "BankSize": 13014,
+        "FoundContextCount": 43,
+        "MaxMutatingOpcodes": 3,
+        "MaxDepth": 5,
+        "MaxSize": 11
+      }
+    }
+  ],
+  "iteration_count": 5,
+  "found": {
+    "found": "node_to_delete.right.min_node().swap(node_to_delete).unlink_leaf()",
+    "num_mutations": 2,
+    "solution_size": 6,
+    "solution_depth": 5
+  },
+  "total_time": {
+    "secs": 1,
+    "nanos": 271829023
+  },
+  "total_statistics": {
+    "Evaluated": 26318,
+    "BankSize": 16960,
+    "FoundContextCount": 658,
+    "MaxMutatingOpcodes": 3,
+    "MaxDepth": 5,
+    "MaxSize": 11
+  },
+  "max_vm_usage": "530.620416 MB",
+  "error": null
+}

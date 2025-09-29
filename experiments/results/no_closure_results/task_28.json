@@ -1,0 +1,81 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/may/probe/extract-text-between-parenthesesmodified.sy",
+  "source": "https=//exceljet.net/formula/extract-text-between-parentheses",
+  "category": "Primitive:Without Side Effects",
+  "opcode_count": 881,
+  "string_literals": [
+    ">",
+    " ",
+    "<",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 456173
+      },
+      "statistics": {
+        "Evaluated": 7,
+        "BankSize": 7,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 44029035
+      },
+      "statistics": {
+        "Evaluated": 783,
+        "BankSize": 82,
+        "FoundContextCount": 4,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 85588810
+      },
+      "statistics": {
+        "Evaluated": 76971,
+        "BankSize": 4973,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 3,
+        "MaxSize": 11
+      }
+    }
+  ],
+  "iteration_count": 3,
+  "found": {
+    "found": "_arg_0.replaceAll(\"<\", \"\").slice(_arg_0.indexOf(\"<\"), -1)",
+    "num_mutations": 0,
+    "solution_size": 10,
+    "solution_depth": 3
+  },
+  "total_time": {
+    "secs": 0,
+    "nanos": 130362030
+  },
+  "total_statistics": {
+    "Evaluated": 77754,
+    "BankSize": 5055,
+    "FoundContextCount": 6,
+    "MaxMutatingOpcodes": 1,
+    "MaxDepth": 3,
+    "MaxSize": 11
+  },
+  "max_vm_usage": "28.463104 MB",
+  "error": null
+}

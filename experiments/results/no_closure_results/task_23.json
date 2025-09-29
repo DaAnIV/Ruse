@@ -1,0 +1,94 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/may/probe/phone-6-long-repeatmodified.sy",
+  "source": "",
+  "category": "Primitive:Without Side Effects",
+  "opcode_count": 880,
+  "string_literals": [
+    " ",
+    "-",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 570067
+      },
+      "statistics": {
+        "Evaluated": 6,
+        "BankSize": 6,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 45543512
+      },
+      "statistics": {
+        "Evaluated": 512,
+        "BankSize": 58,
+        "FoundContextCount": 3,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 329106476
+      },
+      "statistics": {
+        "Evaluated": 201218,
+        "BankSize": 7324,
+        "FoundContextCount": 28,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 3,
+        "MaxSize": 13
+      }
+    },
+    {
+      "time": {
+        "secs": 1,
+        "nanos": 472401702
+      },
+      "statistics": {
+        "Evaluated": 777450,
+        "BankSize": 66475,
+        "FoundContextCount": 3,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 4,
+        "MaxSize": 22
+      }
+    }
+  ],
+  "iteration_count": 4,
+  "found": {
+    "found": "_arg_0.replaceAll(\" \", \"-\").slice(1 + 1, _arg_0.indexOf(\"-\")).slice(_arg_0.indexOf(\" \") - 1)",
+    "num_mutations": 0,
+    "solution_size": 17,
+    "solution_depth": 4
+  },
+  "total_time": {
+    "secs": 1,
+    "nanos": 848199951
+  },
+  "total_statistics": {
+    "Evaluated": 978668,
+    "BankSize": 73799,
+    "FoundContextCount": 31,
+    "MaxMutatingOpcodes": 1,
+    "MaxDepth": 4,
+    "MaxSize": 22
+  },
+  "max_vm_usage": "351.490048 MB",
+  "error": null
+}

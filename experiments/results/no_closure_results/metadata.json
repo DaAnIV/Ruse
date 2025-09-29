@@ -1,0 +1,38 @@
+{
+  "timestamp": 1759086752,
+  "pid": 3194644,
+  "sysinfo": {
+    "name": "Debian GNU/Linux",
+    "kernel": "5.10.0-30-amd64",
+    "os": "11",
+    "ram": 0,
+    "cpu": "Intel(R) Xeon(R) Gold 6338 CPU @ 2.00GHz",
+    "cpu_fq": 804,
+    "cpu_core_count": 128
+  },
+  "config": {
+    "timeout": 3600,
+    "max_iterations": 6,
+    "multi_thread": true,
+    "max_mutations": 3,
+    "iteration_workers_count": 64,
+    "max_sequence_size": 3,
+    "benchmarks": [
+      "../tasks/benchmarks/"
+    ],
+    "max_task_mem": "100 GiB",
+    "bank_config": {
+      "SubsumptionBank": {
+        "hash_builder": {
+          "k0": 2176212990193645444,
+          "k1": 637374145501704763
+        }
+      }
+    },
+    "fork": true,
+    "sleep": {
+      "secs": 5,
+      "nanos": 0
+    }
+  }
+}

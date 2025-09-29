@@ -1,0 +1,65 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/may/FrAngel/SortArrayGivenSwap.sy",
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/SortArrayGivenSwap.java",
+  "category": "Primitive Objects:Possibly With Side Effects",
+  "opcode_count": 879,
+  "string_literals": [
+    " ",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 543724
+      },
+      "statistics": {
+        "Evaluated": 5,
+        "BankSize": 5,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 41556040
+      },
+      "statistics": {
+        "Evaluated": 13,
+        "BankSize": 7,
+        "FoundContextCount": 0,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 2
+      }
+    }
+  ],
+  "iteration_count": 2,
+  "found": {
+    "found": "arr.sort((a, b)=>a - b)",
+    "num_mutations": 1,
+    "solution_size": 2,
+    "solution_depth": 2
+  },
+  "total_time": {
+    "secs": 0,
+    "nanos": 42341550
+  },
+  "total_statistics": {
+    "Evaluated": 18,
+    "BankSize": 12,
+    "FoundContextCount": 2,
+    "MaxMutatingOpcodes": 1,
+    "MaxDepth": 2,
+    "MaxSize": 2
+  },
+  "max_vm_usage": "28.659712 MB",
+  "error": null
+}

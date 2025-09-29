@@ -1,0 +1,79 @@
+{
+  "path": "../tasks/benchmarks/fromFrangel/sypet/sypet_10_scale.sy",
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/sypet/SyPet_10_scale.java",
+  "category": "Full OOP:Without Side Effects",
+  "opcode_count": 2014,
+  "string_literals": [
+    " ",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 10363490
+      },
+      "statistics": {
+        "Evaluated": 15,
+        "BankSize": 13,
+        "FoundContextCount": 5,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 201645631
+      },
+      "statistics": {
+        "Evaluated": 3979,
+        "BankSize": 606,
+        "FoundContextCount": 12,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 5
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 629473569
+      },
+      "statistics": {
+        "Evaluated": 106732,
+        "BankSize": 18930,
+        "FoundContextCount": 5,
+        "MaxMutatingOpcodes": 2,
+        "MaxDepth": 3,
+        "MaxSize": 9
+      }
+    }
+  ],
+  "iteration_count": 3,
+  "found": {
+    "found": "TransformArea(rect.Expand(1), AffineTransform.getScaleTransform(scaleX, scaleY))",
+    "num_mutations": 0,
+    "solution_size": 7,
+    "solution_depth": 3
+  },
+  "total_time": {
+    "secs": 0,
+    "nanos": 841933903
+  },
+  "total_statistics": {
+    "Evaluated": 110711,
+    "BankSize": 19536,
+    "FoundContextCount": 17,
+    "MaxMutatingOpcodes": 2,
+    "MaxDepth": 3,
+    "MaxSize": 9
+  },
+  "max_vm_usage": "35.463168 MB",
+  "error": null
+}
