@@ -57,14 +57,6 @@ impl PartialEq for ProgOutput {
     }
 }
 
-fn subsumption_partial_cmp(a: &SubProgram, b: &SubProgram) -> Option<std::cmp::Ordering> {
-    match a.pre_ctx().subset(b.pre_ctx()) {
-        ContextSubsetResult::Subset => Some(std::cmp::Ordering::Less),
-        ContextSubsetResult::Equal => Some(a.size().cmp(&b.size())),
-        ContextSubsetResult::NotSubset => None,
-    }
-}
-
 impl Hash for ProgOutput {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.out_type().hash(state);
@@ -73,36 +65,90 @@ impl Hash for ProgOutput {
     }
 }
 
+fn subsumption_partial_cmp(a: &SubProgram, b: &SubProgram) -> Option<std::cmp::Ordering> {
+    match a.pre_ctx().subset(b.pre_ctx()) {
+        ContextSubsetResult::Subset => Some(std::cmp::Ordering::Less),
+        ContextSubsetResult::Equal => Some(a.size().cmp(&b.size())),
+        ContextSubsetResult::NotSubset => None,
+    }
+}
+
+#[derive(Debug)]
+struct TripleSet{
+    sets: Vec<HashSet<Arc<SubProgram>, BankHasherBuilder>>,
+    hash_builder: BankHasherBuilder,
+}
+
+impl TripleSet {
+    fn with_hasher(hash_builder: BankHasherBuilder) -> Self {
+        Self {
+            sets: Vec::new(),
+            hash_builder,
+        }
+    }
+
+    fn len(&self) -> usize {
+        self.sets.iter().map(|set| set.len()).sum()
+    }
+
+    fn iter(&self) -> impl Iterator<Item = &Arc<SubProgram>> + Send {
+        self.sets.iter().flat_map(|set| set.iter())
+    }
+
+    fn into_iter(self) -> impl Iterator<Item = Arc<SubProgram>> {
+        self.sets.into_iter().flat_map(|set| set.into_iter())
+    }
+
+    fn get_set_mut(
+        &mut self,
+        p: &Arc<SubProgram>,
+        ) -> Option<&mut HashSet<Arc<SubProgram>, BankHasherBuilder>> {
+        self.sets.get_mut(p.size() as usize - 1)
+    }
+
+    fn get_or_create_set_for_prog(
+        &mut self,
+        p: &Arc<SubProgram>,
+    ) -> &mut HashSet<Arc<SubProgram>, BankHasherBuilder> {
+        let size = p.size() as usize;
+        self.sets.resize_with(self.sets.len().max(size), || {
+            HashSet::with_hasher(self.hash_builder.clone())
+        });
+
+        &mut self.sets[size - 1]
+    }
+
+    fn insert(&mut self, p: Arc<SubProgram>) -> bool {
+        self.get_or_create_set_for_prog(&p).insert(p)
+    }
+
+    fn remove(&mut self, p: &Arc<SubProgram>) -> bool {
+        if let Some(set) = self.get_set_mut(p) {
+            set.remove(p)
+        } else {
+            false
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct SubsumptionProgramsMap {
     map: HashMap<ProgOutput, Vec<Arc<SubProgram>>, BankHasherBuilder>,
-    set: Vec<HashSet<Arc<SubProgram>, BankHasherBuilder>>,
+    set: TripleSet,
 }
 
 impl SubsumptionProgramsMap {
     pub fn new_with_hasher(hash_builder: BankHasherBuilder) -> Self {
         Self {
             map: HashMap::with_hasher(hash_builder),
-            set: Default::default(),
+            set: TripleSet::with_hasher(hash_builder),
         }
     }
 
-    fn get_set_for_prog(
-        &mut self,
-        p: &Arc<SubProgram>,
-    ) -> &mut HashSet<Arc<SubProgram>, BankHasherBuilder> {
-        let size = p.size() as usize;
-        self.set.resize_with(self.set.len().max(size), || {
-            HashSet::with_hasher(self.map.hasher().clone())
-        });
-
-        &mut self.set[size - 1]
-    }
-
     pub(crate) fn insert(&mut self, p: Arc<SubProgram>) -> bool {
-        let output: ProgOutput = p.clone().into();
+        let key: ProgOutput = p.clone().into();
         let mut grater_ep = None;
-        match self.map.entry(output) {
+        match self.map.entry(key) {
             Entry::Occupied(mut existing_progs) => {
                 let mut grater_ep_i = None;
                 for (i, ep) in existing_progs.get().iter().enumerate() {
@@ -133,9 +179,9 @@ impl SubsumptionProgramsMap {
         };
 
         if let Some(grater_ep) = grater_ep {
-            self.get_set_for_prog(&grater_ep).remove(&grater_ep);
+            self.set.remove(&grater_ep);
         }
-        self.get_set_for_prog(&p).insert(p);
+        self.set.insert(p);
         true
     }
 
@@ -157,15 +203,15 @@ impl SubsumptionProgramsMap {
     }
 
     fn len(&self) -> usize {
-        self.set.iter().map(|set| set.len()).sum()
+        self.set.len()
     }
 
     fn iter(&self) -> impl Iterator<Item = &Arc<SubProgram>> + Send {
-        self.set.iter().flat_map(|set| set.iter())
+        self.set.iter()
     }
 
     fn into_iter(self) -> impl Iterator<Item = Arc<SubProgram>> {
-        self.set.into_iter().flat_map(|set| set.into_iter())
+        self.set.into_iter()
     }
 }
 
