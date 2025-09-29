@@ -93,17 +93,32 @@ impl SynthesisTaskIoError {
     }
 }
 
+#[derive(Debug)]
+pub struct EvalError {
+    pub path: String,
+    pub line: u32,
+    pub code: String,
+    pub error: boa_engine::JsError,
+}
+
+impl EvalError {
+    fn format_message(&self) -> String {
+        format!("Got error evaluating code: {}, error: {}", self.code, self.error)
+    }
+}
+
 impl_inner_task_error!(TodoError);
 impl_inner_task_error!(ParseError);
 impl_inner_task_error!(VerifyError);
 impl_inner_task_error!(SkipError);
 impl_inner_task_error!(SynthesisTaskIoError);
+impl_inner_task_error!(EvalError);
 
 #[derive(Debug)]
 pub enum SnythesisTaskError {
     IO(SynthesisTaskIoError),
     Verify(VerifyError),
-    Eval(boa_engine::JsError),
+    Eval(EvalError),
     Parse(ParseError),
     Skip(SkipError),
 }
@@ -165,6 +180,18 @@ macro_rules! io_err {
             line: std::line!(),
             path: std::file!().to_string(),
             error: $inner_error.into(),
+        })
+    };
+}
+
+#[macro_export]
+macro_rules! eval_err {
+    (code: $code:expr, $error:expr) => {
+        $crate::error::SnythesisTaskError::Eval($crate::error::EvalError {
+            line: std::line!(),
+            path: std::file!().to_string(),
+            code: $code.to_string(),
+            error: $error.into(),
         })
     };
 }

@@ -30,7 +30,9 @@ use wildmatch::WildMatch;
 
 use crate::{
     error::SynthesisTaskResult,
-    io_err, parse_err,
+    io_err,
+    json_parsing_utils::*,
+    parse_err,
     predicate_builder::*,
     skip_err,
     task_type::{JsonValuesMap, TaskType},
@@ -589,24 +591,10 @@ impl SnythesisTask {
         Ok(synthesizer)
     }
 
-    fn get_string_single_multi_line(value: &serde_json::Value) -> SynthesisTaskResult<String> {
-        if let Some(single_line) = value.as_str() {
-            return Ok(single_line.to_string());
-        }
-        let multi_lines: Vec<String> = serde_json::from_value(value.clone()).map_err(|e| {
-            parse_err!(
-                "Failed to parse single/multi line as string or array of strings: {}",
-                e
-            )
-        })?;
-
-        Ok(multi_lines.join("\n"))
-    }
-
     fn get_js_predicate(&self, js: Vec<String>) -> SynthesisTaskResult<JsPredicate> {
         let predicate = match &self.inner.js_utils {
             Some(js_utils_value) => {
-                let utils = Self::get_string_single_multi_line(js_utils_value)?;
+                let utils = get_string_single_multi_line(js_utils_value)?;
                 JsPredicate::new_with_utils(js, utils.clone())
             }
             None => JsPredicate::new(js),
@@ -670,7 +658,7 @@ impl SnythesisTask {
             .map(|e| {
                 e.predicate_js
                     .as_ref()
-                    .map(|js| Self::get_string_single_multi_line(js))
+                    .map(|js| get_string_single_multi_line(js))
             })
             .collect();
 

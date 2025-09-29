@@ -143,25 +143,27 @@ pub(crate) struct DtsVisitor {
 }
 
 impl DtsVisitor {
+    fn pat_to_value_type(&self, pat: &ast::Pat) -> Option<ValueType> {
+        match pat {
+            ast::Pat::Ident(binding_ident) => {
+                Some(self.value_type_from_ts_type(&binding_ident.type_ann.as_ref()?.type_ann))
+            }
+            ast::Pat::Array(_array_pat) => todo!(),
+            ast::Pat::Rest(rest_pat) => {
+                Some(self.value_type_from_ts_type(&rest_pat.type_ann.as_ref()?.type_ann))
+            }
+            ast::Pat::Object(_object_pat) => todo!(),
+            ast::Pat::Assign(_assign_pat) => todo!(),
+            ast::Pat::Invalid(_invalid) => todo!(),
+            ast::Pat::Expr(_expr) => todo!(),
+        }
+    }
+
     fn get_params_types_from_pat<'a, I>(&self, params: I) -> Option<Vec<ValueType>>
     where
         I: Iterator<Item = &'a ast::Pat>,
     {
-        params
-            .map(|param| match param {
-                ast::Pat::Ident(binding_ident) => {
-                    Some(self.value_type_from_ts_type(&binding_ident.type_ann.as_ref()?.type_ann))
-                }
-                ast::Pat::Array(_array_pat) => todo!(),
-                ast::Pat::Rest(rest_pat) => {
-                    Some(self.value_type_from_ts_type(&rest_pat.type_ann.as_ref()?.type_ann))
-                }
-                ast::Pat::Object(_object_pat) => todo!(),
-                ast::Pat::Assign(_assign_pat) => todo!(),
-                ast::Pat::Invalid(_invalid) => todo!(),
-                ast::Pat::Expr(_expr) => todo!(),
-            })
-            .collect()
+        params.map(|param| self.pat_to_value_type(param)).collect()
     }
 
     fn get_params_types_from_ts_fn_param<'a, I>(&self, params: I) -> Option<Vec<ValueType>>
@@ -341,7 +343,7 @@ impl Visit for DtsVisitor {
         let id = node.key.as_ident().unwrap().sym.clone();
         let params = if node.params.iter().all(|param| match param {
             ast::ParamOrTsParamProp::Param(param) => {
-                param.pat.as_ident().unwrap().type_ann.is_some()
+                self.pat_to_value_type(&param.pat).is_some()
             }
             ast::ParamOrTsParamProp::TsParamProp(param) => {
                 param.param.as_ident().unwrap().type_ann.is_some()
@@ -352,8 +354,7 @@ impl Visit for DtsVisitor {
                     .iter()
                     .map(|param| match param {
                         ast::ParamOrTsParamProp::Param(param) => {
-                            let ident = param.pat.as_ident().unwrap();
-                            self.value_type_from_ts_type(&ident.type_ann.as_ref().unwrap().type_ann)
+                            self.pat_to_value_type(&param.pat).unwrap()
                         }
                         ast::ParamOrTsParamProp::TsParamProp(param) => {
                             let ident = param.param.as_ident().unwrap();

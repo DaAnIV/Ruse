@@ -21,7 +21,9 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::json;
 
 use crate::{
-    error::{SnythesisTaskError, SynthesisTaskResult},
+    error::SynthesisTaskResult,
+    eval_err,
+    json_parsing_utils::get_string_single_multi_line,
     parse_err,
     task::parse_json_values_array,
     var_ref::{VarRef, REF_GRAPH_FIELD_NAME, REF_GRAPH_OBJ_TYPE},
@@ -308,10 +310,8 @@ impl TaskType {
                         engine_ctx,
                     )
                 } else if let Some(js_value) = fields.get(ExprPrefix::JS.as_str()) {
-                    let js_str = js_value
-                        .as_str()
-                        .ok_or(parse_err!(value, "js script is not a string"))?;
-                    self.create_from_js(js_str, graph_id, classes, graphs_map, id_gen, engine_ctx)
+                    let js_str = get_string_single_multi_line(js_value)?;
+                    self.create_from_js(&js_str, graph_id, classes, graphs_map, id_gen, engine_ctx)
                 } else {
                     self.create_object_from_fields(
                         fields,
@@ -442,12 +442,12 @@ impl TaskType {
         if method_name == "constructor" {
             let new_obj = class
                 .call_constructor(&args, engine_ctx)
-                .map_err(|x| SnythesisTaskError::Eval(x))?;
+                .map_err(|x| eval_err!(code: format!("Class {} constructor", class.description.class_name), x))?;
             Ok(Value::Object(new_obj))
         } else {
             class
                 .call_static_method(method_desc, &args, engine_ctx)
-                .map_err(|x| SnythesisTaskError::Eval(x))
+                .map_err(|x| eval_err!(code: format!("Class {} method {}", class.description.class_name, method_name), x))
         }
     }
 
@@ -466,9 +466,9 @@ impl TaskType {
         let js_code = boa_engine::Source::from_bytes(js_str);
         let js_obj = engine_ctx
             .eval(js_code)
-            .map_err(|e| SnythesisTaskError::Eval(e))?;
+            .map_err(|e| eval_err!(code: js_str, e))?;
         let value =
-            Value::try_from_js(&js_obj, engine_ctx).map_err(|e| SnythesisTaskError::Eval(e))?;
+            Value::try_from_js(&js_obj, engine_ctx).map_err(|e| eval_err!(code: js_str, e))?;
         if value.val_type() != self.value_type() {
             return Err(parse_err!(
                 js_str,

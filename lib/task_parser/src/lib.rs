@@ -3,6 +3,7 @@ pub mod predicate_builder;
 mod task;
 mod task_type;
 mod var_ref;
+mod json_parsing_utils;
 
 pub mod error;
 
