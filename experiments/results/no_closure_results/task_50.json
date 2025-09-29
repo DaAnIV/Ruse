@@ -1,0 +1,93 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/must/stateCopies/ArrayCounter-mustmut.sy",
+  "source": "https://github.com/peleghila/sobeq/blob/main/benchmarks/must/stateCopies/ArrayCounter-mustmut.sy",
+  "category": "Primitive Objects:With Side Effects",
+  "opcode_count": 880,
+  "string_literals": [
+    " ",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 581633
+      },
+      "statistics": {
+        "Evaluated": 6,
+        "BankSize": 6,
+        "FoundContextCount": 4,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 44500970
+      },
+      "statistics": {
+        "Evaluated": 539,
+        "BankSize": 70,
+        "FoundContextCount": 16,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 418674068
+      },
+      "statistics": {
+        "Evaluated": 262612,
+        "BankSize": 12161,
+        "FoundContextCount": 509,
+        "MaxMutatingOpcodes": 3,
+        "MaxDepth": 3,
+        "MaxSize": 13
+      }
+    },
+    {
+      "time": {
+        "secs": 5,
+        "nanos": 302836808
+      },
+      "statistics": {
+        "Evaluated": 3450261,
+        "BankSize": 909501,
+        "FoundContextCount": 16,
+        "MaxMutatingOpcodes": 3,
+        "MaxDepth": 4,
+        "MaxSize": 21
+      }
+    }
+  ],
+  "iteration_count": 4,
+  "found": {
+    "found": "++count[index], count",
+    "num_mutations": 1,
+    "solution_size": 6,
+    "solution_depth": 4
+  },
+  "total_time": {
+    "secs": 5,
+    "nanos": 767099603
+  },
+  "total_statistics": {
+    "Evaluated": 3712873,
+    "BankSize": 921662,
+    "FoundContextCount": 525,
+    "MaxMutatingOpcodes": 3,
+    "MaxDepth": 4,
+    "MaxSize": 21
+  },
+  "max_vm_usage": "4.240642048 GB",
+  "error": null
+}

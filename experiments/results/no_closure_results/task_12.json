@@ -1,0 +1,93 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/may/probe/get-middle-name-from-full-namemodified.sy",
+  "source": "https=//exceljet.net/formula/get-middle-name-from-full-name",
+  "category": "Primitive:Without Side Effects",
+  "opcode_count": 879,
+  "string_literals": [
+    " ",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 389303
+      },
+      "statistics": {
+        "Evaluated": 5,
+        "BankSize": 5,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 42375237
+      },
+      "statistics": {
+        "Evaluated": 315,
+        "BankSize": 32,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 76302230
+      },
+      "statistics": {
+        "Evaluated": 47063,
+        "BankSize": 1878,
+        "FoundContextCount": 14,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 3,
+        "MaxSize": 13
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 328378131
+      },
+      "statistics": {
+        "Evaluated": 215777,
+        "BankSize": 39116,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 4,
+        "MaxSize": 21
+      }
+    }
+  ],
+  "iteration_count": 4,
+  "found": {
+    "found": "_arg_0.slice(_arg_0.indexOf(\" \"), _arg_0.lastIndexOf(\" \")).slice(_arg_0.length / _arg_0.lastIndexOf(\" \"))",
+    "num_mutations": 0,
+    "solution_size": 15,
+    "solution_depth": 4
+  },
+  "total_time": {
+    "secs": 0,
+    "nanos": 448015596
+  },
+  "total_statistics": {
+    "Evaluated": 262840,
+    "BankSize": 40994,
+    "FoundContextCount": 16,
+    "MaxMutatingOpcodes": 1,
+    "MaxDepth": 4,
+    "MaxSize": 21
+  },
+  "max_vm_usage": "28.381184 MB",
+  "error": null
+}

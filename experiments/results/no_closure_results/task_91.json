@@ -1,0 +1,79 @@
+{
+  "path": "../tasks/benchmarks/new_ruse/simple/seq.sy",
+  "source": null,
+  "category": "Primitive Objects:With Side Effects",
+  "opcode_count": 880,
+  "string_literals": [
+    " ",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 647604
+      },
+      "statistics": {
+        "Evaluated": 6,
+        "BankSize": 6,
+        "FoundContextCount": 4,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 37758301
+      },
+      "statistics": {
+        "Evaluated": 509,
+        "BankSize": 45,
+        "FoundContextCount": 10,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 12156301
+      },
+      "statistics": {
+        "Evaluated": 4976,
+        "BankSize": 1682,
+        "FoundContextCount": 4,
+        "MaxMutatingOpcodes": 2,
+        "MaxDepth": 3,
+        "MaxSize": 8
+      }
+    }
+  ],
+  "iteration_count": 3,
+  "found": {
+    "found": "x.push(y), x",
+    "num_mutations": 1,
+    "solution_size": 5,
+    "solution_depth": 3
+  },
+  "total_time": {
+    "secs": 0,
+    "nanos": 51066846
+  },
+  "total_statistics": {
+    "Evaluated": 5485,
+    "BankSize": 1727,
+    "FoundContextCount": 14,
+    "MaxMutatingOpcodes": 2,
+    "MaxDepth": 3,
+    "MaxSize": 8
+  },
+  "max_vm_usage": "27.230208 MB",
+  "error": null
+}

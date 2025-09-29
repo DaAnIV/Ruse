@@ -61,7 +61,7 @@ trace_embeddings=["ruse_synthesizer/trace_embeddings"]
 prune_graph_map=["ruse_synthesizer/prune_graph_map"]
 check_embedding_overhead=["ruse_synthesizer/check_embedding_overhead"]
 
-dont_take_variable_closure=["ruse_synthesizer/dont_take_variable_closure"]
+take_variable_closure=["ruse_synthesizer/take_variable_closure"]
 
 release_trace_max_level_info=["tracing/release_max_level_info", 
                               "ruse_object_graph/release_trace_max_level_info",
