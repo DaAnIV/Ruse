@@ -1,8 +1,8 @@
 {
-  "path": "../tasks/benchmarks/new_ruse/relations/user_names_aliasing.sy",
+  "path": "../tasks/benchmarks/new_ruse/simple/user_names_simple.sy",
   "source": null,
   "category": "Full OOP:Without Side Effects",
-  "opcode_count": 1176,
+  "opcode_count": 1174,
   "string_literals": [
     " ",
     ", ",
@@ -16,10 +16,10 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 2178943
+        "nanos": 2062613
       },
       "statistics": {
-        "Evaluated": 9,
+        "Evaluated": 7,
         "BankSize": 7,
         "FoundContextCount": 4,
         "MaxMutatingOpcodes": 0,
@@ -30,7 +30,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 80784346
+        "nanos": 87051808
       },
       "statistics": {
         "Evaluated": 560,
@@ -44,11 +44,11 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 225839631
+        "nanos": 238461547
       },
       "statistics": {
-        "Evaluated": 69557,
-        "BankSize": 2143,
+        "Evaluated": 69483,
+        "BankSize": 2126,
         "FoundContextCount": 76,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 3,
@@ -57,38 +57,38 @@
     },
     {
       "time": {
-        "secs": 0,
-        "nanos": 894864847
+        "secs": 4,
+        "nanos": 116250562
       },
       "statistics": {
-        "Evaluated": 286867,
-        "BankSize": 67041,
+        "Evaluated": 1208219,
+        "BankSize": 334883,
         "FoundContextCount": 0,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 4,
-        "MaxSize": 26
+        "MaxSize": 27
       }
     }
   ],
   "iteration_count": 4,
   "found": {
-    "found": "(a.name + \", \") + b.name.slice(0)",
+    "found": "(a.name + \", \"[0]) + (\" \" + b.name)",
     "num_mutations": 0,
-    "solution_size": 9,
+    "solution_size": 11,
     "solution_depth": 4
   },
   "total_time": {
-    "secs": 1,
-    "nanos": 204246780
+    "secs": 4,
+    "nanos": 501687352
   },
   "total_statistics": {
-    "Evaluated": 356424,
-    "BankSize": 69184,
+    "Evaluated": 1277702,
+    "BankSize": 337009,
     "FoundContextCount": 76,
     "MaxMutatingOpcodes": 1,
     "MaxDepth": 4,
-    "MaxSize": 26
+    "MaxSize": 27
   },
-  "max_vm_usage": "884.072448 MB",
+  "max_vm_usage": "2.716717056 GB",
   "error": null
 }

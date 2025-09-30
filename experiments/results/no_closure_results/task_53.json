@@ -15,7 +15,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 483839
+        "nanos": 2304417
       },
       "statistics": {
         "Evaluated": 5,
@@ -29,7 +29,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 40938986
+        "nanos": 58968551
       },
       "statistics": {
         "Evaluated": 320,
@@ -43,11 +43,11 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 109211999
+        "nanos": 136609675
       },
       "statistics": {
-        "Evaluated": 50625,
-        "BankSize": 2947,
+        "Evaluated": 51279,
+        "BankSize": 2912,
         "FoundContextCount": 132,
         "MaxMutatingOpcodes": 2,
         "MaxDepth": 3,
@@ -56,12 +56,12 @@
     },
     {
       "time": {
-        "secs": 895,
-        "nanos": 939027649
+        "secs": 955,
+        "nanos": 717781500
       },
       "statistics": {
-        "Evaluated": 802747027,
-        "BankSize": 4571867,
+        "Evaluated": 804367047,
+        "BankSize": 4564762,
         "FoundContextCount": 3989,
         "MaxMutatingOpcodes": 3,
         "MaxDepth": 4,
@@ -70,33 +70,38 @@
     },
     {
       "time": {
-        "secs": 0,
-        "nanos": 0
+        "secs": 15,
+        "nanos": 909824094
       },
       "statistics": {
-        "Evaluated": 61157772,
-        "BankSize": 21558468,
+        "Evaluated": 7147665,
+        "BankSize": 2778001,
         "FoundContextCount": 132,
         "MaxMutatingOpcodes": 3,
         "MaxDepth": 5,
-        "MaxSize": 36
+        "MaxSize": 34
       }
     }
   ],
   "iteration_count": 5,
-  "found": null,
+  "found": {
+    "found": "(arr.slice(0).pop() + (arr[1] + arr[0])) - arr.sort((a, b)=>a - b).reverse()[1]",
+    "num_mutations": 2,
+    "solution_size": 18,
+    "solution_depth": 5
+  },
   "total_time": {
-    "secs": 934,
-    "nanos": 1596423
+    "secs": 971,
+    "nanos": 826140097
   },
   "total_statistics": {
-    "Evaluated": 863904743,
-    "BankSize": 26130316,
+    "Evaluated": 811514712,
+    "BankSize": 7342763,
     "FoundContextCount": 4121,
     "MaxMutatingOpcodes": 3,
     "MaxDepth": 5,
-    "MaxSize": 36
+    "MaxSize": 34
   },
-  "max_vm_usage": "107.481055232 GB",
-  "error": "OOM"
+  "max_vm_usage": "53.283110912 GB",
+  "error": null
 }

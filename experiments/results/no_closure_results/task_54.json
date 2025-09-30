@@ -15,7 +15,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 522791
+        "nanos": 3048447
       },
       "statistics": {
         "Evaluated": 5,
@@ -29,7 +29,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 39907394
+        "nanos": 59151777
       },
       "statistics": {
         "Evaluated": 320,
@@ -43,15 +43,15 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 2617029
+        "nanos": 9612838
       },
       "statistics": {
-        "Evaluated": 731,
-        "BankSize": 263,
+        "Evaluated": 3699,
+        "BankSize": 829,
         "FoundContextCount": 2,
         "MaxMutatingOpcodes": 2,
         "MaxDepth": 3,
-        "MaxSize": 8
+        "MaxSize": 9
       }
     }
   ],
@@ -64,16 +64,16 @@
   },
   "total_time": {
     "secs": 0,
-    "nanos": 43346075
+    "nanos": 72163784
   },
   "total_statistics": {
-    "Evaluated": 1051,
-    "BankSize": 304,
+    "Evaluated": 4019,
+    "BankSize": 870,
     "FoundContextCount": 11,
     "MaxMutatingOpcodes": 2,
     "MaxDepth": 3,
-    "MaxSize": 8
+    "MaxSize": 9
   },
-  "max_vm_usage": "29.683712 MB",
+  "max_vm_usage": "27.46368 MB",
   "error": null
 }

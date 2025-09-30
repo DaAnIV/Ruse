@@ -15,7 +15,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 551955
+        "nanos": 2204803
       },
       "statistics": {
         "Evaluated": 8,
@@ -29,11 +29,11 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 43707032
+        "nanos": 56567751
       },
       "statistics": {
-        "Evaluated": 1244,
-        "BankSize": 118,
+        "Evaluated": 1239,
+        "BankSize": 119,
         "FoundContextCount": 42,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 2,
@@ -42,13 +42,13 @@
     },
     {
       "time": {
-        "secs": 1,
-        "nanos": 977816754
+        "secs": 2,
+        "nanos": 222285242
       },
       "statistics": {
-        "Evaluated": 1684309,
-        "BankSize": 51532,
-        "FoundContextCount": 2494,
+        "Evaluated": 1730613,
+        "BankSize": 52201,
+        "FoundContextCount": 2507,
         "MaxMutatingOpcodes": 3,
         "MaxDepth": 3,
         "MaxSize": 12
@@ -56,38 +56,38 @@
     },
     {
       "time": {
-        "secs": 214,
-        "nanos": 952898594
+        "secs": 119,
+        "nanos": 720686846
       },
       "statistics": {
-        "Evaluated": 125586756,
-        "BankSize": 29551143,
+        "Evaluated": 114633365,
+        "BankSize": 26755624,
         "FoundContextCount": 42,
         "MaxMutatingOpcodes": 3,
         "MaxDepth": 4,
-        "MaxSize": 21
+        "MaxSize": 20
       }
     }
   ],
   "iteration_count": 4,
   "found": {
-    "found": "(arr[end]) = toadd, (++beg) / (--end)",
+    "found": "(arr[end]) = toadd, (--end) * (++beg)",
     "num_mutations": 3,
     "solution_size": 11,
     "solution_depth": 4
   },
   "total_time": {
-    "secs": 216,
-    "nanos": 975568213
+    "secs": 122,
+    "nanos": 2487506
   },
   "total_statistics": {
-    "Evaluated": 127271065,
-    "BankSize": 29602675,
-    "FoundContextCount": 2536,
+    "Evaluated": 116363978,
+    "BankSize": 26807825,
+    "FoundContextCount": 2549,
     "MaxMutatingOpcodes": 3,
     "MaxDepth": 4,
-    "MaxSize": 21
+    "MaxSize": 20
   },
-  "max_vm_usage": "66.63407616 GB",
+  "max_vm_usage": "60.874735616 GB",
   "error": null
 }

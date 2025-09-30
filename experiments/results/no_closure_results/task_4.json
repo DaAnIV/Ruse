@@ -15,7 +15,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 536407
+        "nanos": 2229669
       },
       "statistics": {
         "Evaluated": 6,
@@ -29,11 +29,11 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 45216909
+        "nanos": 64006961
       },
       "statistics": {
         "Evaluated": 526,
-        "BankSize": 87,
+        "BankSize": 85,
         "FoundContextCount": 8,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 2,
@@ -43,11 +43,11 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 455372055
+        "nanos": 385063165
       },
       "statistics": {
-        "Evaluated": 387651,
-        "BankSize": 12866,
+        "Evaluated": 327461,
+        "BankSize": 12022,
         "FoundContextCount": 97,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 3,
@@ -56,12 +56,12 @@
     },
     {
       "time": {
-        "secs": 32,
-        "nanos": 703409278
+        "secs": 96,
+        "nanos": 804703468
       },
       "statistics": {
-        "Evaluated": 31614933,
-        "BankSize": 3848099,
+        "Evaluated": 85356677,
+        "BankSize": 10450627,
         "FoundContextCount": 8,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 4,
@@ -71,23 +71,23 @@
   ],
   "iteration_count": 4,
   "found": {
-    "found": "(\" \" + _arg_0).slice(1, _arg_0.indexOf(_arg_1)) + _arg_0.replaceAll(_arg_1, \" \").slice(_arg_1.length)",
+    "found": "_arg_0.slice(0, _arg_0.lastIndexOf(\" \")) + _arg_0.replaceAll(_arg_1, \" \").slice(_arg_1.length)",
     "num_mutations": 0,
-    "solution_size": 16,
+    "solution_size": 14,
     "solution_depth": 4
   },
   "total_time": {
-    "secs": 33,
-    "nanos": 205140658
+    "secs": 97,
+    "nanos": 256705045
   },
   "total_statistics": {
-    "Evaluated": 32002584,
-    "BankSize": 3860965,
+    "Evaluated": 85684138,
+    "BankSize": 10462649,
     "FoundContextCount": 105,
     "MaxMutatingOpcodes": 1,
     "MaxDepth": 4,
     "MaxSize": 27
   },
-  "max_vm_usage": "20.65014784 GB",
+  "max_vm_usage": "56.965931008 GB",
   "error": null
 }

@@ -1,11 +1,10 @@
 {
-  "path": "../tasks/benchmarks/new_ruse/relations/user_names.sy",
+  "path": "../tasks/benchmarks/new_ruse/relations/mut_graph_one_way_connected.sy",
   "source": null,
-  "category": "Full OOP:Without Side Effects",
-  "opcode_count": 1527,
+  "category": "Full OOP:With Side Effects",
+  "opcode_count": 1175,
   "string_literals": [
     " ",
-    ", ",
     ""
   ],
   "num_literals": [
@@ -16,12 +15,12 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 1783752
+        "nanos": 3986168
       },
       "statistics": {
-        "Evaluated": 8,
-        "BankSize": 8,
-        "FoundContextCount": 5,
+        "Evaluated": 7,
+        "BankSize": 7,
+        "FoundContextCount": 4,
         "MaxMutatingOpcodes": 0,
         "MaxDepth": 1,
         "MaxSize": 1
@@ -30,13 +29,13 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 78074447
+        "nanos": 104400465
       },
       "statistics": {
-        "Evaluated": 744,
-        "BankSize": 34,
-        "FoundContextCount": 0,
-        "MaxMutatingOpcodes": 0,
+        "Evaluated": 518,
+        "BankSize": 24,
+        "FoundContextCount": 3,
+        "MaxMutatingOpcodes": 1,
         "MaxDepth": 2,
         "MaxSize": 4
       }
@@ -44,51 +43,37 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 544939723
+        "nanos": 68437091
       },
       "statistics": {
-        "Evaluated": 74067,
-        "BankSize": 2136,
-        "FoundContextCount": 78,
+        "Evaluated": 7203,
+        "BankSize": 119,
+        "FoundContextCount": 4,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 3,
-        "MaxSize": 13
-      }
-    },
-    {
-      "time": {
-        "secs": 3,
-        "nanos": 488548039
-      },
-      "statistics": {
-        "Evaluated": 1329994,
-        "BankSize": 370193,
-        "FoundContextCount": 0,
-        "MaxMutatingOpcodes": 1,
-        "MaxDepth": 4,
-        "MaxSize": 27
+        "MaxSize": 8
       }
     }
   ],
-  "iteration_count": 4,
+  "iteration_count": 3,
   "found": {
-    "found": "(a.name + \", \") + b.name",
-    "num_mutations": 0,
-    "solution_size": 7,
-    "solution_depth": 4
+    "found": "graph3.inc_value(1), graph1.inc_value(1), graph2.inc_value(1)",
+    "num_mutations": 3,
+    "solution_size": 10,
+    "solution_depth": 3
   },
   "total_time": {
-    "secs": 4,
-    "nanos": 113752710
+    "secs": 0,
+    "nanos": 177034562
   },
   "total_statistics": {
-    "Evaluated": 1404061,
-    "BankSize": 372329,
-    "FoundContextCount": 78,
+    "Evaluated": 7721,
+    "BankSize": 143,
+    "FoundContextCount": 7,
     "MaxMutatingOpcodes": 1,
-    "MaxDepth": 4,
-    "MaxSize": 27
+    "MaxDepth": 3,
+    "MaxSize": 8
   },
-  "max_vm_usage": "2.876809216 GB",
+  "max_vm_usage": "35.75808 MB",
   "error": null
 }
