@@ -1,8 +1,8 @@
 {
-  "path": "../tasks/benchmarks/new_ruse/relations/inc_tree_values_min_ops.sy",
+  "path": "../tasks/benchmarks/new_ruse/relations/mut_graph_cycle.sy",
   "source": null,
   "category": "Full OOP:With Side Effects",
-  "opcode_count": 9,
+  "opcode_count": 1175,
   "string_literals": [
     " ",
     ""
@@ -15,12 +15,12 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 4109648
+        "nanos": 4705564
       },
       "statistics": {
         "Evaluated": 7,
         "BankSize": 7,
-        "FoundContextCount": 5,
+        "FoundContextCount": 2,
         "MaxMutatingOpcodes": 0,
         "MaxDepth": 1,
         "MaxSize": 1
@@ -29,51 +29,74 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 21619580
+        "nanos": 118285310
       },
       "statistics": {
-        "Evaluated": 18,
-        "BankSize": 6,
+        "Evaluated": 521,
+        "BankSize": 29,
         "FoundContextCount": 3,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 2,
-        "MaxSize": 2
+        "MaxSize": 4
       }
     },
     {
       "time": {
         "secs": 0,
-        "nanos": 5625920
+        "nanos": 501605645
       },
       "statistics": {
-        "Evaluated": 11,
-        "BankSize": 10,
-        "FoundContextCount": 5,
+        "Evaluated": 17782,
+        "BankSize": 420,
+        "FoundContextCount": 51,
         "MaxMutatingOpcodes": 1,
-        "MaxDepth": 2,
-        "MaxSize": 2
+        "MaxDepth": 3,
+        "MaxSize": 10
+      }
+    },
+    {
+      "time": {
+        "secs": 58,
+        "nanos": 635407344
+      },
+      "statistics": {
+        "Evaluated": 5245020,
+        "BankSize": 19267,
+        "FoundContextCount": 974,
+        "MaxMutatingOpcodes": 2,
+        "MaxDepth": 4,
+        "MaxSize": 30
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 0
+      },
+      "statistics": {
+        "Evaluated": 528303492,
+        "BankSize": 12854793,
+        "FoundContextCount": 51,
+        "MaxMutatingOpcodes": 2,
+        "MaxDepth": 5,
+        "MaxSize": 47
       }
     }
   ],
-  "iteration_count": 3,
-  "found": {
-    "found": "tree2.inc_value(), tree3.inc_value(), tree1.inc_value()",
-    "num_mutations": 3,
-    "solution_size": 7,
-    "solution_depth": 3
-  },
+  "iteration_count": 5,
+  "found": null,
   "total_time": {
-    "secs": 0,
-    "nanos": 31717486
+    "secs": 3600,
+    "nanos": 1431675
   },
   "total_statistics": {
-    "Evaluated": 29,
-    "BankSize": 16,
-    "FoundContextCount": 8,
-    "MaxMutatingOpcodes": 1,
-    "MaxDepth": 2,
-    "MaxSize": 2
+    "Evaluated": 533548512,
+    "BankSize": 12874060,
+    "FoundContextCount": 1025,
+    "MaxMutatingOpcodes": 2,
+    "MaxDepth": 5,
+    "MaxSize": 47
   },
-  "max_vm_usage": "35.586048 MB",
-  "error": null
+  "max_vm_usage": "86.008393728 GB",
+  "error": "Timeout"
 }

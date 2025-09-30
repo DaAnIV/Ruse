@@ -19,7 +19,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 617442
+        "nanos": 2360144
       },
       "statistics": {
         "Evaluated": 9,
@@ -33,11 +33,11 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 43123411
+        "nanos": 53514470
       },
       "statistics": {
         "Evaluated": 1595,
-        "BankSize": 158,
+        "BankSize": 162,
         "FoundContextCount": 6,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 2,
@@ -47,11 +47,11 @@
     {
       "time": {
         "secs": 5,
-        "nanos": 348180697
+        "nanos": 303895111
       },
       "statistics": {
-        "Evaluated": 5119649,
-        "BankSize": 130788,
+        "Evaluated": 5185298,
+        "BankSize": 131340,
         "FoundContextCount": 106,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 3,
@@ -64,8 +64,8 @@
         "nanos": 0
       },
       "statistics": {
-        "Evaluated": 145273665,
-        "BankSize": 16148151,
+        "Evaluated": 146075827,
+        "BankSize": 16142504,
         "FoundContextCount": 6,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 4,
@@ -76,17 +76,17 @@
   "iteration_count": 4,
   "found": null,
   "total_time": {
-    "secs": 115,
-    "nanos": 1284857
+    "secs": 111,
+    "nanos": 958099
   },
   "total_statistics": {
-    "Evaluated": 150393279,
-    "BankSize": 16278931,
+    "Evaluated": 151261045,
+    "BankSize": 16273830,
     "FoundContextCount": 112,
     "MaxMutatingOpcodes": 1,
     "MaxDepth": 4,
     "MaxSize": 23
   },
-  "max_vm_usage": "107.54512896 GB",
+  "max_vm_usage": "108.313235456 GB",
   "error": "OOM"
 }

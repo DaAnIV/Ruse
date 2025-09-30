@@ -17,7 +17,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 492251
+        "nanos": 2498546
       },
       "statistics": {
         "Evaluated": 7,
@@ -31,7 +31,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 46054112
+        "nanos": 52700136
       },
       "statistics": {
         "Evaluated": 783,
@@ -44,12 +44,12 @@
     },
     {
       "time": {
-        "secs": 1,
-        "nanos": 3204224
+        "secs": 0,
+        "nanos": 610892626
       },
       "statistics": {
-        "Evaluated": 552724,
-        "BankSize": 14347,
+        "Evaluated": 552484,
+        "BankSize": 14123,
         "FoundContextCount": 44,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 3,
@@ -58,12 +58,12 @@
     },
     {
       "time": {
-        "secs": 1,
-        "nanos": 122643858
+        "secs": 0,
+        "nanos": 550693554
       },
       "statistics": {
-        "Evaluated": 515056,
-        "BankSize": 25966,
+        "Evaluated": 422179,
+        "BankSize": 28927,
         "FoundContextCount": 4,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 4,
@@ -73,23 +73,23 @@
   ],
   "iteration_count": 4,
   "found": {
-    "found": "(\">\" + \" \").replaceAll(\"\", _arg_0.replaceAll(\">\", \"\")).slice((-1) - (1 + 1))",
+    "found": "((\">\" + \">\") + _arg_0.replaceAll(\">\", \"\")).slice(_arg_0.slice(1).indexOf(\">\"))",
     "num_mutations": 0,
-    "solution_size": 16,
+    "solution_size": 14,
     "solution_depth": 4
   },
   "total_time": {
-    "secs": 2,
-    "nanos": 172854529
+    "secs": 1,
+    "nanos": 217347934
   },
   "total_statistics": {
-    "Evaluated": 1067780,
-    "BankSize": 40313,
+    "Evaluated": 974663,
+    "BankSize": 43050,
     "FoundContextCount": 48,
     "MaxMutatingOpcodes": 1,
     "MaxDepth": 4,
     "MaxSize": 18
   },
-  "max_vm_usage": "345.485312 MB",
+  "max_vm_usage": "343.175168 MB",
   "error": null
 }

@@ -16,7 +16,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 451362
+        "nanos": 2637499
       },
       "statistics": {
         "Evaluated": 6,
@@ -30,11 +30,11 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 44273218
+        "nanos": 63241022
       },
       "statistics": {
         "Evaluated": 512,
-        "BankSize": 59,
+        "BankSize": 57,
         "FoundContextCount": 3,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 2,
@@ -44,11 +44,11 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 1122463
+        "nanos": 7985909
       },
       "statistics": {
-        "Evaluated": 325,
-        "BankSize": 67,
+        "Evaluated": 858,
+        "BankSize": 132,
         "FoundContextCount": 2,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 3,
@@ -58,23 +58,23 @@
   ],
   "iteration_count": 3,
   "found": {
-    "found": "_arg_0.split(\"= \").pop()",
+    "found": "_arg_0.replaceAll(\"= \", \"\").slice(_arg_0.indexOf(\"= \"))",
     "num_mutations": 0,
-    "solution_size": 4,
+    "solution_size": 8,
     "solution_depth": 3
   },
   "total_time": {
     "secs": 0,
-    "nanos": 46112157
+    "nanos": 74367855
   },
   "total_statistics": {
-    "Evaluated": 837,
-    "BankSize": 126,
+    "Evaluated": 1370,
+    "BankSize": 189,
     "FoundContextCount": 5,
     "MaxMutatingOpcodes": 1,
     "MaxDepth": 3,
     "MaxSize": 8
   },
-  "max_vm_usage": "28.381184 MB",
+  "max_vm_usage": "30.179328 MB",
   "error": null
 }

@@ -1,7 +1,7 @@
 {
-  "path": "../tasks/benchmarks/fromSobeq/must/sobeq-new/MoveFromAToB.sy",
-  "source": "https://github.com/peleghila/sobeq/blob/main/benchmarks/must/sobeq-new/MoveFromAToB.sy",
-  "category": "Primitive Objects:With Side Effects",
+  "path": "../tasks/benchmarks/new_ruse/simple/x_y_mut_inc.sy",
+  "source": null,
+  "category": "Primitive:With Side Effects",
   "opcode_count": 880,
   "string_literals": [
     " ",
@@ -15,7 +15,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 2701568
+        "nanos": 1938792
       },
       "statistics": {
         "Evaluated": 6,
@@ -29,12 +29,12 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 69654362
+        "nanos": 62856439
       },
       "statistics": {
-        "Evaluated": 463,
-        "BankSize": 55,
-        "FoundContextCount": 11,
+        "Evaluated": 562,
+        "BankSize": 60,
+        "FoundContextCount": 12,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 2,
         "MaxSize": 4
@@ -43,37 +43,37 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 21282845
+        "nanos": 10093561
       },
       "statistics": {
-        "Evaluated": 4693,
-        "BankSize": 1367,
+        "Evaluated": 2444,
+        "BankSize": 948,
         "FoundContextCount": 4,
-        "MaxMutatingOpcodes": 3,
+        "MaxMutatingOpcodes": 2,
         "MaxDepth": 3,
-        "MaxSize": 9
+        "MaxSize": 7
       }
     }
   ],
   "iteration_count": 3,
   "found": {
-    "found": "b.reverse().push(a.pop())",
+    "found": "(++x) + (++y)",
     "num_mutations": 2,
     "solution_size": 5,
     "solution_depth": 3
   },
   "total_time": {
     "secs": 0,
-    "nanos": 94265541
+    "nanos": 75529089
   },
   "total_statistics": {
-    "Evaluated": 5156,
-    "BankSize": 1422,
-    "FoundContextCount": 15,
-    "MaxMutatingOpcodes": 3,
+    "Evaluated": 3006,
+    "BankSize": 1008,
+    "FoundContextCount": 16,
+    "MaxMutatingOpcodes": 2,
     "MaxDepth": 3,
-    "MaxSize": 9
+    "MaxSize": 7
   },
-  "max_vm_usage": "27.46368 MB",
+  "max_vm_usage": "25.45664 MB",
   "error": null
 }
