@@ -264,13 +264,17 @@ fn construct_config(cli: &RunArgs) -> BenchmarkConfig {
         max_task_mem: Byte::parse_str(&cli.max_task_mem, true).unwrap(),
         bank_config: bank_args.into(),
         dry_run: cli.dry_run,
-        fork: !cli.no_fork,
+        fork: !cli.no_fork && !cli.tokio_console,
         sleep,
     }
 }
 
 fn run_benchmarks(cli: &RunArgs) -> ExitCode {
-    set_logger(&cli);
+    if cli.tokio_console {
+        console_subscriber::init();
+    } else {
+        set_logger(&cli);
+    }
 
     let bench_config = construct_config(cli);
 
@@ -289,10 +293,6 @@ fn run_benchmarks(cli: &RunArgs) -> ExitCode {
     info!(target: "ruse::runner", "Using mimalloc allocator");
     #[cfg(not(feature = "mimalloc"))]
     info!(target: "ruse::runner", "Using default system allocator");
-
-    if cli.tokio_console {
-        console_subscriber::init();
-    }
 
     let results_path = match get_result_path(&cli) {
         Ok(path) => path,

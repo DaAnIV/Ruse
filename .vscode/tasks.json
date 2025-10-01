@@ -24,6 +24,15 @@
 			},
         },
         {
+            "label": "build release with tokio console",
+            "type": "shell",
+            "command": "RUSTFLAGS=\"--cfg tokio_unstable\" $HOME/.cargo/bin/cargo build --profile release",
+			"problemMatcher": "$rustc",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+        },
         {
             "label": "build release with variable closure",
             "type": "shell",
