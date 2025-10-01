@@ -28,7 +28,7 @@ use std::{
     panic,
     path::{Path, PathBuf},
     sync::{atomic::*, Arc},
-    time::{Duration, Instant},
+    time::Instant,
 };
 use tokio::{runtime::Handle, select, task::JoinSet};
 use tokio_util::sync::CancellationToken;
@@ -282,9 +282,9 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> SynthesizerInner<
 
     pub async fn run_iteration(self: &mut Arc<Self>) -> anyhow::Result<Option<Arc<SubProgram>>> {
         let _span = info_span!(target: "ruse::synthesizer", "run_iteration", iteration = self.bank.iteration_count()).entered();
-        let (current_iteration_map, found_prog) = Self::run_iteration_inner(self.clone()).await?;
+        let (current_iteration_map, found_prog) = self.clone().run_iteration_inner().await?;
 
-        Self::insert_iteration(self, current_iteration_map).await;
+        self.insert_iteration(current_iteration_map).await;
 
         Ok(found_prog)
     }
@@ -394,11 +394,11 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> SynthesizerInner<
         self.cancel_token.is_cancelled() || self.stop_workers_token.is_cancelled()
     }
 
-    async fn worker_triple_iterator<'a>(
+    async fn worker_children_iterator<'a>(
         &'a self,
         i: usize,
         arg_types: &'a [ValueType],
-    ) -> SeqTripleIterator<BankIterator<'a, P>> {
+    ) -> BankIterator<'a, P> {
         let mut children_iterator = bank_iterator(&self.bank, arg_types).await;
         let total_size = children_iterator.remaining();
         let skip = (total_size / self.options.worker_count) * i;
@@ -410,6 +410,15 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> SynthesizerInner<
         children_iterator.skip(skip).await;
         children_iterator.take(take);
 
+        children_iterator
+    }
+
+    async fn worker_triple_iterator<'a>(
+        &'a self,
+        i: usize,
+        arg_types: &'a [ValueType],
+    ) -> SeqTripleIterator<BankIterator<'a, P>> {
+        let children_iterator = self.worker_children_iterator(i, arg_types).await;
         seq_triple_iterator(children_iterator)
     }
 
@@ -473,9 +482,10 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> SynthesizerInner<
         current_iteration_map: &mut P::IterationBuilderType,
     ) -> anyhow::Result<Option<Arc<SubProgram>>> {
         if let Some(output_embedding_csv) = &self.options.output_embedding_overhead {
+            let self_clone = self.clone();
             let _ = tokio::task::block_in_place(|| {
                 Handle::current()
-                    .block_on(self.output_embedding_overhead_statistics(output_embedding_csv))
+                    .block_on(self_clone.output_embedding_overhead_statistics(output_embedding_csv))
                     .in_current_span()
             });
         }
@@ -489,9 +499,9 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> SynthesizerInner<
                 Handle::current().block_on(
                     panic::AssertUnwindSafe(async move {
                         let _span = current_span.enter();
-                        let found =
-                            Self::composite_iteration_worker(self_clone, &mut batch_builder, i)
-                                .await;
+                        let found = self_clone
+                            .composite_iteration_worker(&mut batch_builder, i)
+                            .await;
                         (batch_builder, found)
                     })
                     .catch_unwind(),
@@ -670,13 +680,65 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> SynthesizerInner<
 }
 
 impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> SynthesizerInner<P, W> {
-    async fn output_embedding_overhead_statistics(&self, csv_path: &Path) {
+    async fn count_embedded_programs_worker(&self, worker_index: usize) -> usize {
+        let mut embedded_programs_count = 0;
+        for (arg_types, _) in self.opcodes.composite_opcodes() {
+            let mut iter = self.worker_triple_iterator(worker_index, arg_types).await;
+            while let Some(_) = iter.next().await {
+                embedded_programs_count += 1;
+            }
+        }
+        embedded_programs_count
+    }
+
+    async fn count_embedded_programs(self: &Arc<Self>) -> usize {
+        let mut workers = JoinSet::new();
+        for i in 0..self.options.worker_count {
+            let self_clone: Arc<Self> = self.clone();
+
+            let current_span = tracing::Span::current();
+            workers.spawn_blocking(move || {
+                Handle::current().block_on(async move {
+                    let _span = current_span.enter();
+                    self_clone.count_embedded_programs_worker(i).await
+                })
+            });
+        }
+
+        workers.join_all().await.into_iter().sum()
+    }
+
+    async fn count_programs_without_embedding_worker(&self, worker_index: usize) -> usize {
+        let mut programs_count = 0;
+        for (arg_types, _) in self.opcodes.composite_opcodes() {
+            let mut iter = self.worker_children_iterator(worker_index, arg_types).await;
+            while let Some(_) = iter.next().await {
+                programs_count += 1;
+            }
+        }
+        programs_count
+    }
+
+    async fn count_programs_without_embedding(self: &Arc<Self>) -> usize {
+        let mut workers = JoinSet::new();
+        for i in 0..self.options.worker_count {
+            let self_clone: Arc<Self> = self.clone();
+
+            let current_span = tracing::Span::current();
+            workers.spawn_blocking(move || {
+                Handle::current().block_on(async move {
+                    let _span = current_span.enter();
+                    self_clone.count_programs_without_embedding_worker(i).await
+                })
+            });
+        }
+
+        workers.join_all().await.into_iter().sum()
+    }
+
+    async fn output_embedding_overhead_statistics(self: Arc<Self>, csv_path: &Path) {
         let iteration = self.bank.iteration_count();
         let bank_size = self.statistics.get_value(StatisticsTypes::BankSize);
-        let mut total_programs_count = 0;
-        let mut embedded_programs_count = 0;
-        let mut total_took_without_embedding = Duration::from_secs(0);
-        let mut total_took_with_embedding = Duration::from_secs(0);
 
         let span =
             tracing::info_span!(target: "ruse::synthesizer", "embedding overhead calculation");
@@ -684,28 +746,13 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> SynthesizerInner<
 
         tracing::info!(target: "ruse::synthesizer", "Starting calculating embedding overhead for iteration {}", iteration);
 
-        for (arg_types, _) in self.opcodes.composite_opcodes() {
-            let mut children_iterator = bank_iterator(&self.bank, arg_types).await;
-            debug!(target: "ruse::synthesizer", "Programs count: {} for {:?}", children_iterator.remaining(), arg_types);
+        let started_without_embedding = Instant::now();
+        let total_programs_count = self.count_programs_without_embedding().await;
+        let total_took_without_embedding = started_without_embedding.elapsed();
 
-            let mut programs_count = 0;
-            let started_without_embedding = Instant::now();
-            while let Some(_) = children_iterator.next().await {
-                programs_count += 1
-            }
-            total_took_without_embedding += started_without_embedding.elapsed();
-            total_programs_count += programs_count;
-
-            let children_iterator = bank_iterator(&self.bank, arg_types).await;
-            assert_eq!(programs_count, children_iterator.remaining());
-
-            let mut triple_iterator = seq_triple_iterator(children_iterator);
-            let started_with_embedding = Instant::now();
-            while let Some(_) = triple_iterator.next().await {
-                embedded_programs_count += 1;
-            }
-            total_took_with_embedding += started_with_embedding.elapsed();
-        }
+        let started_with_embedding = Instant::now();
+        let embedded_programs_count = self.count_embedded_programs().await;
+        let total_took_with_embedding = started_with_embedding.elapsed();
 
         let mut csv_file = OpenOptions::new()
             .append(true)
