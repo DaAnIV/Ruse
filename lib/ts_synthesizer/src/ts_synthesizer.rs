@@ -16,6 +16,7 @@ impl WorkerContextCreator for TsWorkerContextCreator {
 pub type TsSynthesizer<P> = Synthesizer<P, TsWorkerContextCreator>;
 
 pub fn create_ts_synthesizer<P: ProgBank + 'static>(
+    task: String,
     bank: P,
     syn_ctx: SynthesizerContext,
     opcodes: OpcodesList,
@@ -23,5 +24,7 @@ pub fn create_ts_synthesizer<P: ProgBank + 'static>(
     valid: SynthesizerPredicate,
     options: SynthesizerOptions,
 ) -> TsSynthesizer<P> {
-    Synthesizer::<P, TsWorkerContextCreator>::new(bank, syn_ctx, opcodes, predicate, valid, options)
+    Synthesizer::<P, TsWorkerContextCreator>::new(
+        task, bank, syn_ctx, opcodes, predicate, valid, options,
+    )
 }

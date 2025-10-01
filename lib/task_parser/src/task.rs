@@ -572,6 +572,7 @@ impl SnythesisTask {
         let immutable_opt = self.inner.immutable;
         let syn_ctx = SynthesizerContext::from_context_array_with_data(context_array, self.classes);
         let mut synthesizer = create_ts_synthesizer(
+            self.name.clone(),
             bank,
             syn_ctx,
             opcodes,

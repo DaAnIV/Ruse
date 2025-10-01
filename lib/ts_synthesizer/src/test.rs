@@ -82,6 +82,7 @@ mod tests {
 
         let syn_ctx = SynthesizerContext::from_context_array_with_data(ctx.clone(), classes);
         let mut synthesizer = create_ts_synthesizer(
+            "Test".to_string(),
             SubsumptionProgBank::default(),
             syn_ctx,
             opcodes,
@@ -188,6 +189,7 @@ mod tests {
 
         let syn_ctx = SynthesizerContext::from_context_array_with_data(ctx.clone(), classes);
         let mut synthesizer = create_ts_synthesizer(
+            "Test".to_string(),
             SubsumptionProgBank::default(),
             syn_ctx,
             opcodes,

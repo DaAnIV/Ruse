@@ -183,6 +183,8 @@ pub struct SynthesizerOptions {
 }
 
 struct SynthesizerInner<P: ProgBank, W: WorkerContextCreator + 'static> {
+    task: String,
+
     bank: P,
     opcodes: OpcodesMap,
     context: SynthesizerContext,
@@ -203,6 +205,7 @@ struct SynthesizerInner<P: ProgBank, W: WorkerContextCreator + 'static> {
 
 impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> SynthesizerInner<P, W> {
     pub fn new(
+        task: String,
         bank: P,
         syn_ctx: SynthesizerContext,
         opcodes: OpcodesList,
@@ -211,6 +214,7 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> SynthesizerInner<
         options: SynthesizerOptions,
     ) -> Self {
         Self {
+            task,
             bank,
             opcodes: sort_opcodes(opcodes),
             context: syn_ctx,
@@ -469,8 +473,11 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> SynthesizerInner<
         current_iteration_map: &mut P::IterationBuilderType,
     ) -> anyhow::Result<Option<Arc<SubProgram>>> {
         if let Some(output_embedding_csv) = &self.options.output_embedding_overhead {
-            self.output_embedding_overhead_statistics(output_embedding_csv)
-                .await;
+            let _ = tokio::task::block_in_place(|| {
+                Handle::current()
+                    .block_on(self.output_embedding_overhead_statistics(output_embedding_csv))
+                    .in_current_span()
+            });
         }
         let mut workers = JoinSet::new();
         for i in 0..self.options.worker_count {
@@ -707,7 +714,8 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> SynthesizerInner<
         csv_file
             .write_all(
                 format!(
-                    "{},{},{},{},{:.2},{:.2}\n",
+                    "{},{},{},{},{},{:.2},{:.2}\n",
+                    self.task,
                     iteration,
                     bank_size,
                     total_programs_count,
@@ -760,6 +768,7 @@ pub struct Synthesizer<P: ProgBank + 'static, W: WorkerContextCreator + 'static>
 
 impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W> {
     pub fn new(
+        task: String,
         bank: P,
         syn_ctx: SynthesizerContext,
         opcodes: OpcodesList,
@@ -767,7 +776,7 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
         valid: SynthesizerPredicate,
         options: SynthesizerOptions,
     ) -> Synthesizer<P, W> {
-        let inner = SynthesizerInner::new(bank, syn_ctx, opcodes, predicate, valid, options);
+        let inner = SynthesizerInner::new(task, bank, syn_ctx, opcodes, predicate, valid, options);
 
         Self(inner.into())
     }

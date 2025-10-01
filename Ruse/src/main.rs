@@ -281,7 +281,8 @@ fn init_embedding_overhead_csv(csv_path: &Path) -> Result<(), String> {
     let mut csv = File::create(csv_path)
         .map_err(|e| format!("Failed to create embedding overhead csv file: {}", e))?;
     let headers = format!(
-        "{},{},{},{},{},{}\n",
+        "{},{},{},{},{},{},{}\n",
+        "Task",
         "Iteration",
         "Bank size",
         "Total programs",

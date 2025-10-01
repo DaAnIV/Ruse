@@ -56,6 +56,7 @@ fn simple_synthesize_1(c: &mut Criterion) {
 
                     let syn_ctx = SynthesizerContext::from_context_array(ctx);
                     create_ts_synthesizer(
+                        "Test".to_string(),
                         SubsumptionProgBank::default(),
                         syn_ctx,
                         opcodes.clone(),
