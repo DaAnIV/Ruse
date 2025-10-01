@@ -9,6 +9,7 @@ mod tests {
         vnum, vstr, GraphIdGenerator, GraphsMap, ValueType,
     };
     use ruse_synthesizer::context::{Context, ContextArray};
+    use ruse_synthesizer::synthesizer::SynthesizerOptions;
     use ruse_synthesizer::synthesizer_context::SynthesizerContext;
     use ruse_ts_interpreter::ts_classes::TsClassesBuilder;
     use swc_ecma_ast as ast;
@@ -80,7 +81,7 @@ mod tests {
         ]);
 
         let syn_ctx = SynthesizerContext::from_context_array_with_data(ctx.clone(), classes);
-        let mut synthesizer = TsSynthesizer::new(
+        let mut synthesizer = create_ts_synthesizer(
             SubsumptionProgBank::default(),
             syn_ctx,
             opcodes,
@@ -101,8 +102,10 @@ mod tests {
                 return true;
             }),
             Box::new(|_p, _syn_ctx, _worker_ctx| true),
-            3,
-            1,
+            SynthesizerOptions {
+                worker_count: 1,
+                max_mutations: 3,
+            },
         );
 
         for _ in 1..=5 {
@@ -183,7 +186,7 @@ mod tests {
         ]);
 
         let syn_ctx = SynthesizerContext::from_context_array_with_data(ctx.clone(), classes);
-        let mut synthesizer = TsSynthesizer::new(
+        let mut synthesizer = create_ts_synthesizer(
             SubsumptionProgBank::default(),
             syn_ctx,
             opcodes,
@@ -204,8 +207,10 @@ mod tests {
                 return true;
             }),
             Box::new(|_p, _syn_ctx, _worker_ctx| true),
-            3,
-            1,
+            SynthesizerOptions {
+                worker_count: 1,
+                max_mutations: 3,
+            },
         );
 
         for _ in 1..=5 {

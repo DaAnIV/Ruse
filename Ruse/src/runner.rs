@@ -219,9 +219,8 @@ async fn run_task_with_bank<P: ProgBank + 'static>(
     let task_path = task.path.clone();
 
     let mut synthesizer = match task.get_synthesizer(
-        bench_config.max_mutations,
+        bench_config.get_synthesizer_options(),
         bench_config.max_sequence_size,
-        bench_config.iteration_workers_count,
         bank,
     ) {
         Ok(v) => v,

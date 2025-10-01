@@ -3,6 +3,7 @@ use std::{path::PathBuf, time::Duration};
 use byte_unit::Byte;
 use clap::{Command, CommandFactory, Parser};
 use ruse_bank_in_mem::args::SubsumptionBankArgs;
+use ruse_synthesizer::synthesizer::SynthesizerOptions;
 use ruse_task_parser::BankConfig;
 use serde_with::{serde_as, DurationSeconds};
 
@@ -91,4 +92,13 @@ pub struct BenchmarkConfig {
     pub dry_run: bool,
     pub fork: bool,
     pub sleep: Option<Duration>,
+}
+
+impl BenchmarkConfig {
+    pub fn get_synthesizer_options(&self) -> SynthesizerOptions {
+        SynthesizerOptions {
+            worker_count: self.iteration_workers_count,
+            max_mutations: self.max_mutations,
+        }
+    }
 }

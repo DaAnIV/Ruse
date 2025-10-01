@@ -21,6 +21,7 @@ use ruse_object_graph::ValueType;
 use serde::ser::SerializeStruct;
 use std::{
     fmt::Display,
+    marker::PhantomData,
     ops::Index,
     panic,
     sync::{atomic::*, Arc},
@@ -168,52 +169,55 @@ pub type SynthesizerPredicate = Box<
 >;
 
 pub trait WorkerContextCreator: Send + Sync {
-    fn create_worker_ctx(&self, index: usize) -> SynthesizerWorkerContext;
+    fn create_worker_ctx(index: usize) -> SynthesizerWorkerContext;
 }
 
-pub struct Synthesizer<P: ProgBank, W: WorkerContextCreator + 'static> {
+#[derive(Debug, Clone)]
+pub struct SynthesizerOptions {
+    pub worker_count: usize,
+    pub max_mutations: u32,
+}
+
+struct SynthesizerInner<P: ProgBank, W: WorkerContextCreator + 'static> {
     bank: P,
     opcodes: OpcodesMap,
     context: SynthesizerContext,
     found_contexts: DashSet<ContextArray>,
-    max_mutations: u32,
     cancel_token: CancellationToken,
 
     predicate: SynthesizerPredicate,
     valid: SynthesizerPredicate,
 
-    worker_count: usize,
     stop_workers_token: CancellationToken,
 
     statistics: Statistics,
 
-    worker_context_creator: W,
+    options: SynthesizerOptions,
+
+    _worker_context_creator_phantom: PhantomData<W>,
 }
 
-impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W> {
+impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> SynthesizerInner<P, W> {
     pub fn new(
         bank: P,
         syn_ctx: SynthesizerContext,
         opcodes: OpcodesList,
         predicate: SynthesizerPredicate,
         valid: SynthesizerPredicate,
-        max_mutations: u32,
-        iteration_workers_count: usize,
-        worker_context_creator: W,
+        options: SynthesizerOptions,
     ) -> Self {
         Self {
             bank,
             opcodes: sort_opcodes(opcodes),
             context: syn_ctx,
             found_contexts: DashSet::new(),
-            max_mutations: max_mutations,
             cancel_token: CancellationToken::new(),
             predicate,
             valid,
-            worker_count: iteration_workers_count,
             stop_workers_token: CancellationToken::new(),
             statistics: Default::default(),
-            worker_context_creator,
+            options,
+            _worker_context_creator_phantom: PhantomData,
         }
     }
 
@@ -326,7 +330,7 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
     }
 
     fn create_worker_ctx(&self, index: usize) -> SynthesizerWorkerContext {
-        self.worker_context_creator.create_worker_ctx(index)
+        W::create_worker_ctx(index)
     }
 
     async fn run_init_iteration(
@@ -389,11 +393,11 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
     ) -> SeqTripleIterator<BankIterator<'a, P>> {
         let mut children_iterator = bank_iterator(&self.bank, arg_types).await;
         let total_size = children_iterator.remaining();
-        let skip = (total_size / self.worker_count) * i;
-        let take = if i == self.worker_count - 1 {
+        let skip = (total_size / self.options.worker_count) * i;
+        let take = if i == self.options.worker_count - 1 {
             usize::MAX
         } else {
-            total_size / self.worker_count
+            total_size / self.options.worker_count
         };
         children_iterator.skip(skip).await;
         children_iterator.take(take);
@@ -464,7 +468,7 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
         #[cfg(feature = "check_embedding_overhead")]
         self.print_embedding_overhead_statistics().await;
         let mut workers = JoinSet::new();
-        for i in 0..self.worker_count {
+        for i in 0..self.options.worker_count {
             let mut batch_builder = current_iteration_map.create_batch_builder();
             let self_clone = self.clone();
 
@@ -563,7 +567,7 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
             triple_clone.pre_ctx,
             triple_clone.post_ctx,
         );
-        if p.num_mutations() > self.max_mutations {
+        if p.num_mutations() > self.options.max_mutations {
             return None;
         }
         self.evaluate_program(&mut p, worker_ctx).then(|| p)
@@ -591,12 +595,12 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
         p: &Arc<SubProgram>,
         worker_ctx: &mut SynthesizerWorkerContext,
     ) -> bool {
-        if p.num_mutations() > self.max_mutations {
+        if p.num_mutations() > self.options.max_mutations {
             return false;
         }
 
         // Depth is an underestimate of the number of mutations from the initial context
-        if p.post_ctx().depth() > self.max_mutations {
+        if p.post_ctx().depth() > self.options.max_mutations {
             return false;
         }
 
@@ -711,7 +715,7 @@ impl Display for SynthesizerJsonDisplay {
     }
 }
 
-impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W> {
+impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> SynthesizerInner<P, W> {
     pub fn json_display(&self) -> impl Display {
         self.json_display_struct()
     }
@@ -720,8 +724,49 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
         SynthesizerJsonDisplay {
             opcodes: self.opcodes.to_json(),
             context: self.context.json_display_struct(),
-            max_mutations: self.max_mutations,
-            worker_count: self.worker_count,
+            max_mutations: self.options.max_mutations,
+            worker_count: self.options.worker_count,
         }
+    }
+}
+
+pub struct Synthesizer<P: ProgBank + 'static, W: WorkerContextCreator + 'static>(
+    Arc<SynthesizerInner<P, W>>,
+);
+
+impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W> {
+    pub fn new(
+        bank: P,
+        syn_ctx: SynthesizerContext,
+        opcodes: OpcodesList,
+        predicate: SynthesizerPredicate,
+        valid: SynthesizerPredicate,
+        options: SynthesizerOptions,
+    ) -> Synthesizer<P, W> {
+        let inner = SynthesizerInner::new(bank, syn_ctx, opcodes, predicate, valid, options);
+
+        Self(inner.into())
+    }
+
+    #[inline]
+    pub async fn run_iteration(&mut self) -> anyhow::Result<Option<Arc<SubProgram>>> {
+        SynthesizerInner::run_iteration(&mut self.0).await
+    }
+
+    #[inline]
+    pub fn statistics(&self) -> CurrentStatistics {
+        self.0.statistics()
+    }
+
+    pub fn get_cancel_token(&self) -> CancellationToken {
+        self.0.get_cancel_token()
+    }
+
+    pub fn set_immutable(&mut self, var: &VariableName) {
+        Arc::get_mut(&mut self.0).unwrap().set_immutable(var);
+    }
+
+    pub fn json_display(&self) -> impl Display + '_ {
+        self.0.json_display()
     }
 }

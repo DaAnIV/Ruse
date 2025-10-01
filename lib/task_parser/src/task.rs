@@ -15,7 +15,7 @@ use ruse_synthesizer::{
     bank::ProgBank,
     context::{Context, ContextArray, ValuesMap, VariableName},
     opcode::{ExprOpcode, OpcodesList},
-    synthesizer::SynthesizerPredicate,
+    synthesizer::{SynthesizerOptions, SynthesizerPredicate},
     synthesizer_context::SynthesizerContext,
 };
 use ruse_ts_interpreter::{
@@ -522,9 +522,8 @@ impl SnythesisTask {
 
     pub fn get_synthesizer<P: ProgBank + 'static>(
         self,
-        mut max_mutations: u32,
+        mut synthesizer_options: SynthesizerOptions,
         max_seq_size: usize,
-        iteration_workers_count: usize,
         bank: P,
     ) -> SynthesisTaskResult<TsSynthesizer<P>> {
         let variables = &self.inner.variables;
@@ -562,24 +561,23 @@ impl SnythesisTask {
         }
 
         if self.inner.options.pure {
-            max_mutations = 0;
+            synthesizer_options.max_mutations = 0;
         }
         if let Some(immutable) = &self.inner.immutable {
             if immutable.len() == variables.len() {
-                max_mutations = 0;
+                synthesizer_options.max_mutations = 0;
             }
         }
 
         let immutable_opt = self.inner.immutable;
         let syn_ctx = SynthesizerContext::from_context_array_with_data(context_array, self.classes);
-        let mut synthesizer = TsSynthesizer::new(
+        let mut synthesizer = create_ts_synthesizer(
             bank,
             syn_ctx,
             opcodes,
             predicate,
             valid,
-            max_mutations,
-            iteration_workers_count,
+            synthesizer_options,
         );
 
         if let Some(immutable) = &immutable_opt {

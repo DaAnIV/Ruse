@@ -2,6 +2,7 @@ use criterion::*;
 use ruse_bank_in_mem::subsumption_bank::SubsumptionProgBank;
 use ruse_object_graph::*;
 use ruse_synthesizer::context::{Context, ContextArray};
+use ruse_synthesizer::synthesizer::SynthesizerOptions;
 use ruse_synthesizer::synthesizer_context::SynthesizerContext;
 use ruse_ts_synthesizer::*;
 use std::sync::Arc;
@@ -54,19 +55,21 @@ fn simple_synthesize_1(c: &mut Criterion) {
                     );
 
                     let syn_ctx = SynthesizerContext::from_context_array(ctx);
-                    TsSynthesizer::new(
+                    create_ts_synthesizer(
                         SubsumptionProgBank::default(),
                         syn_ctx,
                         opcodes.clone(),
                         Box::new(|_, _, _| false),
                         Box::new(|_, _, _| true),
-                        2,
-                        1,
+                        SynthesizerOptions {
+                            worker_count: 1,
+                            max_mutations: 2,
+                        },
                     )
                 },
                 |mut synthesizer| async move {
                     for _j in 0..=i {
-                        synthesizer.run_iteration().await;
+                        synthesizer.run_iteration().await.expect("Failed iteration");
                     }
                 },
                 BatchSize::PerIteration,
