@@ -457,8 +457,7 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> SynthesizerInner<
 
     async fn stop_workers_and_wait<T: 'static>(&self, workers: &mut JoinSet<T>) {
         self.stop_workers_token.cancel();
-        workers.abort_all();
-        while workers.join_next().await.is_some() {}
+        workers.shutdown().await;
     }
 
     async fn run_composite_iteration(
