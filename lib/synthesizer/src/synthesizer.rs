@@ -21,11 +21,14 @@ use ruse_object_graph::ValueType;
 use serde::ser::SerializeStruct;
 use std::{
     fmt::Display,
+    fs::OpenOptions,
+    io::Write,
     marker::PhantomData,
     ops::Index,
     panic,
+    path::{Path, PathBuf},
     sync::{atomic::*, Arc},
-    time::Instant,
+    time::{Duration, Instant},
 };
 use tokio::{runtime::Handle, select, task::JoinSet};
 use tokio_util::sync::CancellationToken;
@@ -176,6 +179,7 @@ pub trait WorkerContextCreator: Send + Sync {
 pub struct SynthesizerOptions {
     pub worker_count: usize,
     pub max_mutations: u32,
+    pub output_embedding_overhead: Option<PathBuf>,
 }
 
 struct SynthesizerInner<P: ProgBank, W: WorkerContextCreator + 'static> {
@@ -465,8 +469,10 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> SynthesizerInner<
         self: Arc<Self>,
         current_iteration_map: &mut P::IterationBuilderType,
     ) -> anyhow::Result<Option<Arc<SubProgram>>> {
-        #[cfg(feature = "check_embedding_overhead")]
-        self.print_embedding_overhead_statistics().await;
+        if let Some(output_embedding_csv) = &self.options.output_embedding_overhead {
+            self.output_embedding_overhead_statistics(output_embedding_csv)
+                .await;
+        }
         let mut workers = JoinSet::new();
         for i in 0..self.options.worker_count {
             let mut batch_builder = current_iteration_map.create_batch_builder();
@@ -657,15 +663,22 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> SynthesizerInner<
     // }
 }
 
-#[cfg(feature = "check_embedding_overhead")]
-impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W> {
-    async fn print_embedding_overhead_statistics(&self) {
+impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> SynthesizerInner<P, W> {
+    async fn output_embedding_overhead_statistics(&self, csv_path: &Path) {
+        let iteration = self.bank.iteration_count();
+        let bank_size = self.statistics.get_value(StatisticsTypes::BankSize);
         let mut total_programs_count = 0;
         let mut embedded_programs_count = 0;
         let mut total_took_without_embedding = Duration::from_secs(0);
         let mut total_took_with_embedding = Duration::from_secs(0);
 
-        for (arg_types, _) in self.composite_opcodes() {
+        let span =
+            tracing::info_span!(target: "ruse::synthesizer", "embedding overhead calculation");
+        let _span_guard = span.enter();
+
+        tracing::info!(target: "ruse::synthesizer", "Starting calculating embedding overhead for iteration {}", iteration);
+
+        for (arg_types, _) in self.opcodes.composite_opcodes() {
             let mut children_iterator = bank_iterator(&self.bank, arg_types).await;
             debug!(target: "ruse::synthesizer", "Programs count: {} for {:?}", children_iterator.remaining(), arg_types);
 
@@ -688,14 +701,26 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
             total_took_with_embedding += started_with_embedding.elapsed();
         }
 
-        tracing::info!(target: "ruse::synthesizer", "Embedding overhead iteration {}.
-        Total programs count: {}, embedded programs count: {}, total took without embedding: {:.2?}, total took with embedding: {:.2?}",
-            self.bank.iteration_count(),
-            total_programs_count,
-            embedded_programs_count,
-            total_took_without_embedding,
-            total_took_with_embedding,
-        );
+        let mut csv_file = OpenOptions::new()
+            .append(true)
+            .open(csv_path)
+            .expect("Failed to open CSV file");
+        csv_file
+            .write_all(
+                format!(
+                    "{},{},{},{},{:.2},{:.2}\n",
+                    iteration,
+                    bank_size,
+                    total_programs_count,
+                    embedded_programs_count,
+                    total_took_without_embedding.as_secs_f64(),
+                    total_took_with_embedding.as_secs_f64(),
+                )
+                .as_bytes(),
+            )
+            .expect("Failed to write to CSV file");
+
+        tracing::info!(target: "ruse::synthesizer", "Finished calculating embedding overhead iteration {}", iteration);
     }
 }
 

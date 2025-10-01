@@ -64,6 +64,7 @@ fn simple_synthesize_1(c: &mut Criterion) {
                         SynthesizerOptions {
                             worker_count: 1,
                             max_mutations: 2,
+                            output_embedding_overhead: None,
                         },
                     )
                 },

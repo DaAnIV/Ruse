@@ -105,6 +105,7 @@ mod tests {
             SynthesizerOptions {
                 worker_count: 1,
                 max_mutations: 3,
+                output_embedding_overhead: None,
             },
         );
 
@@ -210,6 +211,7 @@ mod tests {
             SynthesizerOptions {
                 worker_count: 1,
                 max_mutations: 3,
+                output_embedding_overhead: None,
             },
         );
 

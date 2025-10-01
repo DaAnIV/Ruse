@@ -8,8 +8,9 @@ use std::{
     backtrace::{Backtrace, BacktraceStatus},
     clone::Clone,
     fs::File,
+    io::Write,
     panic::PanicHookInfo,
-    path::PathBuf,
+    path::{Path, PathBuf},
     process::ExitCode,
     time::Duration,
 };
@@ -142,6 +143,9 @@ struct RunArgs {
         help = "Sleep time between benchmarks in seconds"
     )]
     sleep_time: u64,
+
+    #[arg(long, help = "Calculate and save embedding overhead to csv")]
+    embedding_overhead_csv: Option<std::path::PathBuf>,
 }
 
 #[derive(clap::Args, Debug)]
@@ -199,14 +203,15 @@ fn panic_hook(panic_info: &PanicHookInfo) {
     );
 }
 
-fn set_logger(cli: &RunArgs) {
+fn set_logger(cli: &RunArgs) -> Result<(), String> {
     // let fmt_layer = tracing_subscriber::fmt::layer();
     let verbose_filter = Targets::default()
         .with_target("ruse", cli.verbose.log_level_filter().as_trace())
         .with_default(LevelFilter::OFF);
 
     if let Some(log_path) = &cli.log {
-        let file = File::create(log_path).unwrap();
+        let file =
+            File::create(log_path).map_err(|e| format!("Failed to create log file: {}", e))?;
         let file_layer = tracing_subscriber::fmt::layer()
             .with_file(true)
             .with_line_number(true)
@@ -242,6 +247,8 @@ fn set_logger(cli: &RunArgs) {
     }
 
     std::panic::set_hook(Box::new(panic_hook));
+
+    Ok(())
 }
 
 fn construct_config(cli: &RunArgs) -> BenchmarkConfig {
@@ -266,14 +273,53 @@ fn construct_config(cli: &RunArgs) -> BenchmarkConfig {
         dry_run: cli.dry_run,
         fork: !cli.no_fork && !cli.tokio_console,
         sleep,
+        embedding_overhead_csv: cli.embedding_overhead_csv.clone(),
     }
+}
+
+fn init_embedding_overhead_csv(csv_path: &Path) -> Result<(), String> {
+    let mut csv = File::create(csv_path)
+        .map_err(|e| format!("Failed to create embedding overhead csv file: {}", e))?;
+    let headers = format!(
+        "{},{},{},{},{},{}\n",
+        "Iteration",
+        "Bank size",
+        "Total programs",
+        "Valid sequences",
+        "Took without embedding",
+        "Took with embedding"
+    );
+    csv.write_all(headers.as_bytes()).map_err(|e| {
+        format!(
+            "Failed to write to embedding overhead heading csv file: {}",
+            e
+        )
+    })?;
+
+    Ok(())
 }
 
 fn run_benchmarks(cli: &RunArgs) -> ExitCode {
     if cli.tokio_console {
         console_subscriber::init();
     } else {
-        set_logger(&cli);
+        match set_logger(&cli) {
+            Ok(_) => {}
+            Err(e) => {
+                eprintln!("Failed to set logger: {}", e);
+                return ExitCode::FAILURE;
+            }
+        }
+    }
+
+    if let Some(embedding_overhead_csv) = &cli.embedding_overhead_csv {
+        match init_embedding_overhead_csv(embedding_overhead_csv) {
+            Ok(_) => {}
+            Err(e) => {
+                error!(target: "ruse::runner", "Failed to initialize embedding overhead csv: {}", e);
+                return ExitCode::FAILURE;
+            }
+        }
     }
 
     let bench_config = construct_config(cli);
@@ -354,13 +400,15 @@ fn print_opcodes(cli: &PrintOpcodesArgs) -> ExitCode {
     if cli.print_summary {
         println!();
         println!("summary:");
-        sorted_opcodes.composite_opcodes().for_each(|(arg_types, ops)| {
-            println!(
-                "{0: <30} {1: <10}",
-                arg_types.iter().map(|x| x.to_string()).join(",") + ":",
-                ops.len()
-            );
-        });
+        sorted_opcodes
+            .composite_opcodes()
+            .for_each(|(arg_types, ops)| {
+                println!(
+                    "{0: <30} {1: <10}",
+                    arg_types.iter().map(|x| x.to_string()).join(",") + ":",
+                    ops.len()
+                );
+            });
         println!("{0: <30} {1: <10}", "All:", opcodes_len);
     } else {
         println!("Opcodes count = {}", opcodes_len);

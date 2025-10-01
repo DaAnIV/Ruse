@@ -92,6 +92,7 @@ pub struct BenchmarkConfig {
     pub dry_run: bool,
     pub fork: bool,
     pub sleep: Option<Duration>,
+    pub embedding_overhead_csv: Option<PathBuf>,
 }
 
 impl BenchmarkConfig {
@@ -99,6 +100,7 @@ impl BenchmarkConfig {
         SynthesizerOptions {
             worker_count: self.iteration_workers_count,
             max_mutations: self.max_mutations,
+            output_embedding_overhead: self.embedding_overhead_csv.clone(),
         }
     }
 }
