@@ -301,9 +301,14 @@ fn run_task_child(
     result: &mut BenchmarkResult,
 ) -> Result<bool, RunnerError> {
     let runtime = get_tokio_runtime(&bench_config);
-    runtime.block_on(async {
+    let result = runtime.block_on(async {
         tokio::task::block_in_place(|| run_task_async(path, bench_config, result)).await
-    })
+    });
+    if bench_config.fork {
+        runtime.shutdown_timeout(Duration::from_secs(10));   
+    }
+
+    result
 }
 
 fn ctrl_channel() -> Result<crossbeam_channel::Receiver<()>, ctrlc::Error> {
