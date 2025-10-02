@@ -4,8 +4,14 @@ NAME=${1:-ruse_embedding_overhead};
 
 BENCHMARKS=(
     -b ../tasks/benchmarks/new_ruse/binary_search_tree/binary_search_tree_delete_two_children.sy
-    -b ../tasks/benchmarks/new_ruse/relations/
+    -b ../tasks/benchmarks/new_ruse/relations/graph_cycle.sy
+    -b ../tasks/benchmarks/new_ruse/relations/graph_one_way_connected.sy
+    -b ../tasks/benchmarks/new_ruse/relations/graph.sy
+    -b ../tasks/benchmarks/new_ruse/relations/user_names_aliasing.sy
+    -b ../tasks/benchmarks/new_ruse/relations/user_names_connected.sy
+    -b ../tasks/benchmarks/new_ruse/relations/user_names.sy/
     -b ../tasks/benchmarks/new_ruse/simple/x_y_mut_inc.sy
+    -b ../tasks/benchmarks/new_ruse/simple/set_subtree.sy
     -b ../tasks/benchmarks/new_ruse/simple/seq.sy
     -b ../tasks/benchmarks/fromSobeq/may/sobeq-new/FirstAndLast.sy
     -b ../tasks/benchmarks/fromSobeq/may/FrAngel/IsAllPositive.sy
@@ -19,7 +25,7 @@ echo "results/${NAME}_log.jsonl"
 ../target/release/Ruse run \
     -o results/${NAME}_results \
     --log results/${NAME}_log.jsonl \
-    -t 36000 \
+    -t 7200 \
     --workers-count 96 \
     --max-iterations 6 \
     --max-mutations 3 \
