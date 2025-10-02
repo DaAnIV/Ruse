@@ -15,22 +15,30 @@ BENCHMARKS=(
     -b ../tasks/benchmarks/new_ruse/simple/seq.sy
     -b ../tasks/benchmarks/fromSobeq/may/sobeq-new/FirstAndLast.sy
     -b ../tasks/benchmarks/fromSobeq/may/FrAngel/IsAllPositive.sy
+    -b ../tasks/benchmarks/new_ruse/simple/user_names_simple.sy
+    -b ../tasks/benchmarks/fromFrangel/other/abcd.sy
+    -b ../tasks/benchmarks/fromFrangel/other/abc.sy
+    -b ../tasks/benchmarks/fromFrangel/other/ab.sy
+    -b ../tasks/benchmarks/fromSobeq/must/sobeq-new/MoveFromAToB.sy
+    -b ../tasks/benchmarks/fromSobeq/may/probe/count-total-words-in-a-cellmodified.sy
+    -b ../tasks/benchmarks/fromSobeq/may/sobeq-new/NegativeIndex.sy
 )
 
 rm -rf results/${NAME}_results
-rm -rf results/${NAME}_log.jsonl
+mkdir -p results/${NAME}_results
 
-echo "results/${NAME}_log.jsonl"
-
-../target/release/Ruse run \
-    -o results/${NAME}_results \
-    --log results/${NAME}_log.jsonl \
-    -t 7200 \
-    --workers-count 96 \
-    --max-iterations 6 \
-    --max-mutations 3 \
-    --max-sequence-size 3 \
-    --max-task-mem 100GiB \
-    "${BENCHMARKS[@]}" \
-    --embedding-overhead-csv results/${NAME}_embedding_overhead.csv
+for i in {1..4}; do
+    echo "Run #$i"
+    ../target/release/Ruse run \
+        -o results/${NAME}_results/run_${i} \
+        --log results/${NAME}_results/${NAME}_log_${i}.jsonl \
+        -t 7200 \
+        --workers-count 96 \
+        --max-iterations 6 \
+        --max-mutations 3 \
+        --max-sequence-size 3 \
+        --max-task-mem 100GiB \
+        "${BENCHMARKS[@]}" \
+        --embedding-overhead-csv results/${NAME}_results/embedding_overhead_${i}.csv
+done
 
