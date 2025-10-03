@@ -208,31 +208,41 @@ impl Context {
         new_val: &Value,
         loc: &mut Location,
         variables: &VariableMap,
-    ) -> bool {
+    ) -> Result<(), ()> {
         match loc {
             Location::Root(l) => {
                 let var = variables.get(&l.root).unwrap();
-                assert!(var.value_type == new_val.val_type());
+
+                if var.value_type != new_val.val_type() {
+                    return Err(());
+                }
 
                 if var.immutable {
-                    return false;
+                    return Err(());
                 }
 
                 let mut new_values = (*self.values).clone();
                 new_values.insert(l.root.clone(), new_val.clone());
+                if let Some(obj) = new_val.obj() {
+                    Arc::make_mut(&mut self.graphs_map).set_as_root(
+                        l.root.clone(),
+                        obj.graph_id,
+                        obj.node,
+                    );
+                }
 
                 self.set_values(new_values);
-
-                true
             }
             Location::ObjectField(l) => {
                 if l.attrs.readonly {
-                    return false;
+                    return Err(());
                 }
-                self.set_field(l.graph, l.node, l.field.clone(), new_val)
+                self.set_field(l.graph, l.node, l.field.clone(), new_val);
             }
-            Location::Temp => true,
-        }
+            Location::Temp => (),
+        };
+
+        Ok(())
     }
 
     pub fn set_field(
@@ -241,11 +251,10 @@ impl Context {
         node: NodeIndex,
         field_name: FieldName,
         value: &Value,
-    ) -> bool {
+    ) {
         let graphs_map = Arc::make_mut(&mut self.graphs_map);
         graphs_map.set_field(field_name.clone(), graph_id, node, value);
         self.update_hash();
-        true
     }
 
     pub fn delete_field(
@@ -571,6 +580,7 @@ impl Context {
                     self_object_nodes.push((self_object_value.graph_id, self_object_value.node));
                     other_object_nodes.push((other_object_value.graph_id, other_object_value.node));
                 }
+                (Value::Null, Value::Null) => {}
                 (_, _) => {
                     return ContextSubsetResult::NotSubset;
                 }

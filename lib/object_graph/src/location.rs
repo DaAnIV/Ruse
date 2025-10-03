@@ -115,14 +115,14 @@ impl Location {
     ) -> bool {
         if self.is_temp() || other.is_temp() {
             return self.is_temp() == other.is_temp();
-        }            
+        }
         match (self, other) {
             (Location::Root(self_root_loc), Location::Root(other_root_loc)) => {
                 if self_root_loc.root == other_root_loc.root {
                     return true;
                 }
             }
-            _ => ()
+            _ => (),
         }
 
         if is_primitive {

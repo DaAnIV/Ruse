@@ -105,6 +105,13 @@ impl ValueType {
             _ => None,
         }
     }
+
+    pub fn into_obj_type(self) -> Option<ObjectType> {
+        match self {
+            ValueType::Object(obj_type) => Some(obj_type),
+            _ => None,
+        }
+    }
 }
 
 impl fmt::Display for ObjectType {

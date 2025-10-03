@@ -12,7 +12,7 @@ pub mod helpers {
     use ruse_object_graph::{
         field_name,
         generator::object_graph_generator::generate_random_str,
-        location::{LocValue, Location, RootLoc},
+        location::{LocValue, Location, ObjectFieldLoc, RootLoc},
         root_name, str_cached,
         value::{ObjectValue, Value},
         vbool, FieldName, FieldsMap, GraphIdGenerator, GraphsMap, Number, ObjectType,
@@ -158,13 +158,19 @@ pub mod helpers {
             &self,
             args: &[&LocValue],
             post_ctx: &mut Context,
-            _: &SynthesizerContext,
+            syn_ctx: &SynthesizerContext,
             _: &mut SynthesizerWorkerContext,
         ) -> EvalResult {
             let obj = args[0].val().obj().unwrap();
             let new_value = Value::Primitive(self.field_new_value.clone());
-            let res = post_ctx.set_field(obj.graph_id, obj.node, self.field.clone(), &new_value);
-            dirty!(post_ctx.temp_value(vbool!(res)))
+            let mut loc = Location::ObjectField(ObjectFieldLoc {
+                graph: obj.graph_id,
+                node: obj.node,
+                field: self.field.clone(),
+                attrs: Default::default(),
+            });
+            post_ctx.update_value(&new_value, &mut loc, syn_ctx.variables())?;
+            dirty!(post_ctx.temp_value(vbool!(true)))
         }
 
         fn to_ast(&self, children: &[Box<dyn ExprAst>]) -> Box<dyn ExprAst> {
@@ -207,7 +213,9 @@ pub mod helpers {
                 root: self.id.clone(),
                 attrs: Default::default(),
             });
-            post_ctx.update_value(&self.new_value, &mut loc, syn_ctx.variables());
+            post_ctx
+                .update_value(&self.new_value, &mut loc, syn_ctx.variables())
+                .expect("Failed to update var");
             self.returns.clone()
         }
 

@@ -149,9 +149,7 @@ impl ExprOpcode for UpdateOp {
         };
 
         let mut loc = args[0].loc().clone();
-        if !post_ctx.update_value(&res.clone(), &mut loc, syn_ctx.variables()) {
-            return Err(());
-        }
+        post_ctx.update_value(&res.clone(), &mut loc, syn_ctx.variables())?;
 
         dirty!(match self.prefix {
             true => post_ctx.temp_value(res),
