@@ -1,7 +1,7 @@
 use criterion::*;
 use ruse_bank_in_mem::subsumption_bank::SubsumptionProgBank;
 use ruse_object_graph::*;
-use ruse_synthesizer::context::{Context, ContextArray};
+use ruse_synthesizer::context::{Context, ContextArray, Variable};
 use ruse_synthesizer::synthesizer::SynthesizerOptions;
 use ruse_synthesizer::synthesizer_context::SynthesizerContext;
 use ruse_ts_synthesizer::*;
@@ -54,7 +54,25 @@ fn simple_synthesize_1(c: &mut Criterion) {
                         &ALL_UPDATE_NUM_OPCODES,
                     );
 
-                    let syn_ctx = SynthesizerContext::from_context_array(ctx);
+                    let variables = [
+                        (
+                            root_name!("x"),
+                            Variable {
+                                name: root_name!("x"),
+                                value_type: ValueType::Number,
+                                immutable: false,
+                            },
+                        ),
+                        (
+                            root_name!("y"),
+                            Variable {
+                                name: root_name!("y"),
+                                value_type: ValueType::Number,
+                                immutable: false,
+                            },
+                        ),
+                    ].into();
+                    let syn_ctx = SynthesizerContext::from_context_array(ctx, variables);
                     create_ts_synthesizer(
                         "Test".to_string(),
                         SubsumptionProgBank::default(),
