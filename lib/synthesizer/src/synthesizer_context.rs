@@ -36,15 +36,20 @@ impl Default for SynthesizerWorkerContext {
 }
 
 impl SynthesizerContext {
-    pub fn from_context_array(context_array: ContextArray) -> Self {
-        Self::from_context_array_with_data(context_array, Box::new(EmptySynthesizerData {}))
+    pub fn from_context_array(context_array: ContextArray, variables: VariableMap) -> Self {
+        Self::from_context_array_with_data(
+            context_array,
+            variables,
+            Box::new(EmptySynthesizerData {}),
+        )
     }
     pub fn from_context_array_with_data(
         context_array: ContextArray,
+        variables: VariableMap,
         data: Box<dyn SynthesizerContextData>,
     ) -> Self {
         Self {
-            all_variables: context_array.get_variables(),
+            all_variables: variables.into(),
             start_context: context_array,
             data,
         }

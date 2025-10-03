@@ -3,10 +3,10 @@ use std::sync::Arc;
 use itertools::Itertools;
 use ruse_object_graph::{
     class_name, root_name, value::Value, vnull, vnum, ClassName, GraphIdGenerator, GraphsMap,
-    Number,
+    Number, ValueType,
 };
 use ruse_synthesizer::{
-    context::{Context, ContextArray, ValuesMap},
+    context::{Context, ContextArray, ValuesMap, Variable, VariableMap},
     embedding::merge_context_arrays,
     op_chain,
     synthesizer_context::SynthesizerContext,
@@ -116,6 +116,21 @@ fn get_ctx(trees_values: &[&[usize]], classes: &TsClasses) -> Box<Context> {
     Context::with_values(values, graphs_map.into(), id_gen)
 }
 
+fn get_variables(tree_count: usize) -> VariableMap {
+    let mut variables = VariableMap::default();
+    for i in 1..=tree_count {
+        variables.insert(
+            root_name!(format!("tree{}", i)),
+            Variable {
+                name: root_name!(format!("tree{}", i)),
+                value_type: ValueType::class_value_type(binary_tree_class_name()),
+                immutable: false,
+            },
+        );
+    }
+    variables
+}
+
 #[test]
 fn tests_complex_context_merge() {
     let mut builder = TsClassesBuilder::new();
@@ -125,7 +140,8 @@ fn tests_complex_context_merge() {
     let classes = builder.finalize().unwrap();
 
     let ctx = ContextArray::from(vec![get_ctx(&[&[1], &[2], &[5, 2, 1]], &classes)]);
-    let syn_ctx = SynthesizerContext::from_context_array_with_data(ctx.clone(), classes);
+    let syn_ctx =
+        SynthesizerContext::from_context_array_with_data(ctx.clone(), get_variables(3), classes);
     let classes_ref = syn_ctx.data.downcast_ref::<TsClasses>().unwrap();
     let binary_tree_class = classes_ref
         .get_user_class(&binary_tree_class_name())

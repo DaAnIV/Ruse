@@ -58,6 +58,7 @@ mod ts_simple_opcodes_tests {
     use graph_map_value::GraphMapWrap;
     use ruse_object_graph::location::Location;
     use ruse_object_graph::*;
+    use ruse_synthesizer::context::{Variable, VariableMap};
     use ruse_synthesizer::opcode::ExprOpcode;
     use ruse_synthesizer::test::helpers::generate_context_from_array;
     use swc_ecma_ast as ast;
@@ -73,7 +74,7 @@ mod ts_simple_opcodes_tests {
     fn add_numbers() {
         let graphs_map = GraphsMap::default();
         let ctx_arr = ContextArray::default();
-        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr);
+        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr, VariableMap::default());
         let mut worker_ctx = create_js_worker_context(0);
 
         let ctx = &syn_ctx.start_context[0].clone();
@@ -97,7 +98,7 @@ mod ts_simple_opcodes_tests {
     fn add_strings() {
         let graphs_map = GraphsMap::default();
         let ctx_arr = ContextArray::default();
-        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr);
+        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr, VariableMap::default());
         let mut worker_ctx = create_js_worker_context(0);
 
         let ctx = &syn_ctx.start_context[0];
@@ -121,7 +122,16 @@ mod ts_simple_opcodes_tests {
             graphs_map.into(),
             id_gen,
         )]);
-        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr);
+        let variables = [(
+            root_name!("x"),
+            Variable {
+                name: root_name!("x"),
+                value_type: ValueType::Number,
+                immutable: false,
+            },
+        )]
+        .into();
+        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr, variables);
         let mut worker_ctx = create_js_worker_context(0);
 
         let ctx = &syn_ctx.start_context[0];
@@ -145,7 +155,16 @@ mod ts_simple_opcodes_tests {
             graphs_map.into(),
             id_gen,
         )]);
-        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr);
+        let variables = [(
+            root_name!("x"),
+            Variable {
+                name: root_name!("x"),
+                value_type: ValueType::Number,
+                immutable: false,
+            },
+        )]
+        .into();
+        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr, variables);
         let mut worker_ctx = create_js_worker_context(0);
 
         let ctx = &syn_ctx.start_context[0];
@@ -203,7 +222,16 @@ mod ts_simple_opcodes_tests {
             graphs_map.into(),
             id_gen,
         )]);
-        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr);
+        let variables = [(
+            root_name!("x"),
+            Variable {
+                name: root_name!("x"),
+                value_type: ValueType::Number,
+                immutable: false,
+            },
+        )]
+        .into();
+        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr, variables);
         let mut worker_ctx = create_js_worker_context(0);
 
         let ctx = &syn_ctx.start_context[0];
@@ -251,7 +279,16 @@ mod ts_simple_opcodes_tests {
     fn array_push() {
         let ctx = generate_context_from_array(root_name!("x"), &ValueType::Number, []);
         let ctx_arr = ContextArray::from(vec![ctx]);
-        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr);
+        let variables = [(
+            root_name!("x"),
+            Variable {
+                name: root_name!("x"),
+                value_type: ValueType::Object(ObjectType::Array(Box::new(ValueType::Number))),
+                immutable: false,
+            },
+        )]
+        .into();
+        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr, variables);
         let mut worker_ctx = create_js_worker_context(0);
 
         let ctx = &syn_ctx.start_context[0];
@@ -321,7 +358,16 @@ mod ts_simple_opcodes_tests {
             ],
         );
         let ctx_arr = ContextArray::from(vec![ctx]);
-        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr);
+        let variables = [(
+            root_name!("x"),
+            Variable {
+                name: root_name!("x"),
+                value_type: ValueType::Object(ObjectType::Array(Box::new(ValueType::Number))),
+                immutable: false,
+            },
+        )]
+        .into();
+        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr, variables);
         let mut worker_ctx = create_js_worker_context(0);
 
         let ctx = &syn_ctx.start_context[0];
@@ -406,7 +452,16 @@ mod ts_simple_opcodes_tests {
 
         let ctx = generate_context_from_array(root_name!("x"), &ValueType::Number, values);
         let ctx_arr = ContextArray::from(vec![ctx]);
-        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr);
+        let variables = [(
+            root_name!("x"),
+            Variable {
+                name: root_name!("x"),
+                value_type: ValueType::Object(ObjectType::Array(Box::new(ValueType::Number))),
+                immutable: false,
+            },
+        )]
+        .into();
+        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr, variables);
         let mut worker_ctx = create_js_worker_context(0);
 
         let ctx = &syn_ctx.start_context[0];
@@ -478,7 +533,7 @@ mod ts_class_tests {
     use boa_engine::{js_string, property::Attribute};
     use graph_map_value::GraphMapWrap;
     use ruse_object_graph::{value::*, *};
-    use ruse_synthesizer::context::{Context, ContextArray, ValuesMap};
+    use ruse_synthesizer::context::{Context, ContextArray, ValuesMap, Variable};
     use ruse_synthesizer::synthesizer_context::SynthesizerContext;
     use ruse_synthesizer::test::helpers::{get_composite_prog, get_init_prog};
 
@@ -786,8 +841,18 @@ mod ts_class_tests {
         values.insert(root_name!("u"), Value::Object(user.clone()));
 
         let mut ctx = Context::with_values(values, graphs_map.into(), id_gen);
+        let variables = [(
+            root_name!("u"),
+            Variable {
+                name: root_name!("u"),
+                value_type: ValueType::class_value_type(user_class_name.clone()),
+                immutable: false,
+            },
+        )]
+        .into();
         let syn_ctx = SynthesizerContext::from_context_array_with_data(
             ContextArray::from(vec![ctx.clone()]),
+            variables,
             classes,
         );
         let classes_ref = syn_ctx.data.downcast_ref::<TsClasses>().unwrap();
@@ -886,7 +951,17 @@ mod ts_class_tests {
 
         let ctx = Context::with_values(values, graphs_map.into(), id_gen);
         let ctx_arr = ContextArray::from(vec![ctx]);
-        let syn_ctx = SynthesizerContext::from_context_array_with_data(ctx_arr.clone(), classes);
+        let variables = [(
+            root_name!("user"),
+            Variable {
+                name: root_name!("user"),
+                value_type: ValueType::class_value_type(user_class_name.clone()),
+                immutable: false,
+            },
+        )]
+        .into();
+        let syn_ctx =
+            SynthesizerContext::from_context_array_with_data(ctx_arr.clone(), variables, classes);
         let mut worker_ctx = create_js_worker_context(0);
 
         let classes_ref = syn_ctx.data.downcast_ref::<TsClasses>().unwrap();
@@ -1095,7 +1170,7 @@ mod specific_bugs_tests {
 
     use ruse_object_graph::{
         graph_map_value::GraphMapWrap, root_name, vnum, vstr, GraphIdGenerator, GraphsMap, Number,
-        ValueType,
+        ObjectType, ValueType,
     };
     use ruse_synthesizer::{
         context::{Context, ContextArray, ValuesMap},
@@ -1119,7 +1194,16 @@ mod specific_bugs_tests {
             ["Augusta", "Ada", "King"].iter().map(|s| vstr!(*s)),
         );
         let ctx_arr = ContextArray::from(vec![ctx]);
-        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr.clone());
+        let variables = [(
+            root_name!("names"),
+            ruse_synthesizer::context::Variable {
+                name: root_name!("names"),
+                value_type: ValueType::Object(ObjectType::Array(Box::new(ValueType::String))),
+                immutable: false,
+            },
+        )]
+        .into();
+        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr.clone(), variables);
         let mut worker_ctx = create_js_worker_context(0);
 
         let id_op = id_op("names");
@@ -1169,7 +1253,16 @@ mod specific_bugs_tests {
             [8, 9, 7].iter().map(|s| vnum!(Number::from(*s))),
         );
         let ctx_arr = ContextArray::from(vec![ctx]);
-        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr.clone());
+        let variables = [(
+            root_name!("arr"),
+            ruse_synthesizer::context::Variable {
+                name: root_name!("arr"),
+                value_type: ValueType::Object(ObjectType::Array(Box::new(ValueType::Number))),
+                immutable: false,
+            },
+        )]
+        .into();
+        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr.clone(), variables);
         let mut worker_ctx = create_js_worker_context(0);
 
         let arr_op = id_op("arr");
@@ -1241,7 +1334,22 @@ mod specific_bugs_tests {
 
         let ctx = Context::with_values(values, graphs_map.into(), graph_id_gen);
         let ctx_arr = ContextArray::from(vec![ctx]);
-        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr.clone());
+        let variables = [(
+            root_name!("arr"),
+            ruse_synthesizer::context::Variable {
+                name: root_name!("arr"),
+                value_type: ValueType::Object(ObjectType::Array(Box::new(ValueType::Number))),
+                immutable: false,
+            },
+        ),(
+            root_name!("i"),
+            ruse_synthesizer::context::Variable {
+                name: root_name!("i"),
+                value_type: ValueType::Number,
+                immutable: false,
+            },
+        )].into();
+        let syn_ctx = SynthesizerContext::from_context_array(ctx_arr.clone(), variables);
         let mut worker_ctx = create_js_worker_context(0);
 
         let arr_op = id_op("arr");

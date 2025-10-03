@@ -576,11 +576,12 @@ mod bank_iterator_tests {
     use crate::{
         bank::*,
         bank_hasher::BankHasherBuilder,
-        iterator::bank_iterator::bank_iterator,
-        iterator::multi_programs_map_product::{
-            multi_programs_map_product, ProgramChildrenIterator,
+        context::VariableMap,
+        iterator::{
+            bank_iterator::bank_iterator,
+            multi_programs_map_product::{multi_programs_map_product, ProgramChildrenIterator},
+            seq_triple_iterator::seq_triple_iterator,
         },
-        iterator::seq_triple_iterator::seq_triple_iterator,
         pure,
         synthesizer_context::{EmptySynthesizerData, SynthesizerWorkerContext},
         test::helpers::*,
@@ -680,7 +681,8 @@ mod bank_iterator_tests {
     #[tokio::test(flavor = "current_thread")]
     async fn programs_map_multi_iter() {
         let _id_gen = GraphIdGenerator::default();
-        let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default());
+        let syn_ctx =
+            SynthesizerContext::from_context_array(ContextArray::default(), VariableMap::default());
         let mut bank = TestBank::default();
         add_iteration(&mut bank, 2, &syn_ctx).await;
         let mut iter = seq_triple_iterator(
@@ -705,7 +707,8 @@ mod bank_iterator_tests {
     #[tokio::test(flavor = "current_thread")]
     async fn programs_map_multi_iter_skip() {
         let _id_gen = GraphIdGenerator::default();
-        let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default());
+        let syn_ctx =
+            SynthesizerContext::from_context_array(ContextArray::default(), VariableMap::default());
         let mut bank = TestBank::default();
         add_iteration(&mut bank, 3, &syn_ctx).await;
         add_iteration(&mut bank, 4, &syn_ctx).await;
@@ -745,7 +748,8 @@ mod bank_iterator_tests {
     #[tokio::test(flavor = "current_thread")]
     async fn programs_map_multi_iter_take() {
         let _id_gen = GraphIdGenerator::default();
-        let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default());
+        let syn_ctx =
+            SynthesizerContext::from_context_array(ContextArray::default(), VariableMap::default());
         let mut bank = TestBank::default();
         add_iteration(&mut bank, 3, &syn_ctx).await;
         add_iteration(&mut bank, 4, &syn_ctx).await;
@@ -785,7 +789,8 @@ mod bank_iterator_tests {
     #[tokio::test(flavor = "current_thread")]
     async fn programs_map_multi_iter_skip_take() {
         let _id_gen = GraphIdGenerator::default();
-        let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default());
+        let syn_ctx =
+            SynthesizerContext::from_context_array(ContextArray::default(), VariableMap::default());
         let mut bank = TestBank::default();
         add_iteration(&mut bank, 3, &syn_ctx).await;
         add_iteration(&mut bank, 4, &syn_ctx).await;
@@ -822,7 +827,8 @@ mod bank_iterator_tests {
     #[tokio::test(flavor = "current_thread")]
     async fn one_iteration_one_program() {
         let _id_gen = GraphIdGenerator::default();
-        let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default());
+        let syn_ctx =
+            SynthesizerContext::from_context_array(ContextArray::default(), VariableMap::default());
         let mut bank = TestBank::default();
         let bin_op: Arc<dyn ExprOpcode> = Arc::new(TestOpcode {
             arg_types: vec![ValueType::Number, ValueType::Number],
@@ -842,7 +848,8 @@ mod bank_iterator_tests {
     #[tokio::test(flavor = "current_thread")]
     async fn two_iterations() {
         let _id_gen = GraphIdGenerator::default();
-        let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default());
+        let syn_ctx =
+            SynthesizerContext::from_context_array(ContextArray::default(), VariableMap::default());
         let mut bank = TestBank::default();
         let bin_op: Arc<dyn ExprOpcode> = Arc::new(TestOpcode {
             arg_types: vec![ValueType::Number, ValueType::Number],
@@ -870,7 +877,8 @@ mod bank_iterator_tests {
     #[tokio::test(flavor = "current_thread")]
     async fn three_iterations_binary() {
         let _id_gen = GraphIdGenerator::default();
-        let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default());
+        let syn_ctx =
+            SynthesizerContext::from_context_array(ContextArray::default(), VariableMap::default());
         let mut bank = TestBank::default();
         let bin_op: Arc<dyn ExprOpcode> = Arc::new(TestOpcode {
             arg_types: vec![ValueType::Number, ValueType::Number],
@@ -899,7 +907,8 @@ mod bank_iterator_tests {
     #[tokio::test(flavor = "current_thread")]
     async fn three_iterations_trinary() {
         let _id_gen = GraphIdGenerator::default();
-        let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default());
+        let syn_ctx =
+            SynthesizerContext::from_context_array(ContextArray::default(), VariableMap::default());
         let mut bank = TestBank::default();
         let tri_op: Arc<dyn ExprOpcode> = Arc::new(TestOpcode {
             arg_types: vec![ValueType::Number, ValueType::Number, ValueType::Number],
@@ -928,7 +937,8 @@ mod bank_iterator_tests {
     #[tokio::test(flavor = "current_thread")]
     async fn three_iterations_binary_skip() {
         let _id_gen = GraphIdGenerator::default();
-        let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default());
+        let syn_ctx =
+            SynthesizerContext::from_context_array(ContextArray::default(), VariableMap::default());
         let mut bank = TestBank::default();
         let bin_op: Arc<dyn ExprOpcode> = Arc::new(TestOpcode {
             arg_types: vec![ValueType::Number, ValueType::Number],
@@ -961,7 +971,8 @@ mod bank_iterator_tests {
     #[tokio::test(flavor = "current_thread")]
     async fn three_iterations_binary_take() {
         let _id_gen = GraphIdGenerator::default();
-        let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default());
+        let syn_ctx =
+            SynthesizerContext::from_context_array(ContextArray::default(), VariableMap::default());
         let mut bank = TestBank::default();
         let bin_op: Arc<dyn ExprOpcode> = Arc::new(TestOpcode {
             arg_types: vec![ValueType::Number, ValueType::Number],
@@ -993,7 +1004,8 @@ mod bank_iterator_tests {
     #[tokio::test(flavor = "current_thread")]
     async fn three_iterations_binary_skip_take() {
         let _id_gen = GraphIdGenerator::default();
-        let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default());
+        let syn_ctx =
+            SynthesizerContext::from_context_array(ContextArray::default(), VariableMap::default());
         let mut bank = TestBank::default();
         let bin_op: Arc<dyn ExprOpcode> = Arc::new(TestOpcode {
             arg_types: vec![ValueType::Number, ValueType::Number],
@@ -1023,7 +1035,8 @@ mod bank_iterator_tests {
     #[tokio::test(flavor = "current_thread")]
     async fn three_iterations_binary_split() {
         let _id_gen = GraphIdGenerator::default();
-        let syn_ctx = SynthesizerContext::from_context_array(ContextArray::default());
+        let syn_ctx =
+            SynthesizerContext::from_context_array(ContextArray::default(), VariableMap::default());
         let mut bank = TestBank::default();
         let bin_op: Arc<dyn ExprOpcode> = Arc::new(TestOpcode {
             arg_types: vec![ValueType::Number, ValueType::Number],
@@ -1181,11 +1194,11 @@ mod embedding_tests {
     use itertools::Itertools;
     use ruse_object_graph::{
         field_name, graph_map_value::GraphMapWrap, root_name, vobj, vstr, GraphIdGenerator,
-        GraphsMap, ObjectType,
+        GraphsMap, ObjectType, ValueType,
     };
 
     use crate::{
-        context::{Context, ContextArray},
+        context::{Context, ContextArray, Variable},
         embedding::merge_context,
         partial_context::PartialContextBuilder,
         synthesizer_context::SynthesizerContext,
@@ -1237,7 +1250,26 @@ mod embedding_tests {
             graphs_map.into(),
             id_gen,
         )]);
-        let syn_ctx = SynthesizerContext::from_context_array(start_ctx.clone());
+        let variables = [
+            (
+                root_name!("x"),
+                Variable {
+                    name: root_name!("x"),
+                    value_type: ValueType::Object(obj_type.clone()),
+                    immutable: false,
+                },
+            ),
+            (
+                root_name!("y"),
+                Variable {
+                    name: root_name!("y"),
+                    value_type: ValueType::Object(obj_type.clone()),
+                    immutable: false,
+                },
+            ),
+        ]
+        .into();
+        let syn_ctx = SynthesizerContext::from_context_array(start_ctx.clone(), variables);
 
         let partial_context_builder = PartialContextBuilder::new(&start_ctx);
         let x_ctx = &partial_context_builder
@@ -1346,7 +1378,27 @@ mod embedding_tests {
             graphs_map.into(),
             id_gen,
         )]);
-        let syn_ctx = SynthesizerContext::from_context_array(start_ctx.clone());
+        let variables = [
+            (
+                root_name!("x"),
+                Variable {
+                    name: root_name!("x"),
+                    value_type: ValueType::Object(obj_type.clone()),
+                    immutable: false,
+                },
+            ),
+            (
+                root_name!("y"),
+                Variable {
+                    name: root_name!("y"),
+                    value_type: ValueType::Object(obj_type2.clone()),
+                    immutable: false,
+                },
+            ),
+        ]
+        .into();
+
+        let syn_ctx = SynthesizerContext::from_context_array(start_ctx.clone(), variables);
 
         let partial_context_builder = PartialContextBuilder::new(&start_ctx);
         let x_ctx = &partial_context_builder
@@ -1415,13 +1467,13 @@ mod prog_tests {
     use std::sync::Arc;
 
     use crate::{
-        context::{Context, ContextArray},
+        context::{Context, ContextArray, Variable},
         dirty,
         prog::SubProgram,
         synthesizer_context::{SynthesizerContext, SynthesizerWorkerContext},
         test::helpers::*,
     };
-    use ruse_object_graph::{root_name, vnum, GraphIdGenerator, GraphsMap, Number};
+    use ruse_object_graph::{root_name, vnum, GraphIdGenerator, GraphsMap, Number, ValueType};
 
     #[test]
     fn modify_post_ctx_test() {
@@ -1434,7 +1486,17 @@ mod prog_tests {
             id_gen,
         )]);
         let post_ctx = pre_ctx.clone();
-        let syn_ctx = SynthesizerContext::from_context_array(pre_ctx.clone());
+        let variables = [(
+            root_name!("x"),
+            Variable {
+                name: root_name!("x"),
+                value_type: ValueType::Number,
+                immutable: false,
+            },
+        )]
+        .into();
+
+        let syn_ctx = SynthesizerContext::from_context_array(pre_ctx.clone(), variables);
 
         let opcode = Arc::new(UpdateVarOpcode {
             arg_types: vec![],

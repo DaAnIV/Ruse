@@ -10,7 +10,7 @@ use ruse_object_graph::{
     vnull, vnum, ClassName, GraphIdGenerator, GraphsMap, Number,
 };
 use ruse_synthesizer::{
-    context::{Context, ContextArray},
+    context::{Context, ContextArray, Variable, VariableMap},
     op_chain,
     synthesizer_context::SynthesizerContext,
     test::helpers::evaluate_chain,
@@ -20,7 +20,7 @@ use ruse_ts_interpreter::{
     engine_context::EngineContext,
     js_worker_context::create_js_worker_context,
     test::ts_op_helpers::*,
-    ts_class::MethodKind,
+    ts_class::{MethodKind, TsClass},
     ts_classes::{TsClasses, TsClassesBuilder},
     ts_user_class::TsUserClass,
 };
@@ -120,18 +120,12 @@ fn tests_construct_binary_tree() {
     let binary_tree_class = classes.get_user_class(&binary_tree_class_name).unwrap();
 
     let left = binary_tree_class
-        .call_constructor(
-            &[vnum!(Number::from(58)), vnull!(), vnull!()],
-            &mut engine_ctx,
-        )
+        .call_constructor(&[vnum!(Number::from(58))], &mut engine_ctx)
         .unwrap();
     println!("{}", left.wrap(&graphs_map));
 
     let right = binary_tree_class
-        .call_constructor(
-            &[vnum!(Number::from(28)), vnull!(), vnull!()],
-            &mut engine_ctx,
-        )
+        .call_constructor(&[vnum!(Number::from(28))], &mut engine_ctx)
         .unwrap();
     println!("{}", right.wrap(&graphs_map));
 
@@ -169,17 +163,11 @@ fn tests_binary_tree_contains() {
     let binary_tree_class = classes.get_user_class(&binary_tree_class_name).unwrap();
 
     let left: Value = binary_tree_class
-        .call_constructor(
-            &[vnum!(Number::from(1)), vnull!(), vnull!()],
-            &mut engine_ctx,
-        )
+        .call_constructor(&[vnum!(Number::from(1))], &mut engine_ctx)
         .unwrap()
         .into();
     let right: Value = binary_tree_class
-        .call_constructor(
-            &[vnum!(Number::from(58)), vnull!(), vnull!()],
-            &mut engine_ctx,
-        )
+        .call_constructor(&[vnum!(Number::from(58))], &mut engine_ctx)
         .unwrap()
         .into();
 
@@ -469,6 +457,28 @@ fn get_ctx(
     )
 }
 
+fn get_variables(binary_tree_class: &TsUserClass) -> VariableMap {
+    [
+        (
+            root_name!("tree"),
+            Variable {
+                name: root_name!("tree"),
+                value_type: binary_tree_class.value_type(None),
+                immutable: false,
+            },
+        ),
+        (
+            root_name!("node_to_delete"),
+            Variable {
+                name: root_name!("node_to_delete"),
+                value_type: binary_tree_class.value_type(None),
+                immutable: false,
+            },
+        ),
+    ]
+    .into()
+}
+
 fn get_predicate_js(node_to_delete_value: usize) -> String {
     format!(
         "tree.size == 6 && tree.valid() && !tree.contains({})",
@@ -492,7 +502,11 @@ fn check_delete_two_children() {
         get_ctx(&[5, 2, 1, 3, 6, 10, 11], 2, binary_tree_class, &classes),
         get_ctx(&[5, 2, 1, 3, 6, 10, 11], 5, binary_tree_class, &classes),
     ]);
-    let syn_ctx = SynthesizerContext::from_context_array_with_data(ctx.clone(), classes);
+    let syn_ctx = SynthesizerContext::from_context_array_with_data(
+        ctx.clone(),
+        get_variables(&binary_tree_class),
+        classes,
+    );
     let classes_ref = syn_ctx.data.downcast_ref::<TsClasses>().unwrap();
     let binary_tree_class = classes_ref.get_user_class(&binary_tree_class_name).unwrap();
     let tree_objs = ctx

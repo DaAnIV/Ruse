@@ -13,7 +13,7 @@ use ruse_object_graph::{
 };
 use ruse_synthesizer::{
     bank::ProgBank,
-    context::{Context, ContextArray, ValuesMap, VariableName},
+    context::{Context, ContextArray, ValuesMap, Variable, VariableMap, VariableName},
     opcode::{ExprOpcode, OpcodesList},
     synthesizer::{SynthesizerOptions, SynthesizerPredicate},
     synthesizer_context::SynthesizerContext,
@@ -526,8 +526,7 @@ impl SnythesisTask {
         max_seq_size: usize,
         bank: P,
     ) -> SynthesisTaskResult<TsSynthesizer<P>> {
-        let variables = &self.inner.variables;
-
+        let variables = self.get_varaibles();
         let mut engine_ctx = EngineContext::create_engine_ctx(&self.classes);
 
         let opcodes = self.get_opcodes(max_seq_size);
@@ -570,7 +569,11 @@ impl SnythesisTask {
         }
 
         let immutable_opt = self.inner.immutable;
-        let syn_ctx = SynthesizerContext::from_context_array_with_data(context_array, self.classes);
+        let syn_ctx = SynthesizerContext::from_context_array_with_data(
+            context_array,
+            variables,
+            self.classes,
+        );
         let mut synthesizer = create_ts_synthesizer(
             self.name.clone(),
             bank,
@@ -813,6 +816,22 @@ impl SnythesisTask {
         }
 
         composite_opcodes
+    }
+
+    fn get_varaibles(&self) -> VariableMap {
+        let immutable_set = self.inner.immutable.as_ref();
+        VariableMap::from_iter(self.inner.variables.iter().map(|(var, var_type)| {
+            let value_type = var_type.value_type();
+            let immutable = immutable_set.is_some_and(|imm| imm.contains(var));
+            (
+                root_name!(var.as_str()),
+                Variable {
+                    name: root_name!(var.as_str()),
+                    value_type,
+                    immutable,
+                },
+            )
+        }))
     }
 
     fn get_context_array(

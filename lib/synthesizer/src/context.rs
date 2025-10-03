@@ -886,22 +886,6 @@ impl ContextArray {
         true
     }
 
-    pub fn get_variables(&self) -> Arc<BTreeMap<VariableName, Variable>> {
-        let mut all_vars = BTreeMap::<VariableName, Variable>::default();
-        for (name, val) in self.first().values.iter() {
-            all_vars.insert(
-                name.clone(),
-                Variable {
-                    name: name.clone(),
-                    value_type: val.val_type(),
-                    immutable: false,
-                },
-            );
-        }
-
-        Arc::new(all_vars)
-    }
-
     pub fn extend_graphs_map(&mut self, other: &ContextArray) {
         for (cur, other) in self.inner.iter_mut().zip(other.iter()) {
             cur.extend_graphs_map(other);
