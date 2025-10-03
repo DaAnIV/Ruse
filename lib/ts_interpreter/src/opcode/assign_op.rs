@@ -24,6 +24,15 @@ impl AssignOp {
         }
     }
 
+    pub fn new_obj(obj_type: ObjectType) -> Self {
+        let value_type = ValueType::Object(obj_type);
+        Self {
+            op: ast::AssignOp::Assign,
+            op_name: Self::get_op_name(&ast::AssignOp::Assign, &value_type),
+            arg_types: [value_type, ValueType::Null],
+        }
+    }
+
     fn eval_assign_num(&self, lhs: Number, rhs: Number) -> Result<Value, ()> {
         let new_num = match self.op {
             ast::AssignOp::Assign => rhs,
@@ -143,6 +152,13 @@ impl ExprOpcode for AssignOp {
                 }
                 _ => return Err(()),
             },
+            (Value::Null, Value::Object(obj_val)) => {
+                if self.op != ast::AssignOp::Assign {
+                    return Err(());
+                }
+                
+                Ok(Value::Object(obj_val.clone()))
+            }
             _ => return Err(()),
         }?;
 

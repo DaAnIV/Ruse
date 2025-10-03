@@ -20,6 +20,8 @@ use ruse_synthesizer::{
 };
 use ruse_ts_interpreter::{
     engine_context::EngineContext,
+    opcode::AssignOp,
+    ts_class::TsClass,
     ts_classes::{TsClasses, TsClassesBuilder},
 };
 use ruse_ts_synthesizer::*;
@@ -803,9 +805,12 @@ impl SnythesisTask {
         let mut composite_opcodes = OpcodesList::new();
 
         for class in classes.user_classes() {
+            let obj_type = class.value_type(None).into_obj_type().unwrap();
+
             composite_opcodes.extend_from_slice(&class.member_opcodes);
             composite_opcodes.extend_from_slice(&class.method_opcodes);
             composite_opcodes.extend_from_slice(&class.constructor_opcodes);
+            composite_opcodes.push(Arc::new(AssignOp::new_obj(obj_type.clone())));
         }
 
         if add_global {
