@@ -1,0 +1,94 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/may/probe/17212077modified.sy",
+  "source": "https=//stackoverflow.com/questions/17212077/stuck-substring-month-and-year-in-excel",
+  "category": "Primitive:Without Side Effects",
+  "opcode_count": 880,
+  "string_literals": [
+    " ",
+    "/",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 419444
+      },
+      "statistics": {
+        "Evaluated": 6,
+        "BankSize": 6,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 54573379
+      },
+      "statistics": {
+        "Evaluated": 512,
+        "BankSize": 47,
+        "FoundContextCount": 3,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 279562409
+      },
+      "statistics": {
+        "Evaluated": 149540,
+        "BankSize": 5412,
+        "FoundContextCount": 25,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 3,
+        "MaxSize": 13
+      }
+    },
+    {
+      "time": {
+        "secs": 10,
+        "nanos": 728974777
+      },
+      "statistics": {
+        "Evaluated": 7601672,
+        "BankSize": 1124026,
+        "FoundContextCount": 3,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 4,
+        "MaxSize": 26
+      }
+    }
+  ],
+  "iteration_count": 4,
+  "found": {
+    "found": "_arg_0.split(\"/\").shift() + _arg_0.slice(_arg_0.lastIndexOf(\"/\"))",
+    "num_mutations": 0,
+    "solution_size": 10,
+    "solution_depth": 4
+  },
+  "total_time": {
+    "secs": 11,
+    "nanos": 64076317
+  },
+  "total_statistics": {
+    "Evaluated": 7751212,
+    "BankSize": 1129438,
+    "FoundContextCount": 28,
+    "MaxMutatingOpcodes": 1,
+    "MaxDepth": 4,
+    "MaxSize": 26
+  },
+  "max_vm_usage": "9.185660928 GB",
+  "error": null
+}

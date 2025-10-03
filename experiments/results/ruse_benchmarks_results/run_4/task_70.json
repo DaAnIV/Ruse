@@ -1,0 +1,93 @@
+{
+  "path": "../tasks/benchmarks/fromFrangel/sypet/sypet_06_solveLinearMatrixInput.sy",
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/sypet/SyPet_06_solveLinear.java",
+  "category": "Full OOP:Without Side Effects",
+  "opcode_count": 2505,
+  "string_literals": [
+    " ",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 28028747
+      },
+      "statistics": {
+        "Evaluated": 9,
+        "BankSize": 9,
+        "FoundContextCount": 4,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 188270469
+      },
+      "statistics": {
+        "Evaluated": 1132,
+        "BankSize": 57,
+        "FoundContextCount": 0,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 2,
+        "MaxSize": 5
+      }
+    },
+    {
+      "time": {
+        "secs": 3,
+        "nanos": 485173030
+      },
+      "statistics": {
+        "Evaluated": 332196,
+        "BankSize": 7051,
+        "FoundContextCount": 4,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 3,
+        "MaxSize": 13
+      }
+    },
+    {
+      "time": {
+        "secs": 7,
+        "nanos": 885385881
+      },
+      "statistics": {
+        "Evaluated": 13122,
+        "BankSize": 3531,
+        "FoundContextCount": 0,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 4,
+        "MaxSize": 15
+      }
+    }
+  ],
+  "iteration_count": 4,
+  "found": {
+    "found": "(new SingularValueDecomposition(mat)).solve(vec.transpose()).to1DArray()",
+    "num_mutations": 0,
+    "solution_size": 6,
+    "solution_depth": 4
+  },
+  "total_time": {
+    "secs": 11,
+    "nanos": 587272933
+  },
+  "total_statistics": {
+    "Evaluated": 345318,
+    "BankSize": 10582,
+    "FoundContextCount": 4,
+    "MaxMutatingOpcodes": 0,
+    "MaxDepth": 4,
+    "MaxSize": 15
+  },
+  "max_vm_usage": "1.176768512 GB",
+  "error": null
+}

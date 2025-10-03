@@ -1,0 +1,80 @@
+{
+  "path": "../tasks/benchmarks/fromFrangel/github/elasticsearch_mergePaths.sy",
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/github/ElasticSearchMergePaths.java",
+  "category": "Primitive:Without Side Effects",
+  "opcode_count": 881,
+  "string_literals": [
+    " ",
+    ".",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 359969
+      },
+      "statistics": {
+        "Evaluated": 7,
+        "BankSize": 7,
+        "FoundContextCount": 4,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 72702637
+      },
+      "statistics": {
+        "Evaluated": 805,
+        "BankSize": 124,
+        "FoundContextCount": 10,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 15158285
+      },
+      "statistics": {
+        "Evaluated": 8518,
+        "BankSize": 1915,
+        "FoundContextCount": 4,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 3,
+        "MaxSize": 9
+      }
+    }
+  ],
+  "iteration_count": 3,
+  "found": {
+    "found": "path.slice(0) + (\".\" + field)",
+    "num_mutations": 0,
+    "solution_size": 7,
+    "solution_depth": 3
+  },
+  "total_time": {
+    "secs": 0,
+    "nanos": 88798155
+  },
+  "total_statistics": {
+    "Evaluated": 9323,
+    "BankSize": 2039,
+    "FoundContextCount": 14,
+    "MaxMutatingOpcodes": 1,
+    "MaxDepth": 3,
+    "MaxSize": 9
+  },
+  "max_vm_usage": "28.512256 MB",
+  "error": null
+}

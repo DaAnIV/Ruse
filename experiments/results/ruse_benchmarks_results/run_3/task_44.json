@@ -1,0 +1,79 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/may/FrAngel/DelimitedStringConcat.sy",
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/DelimitedStringConcat.java",
+  "category": "Primitive Objects:Without Side Effects",
+  "opcode_count": 881,
+  "string_literals": [
+    " ",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 467947
+      },
+      "statistics": {
+        "Evaluated": 7,
+        "BankSize": 7,
+        "FoundContextCount": 5,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 81793007
+      },
+      "statistics": {
+        "Evaluated": 776,
+        "BankSize": 113,
+        "FoundContextCount": 24,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 27194805
+      },
+      "statistics": {
+        "Evaluated": 9085,
+        "BankSize": 2468,
+        "FoundContextCount": 5,
+        "MaxMutatingOpcodes": 2,
+        "MaxDepth": 3,
+        "MaxSize": 9
+      }
+    }
+  ],
+  "iteration_count": 3,
+  "found": {
+    "found": "a2.slice(0) + a0.join(a1)",
+    "num_mutations": 0,
+    "solution_size": 7,
+    "solution_depth": 3
+  },
+  "total_time": {
+    "secs": 0,
+    "nanos": 110534279
+  },
+  "total_statistics": {
+    "Evaluated": 9861,
+    "BankSize": 2581,
+    "FoundContextCount": 29,
+    "MaxMutatingOpcodes": 2,
+    "MaxDepth": 3,
+    "MaxSize": 9
+  },
+  "max_vm_usage": "28.512256 MB",
+  "error": null
+}

@@ -1,0 +1,88 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/may/sobeq-new/sum-two-arrays-destructive.sy",
+  "source": "https://github.com/peleghila/sobeq/blob/main/benchmarks/must/sobeq-new/sum-two-arrays-destructive.sy",
+  "category": "Primitive Objects:With Side Effects",
+  "opcode_count": 881,
+  "string_literals": [
+    " ",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 481052
+      },
+      "statistics": {
+        "Evaluated": 7,
+        "BankSize": 7,
+        "FoundContextCount": 5,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 94371943
+      },
+      "statistics": {
+        "Evaluated": 699,
+        "BankSize": 91,
+        "FoundContextCount": 23,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 1,
+        "nanos": 698535684
+      },
+      "statistics": {
+        "Evaluated": 662112,
+        "BankSize": 26063,
+        "FoundContextCount": 1667,
+        "MaxMutatingOpcodes": 3,
+        "MaxDepth": 3,
+        "MaxSize": 12
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 0
+      },
+      "statistics": {
+        "Evaluated": 51903721,
+        "BankSize": 10982749,
+        "FoundContextCount": 23,
+        "MaxMutatingOpcodes": 3,
+        "MaxDepth": 4,
+        "MaxSize": 23
+      }
+    }
+  ],
+  "iteration_count": 4,
+  "found": null,
+  "total_time": {
+    "secs": 44,
+    "nanos": 1929575
+  },
+  "total_statistics": {
+    "Evaluated": 52565802,
+    "BankSize": 11008803,
+    "FoundContextCount": 1690,
+    "MaxMutatingOpcodes": 3,
+    "MaxDepth": 4,
+    "MaxSize": 23
+  },
+  "max_vm_usage": "110.766129152 GB",
+  "error": "OOM"
+}

@@ -1,0 +1,88 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/must/LooPy/get_range_loopy_while.sy",
+  "source": "https://github.com/KasraF/SnippySynthesizer/blob/loopy/src/test/resources/frangel_control/get_range_loopy.examples.json",
+  "category": "Primitive Objects:With Side Effects",
+  "opcode_count": 882,
+  "string_literals": [
+    " ",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 531389
+      },
+      "statistics": {
+        "Evaluated": 8,
+        "BankSize": 8,
+        "FoundContextCount": 6,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 101733429
+      },
+      "statistics": {
+        "Evaluated": 1185,
+        "BankSize": 114,
+        "FoundContextCount": 31,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 3,
+        "nanos": 422612564
+      },
+      "statistics": {
+        "Evaluated": 1483731,
+        "BankSize": 40847,
+        "FoundContextCount": 2084,
+        "MaxMutatingOpcodes": 3,
+        "MaxDepth": 3,
+        "MaxSize": 13
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 0
+      },
+      "statistics": {
+        "Evaluated": 38436251,
+        "BankSize": 12742443,
+        "FoundContextCount": 31,
+        "MaxMutatingOpcodes": 3,
+        "MaxDepth": 4,
+        "MaxSize": 17
+      }
+    }
+  ],
+  "iteration_count": 4,
+  "found": null,
+  "total_time": {
+    "secs": 33,
+    "nanos": 1422058
+  },
+  "total_statistics": {
+    "Evaluated": 39919920,
+    "BankSize": 12783271,
+    "FoundContextCount": 2115,
+    "MaxMutatingOpcodes": 3,
+    "MaxDepth": 4,
+    "MaxSize": 17
+  },
+  "max_vm_usage": "109.060087808 GB",
+  "error": "OOM"
+}

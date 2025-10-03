@@ -1,0 +1,93 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/must/LooPy/fill_fibonacci_loopy_window.sy",
+  "source": "https://github.com/KasraF/SnippySynthesizer/blob/loopy/src/test/resources/frangel_control/fill_fibonacci_loopy.examples.json",
+  "category": "Primitive Objects:With Side Effects",
+  "opcode_count": 879,
+  "string_literals": [
+    " ",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 574877
+      },
+      "statistics": {
+        "Evaluated": 5,
+        "BankSize": 5,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 61827214
+      },
+      "statistics": {
+        "Evaluated": 305,
+        "BankSize": 37,
+        "FoundContextCount": 6,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 178641124
+      },
+      "statistics": {
+        "Evaluated": 44077,
+        "BankSize": 2664,
+        "FoundContextCount": 60,
+        "MaxMutatingOpcodes": 2,
+        "MaxDepth": 3,
+        "MaxSize": 12
+      }
+    },
+    {
+      "time": {
+        "secs": 2,
+        "nanos": 632489831
+      },
+      "statistics": {
+        "Evaluated": 693397,
+        "BankSize": 158540,
+        "FoundContextCount": 6,
+        "MaxMutatingOpcodes": 3,
+        "MaxDepth": 4,
+        "MaxSize": 22
+      }
+    }
+  ],
+  "iteration_count": 4,
+  "found": {
+    "found": "out.push(out[1] + out.shift())",
+    "num_mutations": 2,
+    "solution_size": 8,
+    "solution_depth": 4
+  },
+  "total_time": {
+    "secs": 2,
+    "nanos": 874192259
+  },
+  "total_statistics": {
+    "Evaluated": 737474,
+    "BankSize": 161204,
+    "FoundContextCount": 66,
+    "MaxMutatingOpcodes": 3,
+    "MaxDepth": 4,
+    "MaxSize": 22
+  },
+  "max_vm_usage": "2.070982656 GB",
+  "error": null
+}

@@ -1,0 +1,79 @@
+{
+  "path": "../tasks/benchmarks/new_ruse/simple/set_subtree.sy",
+  "source": null,
+  "category": "Full OOP:With Side Effects",
+  "opcode_count": 1180,
+  "string_literals": [
+    " ",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 3563814
+      },
+      "statistics": {
+        "Evaluated": 6,
+        "BankSize": 6,
+        "FoundContextCount": 4,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 99176704
+      },
+      "statistics": {
+        "Evaluated": 432,
+        "BankSize": 50,
+        "FoundContextCount": 10,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 51310567
+      },
+      "statistics": {
+        "Evaluated": 3012,
+        "BankSize": 386,
+        "FoundContextCount": 4,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 3,
+        "MaxSize": 9
+      }
+    }
+  ],
+  "iteration_count": 3,
+  "found": {
+    "found": "tree1.right = tree2, tree2.inc_value()",
+    "num_mutations": 2,
+    "solution_size": 6,
+    "solution_depth": 3
+  },
+  "total_time": {
+    "secs": 0,
+    "nanos": 154368539
+  },
+  "total_statistics": {
+    "Evaluated": 3444,
+    "BankSize": 436,
+    "FoundContextCount": 14,
+    "MaxMutatingOpcodes": 1,
+    "MaxDepth": 3,
+    "MaxSize": 9
+  },
+  "max_vm_usage": "37.081088 MB",
+  "error": null
+}

@@ -1,0 +1,93 @@
+{
+  "path": "../tasks/benchmarks/new_ruse/relations/graph_cycle.sy",
+  "source": null,
+  "category": "Full OOP:Without Side Effects",
+  "opcode_count": 1175,
+  "string_literals": [
+    " ",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 508199
+      },
+      "statistics": {
+        "Evaluated": 7,
+        "BankSize": 7,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 94123200
+      },
+      "statistics": {
+        "Evaluated": 521,
+        "BankSize": 29,
+        "FoundContextCount": 3,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 386997528
+      },
+      "statistics": {
+        "Evaluated": 17594,
+        "BankSize": 421,
+        "FoundContextCount": 51,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 3,
+        "MaxSize": 10
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 4891200
+      },
+      "statistics": {
+        "Evaluated": 1667,
+        "BankSize": 561,
+        "FoundContextCount": 3,
+        "MaxMutatingOpcodes": 2,
+        "MaxDepth": 4,
+        "MaxSize": 13
+      }
+    }
+  ],
+  "iteration_count": 4,
+  "found": {
+    "found": "(--graph3.value) * \" \".split(\"\").length",
+    "num_mutations": 1,
+    "solution_size": 8,
+    "solution_depth": 4
+  },
+  "total_time": {
+    "secs": 0,
+    "nanos": 486998100
+  },
+  "total_statistics": {
+    "Evaluated": 19261,
+    "BankSize": 982,
+    "FoundContextCount": 54,
+    "MaxMutatingOpcodes": 2,
+    "MaxDepth": 4,
+    "MaxSize": 13
+  },
+  "max_vm_usage": "35.323904 MB",
+  "error": null
+}

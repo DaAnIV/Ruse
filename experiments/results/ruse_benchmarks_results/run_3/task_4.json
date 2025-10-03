@@ -1,0 +1,93 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/may/probe/stackoverflow7modified.sy",
+  "source": "https=//stackoverflow.com/questions/29935088/how-to-remove-substring-that-is-in-another-column-in-excel",
+  "category": "Primitive:Without Side Effects",
+  "opcode_count": 880,
+  "string_literals": [
+    " ",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 423998
+      },
+      "statistics": {
+        "Evaluated": 6,
+        "BankSize": 6,
+        "FoundContextCount": 4,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 71018283
+      },
+      "statistics": {
+        "Evaluated": 526,
+        "BankSize": 64,
+        "FoundContextCount": 8,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 332867084
+      },
+      "statistics": {
+        "Evaluated": 314298,
+        "BankSize": 12128,
+        "FoundContextCount": 98,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 3,
+        "MaxSize": 13
+      }
+    },
+    {
+      "time": {
+        "secs": 16,
+        "nanos": 892880255
+      },
+      "statistics": {
+        "Evaluated": 17172138,
+        "BankSize": 2157642,
+        "FoundContextCount": 8,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 4,
+        "MaxSize": 27
+      }
+    }
+  ],
+  "iteration_count": 4,
+  "found": {
+    "found": "(\" \" + _arg_0).slice(1, _arg_0.indexOf(_arg_1)) + _arg_0.replaceAll(_arg_1, \" \").slice(_arg_1.length)",
+    "num_mutations": 0,
+    "solution_size": 16,
+    "solution_depth": 4
+  },
+  "total_time": {
+    "secs": 17,
+    "nanos": 297750464
+  },
+  "total_statistics": {
+    "Evaluated": 17486436,
+    "BankSize": 2169770,
+    "FoundContextCount": 106,
+    "MaxMutatingOpcodes": 1,
+    "MaxDepth": 4,
+    "MaxSize": 27
+  },
+  "max_vm_usage": "11.39566592 GB",
+  "error": null
+}

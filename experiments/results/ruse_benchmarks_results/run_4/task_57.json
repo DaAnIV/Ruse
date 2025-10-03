@@ -1,0 +1,93 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/must/sobeq-new/MaxAndMinWithN.sy",
+  "source": "https://github.com/peleghila/sobeq/blob/main/benchmarks/must/sobeq-new/MaxAndMinWithN.sy",
+  "category": "Primitive Objects:With Side Effects",
+  "opcode_count": 880,
+  "string_literals": [
+    " ",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 1050652
+      },
+      "statistics": {
+        "Evaluated": 6,
+        "BankSize": 6,
+        "FoundContextCount": 4,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 88152783
+      },
+      "statistics": {
+        "Evaluated": 545,
+        "BankSize": 67,
+        "FoundContextCount": 17,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 529322499
+      },
+      "statistics": {
+        "Evaluated": 232057,
+        "BankSize": 12374,
+        "FoundContextCount": 607,
+        "MaxMutatingOpcodes": 3,
+        "MaxDepth": 3,
+        "MaxSize": 12
+      }
+    },
+    {
+      "time": {
+        "secs": 2,
+        "nanos": 4752191
+      },
+      "statistics": {
+        "Evaluated": 714249,
+        "BankSize": 276817,
+        "FoundContextCount": 17,
+        "MaxMutatingOpcodes": 3,
+        "MaxDepth": 4,
+        "MaxSize": 16
+      }
+    }
+  ],
+  "iteration_count": 4,
+  "found": {
+    "found": "arr.sort((a, b)=>a - b)[--n] + arr[0]",
+    "num_mutations": 2,
+    "solution_size": 9,
+    "solution_depth": 4
+  },
+  "total_time": {
+    "secs": 2,
+    "nanos": 623939015
+  },
+  "total_statistics": {
+    "Evaluated": 946306,
+    "BankSize": 289191,
+    "FoundContextCount": 624,
+    "MaxMutatingOpcodes": 3,
+    "MaxDepth": 4,
+    "MaxSize": 16
+  },
+  "max_vm_usage": "1.368387584 GB",
+  "error": null
+}

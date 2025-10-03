@@ -1,0 +1,80 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/may/probe/split-text-string-at-specific-charactermodified.sy",
+  "source": "https=//exceljet.net/formula/split-text-string-at-specific-character",
+  "category": "Primitive:Without Side Effects",
+  "opcode_count": 881,
+  "string_literals": [
+    " ",
+    "_",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 420230
+      },
+      "statistics": {
+        "Evaluated": 7,
+        "BankSize": 7,
+        "FoundContextCount": 4,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 85423750
+      },
+      "statistics": {
+        "Evaluated": 771,
+        "BankSize": 69,
+        "FoundContextCount": 7,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 14998030
+      },
+      "statistics": {
+        "Evaluated": 5893,
+        "BankSize": 1175,
+        "FoundContextCount": 4,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 3,
+        "MaxSize": 8
+      }
+    }
+  ],
+  "iteration_count": 3,
+  "found": {
+    "found": "_arg_0.split(\"_\")[--_arg_1]",
+    "num_mutations": 1,
+    "solution_size": 6,
+    "solution_depth": 3
+  },
+  "total_time": {
+    "secs": 0,
+    "nanos": 101361828
+  },
+  "total_statistics": {
+    "Evaluated": 6664,
+    "BankSize": 1244,
+    "FoundContextCount": 11,
+    "MaxMutatingOpcodes": 1,
+    "MaxDepth": 3,
+    "MaxSize": 8
+  },
+  "max_vm_usage": "31.281152 MB",
+  "error": null
+}

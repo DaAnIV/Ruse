@@ -1,0 +1,93 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/must/CodeHint/buffer-add.sy",
+  "source": "https://github.com/jgalenson/codehint/blob/master/examples/test.java",
+  "category": "Primitive Objects:With Side Effects",
+  "opcode_count": 882,
+  "string_literals": [
+    " ",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 452368
+      },
+      "statistics": {
+        "Evaluated": 8,
+        "BankSize": 8,
+        "FoundContextCount": 6,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 72716677
+      },
+      "statistics": {
+        "Evaluated": 1244,
+        "BankSize": 118,
+        "FoundContextCount": 42,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 2,
+        "nanos": 219518102
+      },
+      "statistics": {
+        "Evaluated": 1683525,
+        "BankSize": 55091,
+        "FoundContextCount": 2484,
+        "MaxMutatingOpcodes": 3,
+        "MaxDepth": 3,
+        "MaxSize": 12
+      }
+    },
+    {
+      "time": {
+        "secs": 154,
+        "nanos": 574385038
+      },
+      "statistics": {
+        "Evaluated": 137157508,
+        "BankSize": 31691872,
+        "FoundContextCount": 42,
+        "MaxMutatingOpcodes": 3,
+        "MaxDepth": 4,
+        "MaxSize": 20
+      }
+    }
+  ],
+  "iteration_count": 4,
+  "found": {
+    "found": "(arr[beg]) = toadd, (++beg) / (--end)",
+    "num_mutations": 3,
+    "solution_size": 11,
+    "solution_depth": 4
+  },
+  "total_time": {
+    "secs": 156,
+    "nanos": 867641200
+  },
+  "total_statistics": {
+    "Evaluated": 138841033,
+    "BankSize": 31746963,
+    "FoundContextCount": 2526,
+    "MaxMutatingOpcodes": 3,
+    "MaxDepth": 4,
+    "MaxSize": 20
+  },
+  "max_vm_usage": "70.596435968 GB",
+  "error": null
+}

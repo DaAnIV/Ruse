@@ -1,0 +1,81 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/may/probe/38871714modified.sy",
+  "source": "https=//stackoverflow.com/questions/38871714/excel-vba-how-to-remove-substrings-from-a-cell",
+  "category": "Primitive:Without Side Effects",
+  "opcode_count": 881,
+  "string_literals": [
+    ">",
+    " ",
+    "<",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 1329477
+      },
+      "statistics": {
+        "Evaluated": 7,
+        "BankSize": 7,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 71320749
+      },
+      "statistics": {
+        "Evaluated": 783,
+        "BankSize": 83,
+        "FoundContextCount": 4,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 792873019
+      },
+      "statistics": {
+        "Evaluated": 432135,
+        "BankSize": 12908,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 3,
+        "MaxSize": 13
+      }
+    }
+  ],
+  "iteration_count": 3,
+  "found": {
+    "found": "_arg_0.replaceAll(\">\", \"\").replaceAll(\" \" + \"<\", \" \")",
+    "num_mutations": 0,
+    "solution_size": 9,
+    "solution_depth": 3
+  },
+  "total_time": {
+    "secs": 0,
+    "nanos": 866601043
+  },
+  "total_statistics": {
+    "Evaluated": 432918,
+    "BankSize": 12991,
+    "FoundContextCount": 6,
+    "MaxMutatingOpcodes": 1,
+    "MaxDepth": 3,
+    "MaxSize": 13
+  },
+  "max_vm_usage": "28.184576 MB",
+  "error": null
+}

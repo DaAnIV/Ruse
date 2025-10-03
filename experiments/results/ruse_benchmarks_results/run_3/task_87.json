@@ -1,0 +1,79 @@
+{
+  "path": "../tasks/benchmarks/new_ruse/relations/mut_min_ops_graph.sy",
+  "source": null,
+  "category": "Full OOP:With Side Effects",
+  "opcode_count": 9,
+  "string_literals": [
+    " ",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 3060564
+      },
+      "statistics": {
+        "Evaluated": 7,
+        "BankSize": 7,
+        "FoundContextCount": 5,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 66026163
+      },
+      "statistics": {
+        "Evaluated": 21,
+        "BankSize": 9,
+        "FoundContextCount": 3,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 3
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 42325237
+      },
+      "statistics": {
+        "Evaluated": 42,
+        "BankSize": 8,
+        "FoundContextCount": 5,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 3
+      }
+    }
+  ],
+  "iteration_count": 3,
+  "found": {
+    "found": "graph3.inc_value(1), graph2.inc_value(1), graph1.inc_value(1)",
+    "num_mutations": 3,
+    "solution_size": 10,
+    "solution_depth": 3
+  },
+  "total_time": {
+    "secs": 0,
+    "nanos": 111833644
+  },
+  "total_statistics": {
+    "Evaluated": 63,
+    "BankSize": 17,
+    "FoundContextCount": 8,
+    "MaxMutatingOpcodes": 1,
+    "MaxDepth": 2,
+    "MaxSize": 3
+  },
+  "max_vm_usage": "36.089856 MB",
+  "error": null
+}

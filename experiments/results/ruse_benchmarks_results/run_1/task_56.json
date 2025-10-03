@@ -1,0 +1,79 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/must/sobeq-new/set-adddelete.sy",
+  "source": "https://github.com/peleghila/sobeq/blob/main/benchmarks/must/sobeq-new/set-adddelete.sy",
+  "category": "Primitive Objects:With Side Effects",
+  "opcode_count": 881,
+  "string_literals": [
+    " ",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 544003
+      },
+      "statistics": {
+        "Evaluated": 7,
+        "BankSize": 7,
+        "FoundContextCount": 5,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 73651921
+      },
+      "statistics": {
+        "Evaluated": 719,
+        "BankSize": 70,
+        "FoundContextCount": 18,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 18974146
+      },
+      "statistics": {
+        "Evaluated": 6526,
+        "BankSize": 1376,
+        "FoundContextCount": 5,
+        "MaxMutatingOpcodes": 2,
+        "MaxDepth": 3,
+        "MaxSize": 9
+      }
+    }
+  ],
+  "iteration_count": 3,
+  "found": {
+    "found": "seen.add(s1).delete(s2[0])",
+    "num_mutations": 2,
+    "solution_size": 7,
+    "solution_depth": 3
+  },
+  "total_time": {
+    "secs": 0,
+    "nanos": 93651153
+  },
+  "total_statistics": {
+    "Evaluated": 7245,
+    "BankSize": 1446,
+    "FoundContextCount": 23,
+    "MaxMutatingOpcodes": 2,
+    "MaxDepth": 3,
+    "MaxSize": 9
+  },
+  "max_vm_usage": "28.438528 MB",
+  "error": null
+}

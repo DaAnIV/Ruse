@@ -1,0 +1,79 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/may/FrAngel/RotateQueue.sy",
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/RotateQueue.java",
+  "category": "Primitive Objects:Possibly With Side Effects",
+  "opcode_count": 880,
+  "string_literals": [
+    " ",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 1417062
+      },
+      "statistics": {
+        "Evaluated": 6,
+        "BankSize": 6,
+        "FoundContextCount": 4,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 96705250
+      },
+      "statistics": {
+        "Evaluated": 549,
+        "BankSize": 72,
+        "FoundContextCount": 21,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 42178847
+      },
+      "statistics": {
+        "Evaluated": 12165,
+        "BankSize": 3147,
+        "FoundContextCount": 4,
+        "MaxMutatingOpcodes": 3,
+        "MaxDepth": 3,
+        "MaxSize": 9
+      }
+    }
+  ],
+  "iteration_count": 3,
+  "found": {
+    "found": "queue.splice(amount).concat(queue)",
+    "num_mutations": 1,
+    "solution_size": 5,
+    "solution_depth": 3
+  },
+  "total_time": {
+    "secs": 0,
+    "nanos": 140853021
+  },
+  "total_statistics": {
+    "Evaluated": 12714,
+    "BankSize": 3219,
+    "FoundContextCount": 25,
+    "MaxMutatingOpcodes": 3,
+    "MaxDepth": 3,
+    "MaxSize": 9
+  },
+  "max_vm_usage": "30.281728 MB",
+  "error": null
+}

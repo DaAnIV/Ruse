@@ -1,0 +1,93 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/may/LooPy/MaxAndMin.sy",
+  "source": "LooPy",
+  "category": "Primitive Objects:With Side Effects",
+  "opcode_count": 879,
+  "string_literals": [
+    " ",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 1193996
+      },
+      "statistics": {
+        "Evaluated": 5,
+        "BankSize": 5,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 94201663
+      },
+      "statistics": {
+        "Evaluated": 320,
+        "BankSize": 42,
+        "FoundContextCount": 9,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 154172003
+      },
+      "statistics": {
+        "Evaluated": 49724,
+        "BankSize": 2944,
+        "FoundContextCount": 132,
+        "MaxMutatingOpcodes": 2,
+        "MaxDepth": 3,
+        "MaxSize": 12
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 392643184
+      },
+      "statistics": {
+        "Evaluated": 189689,
+        "BankSize": 69083,
+        "FoundContextCount": 9,
+        "MaxMutatingOpcodes": 3,
+        "MaxDepth": 4,
+        "MaxSize": 17
+      }
+    }
+  ],
+  "iteration_count": 4,
+  "found": {
+    "found": "arr.sort((a, b)=>a - b)[0] + arr.pop()",
+    "num_mutations": 2,
+    "solution_size": 7,
+    "solution_depth": 4
+  },
+  "total_time": {
+    "secs": 0,
+    "nanos": 642881733
+  },
+  "total_statistics": {
+    "Evaluated": 239413,
+    "BankSize": 72027,
+    "FoundContextCount": 141,
+    "MaxMutatingOpcodes": 3,
+    "MaxDepth": 4,
+    "MaxSize": 17
+  },
+  "max_vm_usage": "30.35136 MB",
+  "error": null
+}

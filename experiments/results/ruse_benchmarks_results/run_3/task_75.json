@@ -1,0 +1,79 @@
+{
+  "path": "../tasks/benchmarks/fromFrangel/other/abc.sy",
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/other/ABC.java",
+  "category": "Primitive:Without Side Effects",
+  "opcode_count": 881,
+  "string_literals": [
+    " ",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 373536
+      },
+      "statistics": {
+        "Evaluated": 7,
+        "BankSize": 7,
+        "FoundContextCount": 5,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 63567805
+      },
+      "statistics": {
+        "Evaluated": 839,
+        "BankSize": 138,
+        "FoundContextCount": 21,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 2692117
+      },
+      "statistics": {
+        "Evaluated": 1688,
+        "BankSize": 168,
+        "FoundContextCount": 5,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 3,
+        "MaxSize": 8
+      }
+    }
+  ],
+  "iteration_count": 3,
+  "found": {
+    "found": "(a + b) + c",
+    "num_mutations": 0,
+    "solution_size": 5,
+    "solution_depth": 3
+  },
+  "total_time": {
+    "secs": 0,
+    "nanos": 66959783
+  },
+  "total_statistics": {
+    "Evaluated": 2527,
+    "BankSize": 306,
+    "FoundContextCount": 26,
+    "MaxMutatingOpcodes": 1,
+    "MaxDepth": 3,
+    "MaxSize": 8
+  },
+  "max_vm_usage": "28.512256 MB",
+  "error": null
+}

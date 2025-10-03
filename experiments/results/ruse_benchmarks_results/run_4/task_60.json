@@ -1,0 +1,79 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/must/sobeq-new/partition-k-largest.sy",
+  "source": "https://github.com/peleghila/sobeq/blob/main/benchmarks/must/sobeq-new/partition-k-largest.sy",
+  "category": "Primitive Objects:With Side Effects",
+  "opcode_count": 880,
+  "string_literals": [
+    " ",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 1527297
+      },
+      "statistics": {
+        "Evaluated": 6,
+        "BankSize": 6,
+        "FoundContextCount": 4,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 90710709
+      },
+      "statistics": {
+        "Evaluated": 563,
+        "BankSize": 79,
+        "FoundContextCount": 25,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 48790264
+      },
+      "statistics": {
+        "Evaluated": 21052,
+        "BankSize": 5464,
+        "FoundContextCount": 4,
+        "MaxMutatingOpcodes": 3,
+        "MaxDepth": 3,
+        "MaxSize": 9
+      }
+    }
+  ],
+  "iteration_count": 3,
+  "found": {
+    "found": "nums.sort((a, b)=>a - b).splice(-k)",
+    "num_mutations": 2,
+    "solution_size": 5,
+    "solution_depth": 3
+  },
+  "total_time": {
+    "secs": 0,
+    "nanos": 141853921
+  },
+  "total_statistics": {
+    "Evaluated": 21615,
+    "BankSize": 5543,
+    "FoundContextCount": 29,
+    "MaxMutatingOpcodes": 3,
+    "MaxDepth": 3,
+    "MaxSize": 9
+  },
+  "max_vm_usage": "30.339072 MB",
+  "error": null
+}

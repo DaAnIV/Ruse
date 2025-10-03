@@ -1,0 +1,91 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/may/probe/stackoverflow4modified.sy",
+  "source": "https=//stackoverflow.com/questions/2727679/substring-in-excel",
+  "category": "Primitive:Without Side Effects",
+  "opcode_count": 882,
+  "string_literals": [
+    ">",
+    ",",
+    " ",
+    "<",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 576809
+      },
+      "statistics": {
+        "Evaluated": 8,
+        "BankSize": 8,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 87821017
+      },
+      "statistics": {
+        "Evaluated": 1140,
+        "BankSize": 116,
+        "FoundContextCount": 5,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 2,
+        "nanos": 491125585
+      },
+      "statistics": {
+        "Evaluated": 1698108,
+        "BankSize": 41401,
+        "FoundContextCount": 69,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 3,
+        "MaxSize": 13
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 0
+      },
+      "statistics": {
+        "Evaluated": 98282215,
+        "BankSize": 13364156,
+        "FoundContextCount": 5,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 4,
+        "MaxSize": 27
+      }
+    }
+  ],
+  "iteration_count": 4,
+  "found": null,
+  "total_time": {
+    "secs": 59,
+    "nanos": 1354767
+  },
+  "total_statistics": {
+    "Evaluated": 99980245,
+    "BankSize": 13405539,
+    "FoundContextCount": 74,
+    "MaxMutatingOpcodes": 1,
+    "MaxDepth": 4,
+    "MaxSize": 27
+  },
+  "max_vm_usage": "108.058120192 GB",
+  "error": "OOM"
+}

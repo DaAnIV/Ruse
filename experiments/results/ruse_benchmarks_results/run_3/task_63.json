@@ -1,0 +1,79 @@
+{
+  "path": "../tasks/benchmarks/fromFrangel/sypet/sypet_01_invert.sy",
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/sypet/SyPet_01_invert.java",
+  "category": "Full OOP:Without Side Effects",
+  "opcode_count": 2504,
+  "string_literals": [
+    " ",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 28814542
+      },
+      "statistics": {
+        "Evaluated": 8,
+        "BankSize": 8,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 160080322
+      },
+      "statistics": {
+        "Evaluated": 918,
+        "BankSize": 56,
+        "FoundContextCount": 7,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 5
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 115402421
+      },
+      "statistics": {
+        "Evaluated": 22822,
+        "BankSize": 1939,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 3,
+        "MaxSize": 13
+      }
+    }
+  ],
+  "iteration_count": 3,
+  "found": {
+    "found": "(new SingularValueDecomposition(mat)).inverse()",
+    "num_mutations": 0,
+    "solution_size": 3,
+    "solution_depth": 3
+  },
+  "total_time": {
+    "secs": 0,
+    "nanos": 304497934
+  },
+  "total_statistics": {
+    "Evaluated": 23740,
+    "BankSize": 1995,
+    "FoundContextCount": 9,
+    "MaxMutatingOpcodes": 1,
+    "MaxDepth": 3,
+    "MaxSize": 13
+  },
+  "max_vm_usage": "39.268352 MB",
+  "error": null
+}

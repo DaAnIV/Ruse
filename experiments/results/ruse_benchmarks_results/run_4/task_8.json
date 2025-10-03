@@ -1,0 +1,94 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/may/probe/17212077modified.sy",
+  "source": "https=//stackoverflow.com/questions/17212077/stuck-substring-month-and-year-in-excel",
+  "category": "Primitive:Without Side Effects",
+  "opcode_count": 880,
+  "string_literals": [
+    " ",
+    "/",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 1104850
+      },
+      "statistics": {
+        "Evaluated": 6,
+        "BankSize": 6,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 92015005
+      },
+      "statistics": {
+        "Evaluated": 512,
+        "BankSize": 51,
+        "FoundContextCount": 3,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 379642911
+      },
+      "statistics": {
+        "Evaluated": 180149,
+        "BankSize": 5611,
+        "FoundContextCount": 25,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 3,
+        "MaxSize": 13
+      }
+    },
+    {
+      "time": {
+        "secs": 4,
+        "nanos": 193066297
+      },
+      "statistics": {
+        "Evaluated": 2671679,
+        "BankSize": 375796,
+        "FoundContextCount": 3,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 4,
+        "MaxSize": 26
+      }
+    }
+  ],
+  "iteration_count": 4,
+  "found": {
+    "found": "_arg_0.split(\"/\").shift() + _arg_0.slice(_arg_0.lastIndexOf(\"/\"))",
+    "num_mutations": 0,
+    "solution_size": 10,
+    "solution_depth": 4
+  },
+  "total_time": {
+    "secs": 4,
+    "nanos": 666418314
+  },
+  "total_statistics": {
+    "Evaluated": 2851828,
+    "BankSize": 381407,
+    "FoundContextCount": 28,
+    "MaxMutatingOpcodes": 1,
+    "MaxDepth": 4,
+    "MaxSize": 26
+  },
+  "max_vm_usage": "3.212664832 GB",
+  "error": null
+}

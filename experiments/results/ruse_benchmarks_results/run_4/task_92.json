@@ -1,0 +1,107 @@
+{
+  "path": "../tasks/benchmarks/new_ruse/relations/mut_min_ops_graph_cycle.sy",
+  "source": null,
+  "category": "Full OOP:With Side Effects",
+  "opcode_count": 9,
+  "string_literals": [
+    " ",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 4946507
+      },
+      "statistics": {
+        "Evaluated": 7,
+        "BankSize": 7,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 35641305
+      },
+      "statistics": {
+        "Evaluated": 27,
+        "BankSize": 13,
+        "FoundContextCount": 3,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 3
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 28674349
+      },
+      "statistics": {
+        "Evaluated": 71,
+        "BankSize": 37,
+        "FoundContextCount": 8,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 3
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 26217775
+      },
+      "statistics": {
+        "Evaluated": 262,
+        "BankSize": 67,
+        "FoundContextCount": 13,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 3
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 67000083
+      },
+      "statistics": {
+        "Evaluated": 190,
+        "BankSize": 41,
+        "FoundContextCount": 8,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 3
+      }
+    }
+  ],
+  "iteration_count": 5,
+  "found": {
+    "found": "graph1.inc_value(1), graph2.inc_value(1), graph3.inc_value(1)",
+    "num_mutations": 3,
+    "solution_size": 10,
+    "solution_depth": 3
+  },
+  "total_time": {
+    "secs": 0,
+    "nanos": 162933874
+  },
+  "total_statistics": {
+    "Evaluated": 452,
+    "BankSize": 108,
+    "FoundContextCount": 21,
+    "MaxMutatingOpcodes": 1,
+    "MaxDepth": 2,
+    "MaxSize": 3
+  },
+  "max_vm_usage": "35.672064 MB",
+  "error": null
+}

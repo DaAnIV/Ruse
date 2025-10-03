@@ -1,0 +1,93 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/must/stateCopies/leetcode-arraypermutations-mustmut.sy",
+  "source": "https://leetcode.com/problems/build-array-from-permutation/",
+  "category": "Primitive Objects:With Side Effects",
+  "opcode_count": 881,
+  "string_literals": [
+    " ",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 423258
+      },
+      "statistics": {
+        "Evaluated": 7,
+        "BankSize": 7,
+        "FoundContextCount": 5,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 108429987
+      },
+      "statistics": {
+        "Evaluated": 787,
+        "BankSize": 108,
+        "FoundContextCount": 31,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 2,
+        "nanos": 680851889
+      },
+      "statistics": {
+        "Evaluated": 994417,
+        "BankSize": 44349,
+        "FoundContextCount": 3460,
+        "MaxMutatingOpcodes": 3,
+        "MaxDepth": 3,
+        "MaxSize": 13
+      }
+    },
+    {
+      "time": {
+        "secs": 69,
+        "nanos": 927444173
+      },
+      "statistics": {
+        "Evaluated": 21629231,
+        "BankSize": 7342266,
+        "FoundContextCount": 31,
+        "MaxMutatingOpcodes": 3,
+        "MaxDepth": 4,
+        "MaxSize": 19
+      }
+    }
+  ],
+  "iteration_count": 4,
+  "found": {
+    "found": "ans.push(nums[n]), ans",
+    "num_mutations": 1,
+    "solution_size": 7,
+    "solution_depth": 4
+  },
+  "total_time": {
+    "secs": 72,
+    "nanos": 717485604
+  },
+  "total_statistics": {
+    "Evaluated": 22623648,
+    "BankSize": 7386615,
+    "FoundContextCount": 3491,
+    "MaxMutatingOpcodes": 3,
+    "MaxDepth": 4,
+    "MaxSize": 19
+  },
+  "max_vm_usage": "63.495593984 GB",
+  "error": null
+}

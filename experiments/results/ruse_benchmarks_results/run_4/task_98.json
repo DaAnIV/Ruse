@@ -1,0 +1,66 @@
+{
+  "path": "../tasks/benchmarks/new_ruse/simple/getElementById.sy",
+  "source": null,
+  "category": "Primitive Objects:Without Side Effects",
+  "opcode_count": 880,
+  "string_literals": [
+    " ",
+    "students",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 1234443
+      },
+      "statistics": {
+        "Evaluated": 6,
+        "BankSize": 6,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 87788985
+      },
+      "statistics": {
+        "Evaluated": 131,
+        "BankSize": 20,
+        "FoundContextCount": 0,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 2,
+        "MaxSize": 3
+      }
+    }
+  ],
+  "iteration_count": 2,
+  "found": {
+    "found": "document.getElementById(\"students\")",
+    "num_mutations": 0,
+    "solution_size": 3,
+    "solution_depth": 2
+  },
+  "total_time": {
+    "secs": 0,
+    "nanos": 89504596
+  },
+  "total_statistics": {
+    "Evaluated": 137,
+    "BankSize": 26,
+    "FoundContextCount": 2,
+    "MaxMutatingOpcodes": 0,
+    "MaxDepth": 2,
+    "MaxSize": 3
+  },
+  "max_vm_usage": "30.273536 MB",
+  "error": null
+}

@@ -1,0 +1,102 @@
+{
+  "path": "../tasks/benchmarks/fromFrangel/sypet/sypet_06_solveLinear.sy",
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/sypet/SyPet_06_solveLinear.java",
+  "category": "Full OOP:Without Side Effects",
+  "opcode_count": 2505,
+  "string_literals": [
+    " ",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 29903824
+      },
+      "statistics": {
+        "Evaluated": 9,
+        "BankSize": 9,
+        "FoundContextCount": 4,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 132224463
+      },
+      "statistics": {
+        "Evaluated": 652,
+        "BankSize": 32,
+        "FoundContextCount": 0,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 1,
+        "nanos": 164135434
+      },
+      "statistics": {
+        "Evaluated": 59985,
+        "BankSize": 1509,
+        "FoundContextCount": 66,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 3,
+        "MaxSize": 12
+      }
+    },
+    {
+      "time": {
+        "secs": 1835,
+        "nanos": 61874217
+      },
+      "statistics": {
+        "Evaluated": 452691427,
+        "BankSize": 662217,
+        "FoundContextCount": 3033,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 4,
+        "MaxSize": 29
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 0
+      },
+      "statistics": {
+        "Evaluated": 611939,
+        "BankSize": 110625,
+        "FoundContextCount": 66,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 5,
+        "MaxSize": 29
+      }
+    }
+  ],
+  "iteration_count": 5,
+  "found": null,
+  "total_time": {
+    "secs": 3600,
+    "nanos": 2553043
+  },
+  "total_statistics": {
+    "Evaluated": 453303366,
+    "BankSize": 772842,
+    "FoundContextCount": 3099,
+    "MaxMutatingOpcodes": 1,
+    "MaxDepth": 5,
+    "MaxSize": 29
+  },
+  "max_vm_usage": "12.373426176 GB",
+  "error": "Timeout"
+}

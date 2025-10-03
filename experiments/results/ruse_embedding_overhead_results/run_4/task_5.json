@@ -1,0 +1,94 @@
+{
+  "path": "../tasks/benchmarks/new_ruse/relations/user_names_connected.sy",
+  "source": null,
+  "category": "Full OOP:Without Side Effects",
+  "opcode_count": 1527,
+  "string_literals": [
+    " ",
+    ", ",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 645765
+      },
+      "statistics": {
+        "Evaluated": 8,
+        "BankSize": 8,
+        "FoundContextCount": 4,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 128376287
+      },
+      "statistics": {
+        "Evaluated": 744,
+        "BankSize": 34,
+        "FoundContextCount": 0,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 659733148
+      },
+      "statistics": {
+        "Evaluated": 74067,
+        "BankSize": 2175,
+        "FoundContextCount": 77,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 3,
+        "MaxSize": 13
+      }
+    },
+    {
+      "time": {
+        "secs": 1293,
+        "nanos": 601444150
+      },
+      "statistics": {
+        "Evaluated": 1317141,
+        "BankSize": 367868,
+        "FoundContextCount": 0,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 4,
+        "MaxSize": 27
+      }
+    }
+  ],
+  "iteration_count": 4,
+  "found": {
+    "found": "(a.name + \", \") + (b.name + \"\")",
+    "num_mutations": 0,
+    "solution_size": 9,
+    "solution_depth": 4
+  },
+  "total_time": {
+    "secs": 1294,
+    "nanos": 390603488
+  },
+  "total_statistics": {
+    "Evaluated": 1391208,
+    "BankSize": 370043,
+    "FoundContextCount": 77,
+    "MaxMutatingOpcodes": 1,
+    "MaxDepth": 4,
+    "MaxSize": 27
+  },
+  "max_vm_usage": "2.796711936 GB",
+  "error": null
+}

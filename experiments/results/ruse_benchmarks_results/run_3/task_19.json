@@ -1,0 +1,95 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/may/probe/43606446modified.sy",
+  "source": "https=//stackoverflow.com/questions/43606446/extract-substring-from-this-string-inside-excel-cell/43606527%43606527",
+  "category": "Primitive:Without Side Effects",
+  "opcode_count": 881,
+  "string_literals": [
+    ">",
+    " ",
+    "<",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 428011
+      },
+      "statistics": {
+        "Evaluated": 7,
+        "BankSize": 7,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 62450007
+      },
+      "statistics": {
+        "Evaluated": 783,
+        "BankSize": 83,
+        "FoundContextCount": 4,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 625571855
+      },
+      "statistics": {
+        "Evaluated": 551035,
+        "BankSize": 14759,
+        "FoundContextCount": 44,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 3,
+        "MaxSize": 13
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 728212099
+      },
+      "statistics": {
+        "Evaluated": 596638,
+        "BankSize": 28520,
+        "FoundContextCount": 4,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 4,
+        "MaxSize": 19
+      }
+    }
+  ],
+  "iteration_count": 4,
+  "found": {
+    "found": "_arg_0.replaceAll(\"<\", _arg_0).slice(1 + 1, -1).slice((-1) - (1 + 1))",
+    "num_mutations": 0,
+    "solution_size": 17,
+    "solution_depth": 4
+  },
+  "total_time": {
+    "secs": 1,
+    "nanos": 417146343
+  },
+  "total_statistics": {
+    "Evaluated": 1147673,
+    "BankSize": 43279,
+    "FoundContextCount": 48,
+    "MaxMutatingOpcodes": 1,
+    "MaxDepth": 4,
+    "MaxSize": 19
+  },
+  "max_vm_usage": "413.147136 MB",
+  "error": null
+}

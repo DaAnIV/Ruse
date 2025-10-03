@@ -1,0 +1,79 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/must/LooPy/rotate_queue.sy",
+  "source": "https://github.com/KasraF/SnippySynthesizer/blob/loopy/src/test/resources/frangel_control/rotate_queue.examples.json",
+  "category": "Primitive Objects:With Side Effects",
+  "opcode_count": 880,
+  "string_literals": [
+    " ",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 636784
+      },
+      "statistics": {
+        "Evaluated": 6,
+        "BankSize": 6,
+        "FoundContextCount": 4,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 83585903
+      },
+      "statistics": {
+        "Evaluated": 517,
+        "BankSize": 66,
+        "FoundContextCount": 13,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 284532719
+      },
+      "statistics": {
+        "Evaluated": 155695,
+        "BankSize": 8838,
+        "FoundContextCount": 4,
+        "MaxMutatingOpcodes": 2,
+        "MaxDepth": 3,
+        "MaxSize": 13
+      }
+    }
+  ],
+  "iteration_count": 3,
+  "found": {
+    "found": "inp.push(inp.shift())",
+    "num_mutations": 2,
+    "solution_size": 4,
+    "solution_depth": 3
+  },
+  "total_time": {
+    "secs": 0,
+    "nanos": 369721092
+  },
+  "total_statistics": {
+    "Evaluated": 156212,
+    "BankSize": 8904,
+    "FoundContextCount": 17,
+    "MaxMutatingOpcodes": 2,
+    "MaxDepth": 3,
+    "MaxSize": 13
+  },
+  "max_vm_usage": "26.353664 MB",
+  "error": null
+}

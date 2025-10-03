@@ -1,0 +1,93 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/may/sobeq-new/sum-two-arrays-destructive.sy",
+  "source": "https://github.com/peleghila/sobeq/blob/main/benchmarks/must/sobeq-new/sum-two-arrays-destructive.sy",
+  "category": "Primitive Objects:With Side Effects",
+  "opcode_count": 881,
+  "string_literals": [
+    " ",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 413672
+      },
+      "statistics": {
+        "Evaluated": 7,
+        "BankSize": 7,
+        "FoundContextCount": 5,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 83908299
+      },
+      "statistics": {
+        "Evaluated": 699,
+        "BankSize": 91,
+        "FoundContextCount": 23,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 1,
+        "nanos": 650261437
+      },
+      "statistics": {
+        "Evaluated": 660592,
+        "BankSize": 26289,
+        "FoundContextCount": 1667,
+        "MaxMutatingOpcodes": 3,
+        "MaxDepth": 3,
+        "MaxSize": 12
+      }
+    },
+    {
+      "time": {
+        "secs": 122,
+        "nanos": 524981441
+      },
+      "statistics": {
+        "Evaluated": 51871001,
+        "BankSize": 10273154,
+        "FoundContextCount": 23,
+        "MaxMutatingOpcodes": 3,
+        "MaxDepth": 4,
+        "MaxSize": 23
+      }
+    }
+  ],
+  "iteration_count": 4,
+  "found": {
+    "found": "rs.push(snd.shift() + fst.shift())",
+    "num_mutations": 3,
+    "solution_size": 7,
+    "solution_depth": 4
+  },
+  "total_time": {
+    "secs": 124,
+    "nanos": 260330205
+  },
+  "total_statistics": {
+    "Evaluated": 52531593,
+    "BankSize": 10299443,
+    "FoundContextCount": 1690,
+    "MaxMutatingOpcodes": 3,
+    "MaxDepth": 4,
+    "MaxSize": 23
+  },
+  "max_vm_usage": "100.637638656 GB",
+  "error": null
+}

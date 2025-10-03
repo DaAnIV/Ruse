@@ -1,0 +1,94 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/may/probe/extract-word-that-begins-with-specific-charactermodified.sy",
+  "source": "https=//exceljet.net/formula/extract-word-that-begins-with-specific-character",
+  "category": "Primitive:Without Side Effects",
+  "opcode_count": 880,
+  "string_literals": [
+    " ",
+    "_",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 441572
+      },
+      "statistics": {
+        "Evaluated": 6,
+        "BankSize": 6,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 80416181
+      },
+      "statistics": {
+        "Evaluated": 512,
+        "BankSize": 53,
+        "FoundContextCount": 3,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 451193559
+      },
+      "statistics": {
+        "Evaluated": 207952,
+        "BankSize": 6326,
+        "FoundContextCount": 27,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 3,
+        "MaxSize": 13
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 27535737
+      },
+      "statistics": {
+        "Evaluated": 10498,
+        "BankSize": 4474,
+        "FoundContextCount": 3,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 4,
+        "MaxSize": 17
+      }
+    }
+  ],
+  "iteration_count": 4,
+  "found": {
+    "found": "_arg_0.split(\" \").sort().shift()",
+    "num_mutations": 0,
+    "solution_size": 5,
+    "solution_depth": 4
+  },
+  "total_time": {
+    "secs": 0,
+    "nanos": 560472240
+  },
+  "total_statistics": {
+    "Evaluated": 218450,
+    "BankSize": 10800,
+    "FoundContextCount": 30,
+    "MaxMutatingOpcodes": 1,
+    "MaxDepth": 4,
+    "MaxSize": 17
+  },
+  "max_vm_usage": "28.438528 MB",
+  "error": null
+}

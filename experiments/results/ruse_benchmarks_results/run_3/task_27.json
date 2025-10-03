@@ -1,0 +1,66 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/may/probe/strip-html-from-text-or-numbersmodified.sy",
+  "source": "https=//exceljet.net/formula/strip-html-from-text-or-numbers",
+  "category": "Primitive:Without Side Effects",
+  "opcode_count": 880,
+  "string_literals": [
+    " ",
+    "<b>",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 449951
+      },
+      "statistics": {
+        "Evaluated": 6,
+        "BankSize": 6,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 80668885
+      },
+      "statistics": {
+        "Evaluated": 446,
+        "BankSize": 44,
+        "FoundContextCount": 0,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    }
+  ],
+  "iteration_count": 2,
+  "found": {
+    "found": "_arg_0.replaceAll(\"<b>\", \"\")",
+    "num_mutations": 0,
+    "solution_size": 4,
+    "solution_depth": 2
+  },
+  "total_time": {
+    "secs": 0,
+    "nanos": 81941452
+  },
+  "total_statistics": {
+    "Evaluated": 452,
+    "BankSize": 50,
+    "FoundContextCount": 2,
+    "MaxMutatingOpcodes": 1,
+    "MaxDepth": 2,
+    "MaxSize": 4
+  },
+  "max_vm_usage": "28.512256 MB",
+  "error": null
+}

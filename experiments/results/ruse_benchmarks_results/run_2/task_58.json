@@ -1,0 +1,79 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/must/sobeq-new/leetcode-setdelete.sy",
+  "source": "https://leetcode.com/problems/find-the-difference-of-two-arrays/solutions/4245879/solution-with-javascript-using-set-beats-95/?source=post_page-----5913b3410828--------------------------------",
+  "category": "Primitive Objects:With Side Effects",
+  "opcode_count": 881,
+  "string_literals": [
+    " ",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 466539
+      },
+      "statistics": {
+        "Evaluated": 7,
+        "BankSize": 7,
+        "FoundContextCount": 5,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 81503191
+      },
+      "statistics": {
+        "Evaluated": 717,
+        "BankSize": 84,
+        "FoundContextCount": 24,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 252535143
+      },
+      "statistics": {
+        "Evaluated": 117148,
+        "BankSize": 6857,
+        "FoundContextCount": 5,
+        "MaxMutatingOpcodes": 3,
+        "MaxDepth": 3,
+        "MaxSize": 13
+      }
+    }
+  ],
+  "iteration_count": 3,
+  "found": {
+    "found": "s2.delete(nums[i])",
+    "num_mutations": 1,
+    "solution_size": 5,
+    "solution_depth": 3
+  },
+  "total_time": {
+    "secs": 0,
+    "nanos": 334921735
+  },
+  "total_statistics": {
+    "Evaluated": 117865,
+    "BankSize": 6941,
+    "FoundContextCount": 29,
+    "MaxMutatingOpcodes": 3,
+    "MaxDepth": 3,
+    "MaxSize": 13
+  },
+  "max_vm_usage": "33.50528 MB",
+  "error": null
+}

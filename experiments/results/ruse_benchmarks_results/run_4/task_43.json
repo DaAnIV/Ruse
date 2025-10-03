@@ -1,0 +1,88 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/may/FrAngel/UppercaseFirstChar.sy",
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/UppercaseFirstChar.java",
+  "category": "Primitive:Without Side Effects",
+  "opcode_count": 879,
+  "string_literals": [
+    " ",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 1449245
+      },
+      "statistics": {
+        "Evaluated": 5,
+        "BankSize": 5,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 61189416
+      },
+      "statistics": {
+        "Evaluated": 315,
+        "BankSize": 36,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 130625163
+      },
+      "statistics": {
+        "Evaluated": 65179,
+        "BankSize": 3483,
+        "FoundContextCount": 15,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 3,
+        "MaxSize": 13
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 0
+      },
+      "statistics": {
+        "Evaluated": 1173063181,
+        "BankSize": 13336586,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 4,
+        "MaxSize": 40
+      }
+    }
+  ],
+  "iteration_count": 4,
+  "found": null,
+  "total_time": {
+    "secs": 1193,
+    "nanos": 2288144
+  },
+  "total_statistics": {
+    "Evaluated": 1173128319,
+    "BankSize": 13340068,
+    "FoundContextCount": 17,
+    "MaxMutatingOpcodes": 1,
+    "MaxDepth": 4,
+    "MaxSize": 40
+  },
+  "max_vm_usage": "107.581693952 GB",
+  "error": "OOM"
+}

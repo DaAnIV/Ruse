@@ -1,0 +1,93 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/may/FrAngel/IsAllPositive.sy",
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/IsAllPositive.java",
+  "category": "Primitive Objects:With Side Effects",
+  "opcode_count": 879,
+  "string_literals": [
+    " ",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 393722
+      },
+      "statistics": {
+        "Evaluated": 5,
+        "BankSize": 5,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 78356078
+      },
+      "statistics": {
+        "Evaluated": 320,
+        "BankSize": 41,
+        "FoundContextCount": 9,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 315226436
+      },
+      "statistics": {
+        "Evaluated": 45109,
+        "BankSize": 3040,
+        "FoundContextCount": 131,
+        "MaxMutatingOpcodes": 2,
+        "MaxDepth": 3,
+        "MaxSize": 12
+      }
+    },
+    {
+      "time": {
+        "secs": 678,
+        "nanos": 387122133
+      },
+      "statistics": {
+        "Evaluated": 841,
+        "BankSize": 350,
+        "FoundContextCount": 9,
+        "MaxMutatingOpcodes": 2,
+        "MaxDepth": 4,
+        "MaxSize": 12
+      }
+    }
+  ],
+  "iteration_count": 4,
+  "found": {
+    "found": "arr.concat(0)[arr.pop()] > (-0)",
+    "num_mutations": 1,
+    "solution_size": 9,
+    "solution_depth": 4
+  },
+  "total_time": {
+    "secs": 678,
+    "nanos": 781733713
+  },
+  "total_statistics": {
+    "Evaluated": 45950,
+    "BankSize": 3390,
+    "FoundContextCount": 140,
+    "MaxMutatingOpcodes": 2,
+    "MaxDepth": 4,
+    "MaxSize": 12
+  },
+  "max_vm_usage": "207.872 MB",
+  "error": null
+}

@@ -1,0 +1,92 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/may/probe/clean-and-reformat-telephone-numbersmodified.sy",
+  "source": "https=//exceljet.net/formula/clean-and-reformat-telephone-numbers",
+  "category": "Primitive:Without Side Effects",
+  "opcode_count": 883,
+  "string_literals": [
+    ">",
+    ".",
+    " ",
+    "<",
+    "-",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 509433
+      },
+      "statistics": {
+        "Evaluated": 9,
+        "BankSize": 9,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 84528337
+      },
+      "statistics": {
+        "Evaluated": 1595,
+        "BankSize": 161,
+        "FoundContextCount": 6,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 4,
+        "nanos": 718083351
+      },
+      "statistics": {
+        "Evaluated": 5114594,
+        "BankSize": 135239,
+        "FoundContextCount": 106,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 3,
+        "MaxSize": 13
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 0
+      },
+      "statistics": {
+        "Evaluated": 140018596,
+        "BankSize": 15898186,
+        "FoundContextCount": 6,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 4,
+        "MaxSize": 26
+      }
+    }
+  ],
+  "iteration_count": 4,
+  "found": null,
+  "total_time": {
+    "secs": 102,
+    "nanos": 1840663
+  },
+  "total_statistics": {
+    "Evaluated": 145133129,
+    "BankSize": 16033414,
+    "FoundContextCount": 112,
+    "MaxMutatingOpcodes": 1,
+    "MaxDepth": 4,
+    "MaxSize": 26
+  },
+  "max_vm_usage": "108.25762816 GB",
+  "error": "OOM"
+}

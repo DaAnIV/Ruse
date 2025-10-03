@@ -1,0 +1,79 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/may/sobeq-new/RotateQueueOnce.sy",
+  "source": "https://github.com/peleghila/sobeq/blob/main/benchmarks/may/sobeq-new/RotateQueueOnce.sy",
+  "category": "Primitive Objects:With Side Effects",
+  "opcode_count": 879,
+  "string_literals": [
+    " ",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 498011
+      },
+      "statistics": {
+        "Evaluated": 5,
+        "BankSize": 5,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 75863676
+      },
+      "statistics": {
+        "Evaluated": 320,
+        "BankSize": 42,
+        "FoundContextCount": 9,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 9337066
+      },
+      "statistics": {
+        "Evaluated": 1867,
+        "BankSize": 466,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 2,
+        "MaxDepth": 3,
+        "MaxSize": 8
+      }
+    }
+  ],
+  "iteration_count": 3,
+  "found": {
+    "found": "queue.slice(1).concat(queue.slice(0, 1))",
+    "num_mutations": 0,
+    "solution_size": 8,
+    "solution_depth": 3
+  },
+  "total_time": {
+    "secs": 0,
+    "nanos": 86225919
+  },
+  "total_statistics": {
+    "Evaluated": 2187,
+    "BankSize": 508,
+    "FoundContextCount": 11,
+    "MaxMutatingOpcodes": 2,
+    "MaxDepth": 3,
+    "MaxSize": 8
+  },
+  "max_vm_usage": "28.581888 MB",
+  "error": null
+}
