@@ -396,7 +396,7 @@ pub struct TsClassDescription {
 }
 
 pub trait TsClass: Send + Sync + Debug {
-    fn obj_type(&self, template_types: Option<Vec<ValueType>>) -> ValueType;
+    fn value_type(&self, template_types: Option<Vec<ValueType>>) -> ValueType;
     fn is_parametrized(&self) -> bool;
     fn get_class_name(&self) -> &ClassName;
     fn get_class_id(&self) -> u64;

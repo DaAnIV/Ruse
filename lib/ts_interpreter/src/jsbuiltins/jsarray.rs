@@ -86,7 +86,7 @@ impl BuiltinArrayClass {
 }
 
 impl TsClass for BuiltinArrayClass {
-    fn obj_type(&self, template_types: Option<Vec<ValueType>>) -> ValueType {
+    fn value_type(&self, template_types: Option<Vec<ValueType>>) -> ValueType {
         let template_types = template_types.unwrap();
         assert!(template_types.len() == 1);
         ValueType::array_value_type(&template_types[0])

@@ -165,7 +165,7 @@ impl TsUserClass {
 }
 
 impl TsClass for TsUserClass {
-    fn obj_type(&self, template_types: Option<Vec<ValueType>>) -> ValueType {
+    fn value_type(&self, template_types: Option<Vec<ValueType>>) -> ValueType {
         assert!(template_types.is_none());
 
         ValueType::class_value_type(self.get_class_name().clone())

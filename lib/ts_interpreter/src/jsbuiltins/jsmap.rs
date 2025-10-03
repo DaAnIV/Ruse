@@ -38,7 +38,7 @@ impl BuiltinMapClass {
 }
 
 impl TsClass for BuiltinMapClass {
-    fn obj_type(&self, template_types: Option<Vec<ValueType>>) -> ValueType {
+    fn value_type(&self, template_types: Option<Vec<ValueType>>) -> ValueType {
         let template_types = template_types.unwrap();
         assert!(template_types.len() == 2);
         ValueType::map_value_type(&template_types[0], &template_types[1])

@@ -602,7 +602,7 @@ mod ts_class_tests {
         );
         assert_eq!(
             class_class.description.fields["students"].value_type,
-            Some(ValueType::array_value_type(&student_class.obj_type(None)))
+            Some(ValueType::array_value_type(&student_class.value_type(None)))
         );
 
         assert!(class_class
