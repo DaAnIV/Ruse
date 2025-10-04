@@ -1,0 +1,39 @@
+{
+  "timestamp": 1759505401,
+  "pid": 2439619,
+  "sysinfo": {
+    "name": "Debian GNU/Linux",
+    "kernel": "5.10.0-32-amd64",
+    "os": "11",
+    "ram": 0,
+    "cpu": "Intel(R) Xeon(R) Gold 6338 CPU @ 2.00GHz",
+    "cpu_fq": 810,
+    "cpu_core_count": 128
+  },
+  "config": {
+    "timeout": 7200,
+    "max_iterations": 6,
+    "multi_thread": true,
+    "max_mutations": 3,
+    "iteration_workers_count": 96,
+    "max_sequence_size": 3,
+    "benchmarks": [
+      "../tasks/benchmarks/new_ruse/overhead/"
+    ],
+    "max_task_mem": "100 GiB",
+    "bank_config": {
+      "SubsumptionBank": {
+        "hash_builder": {
+          "k0": 4023626292822343179,
+          "k1": 10462403494416684740
+        }
+      }
+    },
+    "fork": true,
+    "sleep": {
+      "secs": 5,
+      "nanos": 0
+    },
+    "embedding_overhead_csv": "results/comparing_graphs_overhead_results/embedding_overhead_1.csv"
+  }
+}

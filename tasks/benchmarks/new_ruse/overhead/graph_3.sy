@@ -1,0 +1,68 @@
+{
+    "version": 2,
+    "import": [
+      "../../../classes/ruse/graph.ts"
+    ],
+    "returnType": "Int",
+    "variables": {
+      "graph1": "GraphNode",
+      "graph2": "GraphNode",
+      "graph3": "GraphNode"
+    },
+    "intLiterals": [],
+    "examples": [
+      {
+        "input": {
+          "graph1": {
+            "@js": "new GraphNode(5)"
+          },
+          "graph2": {
+            "@js": "new GraphNode(6)"
+          },
+          "graph3": {
+            "@js": "new GraphNode(7)"
+          }
+        },
+        "output": 18
+      },      
+      {
+        "input": {
+          "graph1": {
+            "@js": "new GraphNode(5)"
+          },
+          "graph2": {
+            "@js": "new GraphNode(16)"
+          },
+          "graph3": {
+            "@js": "new GraphNode(27)"
+          }
+        },
+        "output": 48
+      },      
+      {
+        "input": {
+          "graph1": {
+            "@js": "new GraphNode(45)"
+          },
+          "graph2": {
+            "@js": "new GraphNode(16)"
+          },
+          "graph3": {
+            "@js": "new GraphNode(27)"
+          }
+        },
+        "output": 88
+      }
+    ],
+    "solution": {
+      "has_side_effects": "no",
+      "expected": [
+        "graph1.value + graph2.value + graph3.value",
+        "graph1.value + graph3.value + graph2.value",
+        "graph2.value + graph1.value + graph3.value",
+        "graph2.value + graph3.value + graph1.value",
+        "graph3.value + graph1.value + graph2.value",
+        "graph3.value + graph2.value + graph1.value"
+      ]
+    }
+  }
