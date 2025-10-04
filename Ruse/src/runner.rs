@@ -234,6 +234,8 @@ async fn run_task_with_bank<P: ProgBank + 'static>(
         synthesizer.json = %synthesizer.json_display()
     }, "Benchmark {} Synthesizer", task_path.display());
 
+    result.set_start_ctx(synthesizer.synthesizer_context());
+
     if bench_config.dry_run {
         return Ok(false);
     }

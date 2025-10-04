@@ -1,0 +1,45 @@
+{
+  "version": 2,
+  "import": [
+    "../../../classes/ruse/simple_tree.ts"
+  ],
+  "variables": {
+    "tree": "BinaryTree",
+    "tree_temp": "BinaryTree"
+  },
+  "intLiterals": [],
+   "js_utils": [
+    "function eq_trees(tree1, tree2) {",
+    " if (tree1 == null && tree2 == null)",
+    "   return true;",
+    " if (tree1 == null || tree2 == null)",
+    "   return false;",
+    " if (tree1.value != tree2.value)",
+    "   return false;",
+    " // Recursively check the left subtree",
+    " if (!eq_trees(tree1.left, tree2.left))",
+    "   return false;",
+    " // Recursively check the right subtree",
+    " if (!eq_trees(tree1.right, tree2.right))",
+    "   return false;",
+    " return true;",
+    "}"
+  ],
+  "examples": [
+    {
+      "input": {
+        "tree": {
+          "@js": "new BinaryTree(5, new BinaryTree(2), new BinaryTree(3))"
+        },
+        "tree_temp": "Null"
+      },
+      "predicate_js": "(tree != null && tree_temp != null && eq_trees(tree, tree_temp))"
+    }
+  ],
+  "solution": {
+    "has_side_effects": "yes",
+    "expected": [
+      "tree_temp = tree;"
+    ]
+  }
+}

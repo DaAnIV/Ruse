@@ -1,0 +1,50 @@
+{
+  "version": 2,
+  "import": [
+    "../../../classes/ruse/graph.ts"
+  ],
+  "variables": {
+    "graph1": "GraphNode",
+    "graph2": "*graph1.neighbors.0",
+    "graph3": "*graph2.neighbors.0"
+  },
+  "returnType": "Int",
+  "intLiterals": [],
+  "examples": [
+    {
+      "input": {
+        "graph1": {
+          "@js": [
+            "(() => {",
+            "  let graph1 = new GraphNode(5);",
+            "  let graph2 = new GraphNode(6);",
+            "  let graph3 = new GraphNode(7);",
+            "  graph1.neighbors.push(graph2);",
+            "  graph1.neighbors.push(new GraphNode(0));",
+            "  graph1.neighbors.push(new GraphNode(1));",
+            "  graph2.neighbors.push(graph3);",
+            "  graph2.neighbors.push(new GraphNode(0));",
+            "  graph2.neighbors.push(new GraphNode(1));",
+            "  graph3.neighbors.push(graph1);",
+            "  graph3.neighbors.push(new GraphNode(0));",
+            "  graph3.neighbors.push(new GraphNode(1));",
+            "  return graph1;",
+            "})()"
+          ]
+        }
+      },
+      "output": 18
+    }
+  ],
+  "solution": {
+    "has_side_effects": "no",
+    "expected": [
+      "graph1.value + graph2.value + graph3.value",
+      "graph1.value + graph3.value + graph2.value",
+      "graph2.value + graph1.value + graph3.value",
+      "graph2.value + graph3.value + graph1.value",
+      "graph3.value + graph1.value + graph2.value",
+      "graph3.value + graph2.value + graph1.value"
+    ]
+  }
+}

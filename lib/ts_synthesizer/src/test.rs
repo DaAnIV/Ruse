@@ -8,7 +8,7 @@ mod tests {
         self as object_graph, class_name, field_name, location::Location, root_name, value::Value,
         vnum, vstr, GraphIdGenerator, GraphsMap, ValueType,
     };
-    use ruse_synthesizer::context::{Context, ContextArray};
+    use ruse_synthesizer::context::{Context, ContextArray, Variable};
     use ruse_synthesizer::synthesizer::SynthesizerOptions;
     use ruse_synthesizer::synthesizer_context::SynthesizerContext;
     use ruse_ts_interpreter::ts_classes::TsClassesBuilder;
@@ -80,7 +80,17 @@ mod tests {
             ),
         ]);
 
-        let syn_ctx = SynthesizerContext::from_context_array_with_data(ctx.clone(), classes);
+        let variables = [(
+            root_name!("x"),
+            Variable {
+                name: root_name!("x"),
+                value_type: ValueType::class_value_type(user_class_name),
+                immutable: false,
+            },
+        )]
+        .into();
+        let syn_ctx =
+            SynthesizerContext::from_context_array_with_data(ctx.clone(), variables, classes);
         let mut synthesizer = create_ts_synthesizer(
             "Test".to_string(),
             SubsumptionProgBank::default(),
@@ -187,7 +197,17 @@ mod tests {
             ),
         ]);
 
-        let syn_ctx = SynthesizerContext::from_context_array_with_data(ctx.clone(), classes);
+        let variables = [(
+            root_name!("p"),
+            Variable {
+                name: root_name!("p"),
+                value_type: ValueType::class_value_type(point_class_name),
+                immutable: false,
+            },
+        )]
+        .into();
+        let syn_ctx =
+            SynthesizerContext::from_context_array_with_data(ctx.clone(), variables, classes);
         let mut synthesizer = create_ts_synthesizer(
             "Test".to_string(),
             SubsumptionProgBank::default(),

@@ -1,0 +1,34 @@
+{
+    "version": 2,
+    "import": [
+      "../../../classes/ruse/graph.ts"
+    ],
+    "returnType": "Int",
+    "variables": {
+      "graph1": "*graph3.neighbors.0",
+      "graph2": "*graph1.neighbors.0",
+      "graph3": "GraphNode"
+    },
+    "intLiterals": [],
+    "examples": [
+      {
+        "input": {
+          "graph3": {
+            "@js": "new GraphNode(7, new GraphNode(5, new GraphNode(6, new GraphNode(0, new GraphNode(1))), new GraphNode(0, new GraphNode(1))), new GraphNode(0, new GraphNode(1)))"
+          }
+        },
+        "output": 18
+      }
+    ],
+    "solution": {
+      "has_side_effects": "no",
+      "expected": [
+        "graph1.value + graph2.value + graph3.value",
+        "graph1.value + graph3.value + graph2.value",
+        "graph2.value + graph1.value + graph3.value",
+        "graph2.value + graph3.value + graph1.value",
+        "graph3.value + graph1.value + graph2.value",
+        "graph3.value + graph2.value + graph1.value"
+      ]
+    }
+  }

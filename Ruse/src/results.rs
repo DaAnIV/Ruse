@@ -6,7 +6,11 @@ use std::{
 };
 
 use byte_unit::{AdjustedByte, Byte, UnitType};
-use ruse_synthesizer::{prog::SubProgram, synthesizer::CurrentStatistics};
+use ruse_object_graph::{graph_walk::ObjectGraphWalker, RootName};
+use ruse_synthesizer::{
+    context::Context, partial_context::PartialContextBuilder, prog::SubProgram,
+    synthesizer::CurrentStatistics, synthesizer_context::SynthesizerContext,
+};
 
 use ruse_task_parser::SnythesisTaskCategory;
 use serde::Serialize;
@@ -29,6 +33,75 @@ struct ResultSolution {
 }
 
 #[derive(Serialize, Debug, Clone)]
+struct GraphStatistics {
+    node_count: usize,
+    edge_count: usize,
+    primitive_fields: usize,
+}
+
+impl From<&Context> for GraphStatistics {
+    fn from(ctx: &Context) -> Self {
+        let mut node_count = 0;
+        let mut edge_count = 0;
+        let mut primitive_fields = 0;
+
+        let walker = ObjectGraphWalker::from_nodes(
+            &ctx.graphs_map,
+            ctx.object_variables().map(|(_, v)| (v.graph_id, v.node)),
+        );
+        for (_, _, node) in walker {
+            node_count += 1;
+            edge_count += node.pointers_len();
+            primitive_fields += node.fields_len();
+        }
+
+        Self {
+            node_count,
+            edge_count,
+            primitive_fields,
+        }
+    }
+}
+
+#[derive(Serialize, Debug, Clone)]
+struct VariableStatistics {
+    name: String,
+    value_type: String,
+    partial_ctx_graph: Vec<GraphStatistics>,
+}
+
+impl VariableStatistics {
+    pub fn new(
+        name: &RootName,
+        partial_ctx_builder: &PartialContextBuilder,
+        syn_ctx: &SynthesizerContext,
+    ) -> Self {
+        let variable = syn_ctx.get_variable(name).unwrap();
+        let value_type = &variable.value_type;
+
+        let partial_ctx = partial_ctx_builder
+            .get_partial_context(&[name.clone()])
+            .unwrap();
+        let partial_ctx_graph = partial_ctx
+            .iter()
+            .map(|ctx| GraphStatistics::from(ctx.as_ref()))
+            .collect();
+
+        Self {
+            name: name.to_string(),
+            value_type: value_type.to_string(),
+            partial_ctx_graph,
+        }
+    }
+}
+
+#[derive(Serialize, Debug, Clone)]
+struct StartContextResult {
+    graph_statistics: Vec<GraphStatistics>,
+    variables: Vec<VariableStatistics>,
+}
+
+#[derive(Serialize, Debug, Clone)]
 pub struct BenchmarkResult {
     path: PathBuf,
     source: Option<String>,
@@ -43,6 +116,7 @@ pub struct BenchmarkResult {
     total_statistics: Option<CurrentStatistics>,
     max_vm_usage: Option<AdjustedByte>,
     error: Option<String>,
+    start_context: Option<StartContextResult>,
 }
 
 impl BenchmarkResult {
@@ -61,7 +135,27 @@ impl BenchmarkResult {
             total_statistics: None,
             max_vm_usage: None,
             error: None,
+            start_context: None,
         }
+    }
+
+    pub fn set_start_ctx(&mut self, syn_ctx: &SynthesizerContext) {
+        let graph_statistics = syn_ctx
+            .start_context
+            .iter()
+            .map(|ctx| GraphStatistics::from(ctx.as_ref()))
+            .collect();
+        let partial_context_builder =
+            PartialContextBuilder::new(&syn_ctx.start_context);
+        let variables = syn_ctx
+            .variables()
+            .keys()
+            .map(|name| VariableStatistics::new(name, &partial_context_builder, syn_ctx))
+            .collect();
+        self.start_context = Some(StartContextResult {
+            graph_statistics,
+            variables,
+        });
     }
 
     pub fn set_source(&mut self, source: String) {

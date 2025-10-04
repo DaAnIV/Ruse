@@ -849,4 +849,8 @@ impl<P: ProgBank + 'static, W: WorkerContextCreator + 'static> Synthesizer<P, W>
     pub fn json_display(&self) -> impl Display + '_ {
         self.0.json_display()
     }
+
+    pub fn synthesizer_context(&self) -> &SynthesizerContext {
+        &self.0.context
+    }
 }
