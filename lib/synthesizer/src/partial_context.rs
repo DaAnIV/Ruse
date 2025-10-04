@@ -44,7 +44,7 @@ impl Context {
     }
 }
 
-pub(crate) struct PartialContextBuilder<'a> {
+pub struct PartialContextBuilder<'a> {
     context_array: &'a ContextArray,
     weak_components: Option<Vec<GraphsMapWeakComponents>>,
 }
