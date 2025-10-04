@@ -528,11 +528,12 @@ impl SnythesisTask {
         max_seq_size: usize,
         bank: P,
     ) -> SynthesisTaskResult<TsSynthesizer<P>> {
-        let variables = self.get_varaibles();
         let mut engine_ctx = EngineContext::create_engine_ctx(&self.classes);
 
         let opcodes = self.get_opcodes(max_seq_size);
         let context_array = self.get_context_array(&mut engine_ctx)?;
+        let variables = self.get_variables(&context_array);
+
         let predicate = self.get_predicate(&mut engine_ctx)?;
         let valid = self.get_valid_predicate()?;
 
@@ -823,10 +824,20 @@ impl SnythesisTask {
         composite_opcodes
     }
 
-    fn get_varaibles(&self) -> VariableMap {
+    fn get_variables(&self, context_array: &ContextArray) -> VariableMap {
         let immutable_set = self.inner.immutable.as_ref();
         VariableMap::from_iter(self.inner.variables.iter().map(|(var, var_type)| {
-            let value_type = var_type.value_type();
+            let value_type = match var_type {
+                TaskType::VarRef(_var_ref) => {
+                    let first_ctx = context_array.get(0).unwrap();
+                    first_ctx
+                        .get_var_value(&root_name!(var.as_str()))
+                        .as_ref()
+                        .unwrap()
+                        .val_type()
+                }
+                _ => var_type.value_type(),
+            };
             let immutable = immutable_set.is_some_and(|imm| imm.contains(var));
             (
                 root_name!(var.as_str()),
