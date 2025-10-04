@@ -116,8 +116,29 @@ pub(crate) fn merge_context(
     }
 
     let (p_1_hat, q_2_hat) = create_hat_values(p_1, q_1, p_2, q_2);
-    let (mut p_1_map_hat, mut q_2_map_hat) = create_hat_graphs_map(p_1, q_1, p_2, q_2);
-    
+    let (p_1_map_hat, q_2_map_hat) = create_hat_graphs_map(p_1, q_1, p_2, q_2)?;
+    let outputs = q_1.outputs().chain(q_2.outputs()).cloned().collect();
+
+    let pre_ctx_hat = Context::with_values(p_1_hat, p_1_map_hat.into(), p_1.graph_id_gen.clone());
+    let post_ctx_hat = Context::with_values_and_outputs(
+        q_2_hat,
+        outputs,
+        q_2_map_hat.into(),
+        q_2.graph_id_gen.clone(),
+    );
+
+    embeddings_tracing::trace!({pre_ctx_hat.json = %pre_ctx_hat.json_display(), post_ctx_hat.json = %post_ctx_hat.json_display()}, "Contexts merged");
+    Ok((pre_ctx_hat, post_ctx_hat))
+}
+
+fn create_hat_graphs_map<'a>(
+    p_1: &'a Context,
+    q_1: &'a Context,
+    p_2: &'a Context,
+    q_2: &'a Context,
+) -> Result<(GraphsMap, GraphsMap), ()> {
+    let (mut p_1_map_hat, mut q_2_map_hat) = init_hat_graphs_map(p_1, q_1, p_2, q_2);
+
     let mut p1_hat_nodes_matches = HashMap::new();
     let mut q2_hat_nodes_matches = HashMap::new();
 
@@ -142,7 +163,7 @@ pub(crate) fn merge_context(
     embeddings_tracing::trace!("Intersecting roots graphs are equal");
 
     embed_original_graph(p_1, &mut p_1_map_hat, &mut p1_hat_nodes_matches, false)?;
-    let mut outputs = embed_original_graph(q_2, &mut q_2_map_hat, &mut q2_hat_nodes_matches, true)?;
+    embed_original_graph(q_2, &mut q_2_map_hat, &mut q2_hat_nodes_matches, true)?;
 
     for (nodes_1, nodes_2) in equal_nodes {
         p1_hat_nodes_matches.insert(nodes_2, nodes_1);
@@ -157,25 +178,16 @@ pub(crate) fn merge_context(
         (p_1, q_1),
         false,
     )?;
-    outputs.extend(embed_other_graph(
+    embed_other_graph(
         q_1,
         &only_q_1,
         &mut q_2_map_hat,
         &mut q2_hat_nodes_matches,
         (p_2, q_2),
         true,
-    )?);
+    )?;
 
-    let pre_ctx_hat = Context::with_values(p_1_hat, p_1_map_hat.into(), p_1.graph_id_gen.clone());
-    let post_ctx_hat = Context::with_values_and_outputs(
-        q_2_hat,
-        outputs,
-        q_2_map_hat.into(),
-        q_2.graph_id_gen.clone(),
-    );
-
-    embeddings_tracing::trace!({pre_ctx_hat.json = %pre_ctx_hat.json_display(), post_ctx_hat.json = %post_ctx_hat.json_display()}, "Contexts merged");
-    Ok((pre_ctx_hat, post_ctx_hat))
+    Ok((p_1_map_hat, q_2_map_hat))
 }
 
 fn create_hat_values<'a>(
@@ -201,7 +213,7 @@ fn create_hat_values<'a>(
     (p_1_hat, q_2_hat)
 }
 
-fn create_hat_graphs_map<'a>(
+fn init_hat_graphs_map<'a>(
     p_1: &'a Context,
     q_1: &'a Context,
     p_2: &'a Context,
@@ -271,23 +283,20 @@ fn embed_original_graph(
     map_hat: &mut GraphsMap,
     nodes_matches: &mut NodeMatcherMap,
     add_outputs: bool,
-) -> Result<Vec<Value>, ()> {
+) -> Result<(), ()> {
     for (var, obj_val) in ctx.object_variables() {
         embed_root_object_value(var, obj_val, map_hat, ctx, None, nodes_matches)?;
     }
 
-    let mut outputs = Vec::new();
-
     if add_outputs {
         for output in ctx.outputs() {
-            outputs.push(output.clone());
             if let Some(obj) = output.obj() {
                 embed_object_value(obj, map_hat, ctx, None, nodes_matches)?;
             }
         }
     }
 
-    Ok(outputs)
+    Ok(())
 }
 
 fn embed_other_graph(
@@ -297,7 +306,7 @@ fn embed_other_graph(
     nodes_matches: &mut NodeMatcherMap,
     old_ctx: (&Context, &Context),
     add_outputs: bool,
-) -> Result<Vec<Value>, ()> {
+) -> Result<(), ()> {
     for (var, obj_val) in other_graph_unique_roots {
         embed_root_object_value(
             var,
@@ -309,17 +318,15 @@ fn embed_other_graph(
         )?;
     }
 
-    let mut outputs = Vec::new();
     if add_outputs {
         for output in other_ctx.outputs() {
-            outputs.push(output.clone());
             if let Some(obj) = output.obj() {
                 embed_object_value(obj, map_hat, other_ctx, Some(old_ctx), nodes_matches)?;
             }
         }
     }
 
-    Ok(outputs)
+    Ok(())
 }
 
 fn embed_root_object_value(
