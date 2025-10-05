@@ -41,23 +41,20 @@
       "input": {
         "node_to_delete": "*tree._right"
       },
-      "predicate_js": "tree.size == 6 && binary_tree_valid(tree) && !tree.contains(10)"
+      "predicate_js": "tree.size == 6 && !tree.contains(10) && binary_tree_valid(tree)"
     },
     {
       "input": {
         "node_to_delete": "*tree._left"
       },
-      "predicate_js": "tree.size == 6 && binary_tree_valid(tree) && !tree.contains(2)"
+      "predicate_js": "tree.size == 6 && !tree.contains(2) && binary_tree_valid(tree)"
     },
     {
       "input": {
         "node_to_delete": "*tree"
       },
-      "predicate_js": "tree.size == 6 && binary_tree_valid(tree) && !tree.contains(5)"
+      "predicate_js": "tree.size == 6 && !tree.contains(5) && binary_tree_valid(tree)"
     }
-  ],
-  "opcodes": [
-    "BinarySearchTreeNode.*"
   ],
   "solution": {
     "has_side_effects": "yes",
