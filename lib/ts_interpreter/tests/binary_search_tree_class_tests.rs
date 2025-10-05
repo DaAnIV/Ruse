@@ -13,7 +13,7 @@ use ruse_synthesizer::{
     context::{Context, ContextArray, Variable, VariableMap},
     op_chain,
     synthesizer_context::SynthesizerContext,
-    test::helpers::evaluate_chain,
+    test_helpers::evaluate_chain,
 };
 use ruse_task_parser::predicate_builder::{JsPredicate, PredicateBuilder};
 use ruse_ts_interpreter::{

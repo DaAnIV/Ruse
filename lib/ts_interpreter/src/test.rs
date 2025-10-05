@@ -60,7 +60,7 @@ mod ts_simple_opcodes_tests {
     use ruse_object_graph::*;
     use ruse_synthesizer::context::{Variable, VariableMap};
     use ruse_synthesizer::opcode::ExprOpcode;
-    use ruse_synthesizer::test::helpers::generate_context_from_array;
+    use ruse_synthesizer::test_helpers::generate_context_from_array;
     use swc_ecma_ast as ast;
     use synthesizer_context::SynthesizerContext;
 
@@ -535,7 +535,7 @@ mod ts_class_tests {
     use ruse_object_graph::{value::*, *};
     use ruse_synthesizer::context::{Context, ContextArray, ValuesMap, Variable};
     use ruse_synthesizer::synthesizer_context::SynthesizerContext;
-    use ruse_synthesizer::test::helpers::{get_composite_prog, get_init_prog};
+    use ruse_synthesizer::test_helpers::{get_composite_prog, get_init_prog};
 
     use crate::engine_context::EngineContext;
     use crate::js_value::{TryFromJs, TryIntoJs};
@@ -1177,7 +1177,10 @@ mod specific_bugs_tests {
         embedding::merge_context_arrays,
         op_chain,
         synthesizer_context::SynthesizerContext,
-        test::helpers::{evaluate_chain, get_composite_prog, get_init_prog},
+        test_helpers::{
+            add_array_to_values, evaluate_chain, generate_context_from_array, get_composite_prog,
+            get_init_prog,
+        },
     };
 
     use crate::{
@@ -1188,7 +1191,7 @@ mod specific_bugs_tests {
 
     #[test]
     fn bug_1() {
-        let ctx = ruse_synthesizer::test::helpers::generate_context_from_array(
+        let ctx = generate_context_from_array(
             root_name!("names"),
             &ValueType::String,
             ["Augusta", "Ada", "King"].iter().map(|s| vstr!(*s)),
@@ -1247,7 +1250,7 @@ mod specific_bugs_tests {
 
     #[test]
     fn bug_2() {
-        let ctx = ruse_synthesizer::test::helpers::generate_context_from_array(
+        let ctx = generate_context_from_array(
             root_name!("arr"),
             &ValueType::Number,
             [8, 9, 7].iter().map(|s| vnum!(Number::from(*s))),
@@ -1290,7 +1293,7 @@ mod specific_bugs_tests {
             &mut worker_ctx,
         );
 
-        let expected_ctx = ruse_synthesizer::test::helpers::generate_context_from_array(
+        let expected_ctx = generate_context_from_array(
             root_name!("arr"),
             &ValueType::Number,
             [8, 7, 9].iter().map(|s| vnum!(Number::from(*s))),
@@ -1322,7 +1325,7 @@ mod specific_bugs_tests {
         let mut graphs_map = GraphsMap::default();
         let mut values = ValuesMap::default();
 
-        ruse_synthesizer::test::helpers::add_array_to_values(
+        add_array_to_values(
             &mut values,
             &mut graphs_map,
             &graph_id_gen,
@@ -1334,21 +1337,25 @@ mod specific_bugs_tests {
 
         let ctx = Context::with_values(values, graphs_map.into(), graph_id_gen);
         let ctx_arr = ContextArray::from(vec![ctx]);
-        let variables = [(
-            root_name!("arr"),
-            ruse_synthesizer::context::Variable {
-                name: root_name!("arr"),
-                value_type: ValueType::Object(ObjectType::Array(Box::new(ValueType::Number))),
-                immutable: false,
-            },
-        ),(
-            root_name!("i"),
-            ruse_synthesizer::context::Variable {
-                name: root_name!("i"),
-                value_type: ValueType::Number,
-                immutable: false,
-            },
-        )].into();
+        let variables = [
+            (
+                root_name!("arr"),
+                ruse_synthesizer::context::Variable {
+                    name: root_name!("arr"),
+                    value_type: ValueType::Object(ObjectType::Array(Box::new(ValueType::Number))),
+                    immutable: false,
+                },
+            ),
+            (
+                root_name!("i"),
+                ruse_synthesizer::context::Variable {
+                    name: root_name!("i"),
+                    value_type: ValueType::Number,
+                    immutable: false,
+                },
+            ),
+        ]
+        .into();
         let syn_ctx = SynthesizerContext::from_context_array(ctx_arr.clone(), variables);
         let mut worker_ctx = create_js_worker_context(0);
 
@@ -1377,7 +1384,7 @@ mod specific_bugs_tests {
             &mut worker_ctx,
         );
 
-        let expected_ctx = ruse_synthesizer::test::helpers::generate_context_from_array(
+        let expected_ctx = generate_context_from_array(
             root_name!("arr"),
             &ValueType::Number,
             [8, 7, 9].iter().map(|s| vnum!(Number::from(*s))),

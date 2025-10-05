@@ -1,10 +1,9 @@
-use itertools::{Itertools, MultiProduct};
 use ruse_object_graph::ValueType;
 use std::marker::PhantomData;
-use std::ops::RangeInclusive;
 use std::sync::Arc;
 use Option::{self as State, None as ProductEnded, Some as ProductInProgress};
 
+use crate::iterator::iterations_iterator::IterationsIterator;
 use crate::iterator::multi_programs_map_product::{MultiProgramsMaps, ProgramChildrenIterator};
 use crate::prog::SubProgram;
 use crate::{
@@ -22,8 +21,7 @@ struct BankIteratorInner<'a, B: ProgBank> {
     bank: &'a B,
     arg_types: &'a [ValueType],
 
-    cutoff: usize,
-    iterations_iter: MultiProduct<RangeInclusive<usize>>,
+    iterations_iter: IterationsIterator,
 
     /// Holds the iterators.
     iter: MultiProgramsMaps<'a, B>,
@@ -32,37 +30,15 @@ struct BankIteratorInner<'a, B: ProgBank> {
 }
 
 impl<'a, B: ProgBank> BankIteratorInner<'a, B> {
-    fn get_iterations_iter(
-        bank: &'a B,
-        arg_types: &'a [ValueType],
-        cutoff: usize,
-    ) -> MultiProduct<RangeInclusive<usize>> {
-        let last_iteration = bank.iteration_count() - 1;
-        (0..arg_types.len())
-            .map(|i| match i {
-                n if n == cutoff => last_iteration..=last_iteration,
-                n if n < cutoff => 0..=(last_iteration - 1),
-                _ => 0..=last_iteration,
-            })
-            .multi_cartesian_product()
-    }
-
     async fn calculate_size(bank: &'a B, arg_types: &'a [ValueType]) -> usize {
-        let n = if bank.iteration_count() == 1 {
-            1
-        } else {
-            arg_types.len()
-        };
-
         let mut size: usize = 0;
-        for i in 0..n {
-            for iterations in Self::get_iterations_iter(bank, arg_types, i) {
-                let mut acc = 1;
-                for i in 0..iterations.len() {
-                    acc *= bank.number_of_programs(iterations[i], &arg_types[i]).await;
-                }
-                size += acc;
+        let iterations_iterator = IterationsIterator::new(bank.iteration_count(), arg_types.len());
+        for iterations in iterations_iterator {
+            let mut acc = 1;
+            for i in 0..iterations.len() {
+                acc *= bank.number_of_programs(iterations[i], &arg_types[i]).await;
             }
+            size += acc;
         }
 
         size
@@ -75,8 +51,7 @@ impl<'a, P: ProgBank> BankIteratorInner<'a, P> {
             bank,
             arg_types,
 
-            cutoff: 0,
-            iterations_iter: BankIteratorInner::get_iterations_iter(bank, arg_types, 0),
+            iterations_iter: IterationsIterator::new(bank.iteration_count(), arg_types.len()),
 
             iter: multi_programs_map_end(PhantomData),
 
@@ -107,27 +82,10 @@ impl<'a, P: ProgBank> BankIteratorInner<'a, P> {
         true
     }
 
-    fn get_next_iterations_iter(&mut self) -> bool {
-        self.cutoff += 1;
-        if self.cutoff >= self.arg_types.len() || self.bank.iteration_count() == 1 {
-            return false;
-        }
-
-        self.iterations_iter = Self::get_iterations_iter(self.bank, self.arg_types, self.cutoff);
-
-        true
-    }
-
     async fn get_next_programs_iter(&mut self) -> bool {
-        loop {
-            while let Some(iterations) = self.iterations_iter.next() {
-                if self.set_programs_iter(&iterations).await {
-                    return true;
-                }
-            }
-
-            if !self.get_next_iterations_iter() {
-                break;
+        while let Some(iterations) = self.iterations_iter.next() {
+            if self.set_programs_iter(&iterations).await {
+                return true;
             }
         }
 

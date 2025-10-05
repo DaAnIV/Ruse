@@ -10,7 +10,7 @@ use ruse_synthesizer::{
     embedding::merge_context_arrays,
     op_chain,
     synthesizer_context::SynthesizerContext,
-    test::helpers::{evaluate_chain, init_log},
+    test_helpers::{evaluate_chain, init_log},
 };
 use ruse_ts_interpreter::{
     engine_context::EngineContext,
