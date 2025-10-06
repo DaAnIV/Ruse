@@ -16,7 +16,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 507215
+        "nanos": 467367
       },
       "statistics": {
         "Evaluated": 6,
@@ -30,11 +30,11 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 119635891
+        "nanos": 86112654
       },
       "statistics": {
         "Evaluated": 512,
-        "BankSize": 48,
+        "BankSize": 51,
         "FoundContextCount": 3,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 2,
@@ -44,11 +44,11 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 525463929
+        "nanos": 396388830
       },
       "statistics": {
-        "Evaluated": 156950,
-        "BankSize": 5487,
+        "Evaluated": 180413,
+        "BankSize": 5511,
         "FoundContextCount": 25,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 3,
@@ -61,8 +61,8 @@
         "nanos": 0
       },
       "statistics": {
-        "Evaluated": 2186035174,
-        "BankSize": 12457008,
+        "Evaluated": 1992773166,
+        "BankSize": 12447436,
         "FoundContextCount": 3,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 4,
@@ -73,59 +73,17 @@
   "iteration_count": 4,
   "found": null,
   "total_time": {
-    "secs": 3250,
-    "nanos": 1507797
+    "secs": 2267,
+    "nanos": 2083111
   },
   "total_statistics": {
-    "Evaluated": 2186192076,
-    "BankSize": 12462495,
+    "Evaluated": 1992953507,
+    "BankSize": 12452945,
     "FoundContextCount": 28,
     "MaxMutatingOpcodes": 1,
     "MaxDepth": 4,
     "MaxSize": 37
   },
-  "max_vm_usage": "107.378085888 GB",
-  "error": "OOM",
-  "start_context": {
-    "graph_statistics": [
-      {
-        "node_count": 0,
-        "edge_count": 0,
-        "primitive_fields": 0
-      },
-      {
-        "node_count": 0,
-        "edge_count": 0,
-        "primitive_fields": 0
-      },
-      {
-        "node_count": 0,
-        "edge_count": 0,
-        "primitive_fields": 0
-      }
-    ],
-    "variables": [
-      {
-        "name": "_arg_0",
-        "value_type": "String",
-        "partial_ctx_graph": [
-          {
-            "node_count": 0,
-            "edge_count": 0,
-            "primitive_fields": 0
-          },
-          {
-            "node_count": 0,
-            "edge_count": 0,
-            "primitive_fields": 0
-          },
-          {
-            "node_count": 0,
-            "edge_count": 0,
-            "primitive_fields": 0
-          }
-        ]
-      }
-    ]
-  }
+  "max_vm_usage": "107.435544576 GB",
+  "error": "OOM"
 }
