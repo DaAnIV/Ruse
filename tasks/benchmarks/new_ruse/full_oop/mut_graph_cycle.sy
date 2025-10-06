@@ -1,0 +1,43 @@
+{
+  "version": 2,
+  "import": [
+    "../../../classes/ruse/graph.ts"
+  ],
+  "variables": {
+    "graph1": "GraphNode",
+    "graph2": "*graph1.neighbors.0",
+    "graph3": "*graph2.neighbors.0"
+  },
+  "intLiterals": [],
+  "examples": [
+    {
+      "input": {
+        "graph1": {
+          "@js": [
+            "(() => {",
+            "  let graph1 = new GraphNode(5);",
+            "  let graph2 = new GraphNode(6);",
+            "  let graph3 = new GraphNode(7);",
+            "  graph1.neighbors.push(graph2);",
+            "  graph2.neighbors.push(graph3);",
+            "  graph3.neighbors.push(graph1);",
+            "  return graph1;",
+            "})()"
+          ]
+        }
+      },
+      "predicate_js": "graph1.value == 6 && graph2.value == 7 && graph3.value == 8"
+    }
+  ],
+  "solution": {
+    "has_side_effects": "yes",
+    "expected": [
+      "graph1.inc_value(); graph2.inc_value(); graph3.inc_value()",
+      "graph1.inc_value(); graph3.inc_value(); graph2.inc_value()",
+      "graph2.inc_value(); graph1.inc_value(); graph3.inc_value()",
+      "graph2.inc_value(); graph3.inc_value(); graph1.inc_value()",
+      "graph3.inc_value(); graph1.inc_value(); graph2.inc_value()",
+      "graph3.inc_value(); graph2.inc_value(); graph1.inc_value()"
+    ]
+  }
+}

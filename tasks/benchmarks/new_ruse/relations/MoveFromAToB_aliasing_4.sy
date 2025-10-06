@@ -1,0 +1,47 @@
+{
+  "version": 2,
+  "source": "https://github.com/peleghila/sobeq/blob/main/benchmarks/must/sobeq-new/MoveFromAToB.sy",
+  "variables": {
+    "a": "[String]",
+    "b": "[String]",
+    "a_1": "*a",
+    "b_1": "*b",
+    "a_2": "*a",
+    "b_2": "*b",
+    "a_3": "*a",
+    "b_3": "*b",
+    "a_4": "*a",
+    "b_4": "*b"
+  },
+  "returnType": "Int",
+  "examples": [
+    {
+      "input": {
+        "a": ["'a'","'b'","'c'"],
+        "b": []
+      },
+      "output": 1,
+      "state": {
+        "a": ["'a'","'b'"],
+        "b": ["'c'"]
+      }
+    },
+    {
+      "input": {
+        "a": ["'a'","'b'"],
+        "b": ["'c'"]
+      },
+      "output": 2,
+      "state": {
+        "a": ["'a'"],
+        "b": ["'c'","'b'"]
+      }
+    }
+  ],
+  "solution": {
+    "has_side_effects": "yes",
+    "expected": [
+      "b.push(a.pop())"
+    ]
+  }
+}

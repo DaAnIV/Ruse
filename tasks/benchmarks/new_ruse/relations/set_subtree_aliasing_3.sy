@@ -1,0 +1,41 @@
+{
+  "version": 2,
+  "import": [
+    "../../../classes/ruse/simple_tree.ts"
+  ],
+  "variables": {
+    "tree1": "BinaryTree",
+    "tree2": "BinaryTree",
+    "tree1_1": "*tree1",
+    "tree2_1": "*tree2",
+    "tree1_2": "*tree1",
+    "tree2_2": "*tree2",
+    "tree1_3": "*tree1",
+    "tree2_3": "*tree2"
+  },
+  "intLiterals": [],
+  "common": {
+    "input": {
+      "tree1": {
+        "@js": "new BinaryTree(5, new BinaryTree(2), new BinaryTree(3))"
+      }
+    }
+  },
+  "examples": [
+    {
+      "input": {
+        "tree2": {
+          "@js": "new BinaryTree(50, new BinaryTree(20), new BinaryTree(30))"
+        }
+      },
+      "predicate_js": "tree1.size == 5 && tree1.right.value == 51"
+    }
+  ],
+  "solution": {
+    "has_side_effects": "yes",
+    "expected": [
+      "tree1.right = tree2; tree2.inc_value()",
+      "tree2.inc_value(); tree1.right = tree2;"
+    ]
+  }
+}

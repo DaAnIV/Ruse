@@ -1,0 +1,41 @@
+{
+  "source": "https://github.com/peleghila/sobeq/blob/main/benchmarks/must/sobeq-new/ArraySwap.sy",
+  "variables": {
+    "arr": "[Int]",
+    "i": "Int",
+    "arr_1": "*arr",
+    "arr_2": "*arr",
+    "arr_3": "*arr"
+  },
+  "immutable": [
+    "i"
+  ],
+  "version": 2,
+  "examples": [
+    {
+      "input": {
+        "arr": [8, 9, 7],
+        "i": 1
+      },
+      "state": {
+        "arr": [8, 7, 9]
+      }
+    },
+    {
+      "input": {
+        "arr": [8, 9, 7],
+        "i": 0
+      },
+      "state": {
+        "arr": [9, 7, 8]
+      }
+    }
+  ],
+  "solution": {
+    "has_side_effects": "yes",
+    "expected": [
+    "arr.push(arr.splice(i, 1)[0])",
+    "arr.push(arr.splice(i,1)[0])"
+    ]
+  }
+}

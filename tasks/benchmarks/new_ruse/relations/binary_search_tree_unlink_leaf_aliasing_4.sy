@@ -1,0 +1,42 @@
+{
+  "version": 2,
+  "import": [
+    "../../../classes/ruse/binary_search_tree.ts"
+  ],
+  "variables": {
+    "tree": "BinarySearchTreeNode",
+    "tree_1": "*tree",
+    "tree_2": "*tree",
+    "tree_3": "*tree",
+    "tree_4": "*tree"
+  },
+  "intLiterals": [],
+  "stringLiterals": [],
+  "examples": [
+    {
+      "input": {
+        "tree": {
+          "@": "constructor",
+          "variant": 1,
+          "args": [
+            1,
+            "Null",
+            {
+              "@": "constructor",
+              "args": [
+                28
+              ]
+            }
+          ]
+        }
+      },
+      "predicate_js": "tree.size == 1"
+    }
+  ],
+  "solution": {
+    "has_side_effects": "yes",
+    "expected": [
+      "tree.right.unlink_leaf()"
+    ]
+  }
+}

@@ -6,8 +6,8 @@
   "variables": {
     "a": "User",
     "b": "User",
-    "c": "*a",
-    "d": "*b"
+    "a_1": "*a",
+    "b_1": "*b"
   },
   "stringLiterals": [", "],
   "returnType": "String",

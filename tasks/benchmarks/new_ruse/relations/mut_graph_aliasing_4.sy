@@ -1,0 +1,51 @@
+{
+    "version": 2,
+    "import": [
+      "../../../classes/ruse/graph.ts"
+    ],
+    "variables": {
+      "graph1": "GraphNode",
+      "graph2": "GraphNode",
+      "graph3": "GraphNode",
+      "graph1_2": "*graph1",
+      "graph2_2": "*graph2",
+      "graph3_2": "*graph3",
+      "graph1_3": "*graph1",
+      "graph2_3": "*graph2",
+      "graph3_3": "*graph3",
+      "graph1_4": "*graph1",
+      "graph2_4": "*graph2",
+      "graph3_4": "*graph3",
+      "graph1_5": "*graph1",
+      "graph2_5": "*graph2",
+      "graph3_5": "*graph3"
+    },
+    "intLiterals": [],
+    "examples": [
+      {
+        "input": {
+          "graph1": {
+            "@js": "new GraphNode(5, new GraphNode(6))"
+          },
+          "graph2": {
+            "@js": "new GraphNode(6, new GraphNode(7))"
+          },
+          "graph3": {
+            "@js": "new GraphNode(7, new GraphNode(5))"
+          }
+        },
+        "predicate_js": "graph1.value == 6 && graph2.value == 7 && graph3.value == 8"
+      }
+    ],
+    "solution": {
+      "has_side_effects": "yes",
+      "expected": [
+        "graph1.inc_value(); graph2.inc_value(); graph3.inc_value()",
+        "graph1.inc_value(); graph3.inc_value(); graph2.inc_value()",
+        "graph2.inc_value(); graph1.inc_value(); graph3.inc_value()",
+        "graph2.inc_value(); graph3.inc_value(); graph1.inc_value()",
+        "graph3.inc_value(); graph1.inc_value(); graph2.inc_value()",
+        "graph3.inc_value(); graph2.inc_value(); graph1.inc_value()"
+      ]
+    }
+  }

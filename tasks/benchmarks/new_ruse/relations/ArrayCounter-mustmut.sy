@@ -1,0 +1,37 @@
+{
+  "source": "https://github.com/peleghila/sobeq/blob/main/benchmarks/must/stateCopies/ArrayCounter-mustmut.sy",
+  "variables": {
+    "count": "[Int]",
+    "index": "Int"
+  },
+  "returnType": "[Int]",
+  "version": 2,
+  "examples": [
+    {
+      "input": {
+        "count": [8, 9, 7],
+        "index": 2
+      },
+      "output": [8, 9, 8],
+      "state": {
+        "count": [8, 9, 8]
+      }
+    },
+    {
+      "input": {
+        "count": [9],
+        "index": 0
+      },
+      "output": [10],
+      "state": {
+        "count": [10]
+      }
+    }
+  ],
+  "solution": {
+    "has_side_effects": "yes",
+    "expected": [
+    "count[index]++; count"
+    ]
+  }
+}

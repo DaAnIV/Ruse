@@ -1,20 +1,2 @@
-Take benchmarks from:
-* Frangel
-* Sypet
-* SobEq [done]
-* code hint
-
-Make all benchmarks pass (or understand why they do not)
-* Frangel
-* Sypet
-* SobEq
-* code hint
-
-Benchmark:
-    *   tree1 seperate to tree2 
-    ```
-    tree1.right = tree2;
-    tree2.value++;
-    ```
-    predicate:
-        tree1.right.value == tree2.value + 1;
+* Add more aliasing benchmarks (Bank Size)
+* Explain failures

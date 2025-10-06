@@ -1,11 +1,14 @@
 #!/bin/bash
 
-NAME=${1:-ruse_all_tasks}
-
 rm -rf results/${NAME}_results
 rm -rf results/${NAME}_log.jsonl
 
 mkdir -p results/${NAME}_results
+
+BENCHMARKS=(
+    -b ../tasks/benchmarks/new_ruse/relations/
+)
+
 
 for i in {1..4}; do
     echo "Run #$i"
@@ -18,5 +21,5 @@ for i in {1..4}; do
         --max-mutations 3 \
         --max-sequence-size 3 \
         --max-task-mem 100GiB \
-        -b ../tasks/benchmarks/
+        "${BENCHMARKS[@]}"
 done
