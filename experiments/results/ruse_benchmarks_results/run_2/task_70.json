@@ -2,7 +2,7 @@
   "path": "../tasks/benchmarks/fromFrangel/sypet/sypet_06_solveLinearMatrixInput.sy",
   "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/sypet/SyPet_06_solveLinear.java",
   "category": "Full OOP:Without Side Effects",
-  "opcode_count": 2505,
+  "opcode_count": 2509,
   "string_literals": [
     " ",
     ""
@@ -15,7 +15,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 27394476
+        "nanos": 14328075
       },
       "statistics": {
         "Evaluated": 9,
@@ -29,7 +29,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 169933910
+        "nanos": 318240712
       },
       "statistics": {
         "Evaluated": 1132,
@@ -42,12 +42,12 @@
     },
     {
       "time": {
-        "secs": 3,
-        "nanos": 315526720
+        "secs": 5,
+        "nanos": 346697730
       },
       "statistics": {
-        "Evaluated": 332196,
-        "BankSize": 7191,
+        "Evaluated": 332223,
+        "BankSize": 6631,
         "FoundContextCount": 4,
         "MaxMutatingOpcodes": 0,
         "MaxDepth": 3,
@@ -56,12 +56,12 @@
     },
     {
       "time": {
-        "secs": 2,
-        "nanos": 395764804
+        "secs": 22,
+        "nanos": 322482576
       },
       "statistics": {
-        "Evaluated": 6815,
-        "BankSize": 1440,
+        "Evaluated": 10627,
+        "BankSize": 2681,
         "FoundContextCount": 0,
         "MaxMutatingOpcodes": 0,
         "MaxDepth": 4,
@@ -77,17 +77,50 @@
     "solution_depth": 4
   },
   "total_time": {
-    "secs": 5,
-    "nanos": 909036741
+    "secs": 28,
+    "nanos": 2334455
   },
   "total_statistics": {
-    "Evaluated": 339011,
-    "BankSize": 8631,
+    "Evaluated": 342850,
+    "BankSize": 9312,
     "FoundContextCount": 4,
     "MaxMutatingOpcodes": 0,
     "MaxDepth": 4,
     "MaxSize": 13
   },
-  "max_vm_usage": "1.167347712 GB",
-  "error": null
+  "max_vm_usage": "962.740224 MB",
+  "error": null,
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 7,
+        "edge_count": 5,
+        "primitive_fields": 10
+      }
+    ],
+    "variables": [
+      {
+        "name": "mat",
+        "value_type": "Matrix",
+        "partial_ctx_graph": [
+          {
+            "node_count": 4,
+            "edge_count": 3,
+            "primitive_fields": 6
+          }
+        ]
+      },
+      {
+        "name": "vec",
+        "value_type": "Matrix",
+        "partial_ctx_graph": [
+          {
+            "node_count": 3,
+            "edge_count": 2,
+            "primitive_fields": 4
+          }
+        ]
+      }
+    ]
+  }
 }

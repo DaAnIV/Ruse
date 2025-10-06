@@ -1,0 +1,143 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/may/probe/get-first-name-from-name-with-commamodified.sy",
+  "source": "https=//exceljet.net/formula/get-first-name-from-name-with-comma",
+  "category": "Primitive:Without Side Effects",
+  "opcode_count": 881,
+  "string_literals": [
+    " ",
+    ",",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 301070
+      },
+      "statistics": {
+        "Evaluated": 7,
+        "BankSize": 7,
+        "FoundContextCount": 4,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 92029195
+      },
+      "statistics": {
+        "Evaluated": 771,
+        "BankSize": 70,
+        "FoundContextCount": 7,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 98928052
+      },
+      "statistics": {
+        "Evaluated": 52677,
+        "BankSize": 3127,
+        "FoundContextCount": 4,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 3,
+        "MaxSize": 9
+      }
+    }
+  ],
+  "iteration_count": 3,
+  "found": {
+    "found": "_arg_0.split(\",\").at(-_arg_1)",
+    "num_mutations": 0,
+    "solution_size": 6,
+    "solution_depth": 3
+  },
+  "total_time": {
+    "secs": 0,
+    "nanos": 191632992
+  },
+  "total_statistics": {
+    "Evaluated": 53448,
+    "BankSize": 3197,
+    "FoundContextCount": 11,
+    "MaxMutatingOpcodes": 1,
+    "MaxDepth": 3,
+    "MaxSize": 9
+  },
+  "max_vm_usage": "27.705344 MB",
+  "error": null,
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 0,
+        "edge_count": 0,
+        "primitive_fields": 0
+      },
+      {
+        "node_count": 0,
+        "edge_count": 0,
+        "primitive_fields": 0
+      },
+      {
+        "node_count": 0,
+        "edge_count": 0,
+        "primitive_fields": 0
+      }
+    ],
+    "variables": [
+      {
+        "name": "_arg_0",
+        "value_type": "String",
+        "partial_ctx_graph": [
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          }
+        ]
+      },
+      {
+        "name": "_arg_1",
+        "value_type": "Number",
+        "partial_ctx_graph": [
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          }
+        ]
+      }
+    ]
+  }
+}

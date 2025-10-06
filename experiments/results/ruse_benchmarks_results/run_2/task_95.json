@@ -2,7 +2,7 @@
   "path": "../tasks/benchmarks/new_ruse/relations/user_names_connected.sy",
   "source": null,
   "category": "Full OOP:Without Side Effects",
-  "opcode_count": 1527,
+  "opcode_count": 1529,
   "string_literals": [
     " ",
     ", ",
@@ -16,7 +16,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 524007
+        "nanos": 1130113
       },
       "statistics": {
         "Evaluated": 8,
@@ -30,7 +30,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 115112661
+        "nanos": 114944382
       },
       "statistics": {
         "Evaluated": 744,
@@ -44,11 +44,11 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 542153821
+        "nanos": 479290810
       },
       "statistics": {
         "Evaluated": 74067,
-        "BankSize": 2179,
+        "BankSize": 2152,
         "FoundContextCount": 77,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 3,
@@ -58,37 +58,101 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 159508621
+        "nanos": 851927517
       },
       "statistics": {
-        "Evaluated": 79881,
-        "BankSize": 8683,
+        "Evaluated": 434346,
+        "BankSize": 108674,
         "FoundContextCount": 0,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 4,
-        "MaxSize": 22
+        "MaxSize": 26
       }
     }
   ],
   "iteration_count": 4,
   "found": {
-    "found": "(a.name + \", \") + (b.name + \"\")",
+    "found": "(a.name + \", \"[0]) + (\" \" + b.name)",
     "num_mutations": 0,
-    "solution_size": 9,
+    "solution_size": 11,
     "solution_depth": 4
   },
   "total_time": {
-    "secs": 0,
-    "nanos": 817732084
+    "secs": 1,
+    "nanos": 447644999
   },
   "total_statistics": {
-    "Evaluated": 153948,
-    "BankSize": 10862,
+    "Evaluated": 508413,
+    "BankSize": 110826,
     "FoundContextCount": 77,
     "MaxMutatingOpcodes": 1,
     "MaxDepth": 4,
-    "MaxSize": 22
+    "MaxSize": 26
   },
-  "max_vm_usage": "36.72064 MB",
-  "error": null
+  "max_vm_usage": "1.398525952 GB",
+  "error": null,
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 4,
+        "edge_count": 3,
+        "primitive_fields": 4
+      },
+      {
+        "node_count": 4,
+        "edge_count": 3,
+        "primitive_fields": 4
+      }
+    ],
+    "variables": [
+      {
+        "name": "a",
+        "value_type": "User",
+        "partial_ctx_graph": [
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 2
+          },
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 2
+          }
+        ]
+      },
+      {
+        "name": "b",
+        "value_type": "User",
+        "partial_ctx_graph": [
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 2
+          },
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 2
+          }
+        ]
+      },
+      {
+        "name": "c",
+        "value_type": "UserTuple",
+        "partial_ctx_graph": [
+          {
+            "node_count": 4,
+            "edge_count": 3,
+            "primitive_fields": 4
+          },
+          {
+            "node_count": 4,
+            "edge_count": 3,
+            "primitive_fields": 4
+          }
+        ]
+      }
+    ]
+  }
 }

@@ -2,7 +2,7 @@
   "path": "../tasks/benchmarks/fromFrangel/sypet/sypet_04_evaluate.sy",
   "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/sypet/SyPet_04_evaluate.java",
   "category": "Full OOP:Without Side Effects",
-  "opcode_count": 2504,
+  "opcode_count": 2508,
   "string_literals": [
     " ",
     ""
@@ -15,7 +15,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 27286204
+        "nanos": 33801343
       },
       "statistics": {
         "Evaluated": 8,
@@ -29,7 +29,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 82351443
+        "nanos": 136039864
       },
       "statistics": {
         "Evaluated": 22,
@@ -50,7 +50,7 @@
   },
   "total_time": {
     "secs": 0,
-    "nanos": 109820196
+    "nanos": 170361747
   },
   "total_statistics": {
     "Evaluated": 30,
@@ -60,6 +60,28 @@
     "MaxDepth": 2,
     "MaxSize": 2
   },
-  "max_vm_usage": "41.578496 MB",
-  "error": null
+  "max_vm_usage": "33.869824 MB",
+  "error": null,
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 5,
+        "edge_count": 4,
+        "primitive_fields": 8
+      }
+    ],
+    "variables": [
+      {
+        "name": "mat",
+        "value_type": "Matrix",
+        "partial_ctx_graph": [
+          {
+            "node_count": 5,
+            "edge_count": 4,
+            "primitive_fields": 8
+          }
+        ]
+      }
+    ]
+  }
 }

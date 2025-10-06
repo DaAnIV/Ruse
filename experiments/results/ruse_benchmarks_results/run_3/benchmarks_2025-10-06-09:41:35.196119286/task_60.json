@@ -1,0 +1,127 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/must/sobeq-new/partition-k-largest.sy",
+  "source": "https://github.com/peleghila/sobeq/blob/main/benchmarks/must/sobeq-new/partition-k-largest.sy",
+  "category": "Primitive Objects:With Side Effects",
+  "opcode_count": 880,
+  "string_literals": [
+    " ",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 342149
+      },
+      "statistics": {
+        "Evaluated": 6,
+        "BankSize": 6,
+        "FoundContextCount": 4,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 66044603
+      },
+      "statistics": {
+        "Evaluated": 563,
+        "BankSize": 79,
+        "FoundContextCount": 25,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 28301408
+      },
+      "statistics": {
+        "Evaluated": 7194,
+        "BankSize": 2333,
+        "FoundContextCount": 4,
+        "MaxMutatingOpcodes": 3,
+        "MaxDepth": 3,
+        "MaxSize": 7
+      }
+    }
+  ],
+  "iteration_count": 3,
+  "found": {
+    "found": "nums.sort((a, b)=>a - b).splice(-k)",
+    "num_mutations": 2,
+    "solution_size": 5,
+    "solution_depth": 3
+  },
+  "total_time": {
+    "secs": 0,
+    "nanos": 95585320
+  },
+  "total_statistics": {
+    "Evaluated": 7757,
+    "BankSize": 2412,
+    "FoundContextCount": 29,
+    "MaxMutatingOpcodes": 3,
+    "MaxDepth": 3,
+    "MaxSize": 7
+  },
+  "max_vm_usage": "25.9072 MB",
+  "error": null,
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 1,
+        "edge_count": 0,
+        "primitive_fields": 6
+      },
+      {
+        "node_count": 1,
+        "edge_count": 0,
+        "primitive_fields": 4
+      }
+    ],
+    "variables": [
+      {
+        "name": "k",
+        "value_type": "Number",
+        "partial_ctx_graph": [
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          }
+        ]
+      },
+      {
+        "name": "nums",
+        "value_type": "Array<Number>",
+        "partial_ctx_graph": [
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 6
+          },
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 4
+          }
+        ]
+      }
+    ]
+  }
+}

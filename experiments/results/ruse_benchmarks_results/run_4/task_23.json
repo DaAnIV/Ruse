@@ -16,7 +16,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 1143001
+        "nanos": 403194
       },
       "statistics": {
         "Evaluated": 6,
@@ -30,11 +30,11 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 95940562
+        "nanos": 62059169
       },
       "statistics": {
         "Evaluated": 512,
-        "BankSize": 53,
+        "BankSize": 52,
         "FoundContextCount": 3,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 2,
@@ -44,11 +44,11 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 419181052
+        "nanos": 553486704
       },
       "statistics": {
-        "Evaluated": 209634,
-        "BankSize": 7397,
+        "Evaluated": 200496,
+        "BankSize": 7450,
         "FoundContextCount": 28,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 3,
@@ -58,37 +58,79 @@
     {
       "time": {
         "secs": 1,
-        "nanos": 209303162
+        "nanos": 468123760
       },
       "statistics": {
-        "Evaluated": 544239,
-        "BankSize": 47664,
+        "Evaluated": 651602,
+        "BankSize": 55543,
         "FoundContextCount": 3,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 4,
-        "MaxSize": 20
+        "MaxSize": 21
       }
     }
   ],
   "iteration_count": 4,
   "found": {
-    "found": "_arg_0.slice(1, _arg_0.indexOf(\"-\")).slice((-1) - (1 + 1))",
+    "found": "_arg_0.replaceAll(\" \", \"-\").slice(1 + 1, _arg_0.indexOf(\"-\")).slice(_arg_0.slice(1).indexOf(\" \"))",
     "num_mutations": 0,
-    "solution_size": 13,
+    "solution_size": 17,
     "solution_depth": 4
   },
   "total_time": {
-    "secs": 1,
-    "nanos": 726209548
+    "secs": 2,
+    "nanos": 84688275
   },
   "total_statistics": {
-    "Evaluated": 753873,
-    "BankSize": 55061,
+    "Evaluated": 852098,
+    "BankSize": 62993,
     "FoundContextCount": 31,
     "MaxMutatingOpcodes": 1,
     "MaxDepth": 4,
-    "MaxSize": 20
+    "MaxSize": 21
   },
-  "max_vm_usage": "550.23616 MB",
-  "error": null
+  "max_vm_usage": "521.916416 MB",
+  "error": null,
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 0,
+        "edge_count": 0,
+        "primitive_fields": 0
+      },
+      {
+        "node_count": 0,
+        "edge_count": 0,
+        "primitive_fields": 0
+      },
+      {
+        "node_count": 0,
+        "edge_count": 0,
+        "primitive_fields": 0
+      }
+    ],
+    "variables": [
+      {
+        "name": "_arg_0",
+        "value_type": "String",
+        "partial_ctx_graph": [
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          }
+        ]
+      }
+    ]
+  }
 }

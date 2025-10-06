@@ -1,0 +1,143 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/must/sobeq-new/leetcode-adddominos.sy",
+  "source": "https://leetcode.com/discuss/interview-question/2042532/on-line-assessment-code-from-one-of-big-tech-companies",
+  "category": "Primitive Objects:With Side Effects",
+  "opcode_count": 882,
+  "string_literals": [
+    " ",
+    "-",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1,
+    2
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 1500057
+      },
+      "statistics": {
+        "Evaluated": 8,
+        "BankSize": 8,
+        "FoundContextCount": 4,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 83790412
+      },
+      "statistics": {
+        "Evaluated": 976,
+        "BankSize": 64,
+        "FoundContextCount": 8,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 695099139
+      },
+      "statistics": {
+        "Evaluated": 351065,
+        "BankSize": 8428,
+        "FoundContextCount": 280,
+        "MaxMutatingOpcodes": 2,
+        "MaxDepth": 3,
+        "MaxSize": 13
+      }
+    },
+    {
+      "time": {
+        "secs": 185,
+        "nanos": 245509100
+      },
+      "statistics": {
+        "Evaluated": 78076249,
+        "BankSize": 13124205,
+        "FoundContextCount": 8,
+        "MaxMutatingOpcodes": 3,
+        "MaxDepth": 4,
+        "MaxSize": 27
+      }
+    }
+  ],
+  "iteration_count": 4,
+  "found": {
+    "found": "set.add(\"-\".replaceAll(\"\", dom).slice(2, -2))",
+    "num_mutations": 1,
+    "solution_size": 10,
+    "solution_depth": 4
+  },
+  "total_time": {
+    "secs": 186,
+    "nanos": 26829466
+  },
+  "total_statistics": {
+    "Evaluated": 78427314,
+    "BankSize": 13132633,
+    "FoundContextCount": 288,
+    "MaxMutatingOpcodes": 3,
+    "MaxDepth": 4,
+    "MaxSize": 27
+  },
+  "max_vm_usage": "73.506205696 GB",
+  "error": null,
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 1,
+        "edge_count": 0,
+        "primitive_fields": 0
+      },
+      {
+        "node_count": 1,
+        "edge_count": 0,
+        "primitive_fields": 1
+      }
+    ],
+    "variables": [
+      {
+        "name": "dom",
+        "value_type": "String",
+        "partial_ctx_graph": [
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          }
+        ]
+      },
+      {
+        "name": "set",
+        "value_type": "Set<String>",
+        "partial_ctx_graph": [
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 1
+          }
+        ]
+      }
+    ]
+  }
+}

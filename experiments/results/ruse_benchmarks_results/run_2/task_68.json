@@ -2,7 +2,7 @@
   "path": "../tasks/benchmarks/fromFrangel/sypet/sypet_07_getOuterProduct.sy",
   "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/sypet/SyPet_07_getOuterProduct.java",
   "category": "Full OOP:Without Side Effects",
-  "opcode_count": 2503,
+  "opcode_count": 2507,
   "string_literals": [
     " ",
     ""
@@ -15,7 +15,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 27040507
+        "nanos": 31229158
       },
       "statistics": {
         "Evaluated": 9,
@@ -29,7 +29,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 206277463
+        "nanos": 340315875
       },
       "statistics": {
         "Evaluated": 1166,
@@ -43,11 +43,11 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 72133856
+        "nanos": 154475621
       },
       "statistics": {
-        "Evaluated": 2267,
-        "BankSize": 727,
+        "Evaluated": 7922,
+        "BankSize": 1172,
         "FoundContextCount": 4,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 3,
@@ -57,23 +57,56 @@
   ],
   "iteration_count": 3,
   "found": {
-    "found": "vec1.transpose().mmul(vec2.clone())",
+    "found": "vec1.transpose().mmul(vec2)",
     "num_mutations": 0,
-    "solution_size": 5,
+    "solution_size": 4,
     "solution_depth": 3
   },
   "total_time": {
     "secs": 0,
-    "nanos": 305714621
+    "nanos": 526237296
   },
   "total_statistics": {
-    "Evaluated": 3433,
-    "BankSize": 785,
+    "Evaluated": 9088,
+    "BankSize": 1230,
     "FoundContextCount": 9,
     "MaxMutatingOpcodes": 1,
     "MaxDepth": 3,
     "MaxSize": 9
   },
-  "max_vm_usage": "39.919616 MB",
-  "error": null
+  "max_vm_usage": "35.971072 MB",
+  "error": null,
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 6,
+        "edge_count": 4,
+        "primitive_fields": 10
+      }
+    ],
+    "variables": [
+      {
+        "name": "vec1",
+        "value_type": "Matrix",
+        "partial_ctx_graph": [
+          {
+            "node_count": 3,
+            "edge_count": 2,
+            "primitive_fields": 5
+          }
+        ]
+      },
+      {
+        "name": "vec2",
+        "value_type": "Matrix",
+        "partial_ctx_graph": [
+          {
+            "node_count": 3,
+            "edge_count": 2,
+            "primitive_fields": 5
+          }
+        ]
+      }
+    ]
+  }
 }

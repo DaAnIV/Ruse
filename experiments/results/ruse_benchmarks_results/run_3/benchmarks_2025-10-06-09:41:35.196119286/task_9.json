@@ -1,0 +1,142 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/may/probe/extract-nth-word-from-text-stringmodified.sy",
+  "source": "https=//exceljet.net/formula/extract-nth-word-from-text-string",
+  "category": "Primitive:Without Side Effects",
+  "opcode_count": 880,
+  "string_literals": [
+    " ",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 300233
+      },
+      "statistics": {
+        "Evaluated": 6,
+        "BankSize": 6,
+        "FoundContextCount": 4,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 54447188
+      },
+      "statistics": {
+        "Evaluated": 519,
+        "BankSize": 54,
+        "FoundContextCount": 6,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 33305749
+      },
+      "statistics": {
+        "Evaluated": 16662,
+        "BankSize": 1774,
+        "FoundContextCount": 4,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 3,
+        "MaxSize": 9
+      }
+    }
+  ],
+  "iteration_count": 3,
+  "found": {
+    "found": "_arg_0.split(\" \")[--_arg_1]",
+    "num_mutations": 1,
+    "solution_size": 6,
+    "solution_depth": 3
+  },
+  "total_time": {
+    "secs": 0,
+    "nanos": 88416554
+  },
+  "total_statistics": {
+    "Evaluated": 17181,
+    "BankSize": 1828,
+    "FoundContextCount": 10,
+    "MaxMutatingOpcodes": 1,
+    "MaxDepth": 3,
+    "MaxSize": 9
+  },
+  "max_vm_usage": "27.705344 MB",
+  "error": null,
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 0,
+        "edge_count": 0,
+        "primitive_fields": 0
+      },
+      {
+        "node_count": 0,
+        "edge_count": 0,
+        "primitive_fields": 0
+      },
+      {
+        "node_count": 0,
+        "edge_count": 0,
+        "primitive_fields": 0
+      }
+    ],
+    "variables": [
+      {
+        "name": "_arg_0",
+        "value_type": "String",
+        "partial_ctx_graph": [
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          }
+        ]
+      },
+      {
+        "name": "_arg_1",
+        "value_type": "Number",
+        "partial_ctx_graph": [
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          }
+        ]
+      }
+    ]
+  }
+}

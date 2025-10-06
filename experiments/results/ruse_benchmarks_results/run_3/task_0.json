@@ -15,7 +15,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 503472
+        "nanos": 484074
       },
       "statistics": {
         "Evaluated": 5,
@@ -29,7 +29,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 84801926
+        "nanos": 82546941
       },
       "statistics": {
         "Evaluated": 320,
@@ -43,15 +43,15 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 9446226
+        "nanos": 17930119
       },
       "statistics": {
-        "Evaluated": 1791,
-        "BankSize": 586,
+        "Evaluated": 6280,
+        "BankSize": 651,
         "FoundContextCount": 2,
         "MaxMutatingOpcodes": 2,
         "MaxDepth": 3,
-        "MaxSize": 8
+        "MaxSize": 9
       }
     }
   ],
@@ -64,16 +64,58 @@
   },
   "total_time": {
     "secs": 0,
-    "nanos": 95261466
+    "nanos": 101284821
   },
   "total_statistics": {
-    "Evaluated": 2111,
-    "BankSize": 627,
+    "Evaluated": 6600,
+    "BankSize": 692,
     "FoundContextCount": 11,
     "MaxMutatingOpcodes": 2,
     "MaxDepth": 3,
-    "MaxSize": 8
+    "MaxSize": 9
   },
-  "max_vm_usage": "29.028352 MB",
-  "error": null
+  "max_vm_usage": "29.261824 MB",
+  "error": null,
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 1,
+        "edge_count": 0,
+        "primitive_fields": 9
+      },
+      {
+        "node_count": 1,
+        "edge_count": 0,
+        "primitive_fields": 3
+      },
+      {
+        "node_count": 1,
+        "edge_count": 0,
+        "primitive_fields": 1
+      }
+    ],
+    "variables": [
+      {
+        "name": "list",
+        "value_type": "Array<Number>",
+        "partial_ctx_graph": [
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 9
+          },
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 3
+          },
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 1
+          }
+        ]
+      }
+    ]
+  }
 }

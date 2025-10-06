@@ -16,7 +16,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 986326
+        "nanos": 397633
       },
       "statistics": {
         "Evaluated": 6,
@@ -30,7 +30,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 75660826
+        "nanos": 61666269
       },
       "statistics": {
         "Evaluated": 512,
@@ -44,15 +44,15 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 18680566
+        "nanos": 22711854
       },
       "statistics": {
-        "Evaluated": 609,
-        "BankSize": 78,
+        "Evaluated": 2261,
+        "BankSize": 195,
         "FoundContextCount": 2,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 3,
-        "MaxSize": 9
+        "MaxSize": 8
       }
     }
   ],
@@ -65,16 +65,58 @@
   },
   "total_time": {
     "secs": 0,
-    "nanos": 95815834
+    "nanos": 85376140
   },
   "total_statistics": {
-    "Evaluated": 1121,
-    "BankSize": 126,
+    "Evaluated": 2773,
+    "BankSize": 243,
     "FoundContextCount": 5,
     "MaxMutatingOpcodes": 1,
     "MaxDepth": 3,
-    "MaxSize": 9
+    "MaxSize": 8
   },
   "max_vm_usage": "30.281728 MB",
-  "error": null
+  "error": null,
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 0,
+        "edge_count": 0,
+        "primitive_fields": 0
+      },
+      {
+        "node_count": 0,
+        "edge_count": 0,
+        "primitive_fields": 0
+      },
+      {
+        "node_count": 0,
+        "edge_count": 0,
+        "primitive_fields": 0
+      }
+    ],
+    "variables": [
+      {
+        "name": "_arg_0",
+        "value_type": "String",
+        "partial_ctx_graph": [
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          }
+        ]
+      }
+    ]
+  }
 }

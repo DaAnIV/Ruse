@@ -15,7 +15,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 465469
+        "nanos": 1318017
       },
       "statistics": {
         "Evaluated": 5,
@@ -29,7 +29,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 95200037
+        "nanos": 102906278
       },
       "statistics": {
         "Evaluated": 320,
@@ -43,15 +43,15 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 60363118
+        "nanos": 71917388
       },
       "statistics": {
-        "Evaluated": 19948,
-        "BankSize": 1557,
+        "Evaluated": 15775,
+        "BankSize": 1299,
         "FoundContextCount": 2,
         "MaxMutatingOpcodes": 2,
         "MaxDepth": 3,
-        "MaxSize": 11
+        "MaxSize": 10
       }
     }
   ],
@@ -64,16 +64,58 @@
   },
   "total_time": {
     "secs": 0,
-    "nanos": 156540744
+    "nanos": 176734362
   },
   "total_statistics": {
-    "Evaluated": 20268,
-    "BankSize": 1598,
+    "Evaluated": 16095,
+    "BankSize": 1340,
     "FoundContextCount": 11,
     "MaxMutatingOpcodes": 2,
     "MaxDepth": 3,
-    "MaxSize": 11
+    "MaxSize": 10
   },
-  "max_vm_usage": "28.372992 MB",
-  "error": null
+  "max_vm_usage": "24.71936 MB",
+  "error": null,
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 1,
+        "edge_count": 0,
+        "primitive_fields": 9
+      },
+      {
+        "node_count": 1,
+        "edge_count": 0,
+        "primitive_fields": 3
+      },
+      {
+        "node_count": 1,
+        "edge_count": 0,
+        "primitive_fields": 1
+      }
+    ],
+    "variables": [
+      {
+        "name": "list",
+        "value_type": "Array<Number>",
+        "partial_ctx_graph": [
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 9
+          },
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 3
+          },
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 1
+          }
+        ]
+      }
+    ]
+  }
 }

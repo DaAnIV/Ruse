@@ -16,7 +16,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 587092
+        "nanos": 491134
       },
       "statistics": {
         "Evaluated": 6,
@@ -30,11 +30,11 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 81834137
+        "nanos": 135096677
       },
       "statistics": {
         "Evaluated": 512,
-        "BankSize": 48,
+        "BankSize": 50,
         "FoundContextCount": 3,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 2,
@@ -44,11 +44,11 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 346845835
+        "nanos": 609024091
       },
       "statistics": {
-        "Evaluated": 156660,
-        "BankSize": 5497,
+        "Evaluated": 172258,
+        "BankSize": 5582,
         "FoundContextCount": 25,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 3,
@@ -57,12 +57,12 @@
     },
     {
       "time": {
-        "secs": 2,
-        "nanos": 919648625
+        "secs": 10,
+        "nanos": 426077522
       },
       "statistics": {
-        "Evaluated": 1608223,
-        "BankSize": 213705,
+        "Evaluated": 2717488,
+        "BankSize": 377976,
         "FoundContextCount": 3,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 4,
@@ -72,23 +72,65 @@
   ],
   "iteration_count": 4,
   "found": {
-    "found": "(_arg_0 + \"/\").replaceAll(_arg_0.slice(1), _arg_0[1]) + _arg_0.split(\"/\").pop()",
+    "found": "_arg_0.split(\"/\").shift() + _arg_0.slice(_arg_0.lastIndexOf(\"/\"))",
     "num_mutations": 0,
-    "solution_size": 15,
+    "solution_size": 10,
     "solution_depth": 4
   },
   "total_time": {
-    "secs": 3,
-    "nanos": 349562253
+    "secs": 11,
+    "nanos": 171520101
   },
   "total_statistics": {
-    "Evaluated": 1764883,
-    "BankSize": 219202,
+    "Evaluated": 2889746,
+    "BankSize": 383558,
     "FoundContextCount": 28,
     "MaxMutatingOpcodes": 1,
     "MaxDepth": 4,
     "MaxSize": 26
   },
-  "max_vm_usage": "1.890848768 GB",
-  "error": null
+  "max_vm_usage": "3.2223232 GB",
+  "error": null,
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 0,
+        "edge_count": 0,
+        "primitive_fields": 0
+      },
+      {
+        "node_count": 0,
+        "edge_count": 0,
+        "primitive_fields": 0
+      },
+      {
+        "node_count": 0,
+        "edge_count": 0,
+        "primitive_fields": 0
+      }
+    ],
+    "variables": [
+      {
+        "name": "_arg_0",
+        "value_type": "String",
+        "partial_ctx_graph": [
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          }
+        ]
+      }
+    ]
+  }
 }

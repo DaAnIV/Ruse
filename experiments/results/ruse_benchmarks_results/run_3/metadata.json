@@ -1,6 +1,6 @@
 {
-  "timestamp": 1759429366,
-  "pid": 416332,
+  "timestamp": 1759705597,
+  "pid": 844516,
   "sysinfo": {
     "name": "Debian GNU/Linux",
     "kernel": "5.10.0-30-amd64",
@@ -24,8 +24,8 @@
     "bank_config": {
       "SubsumptionBank": {
         "hash_builder": {
-          "k0": 9178622580232474664,
-          "k1": 1091729952937080921
+          "k0": 14439936715364938688,
+          "k1": 7299089130575599543
         }
       }
     },

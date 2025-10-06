@@ -1,0 +1,121 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/must/stateCopies/RemoveMax.sy",
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/MaxDouble.java",
+  "category": "Primitive Objects:With Side Effects",
+  "opcode_count": 879,
+  "string_literals": [
+    " ",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 399388
+      },
+      "statistics": {
+        "Evaluated": 5,
+        "BankSize": 5,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 88727194
+      },
+      "statistics": {
+        "Evaluated": 320,
+        "BankSize": 41,
+        "FoundContextCount": 9,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 82608163
+      },
+      "statistics": {
+        "Evaluated": 15470,
+        "BankSize": 1274,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 2,
+        "MaxDepth": 3,
+        "MaxSize": 10
+      }
+    }
+  ],
+  "iteration_count": 3,
+  "found": {
+    "found": "list.sort((a, b)=>a - b).pop()",
+    "num_mutations": 2,
+    "solution_size": 3,
+    "solution_depth": 3
+  },
+  "total_time": {
+    "secs": 0,
+    "nanos": 172346863
+  },
+  "total_statistics": {
+    "Evaluated": 15790,
+    "BankSize": 1315,
+    "FoundContextCount": 11,
+    "MaxMutatingOpcodes": 2,
+    "MaxDepth": 3,
+    "MaxSize": 10
+  },
+  "max_vm_usage": "23.724032 MB",
+  "error": null,
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 1,
+        "edge_count": 0,
+        "primitive_fields": 9
+      },
+      {
+        "node_count": 1,
+        "edge_count": 0,
+        "primitive_fields": 3
+      },
+      {
+        "node_count": 1,
+        "edge_count": 0,
+        "primitive_fields": 1
+      }
+    ],
+    "variables": [
+      {
+        "name": "list",
+        "value_type": "Array<Number>",
+        "partial_ctx_graph": [
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 9
+          },
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 3
+          },
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 1
+          }
+        ]
+      }
+    ]
+  }
+}

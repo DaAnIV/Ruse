@@ -1,0 +1,163 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/must/sobeq-new/set-adddelete.sy",
+  "source": "https://github.com/peleghila/sobeq/blob/main/benchmarks/must/sobeq-new/set-adddelete.sy",
+  "category": "Primitive Objects:With Side Effects",
+  "opcode_count": 881,
+  "string_literals": [
+    " ",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 1542661
+      },
+      "statistics": {
+        "Evaluated": 7,
+        "BankSize": 7,
+        "FoundContextCount": 5,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 116180935
+      },
+      "statistics": {
+        "Evaluated": 719,
+        "BankSize": 67,
+        "FoundContextCount": 18,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 24514847
+      },
+      "statistics": {
+        "Evaluated": 3701,
+        "BankSize": 610,
+        "FoundContextCount": 5,
+        "MaxMutatingOpcodes": 2,
+        "MaxDepth": 3,
+        "MaxSize": 8
+      }
+    }
+  ],
+  "iteration_count": 3,
+  "found": {
+    "found": "seen.add(s1).delete(s2)",
+    "num_mutations": 2,
+    "solution_size": 5,
+    "solution_depth": 3
+  },
+  "total_time": {
+    "secs": 0,
+    "nanos": 142936178
+  },
+  "total_statistics": {
+    "Evaluated": 4420,
+    "BankSize": 677,
+    "FoundContextCount": 23,
+    "MaxMutatingOpcodes": 2,
+    "MaxDepth": 3,
+    "MaxSize": 8
+  },
+  "max_vm_usage": "23.744512 MB",
+  "error": null,
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 1,
+        "edge_count": 0,
+        "primitive_fields": 0
+      },
+      {
+        "node_count": 1,
+        "edge_count": 0,
+        "primitive_fields": 0
+      },
+      {
+        "node_count": 1,
+        "edge_count": 0,
+        "primitive_fields": 1
+      }
+    ],
+    "variables": [
+      {
+        "name": "s1",
+        "value_type": "String",
+        "partial_ctx_graph": [
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          }
+        ]
+      },
+      {
+        "name": "s2",
+        "value_type": "String",
+        "partial_ctx_graph": [
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          }
+        ]
+      },
+      {
+        "name": "seen",
+        "value_type": "Set<String>",
+        "partial_ctx_graph": [
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 1
+          }
+        ]
+      }
+    ]
+  }
+}

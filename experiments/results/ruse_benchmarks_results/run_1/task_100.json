@@ -1,11 +1,10 @@
 {
-  "path": "../tasks/benchmarks/new_ruse/simple/user_names_simple.sy",
+  "path": "../tasks/benchmarks/new_ruse/overhead/graph_cycle_1_1.sy",
   "source": null,
   "category": "Full OOP:Without Side Effects",
-  "opcode_count": 1174,
+  "opcode_count": 1176,
   "string_literals": [
     " ",
-    ", ",
     ""
   ],
   "num_literals": [
@@ -16,12 +15,12 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 1343471
+        "nanos": 681392
       },
       "statistics": {
         "Evaluated": 7,
         "BankSize": 7,
-        "FoundContextCount": 4,
+        "FoundContextCount": 2,
         "MaxMutatingOpcodes": 0,
         "MaxDepth": 1,
         "MaxSize": 1
@@ -30,13 +29,13 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 116481614
+        "nanos": 84587853
       },
       "statistics": {
-        "Evaluated": 560,
-        "BankSize": 34,
-        "FoundContextCount": 0,
-        "MaxMutatingOpcodes": 0,
+        "Evaluated": 521,
+        "BankSize": 29,
+        "FoundContextCount": 3,
+        "MaxMutatingOpcodes": 1,
         "MaxDepth": 2,
         "MaxSize": 4
       }
@@ -44,51 +43,95 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 287393075
+        "nanos": 341508265
       },
       "statistics": {
-        "Evaluated": 69483,
-        "BankSize": 2163,
-        "FoundContextCount": 76,
+        "Evaluated": 17463,
+        "BankSize": 410,
+        "FoundContextCount": 51,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 3,
-        "MaxSize": 13
+        "MaxSize": 10
       }
     },
     {
       "time": {
-        "secs": 4,
-        "nanos": 544802572
+        "secs": 0,
+        "nanos": 4905299
       },
       "statistics": {
-        "Evaluated": 1815417,
-        "BankSize": 508992,
-        "FoundContextCount": 0,
+        "Evaluated": 1792,
+        "BankSize": 584,
+        "FoundContextCount": 3,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 4,
-        "MaxSize": 27
+        "MaxSize": 13
       }
     }
   ],
   "iteration_count": 4,
   "found": {
-    "found": "(a.name + \", \") + b.name",
+    "found": "((-1) - (1 + 1)) / ((-1) / graph2.value)",
     "num_mutations": 0,
-    "solution_size": 7,
+    "solution_size": 12,
     "solution_depth": 4
   },
   "total_time": {
-    "secs": 4,
-    "nanos": 950386599
+    "secs": 0,
+    "nanos": 432093288
   },
   "total_statistics": {
-    "Evaluated": 1884900,
-    "BankSize": 511155,
-    "FoundContextCount": 76,
+    "Evaluated": 19255,
+    "BankSize": 994,
+    "FoundContextCount": 54,
     "MaxMutatingOpcodes": 1,
     "MaxDepth": 4,
-    "MaxSize": 27
+    "MaxSize": 13
   },
-  "max_vm_usage": "4.020781056 GB",
-  "error": null
+  "max_vm_usage": "18.173952 MB",
+  "error": null,
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 12,
+        "edge_count": 12,
+        "primitive_fields": 6
+      }
+    ],
+    "variables": [
+      {
+        "name": "graph1",
+        "value_type": "GraphNode",
+        "partial_ctx_graph": [
+          {
+            "node_count": 12,
+            "edge_count": 12,
+            "primitive_fields": 6
+          }
+        ]
+      },
+      {
+        "name": "graph2",
+        "value_type": "GraphNode",
+        "partial_ctx_graph": [
+          {
+            "node_count": 12,
+            "edge_count": 12,
+            "primitive_fields": 6
+          }
+        ]
+      },
+      {
+        "name": "graph3",
+        "value_type": "GraphNode",
+        "partial_ctx_graph": [
+          {
+            "node_count": 12,
+            "edge_count": 12,
+            "primitive_fields": 6
+          }
+        ]
+      }
+    ]
+  }
 }

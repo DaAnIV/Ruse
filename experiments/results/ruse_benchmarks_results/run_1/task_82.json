@@ -2,7 +2,7 @@
   "path": "../tasks/benchmarks/new_ruse/binary_search_tree/binary_search_tree_height.sy",
   "source": null,
   "category": "Full OOP:Without Side Effects",
-  "opcode_count": 1181,
+  "opcode_count": 1182,
   "string_literals": [
     " ",
     ""
@@ -15,7 +15,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 493679
+        "nanos": 275244
       },
       "statistics": {
         "Evaluated": 5,
@@ -29,7 +29,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 79889960
+        "nanos": 89905362
       },
       "statistics": {
         "Evaluated": 11,
@@ -50,7 +50,7 @@
   },
   "total_time": {
     "secs": 0,
-    "nanos": 80649343
+    "nanos": 90739500
   },
   "total_statistics": {
     "Evaluated": 16,
@@ -60,6 +60,38 @@
     "MaxDepth": 2,
     "MaxSize": 2
   },
-  "max_vm_usage": "34.689024 MB",
-  "error": null
+  "max_vm_usage": "32.11264 MB",
+  "error": null,
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 2,
+        "edge_count": 2,
+        "primitive_fields": 7
+      },
+      {
+        "node_count": 3,
+        "edge_count": 4,
+        "primitive_fields": 11
+      }
+    ],
+    "variables": [
+      {
+        "name": "tree",
+        "value_type": "BinarySearchTreeNode",
+        "partial_ctx_graph": [
+          {
+            "node_count": 2,
+            "edge_count": 2,
+            "primitive_fields": 7
+          },
+          {
+            "node_count": 3,
+            "edge_count": 4,
+            "primitive_fields": 11
+          }
+        ]
+      }
+    ]
+  }
 }

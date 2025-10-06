@@ -17,7 +17,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 559858
+        "nanos": 1587985
       },
       "statistics": {
         "Evaluated": 7,
@@ -31,11 +31,11 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 86615305
+        "nanos": 86815995
       },
       "statistics": {
         "Evaluated": 783,
-        "BankSize": 85,
+        "BankSize": 84,
         "FoundContextCount": 4,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 2,
@@ -45,11 +45,11 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 198103946
+        "nanos": 226577572
       },
       "statistics": {
-        "Evaluated": 93528,
-        "BankSize": 5326,
+        "Evaluated": 118694,
+        "BankSize": 5915,
         "FoundContextCount": 2,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 3,
@@ -59,23 +59,65 @@
   ],
   "iteration_count": 3,
   "found": {
-    "found": "_arg_0.replaceAll(\" \", \"\").slice(_arg_0.indexOf(\"<\"), -1)",
+    "found": "_arg_0.slice(1).slice(_arg_0.indexOf(\"<\"), -1)",
     "num_mutations": 0,
-    "solution_size": 10,
+    "solution_size": 9,
     "solution_depth": 3
   },
   "total_time": {
     "secs": 0,
-    "nanos": 285734303
+    "nanos": 315730503
   },
   "total_statistics": {
-    "Evaluated": 94311,
-    "BankSize": 5411,
+    "Evaluated": 119477,
+    "BankSize": 5999,
     "FoundContextCount": 6,
     "MaxMutatingOpcodes": 1,
     "MaxDepth": 3,
     "MaxSize": 11
   },
-  "max_vm_usage": "31.281152 MB",
-  "error": null
+  "max_vm_usage": "24.768512 MB",
+  "error": null,
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 0,
+        "edge_count": 0,
+        "primitive_fields": 0
+      },
+      {
+        "node_count": 0,
+        "edge_count": 0,
+        "primitive_fields": 0
+      },
+      {
+        "node_count": 0,
+        "edge_count": 0,
+        "primitive_fields": 0
+      }
+    ],
+    "variables": [
+      {
+        "name": "_arg_0",
+        "value_type": "String",
+        "partial_ctx_graph": [
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          }
+        ]
+      }
+    ]
+  }
 }

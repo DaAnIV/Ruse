@@ -2,7 +2,7 @@
   "path": "../tasks/benchmarks/fromFrangel/sypet/sypet_03_findRoots.sy",
   "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/sypet/SyPet_03_findRoots.java",
   "category": "Full OOP:Without Side Effects",
-  "opcode_count": 1532,
+  "opcode_count": 1534,
   "string_literals": [
     " ",
     ""
@@ -15,7 +15,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 1682638
+        "nanos": 618597
       },
       "statistics": {
         "Evaluated": 5,
@@ -29,7 +29,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 72793764
+        "nanos": 67910120
       },
       "statistics": {
         "Evaluated": 261,
@@ -43,11 +43,11 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 27715072
+        "nanos": 19970581
       },
       "statistics": {
-        "Evaluated": 4950,
-        "BankSize": 93,
+        "Evaluated": 3039,
+        "BankSize": 41,
         "FoundContextCount": 2,
         "MaxMutatingOpcodes": 0,
         "MaxDepth": 3,
@@ -64,16 +64,48 @@
   },
   "total_time": {
     "secs": 0,
-    "nanos": 102432572
+    "nanos": 88784483
   },
   "total_statistics": {
-    "Evaluated": 5211,
-    "BankSize": 113,
+    "Evaluated": 3300,
+    "BankSize": 61,
     "FoundContextCount": 2,
     "MaxMutatingOpcodes": 0,
     "MaxDepth": 3,
     "MaxSize": 10
   },
-  "max_vm_usage": "36.43392 MB",
-  "error": null
+  "max_vm_usage": "30.896128 MB",
+  "error": null,
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 2,
+        "edge_count": 1,
+        "primitive_fields": 3
+      },
+      {
+        "node_count": 2,
+        "edge_count": 1,
+        "primitive_fields": 3
+      }
+    ],
+    "variables": [
+      {
+        "name": "func",
+        "value_type": "Polynomial",
+        "partial_ctx_graph": [
+          {
+            "node_count": 2,
+            "edge_count": 1,
+            "primitive_fields": 3
+          },
+          {
+            "node_count": 2,
+            "edge_count": 1,
+            "primitive_fields": 3
+          }
+        ]
+      }
+    ]
+  }
 }

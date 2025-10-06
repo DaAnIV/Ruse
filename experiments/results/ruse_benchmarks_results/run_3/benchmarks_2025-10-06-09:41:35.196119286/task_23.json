@@ -1,0 +1,136 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/may/probe/phone-6-long-repeatmodified.sy",
+  "source": "",
+  "category": "Primitive:Without Side Effects",
+  "opcode_count": 880,
+  "string_literals": [
+    " ",
+    "-",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 465376
+      },
+      "statistics": {
+        "Evaluated": 6,
+        "BankSize": 6,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 115569404
+      },
+      "statistics": {
+        "Evaluated": 512,
+        "BankSize": 52,
+        "FoundContextCount": 3,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 652385368
+      },
+      "statistics": {
+        "Evaluated": 200852,
+        "BankSize": 7402,
+        "FoundContextCount": 28,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 3,
+        "MaxSize": 13
+      }
+    },
+    {
+      "time": {
+        "secs": 1,
+        "nanos": 692538842
+      },
+      "statistics": {
+        "Evaluated": 585380,
+        "BankSize": 50863,
+        "FoundContextCount": 3,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 4,
+        "MaxSize": 21
+      }
+    }
+  ],
+  "iteration_count": 4,
+  "found": {
+    "found": "_arg_0.replaceAll(\" \", \"-\").slice(_arg_0.indexOf(\" \"), _arg_0.indexOf(\"-\")).slice(1)",
+    "num_mutations": 0,
+    "solution_size": 13,
+    "solution_depth": 4
+  },
+  "total_time": {
+    "secs": 2,
+    "nanos": 461858187
+  },
+  "total_statistics": {
+    "Evaluated": 786232,
+    "BankSize": 58265,
+    "FoundContextCount": 31,
+    "MaxMutatingOpcodes": 1,
+    "MaxDepth": 4,
+    "MaxSize": 21
+  },
+  "max_vm_usage": "443.727872 MB",
+  "error": null,
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 0,
+        "edge_count": 0,
+        "primitive_fields": 0
+      },
+      {
+        "node_count": 0,
+        "edge_count": 0,
+        "primitive_fields": 0
+      },
+      {
+        "node_count": 0,
+        "edge_count": 0,
+        "primitive_fields": 0
+      }
+    ],
+    "variables": [
+      {
+        "name": "_arg_0",
+        "value_type": "String",
+        "partial_ctx_graph": [
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          }
+        ]
+      }
+    ]
+  }
+}

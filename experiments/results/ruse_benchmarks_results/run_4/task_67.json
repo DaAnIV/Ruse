@@ -2,7 +2,7 @@
   "path": "../tasks/benchmarks/fromFrangel/sypet/sypet_02_getInnerProduct.sy",
   "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/sypet/SyPet_02_getInnerProduct.java",
   "category": "Full OOP:Without Side Effects",
-  "opcode_count": 2503,
+  "opcode_count": 2507,
   "string_literals": [
     " ",
     ""
@@ -15,7 +15,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 28168380
+        "nanos": 28827750
       },
       "statistics": {
         "Evaluated": 9,
@@ -29,7 +29,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 101084197
+        "nanos": 111827875
       },
       "statistics": {
         "Evaluated": 189,
@@ -50,7 +50,7 @@
   },
   "total_time": {
     "secs": 0,
-    "nanos": 129474436
+    "nanos": 141453945
   },
   "total_statistics": {
     "Evaluated": 198,
@@ -60,6 +60,39 @@
     "MaxDepth": 2,
     "MaxSize": 3
   },
-  "max_vm_usage": "38.670336 MB",
-  "error": null
+  "max_vm_usage": "38.68672 MB",
+  "error": null,
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 6,
+        "edge_count": 4,
+        "primitive_fields": 10
+      }
+    ],
+    "variables": [
+      {
+        "name": "vec1",
+        "value_type": "Matrix",
+        "partial_ctx_graph": [
+          {
+            "node_count": 3,
+            "edge_count": 2,
+            "primitive_fields": 5
+          }
+        ]
+      },
+      {
+        "name": "vec2",
+        "value_type": "Matrix",
+        "partial_ctx_graph": [
+          {
+            "node_count": 3,
+            "edge_count": 2,
+            "primitive_fields": 5
+          }
+        ]
+      }
+    ]
+  }
 }

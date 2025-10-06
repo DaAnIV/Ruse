@@ -15,7 +15,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 576504
+        "nanos": 546655
       },
       "statistics": {
         "Evaluated": 5,
@@ -29,7 +29,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 83001998
+        "nanos": 106493577
       },
       "statistics": {
         "Evaluated": 320,
@@ -43,25 +43,25 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 148969259
+        "nanos": 342583995
       },
       "statistics": {
-        "Evaluated": 49902,
-        "BankSize": 2961,
+        "Evaluated": 49587,
+        "BankSize": 2906,
         "FoundContextCount": 132,
         "MaxMutatingOpcodes": 2,
         "MaxDepth": 3,
-        "MaxSize": 12
+        "MaxSize": 11
       }
     },
     {
       "time": {
-        "secs": 994,
-        "nanos": 102322330
+        "secs": 1574,
+        "nanos": 363226134
       },
       "statistics": {
-        "Evaluated": 791468756,
-        "BankSize": 4822849,
+        "Evaluated": 776448944,
+        "BankSize": 4511964,
         "FoundContextCount": 3989,
         "MaxMutatingOpcodes": 3,
         "MaxDepth": 4,
@@ -70,12 +70,12 @@
     },
     {
       "time": {
-        "secs": 36,
-        "nanos": 231438302
+        "secs": 0,
+        "nanos": 0
       },
       "statistics": {
-        "Evaluated": 14245268,
-        "BankSize": 5329014,
+        "Evaluated": 65865444,
+        "BankSize": 23303652,
         "FoundContextCount": 132,
         "MaxMutatingOpcodes": 3,
         "MaxDepth": 5,
@@ -84,24 +84,51 @@
     }
   ],
   "iteration_count": 5,
-  "found": {
-    "found": "arr.sort((a, b)=>a - b).reverse()[0] + arr.at(-1)",
-    "num_mutations": 2,
-    "solution_size": 10,
-    "solution_depth": 5
-  },
+  "found": null,
   "total_time": {
-    "secs": 1030,
-    "nanos": 566941353
+    "secs": 1803,
+    "nanos": 14273131
   },
   "total_statistics": {
-    "Evaluated": 805714024,
-    "BankSize": 10151863,
+    "Evaluated": 842312400,
+    "BankSize": 27814926,
     "FoundContextCount": 4121,
     "MaxMutatingOpcodes": 3,
     "MaxDepth": 5,
     "MaxSize": 36
   },
-  "max_vm_usage": "56.457469952 GB",
-  "error": null
+  "max_vm_usage": "109.518331904 GB",
+  "error": "OOM",
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 1,
+        "edge_count": 0,
+        "primitive_fields": 4
+      },
+      {
+        "node_count": 1,
+        "edge_count": 0,
+        "primitive_fields": 5
+      }
+    ],
+    "variables": [
+      {
+        "name": "arr",
+        "value_type": "Array<Number>",
+        "partial_ctx_graph": [
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 4
+          },
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 5
+          }
+        ]
+      }
+    ]
+  }
 }

@@ -15,7 +15,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 452368
+        "nanos": 1972637
       },
       "statistics": {
         "Evaluated": 8,
@@ -29,11 +29,11 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 72716677
+        "nanos": 106757216
       },
       "statistics": {
         "Evaluated": 1244,
-        "BankSize": 118,
+        "BankSize": 123,
         "FoundContextCount": 42,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 2,
@@ -42,26 +42,26 @@
     },
     {
       "time": {
-        "secs": 2,
-        "nanos": 219518102
+        "secs": 3,
+        "nanos": 917512993
       },
       "statistics": {
-        "Evaluated": 1683525,
-        "BankSize": 55091,
-        "FoundContextCount": 2484,
+        "Evaluated": 1720639,
+        "BankSize": 55944,
+        "FoundContextCount": 2497,
         "MaxMutatingOpcodes": 3,
         "MaxDepth": 3,
-        "MaxSize": 12
+        "MaxSize": 11
       }
     },
     {
       "time": {
-        "secs": 154,
-        "nanos": 574385038
+        "secs": 458,
+        "nanos": 311432891
       },
       "statistics": {
-        "Evaluated": 137157508,
-        "BankSize": 31691872,
+        "Evaluated": 155391735,
+        "BankSize": 33962326,
         "FoundContextCount": 42,
         "MaxMutatingOpcodes": 3,
         "MaxDepth": 4,
@@ -71,23 +71,78 @@
   ],
   "iteration_count": 4,
   "found": {
-    "found": "(arr[beg]) = toadd, (++beg) / (--end)",
+    "found": "(arr[end]) = toadd, (--end) * (++beg)",
     "num_mutations": 3,
     "solution_size": 11,
     "solution_depth": 4
   },
   "total_time": {
-    "secs": 156,
-    "nanos": 867641200
+    "secs": 462,
+    "nanos": 338590509
   },
   "total_statistics": {
-    "Evaluated": 138841033,
-    "BankSize": 31746963,
-    "FoundContextCount": 2526,
+    "Evaluated": 157112374,
+    "BankSize": 34018270,
+    "FoundContextCount": 2539,
     "MaxMutatingOpcodes": 3,
     "MaxDepth": 4,
     "MaxSize": 20
   },
-  "max_vm_usage": "70.596435968 GB",
-  "error": null
+  "max_vm_usage": "78.029930496 GB",
+  "error": null,
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 1,
+        "edge_count": 0,
+        "primitive_fields": 4
+      }
+    ],
+    "variables": [
+      {
+        "name": "arr",
+        "value_type": "Array<Number>",
+        "partial_ctx_graph": [
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 4
+          }
+        ]
+      },
+      {
+        "name": "beg",
+        "value_type": "Number",
+        "partial_ctx_graph": [
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          }
+        ]
+      },
+      {
+        "name": "end",
+        "value_type": "Number",
+        "partial_ctx_graph": [
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          }
+        ]
+      },
+      {
+        "name": "toadd",
+        "value_type": "Number",
+        "partial_ctx_graph": [
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          }
+        ]
+      }
+    ]
+  }
 }

@@ -2,7 +2,7 @@
   "path": "../tasks/benchmarks/fromFrangel/github/elasticsearch_convert.sy",
   "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/github/ElasticSearchConvert.java",
   "category": "Full OOP:Without Side Effects",
-  "opcode_count": 1185,
+  "opcode_count": 1186,
   "string_literals": [
     " ",
     ""
@@ -15,7 +15,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 1645312
+        "nanos": 809463
       },
       "statistics": {
         "Evaluated": 16,
@@ -29,11 +29,11 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 57643607
+        "nanos": 83304660
       },
       "statistics": {
-        "Evaluated": 340,
-        "BankSize": 38,
+        "Evaluated": 1936,
+        "BankSize": 116,
         "FoundContextCount": 0,
         "MaxMutatingOpcodes": 0,
         "MaxDepth": 2,
@@ -50,16 +50,100 @@
   },
   "total_time": {
     "secs": 0,
-    "nanos": 59605052
+    "nanos": 84287204
   },
   "total_statistics": {
-    "Evaluated": 356,
-    "BankSize": 54,
+    "Evaluated": 1952,
+    "BankSize": 132,
     "FoundContextCount": 5,
     "MaxMutatingOpcodes": 0,
     "MaxDepth": 2,
     "MaxSize": 4
   },
-  "max_vm_usage": "38.834176 MB",
-  "error": null
+  "max_vm_usage": "34.85696 MB",
+  "error": null,
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 2,
+        "edge_count": 0,
+        "primitive_fields": 6
+      },
+      {
+        "node_count": 2,
+        "edge_count": 0,
+        "primitive_fields": 6
+      },
+      {
+        "node_count": 2,
+        "edge_count": 0,
+        "primitive_fields": 6
+      }
+    ],
+    "variables": [
+      {
+        "name": "distance",
+        "value_type": "Number",
+        "partial_ctx_graph": [
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          }
+        ]
+      },
+      {
+        "name": "from",
+        "value_type": "DistanceUnit",
+        "partial_ctx_graph": [
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 3
+          },
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 3
+          },
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 3
+          }
+        ]
+      },
+      {
+        "name": "to",
+        "value_type": "DistanceUnit",
+        "partial_ctx_graph": [
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 3
+          },
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 3
+          },
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 3
+          }
+        ]
+      }
+    ]
+  }
 }

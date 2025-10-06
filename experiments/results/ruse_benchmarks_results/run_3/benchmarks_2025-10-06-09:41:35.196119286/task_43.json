@@ -1,0 +1,130 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/may/FrAngel/UppercaseFirstChar.sy",
+  "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/UppercaseFirstChar.java",
+  "category": "Primitive:Without Side Effects",
+  "opcode_count": 879,
+  "string_literals": [
+    " ",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 397128
+      },
+      "statistics": {
+        "Evaluated": 5,
+        "BankSize": 5,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 89689215
+      },
+      "statistics": {
+        "Evaluated": 315,
+        "BankSize": 36,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 139796675
+      },
+      "statistics": {
+        "Evaluated": 65219,
+        "BankSize": 3569,
+        "FoundContextCount": 15,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 3,
+        "MaxSize": 13
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 0
+      },
+      "statistics": {
+        "Evaluated": 1218414391,
+        "BankSize": 14738576,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 4,
+        "MaxSize": 40
+      }
+    }
+  ],
+  "iteration_count": 4,
+  "found": null,
+  "total_time": {
+    "secs": 1494,
+    "nanos": 938970933
+  },
+  "total_statistics": {
+    "Evaluated": 1218463964,
+    "BankSize": 14741735,
+    "FoundContextCount": 17,
+    "MaxMutatingOpcodes": 1,
+    "MaxDepth": 4,
+    "MaxSize": 40
+  },
+  "max_vm_usage": "107.511250944 GB",
+  "error": "OOM",
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 0,
+        "edge_count": 0,
+        "primitive_fields": 0
+      },
+      {
+        "node_count": 0,
+        "edge_count": 0,
+        "primitive_fields": 0
+      },
+      {
+        "node_count": 0,
+        "edge_count": 0,
+        "primitive_fields": 0
+      }
+    ],
+    "variables": [
+      {
+        "name": "str",
+        "value_type": "String",
+        "partial_ctx_graph": [
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          }
+        ]
+      }
+    ]
+  }
+}

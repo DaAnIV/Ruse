@@ -2,7 +2,7 @@
   "path": "../tasks/benchmarks/new_ruse/binary_search_tree/binary_search_tree_unlink_leaf.sy",
   "source": null,
   "category": "Full OOP:With Side Effects",
-  "opcode_count": 1181,
+  "opcode_count": 1182,
   "string_literals": [
     " ",
     ""
@@ -15,7 +15,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 5076662
+        "nanos": 4751081
       },
       "statistics": {
         "Evaluated": 5,
@@ -29,7 +29,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 90205791
+        "nanos": 108577219
       },
       "statistics": {
         "Evaluated": 271,
@@ -43,11 +43,11 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 34974212
+        "nanos": 61918025
       },
       "statistics": {
-        "Evaluated": 1089,
-        "BankSize": 99,
+        "Evaluated": 2741,
+        "BankSize": 228,
         "FoundContextCount": 2,
         "MaxMutatingOpcodes": 2,
         "MaxDepth": 3,
@@ -64,16 +64,38 @@
   },
   "total_time": {
     "secs": 0,
-    "nanos": 130479132
+    "nanos": 175796067
   },
   "total_statistics": {
-    "Evaluated": 1360,
-    "BankSize": 120,
+    "Evaluated": 3012,
+    "BankSize": 249,
     "FoundContextCount": 4,
     "MaxMutatingOpcodes": 2,
     "MaxDepth": 3,
     "MaxSize": 10
   },
-  "max_vm_usage": "34.6112 MB",
-  "error": null
+  "max_vm_usage": "33.93536 MB",
+  "error": null,
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 2,
+        "edge_count": 2,
+        "primitive_fields": 7
+      }
+    ],
+    "variables": [
+      {
+        "name": "tree",
+        "value_type": "BinarySearchTreeNode",
+        "partial_ctx_graph": [
+          {
+            "node_count": 2,
+            "edge_count": 2,
+            "primitive_fields": 7
+          }
+        ]
+      }
+    ]
+  }
 }

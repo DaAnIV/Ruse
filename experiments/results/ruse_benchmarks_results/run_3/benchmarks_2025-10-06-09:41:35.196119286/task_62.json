@@ -1,0 +1,193 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/must/sobeq-new/leetcode-arraysum.sy",
+  "source": "https://leetcode.com/problems/running-sum-of-1d-array/",
+  "category": "Primitive Objects:With Side Effects",
+  "opcode_count": 882,
+  "string_literals": [
+    " ",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1,
+    -1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 1776612
+      },
+      "statistics": {
+        "Evaluated": 8,
+        "BankSize": 8,
+        "FoundContextCount": 5,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 161362620
+      },
+      "statistics": {
+        "Evaluated": 1196,
+        "BankSize": 133,
+        "FoundContextCount": 43,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 22,
+        "nanos": 405833801
+      },
+      "statistics": {
+        "Evaluated": 1752831,
+        "BankSize": 71513,
+        "FoundContextCount": 5274,
+        "MaxMutatingOpcodes": 3,
+        "MaxDepth": 3,
+        "MaxSize": 12
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 0
+      },
+      "statistics": {
+        "Evaluated": 32741314,
+        "BankSize": 12713938,
+        "FoundContextCount": 43,
+        "MaxMutatingOpcodes": 3,
+        "MaxDepth": 4,
+        "MaxSize": 17
+      }
+    }
+  ],
+  "iteration_count": 4,
+  "found": null,
+  "total_time": {
+    "secs": 249,
+    "nanos": 2140612
+  },
+  "total_statistics": {
+    "Evaluated": 34494082,
+    "BankSize": 12785424,
+    "FoundContextCount": 5317,
+    "MaxMutatingOpcodes": 3,
+    "MaxDepth": 4,
+    "MaxSize": 17
+  },
+  "max_vm_usage": "108.805578752 GB",
+  "error": "OOM",
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 2,
+        "edge_count": 0,
+        "primitive_fields": 4
+      },
+      {
+        "node_count": 2,
+        "edge_count": 0,
+        "primitive_fields": 5
+      },
+      {
+        "node_count": 2,
+        "edge_count": 0,
+        "primitive_fields": 6
+      },
+      {
+        "node_count": 2,
+        "edge_count": 0,
+        "primitive_fields": 6
+      }
+    ],
+    "variables": [
+      {
+        "name": "n",
+        "value_type": "Number",
+        "partial_ctx_graph": [
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          }
+        ]
+      },
+      {
+        "name": "nums",
+        "value_type": "Array<Number>",
+        "partial_ctx_graph": [
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 4
+          },
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 4
+          },
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 4
+          },
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 5
+          }
+        ]
+      },
+      {
+        "name": "runningSum",
+        "value_type": "Array<Number>",
+        "partial_ctx_graph": [
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 1
+          },
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 2
+          },
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 1
+          }
+        ]
+      }
+    ]
+  }
+}

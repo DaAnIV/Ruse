@@ -1,11 +1,10 @@
 {
-  "path": "../tasks/benchmarks/new_ruse/simple/getElementById.sy",
+  "path": "../tasks/benchmarks/new_ruse/overhead/graph_1.sy",
   "source": null,
-  "category": "Primitive Objects:Without Side Effects",
-  "opcode_count": 880,
+  "category": "Full OOP:Without Side Effects",
+  "opcode_count": 1176,
   "string_literals": [
     " ",
-    "students",
     ""
   ],
   "num_literals": [
@@ -16,12 +15,12 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 522844
+        "nanos": 444382
       },
       "statistics": {
-        "Evaluated": 6,
-        "BankSize": 6,
-        "FoundContextCount": 2,
+        "Evaluated": 7,
+        "BankSize": 7,
+        "FoundContextCount": 5,
         "MaxMutatingOpcodes": 0,
         "MaxDepth": 1,
         "MaxSize": 1
@@ -30,37 +29,109 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 80565939
+        "nanos": 111691562
       },
       "statistics": {
-        "Evaluated": 130,
-        "BankSize": 20,
-        "FoundContextCount": 0,
-        "MaxMutatingOpcodes": 0,
+        "Evaluated": 515,
+        "BankSize": 25,
+        "FoundContextCount": 3,
+        "MaxMutatingOpcodes": 1,
         "MaxDepth": 2,
-        "MaxSize": 3
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 481594493
+      },
+      "statistics": {
+        "Evaluated": 19824,
+        "BankSize": 314,
+        "FoundContextCount": 62,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 3,
+        "MaxSize": 10
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 3233411
+      },
+      "statistics": {
+        "Evaluated": 729,
+        "BankSize": 83,
+        "FoundContextCount": 3,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 4,
+        "MaxSize": 10
       }
     }
   ],
-  "iteration_count": 2,
+  "iteration_count": 4,
   "found": {
-    "found": "document.getElementById(\"students\")",
+    "found": "(1 + 1) * (graph3.value + (1 + 1))",
     "num_mutations": 0,
-    "solution_size": 3,
-    "solution_depth": 2
+    "solution_size": 10,
+    "solution_depth": 4
   },
   "total_time": {
     "secs": 0,
-    "nanos": 81582150
+    "nanos": 597390408
   },
   "total_statistics": {
-    "Evaluated": 136,
-    "BankSize": 26,
-    "FoundContextCount": 2,
-    "MaxMutatingOpcodes": 0,
-    "MaxDepth": 2,
-    "MaxSize": 3
+    "Evaluated": 20553,
+    "BankSize": 397,
+    "FoundContextCount": 65,
+    "MaxMutatingOpcodes": 1,
+    "MaxDepth": 4,
+    "MaxSize": 10
   },
-  "max_vm_usage": "28.372992 MB",
-  "error": null
+  "max_vm_usage": "30.195712 MB",
+  "error": null,
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 6,
+        "edge_count": 3,
+        "primitive_fields": 3
+      }
+    ],
+    "variables": [
+      {
+        "name": "graph1",
+        "value_type": "GraphNode",
+        "partial_ctx_graph": [
+          {
+            "node_count": 2,
+            "edge_count": 1,
+            "primitive_fields": 1
+          }
+        ]
+      },
+      {
+        "name": "graph2",
+        "value_type": "GraphNode",
+        "partial_ctx_graph": [
+          {
+            "node_count": 2,
+            "edge_count": 1,
+            "primitive_fields": 1
+          }
+        ]
+      },
+      {
+        "name": "graph3",
+        "value_type": "GraphNode",
+        "partial_ctx_graph": [
+          {
+            "node_count": 2,
+            "edge_count": 1,
+            "primitive_fields": 1
+          }
+        ]
+      }
+    ]
+  }
 }

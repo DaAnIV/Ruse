@@ -1,0 +1,134 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/may/probe/clean-and-reformat-telephone-numbersmodified.sy",
+  "source": "https=//exceljet.net/formula/clean-and-reformat-telephone-numbers",
+  "category": "Primitive:Without Side Effects",
+  "opcode_count": 883,
+  "string_literals": [
+    ">",
+    ".",
+    " ",
+    "<",
+    "-",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 315140
+      },
+      "statistics": {
+        "Evaluated": 9,
+        "BankSize": 9,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 74562072
+      },
+      "statistics": {
+        "Evaluated": 1595,
+        "BankSize": 154,
+        "FoundContextCount": 6,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 5,
+        "nanos": 927830179
+      },
+      "statistics": {
+        "Evaluated": 5112346,
+        "BankSize": 133595,
+        "FoundContextCount": 106,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 3,
+        "MaxSize": 13
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 0
+      },
+      "statistics": {
+        "Evaluated": 142089756,
+        "BankSize": 16340381,
+        "FoundContextCount": 6,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 4,
+        "MaxSize": 24
+      }
+    }
+  ],
+  "iteration_count": 4,
+  "found": null,
+  "total_time": {
+    "secs": 110,
+    "nanos": 1622885
+  },
+  "total_statistics": {
+    "Evaluated": 147202054,
+    "BankSize": 16473971,
+    "FoundContextCount": 112,
+    "MaxMutatingOpcodes": 1,
+    "MaxDepth": 4,
+    "MaxSize": 24
+  },
+  "max_vm_usage": "108.2554368 GB",
+  "error": "OOM",
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 0,
+        "edge_count": 0,
+        "primitive_fields": 0
+      },
+      {
+        "node_count": 0,
+        "edge_count": 0,
+        "primitive_fields": 0
+      },
+      {
+        "node_count": 0,
+        "edge_count": 0,
+        "primitive_fields": 0
+      }
+    ],
+    "variables": [
+      {
+        "name": "_arg_0",
+        "value_type": "String",
+        "partial_ctx_graph": [
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          }
+        ]
+      }
+    ]
+  }
+}

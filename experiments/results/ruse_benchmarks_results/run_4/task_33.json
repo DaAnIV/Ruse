@@ -15,7 +15,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 1079895
+        "nanos": 392631
       },
       "statistics": {
         "Evaluated": 5,
@@ -29,7 +29,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 92117707
+        "nanos": 75508150
       },
       "statistics": {
         "Evaluated": 315,
@@ -43,15 +43,15 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 11186228
+        "nanos": 11426672
       },
       "statistics": {
-        "Evaluated": 1616,
-        "BankSize": 377,
+        "Evaluated": 553,
+        "BankSize": 167,
         "FoundContextCount": 2,
         "MaxMutatingOpcodes": 2,
         "MaxDepth": 3,
-        "MaxSize": 8
+        "MaxSize": 6
       }
     }
   ],
@@ -64,16 +64,38 @@
   },
   "total_time": {
     "secs": 0,
-    "nanos": 104797674
+    "nanos": 87829964
   },
   "total_statistics": {
-    "Evaluated": 1931,
-    "BankSize": 417,
+    "Evaluated": 868,
+    "BankSize": 207,
     "FoundContextCount": 10,
     "MaxMutatingOpcodes": 2,
     "MaxDepth": 3,
-    "MaxSize": 8
+    "MaxSize": 6
   },
-  "max_vm_usage": "30.347264 MB",
-  "error": null
+  "max_vm_usage": "27.979776 MB",
+  "error": null,
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 1,
+        "edge_count": 0,
+        "primitive_fields": 5
+      }
+    ],
+    "variables": [
+      {
+        "name": "digits",
+        "value_type": "Array<Number>",
+        "partial_ctx_graph": [
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 5
+          }
+        ]
+      }
+    ]
+  }
 }

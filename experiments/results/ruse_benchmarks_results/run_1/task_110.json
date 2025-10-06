@@ -1,0 +1,137 @@
+{
+  "path": "../tasks/benchmarks/new_ruse/overhead/graph_cycle_1.sy",
+  "source": null,
+  "category": "Full OOP:Without Side Effects",
+  "opcode_count": 1176,
+  "string_literals": [
+    " ",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 568377
+      },
+      "statistics": {
+        "Evaluated": 7,
+        "BankSize": 7,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 128283921
+      },
+      "statistics": {
+        "Evaluated": 521,
+        "BankSize": 29,
+        "FoundContextCount": 3,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 415397201
+      },
+      "statistics": {
+        "Evaluated": 17460,
+        "BankSize": 410,
+        "FoundContextCount": 51,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 3,
+        "MaxSize": 10
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 9039983
+      },
+      "statistics": {
+        "Evaluated": 1145,
+        "BankSize": 316,
+        "FoundContextCount": 3,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 4,
+        "MaxSize": 12
+      }
+    }
+  ],
+  "iteration_count": 4,
+  "found": {
+    "found": "(++graph1.value) * \" \".split(\"\").length",
+    "num_mutations": 1,
+    "solution_size": 8,
+    "solution_depth": 4
+  },
+  "total_time": {
+    "secs": 0,
+    "nanos": 554101659
+  },
+  "total_statistics": {
+    "Evaluated": 18605,
+    "BankSize": 726,
+    "FoundContextCount": 54,
+    "MaxMutatingOpcodes": 1,
+    "MaxDepth": 4,
+    "MaxSize": 12
+  },
+  "max_vm_usage": "30.081024 MB",
+  "error": null,
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 6,
+        "edge_count": 6,
+        "primitive_fields": 3
+      }
+    ],
+    "variables": [
+      {
+        "name": "graph1",
+        "value_type": "GraphNode",
+        "partial_ctx_graph": [
+          {
+            "node_count": 6,
+            "edge_count": 6,
+            "primitive_fields": 3
+          }
+        ]
+      },
+      {
+        "name": "graph2",
+        "value_type": "GraphNode",
+        "partial_ctx_graph": [
+          {
+            "node_count": 6,
+            "edge_count": 6,
+            "primitive_fields": 3
+          }
+        ]
+      },
+      {
+        "name": "graph3",
+        "value_type": "GraphNode",
+        "partial_ctx_graph": [
+          {
+            "node_count": 6,
+            "edge_count": 6,
+            "primitive_fields": 3
+          }
+        ]
+      }
+    ]
+  }
+}

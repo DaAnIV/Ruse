@@ -19,7 +19,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 577996
+        "nanos": 305509
       },
       "statistics": {
         "Evaluated": 9,
@@ -33,11 +33,11 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 86408649
+        "nanos": 74088334
       },
       "statistics": {
         "Evaluated": 1595,
-        "BankSize": 159,
+        "BankSize": 161,
         "FoundContextCount": 6,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 2,
@@ -46,12 +46,12 @@
     },
     {
       "time": {
-        "secs": 4,
-        "nanos": 893339121
+        "secs": 7,
+        "nanos": 507853455
       },
       "statistics": {
-        "Evaluated": 5113431,
-        "BankSize": 133505,
+        "Evaluated": 5108971,
+        "BankSize": 136131,
         "FoundContextCount": 106,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 3,
@@ -64,29 +64,71 @@
         "nanos": 0
       },
       "statistics": {
-        "Evaluated": 141607558,
-        "BankSize": 16314904,
+        "Evaluated": 140962776,
+        "BankSize": 16170450,
         "FoundContextCount": 6,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 4,
-        "MaxSize": 26
+        "MaxSize": 24
       }
     }
   ],
   "iteration_count": 4,
   "found": null,
   "total_time": {
-    "secs": 107,
-    "nanos": 1591299
+    "secs": 164,
+    "nanos": 1641902
   },
   "total_statistics": {
-    "Evaluated": 146720909,
-    "BankSize": 16448393,
+    "Evaluated": 146071687,
+    "BankSize": 16306572,
     "FoundContextCount": 112,
     "MaxMutatingOpcodes": 1,
     "MaxDepth": 4,
-    "MaxSize": 26
+    "MaxSize": 24
   },
-  "max_vm_usage": "108.9910784 GB",
-  "error": "OOM"
+  "max_vm_usage": "107.889594368 GB",
+  "error": "OOM",
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 0,
+        "edge_count": 0,
+        "primitive_fields": 0
+      },
+      {
+        "node_count": 0,
+        "edge_count": 0,
+        "primitive_fields": 0
+      },
+      {
+        "node_count": 0,
+        "edge_count": 0,
+        "primitive_fields": 0
+      }
+    ],
+    "variables": [
+      {
+        "name": "_arg_0",
+        "value_type": "String",
+        "partial_ctx_graph": [
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          }
+        ]
+      }
+    ]
+  }
 }

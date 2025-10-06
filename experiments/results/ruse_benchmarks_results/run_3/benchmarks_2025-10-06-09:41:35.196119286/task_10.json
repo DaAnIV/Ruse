@@ -1,0 +1,136 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/may/probe/extract-word-that-begins-with-specific-charactermodified.sy",
+  "source": "https=//exceljet.net/formula/extract-word-that-begins-with-specific-character",
+  "category": "Primitive:Without Side Effects",
+  "opcode_count": 880,
+  "string_literals": [
+    " ",
+    "_",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 292869
+      },
+      "statistics": {
+        "Evaluated": 6,
+        "BankSize": 6,
+        "FoundContextCount": 2,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 59106713
+      },
+      "statistics": {
+        "Evaluated": 512,
+        "BankSize": 52,
+        "FoundContextCount": 3,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 349457254
+      },
+      "statistics": {
+        "Evaluated": 198863,
+        "BankSize": 6350,
+        "FoundContextCount": 27,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 3,
+        "MaxSize": 13
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 6812994
+      },
+      "statistics": {
+        "Evaluated": 2429,
+        "BankSize": 807,
+        "FoundContextCount": 3,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 4,
+        "MaxSize": 13
+      }
+    }
+  ],
+  "iteration_count": 4,
+  "found": {
+    "found": "_arg_0.split(\" \").sort().shift()",
+    "num_mutations": 0,
+    "solution_size": 5,
+    "solution_depth": 4
+  },
+  "total_time": {
+    "secs": 0,
+    "nanos": 416211066
+  },
+  "total_statistics": {
+    "Evaluated": 201292,
+    "BankSize": 7157,
+    "FoundContextCount": 30,
+    "MaxMutatingOpcodes": 1,
+    "MaxDepth": 4,
+    "MaxSize": 13
+  },
+  "max_vm_usage": "27.70944 MB",
+  "error": null,
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 0,
+        "edge_count": 0,
+        "primitive_fields": 0
+      },
+      {
+        "node_count": 0,
+        "edge_count": 0,
+        "primitive_fields": 0
+      },
+      {
+        "node_count": 0,
+        "edge_count": 0,
+        "primitive_fields": 0
+      }
+    ],
+    "variables": [
+      {
+        "name": "_arg_0",
+        "value_type": "String",
+        "partial_ctx_graph": [
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          }
+        ]
+      }
+    ]
+  }
+}

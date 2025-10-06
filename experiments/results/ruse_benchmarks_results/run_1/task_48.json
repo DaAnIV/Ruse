@@ -15,7 +15,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 636784
+        "nanos": 465886
       },
       "statistics": {
         "Evaluated": 6,
@@ -29,11 +29,11 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 83585903
+        "nanos": 86877316
       },
       "statistics": {
         "Evaluated": 517,
-        "BankSize": 66,
+        "BankSize": 68,
         "FoundContextCount": 13,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 2,
@@ -43,15 +43,15 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 284532719
+        "nanos": 128822258
       },
       "statistics": {
-        "Evaluated": 155695,
-        "BankSize": 8838,
+        "Evaluated": 22684,
+        "BankSize": 2903,
         "FoundContextCount": 4,
         "MaxMutatingOpcodes": 2,
         "MaxDepth": 3,
-        "MaxSize": 13
+        "MaxSize": 9
       }
     }
   ],
@@ -64,16 +64,94 @@
   },
   "total_time": {
     "secs": 0,
-    "nanos": 369721092
+    "nanos": 216831970
   },
   "total_statistics": {
-    "Evaluated": 156212,
-    "BankSize": 8904,
+    "Evaluated": 23201,
+    "BankSize": 2971,
     "FoundContextCount": 17,
     "MaxMutatingOpcodes": 2,
     "MaxDepth": 3,
-    "MaxSize": 13
+    "MaxSize": 9
   },
-  "max_vm_usage": "26.353664 MB",
-  "error": null
+  "max_vm_usage": "27.004928 MB",
+  "error": null,
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 1,
+        "edge_count": 0,
+        "primitive_fields": 5
+      },
+      {
+        "node_count": 1,
+        "edge_count": 0,
+        "primitive_fields": 5
+      },
+      {
+        "node_count": 1,
+        "edge_count": 0,
+        "primitive_fields": 5
+      },
+      {
+        "node_count": 1,
+        "edge_count": 0,
+        "primitive_fields": 5
+      }
+    ],
+    "variables": [
+      {
+        "name": "inp",
+        "value_type": "Array<String>",
+        "partial_ctx_graph": [
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 5
+          },
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 5
+          },
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 5
+          },
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 5
+          }
+        ]
+      },
+      {
+        "name": "mod",
+        "value_type": "Number",
+        "partial_ctx_graph": [
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          }
+        ]
+      }
+    ]
+  }
 }

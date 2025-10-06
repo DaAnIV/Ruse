@@ -15,7 +15,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 1210202
+        "nanos": 639726
       },
       "statistics": {
         "Evaluated": 5,
@@ -29,7 +29,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 83948823
+        "nanos": 88385659
       },
       "statistics": {
         "Evaluated": 305,
@@ -43,25 +43,25 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 186633409
+        "nanos": 371143218
       },
       "statistics": {
-        "Evaluated": 42886,
-        "BankSize": 2543,
+        "Evaluated": 42591,
+        "BankSize": 2651,
         "FoundContextCount": 60,
         "MaxMutatingOpcodes": 2,
         "MaxDepth": 3,
-        "MaxSize": 12
+        "MaxSize": 11
       }
     },
     {
       "time": {
-        "secs": 2,
-        "nanos": 152182082
+        "secs": 8,
+        "nanos": 507430284
       },
       "statistics": {
-        "Evaluated": 555975,
-        "BankSize": 129821,
+        "Evaluated": 961405,
+        "BankSize": 216925,
         "FoundContextCount": 6,
         "MaxMutatingOpcodes": 3,
         "MaxDepth": 4,
@@ -71,23 +71,65 @@
   ],
   "iteration_count": 4,
   "found": {
-    "found": "out.push(out[1] + out.shift())",
+    "found": "out.sort((a, b)=>a - b).push(out[1] + out.shift())",
     "num_mutations": 2,
-    "solution_size": 8,
+    "solution_size": 9,
     "solution_depth": 4
   },
   "total_time": {
-    "secs": 2,
-    "nanos": 424608378
+    "secs": 8,
+    "nanos": 968481237
   },
   "total_statistics": {
-    "Evaluated": 598861,
-    "BankSize": 132364,
+    "Evaluated": 1003996,
+    "BankSize": 219576,
     "FoundContextCount": 66,
     "MaxMutatingOpcodes": 3,
     "MaxDepth": 4,
     "MaxSize": 22
   },
-  "max_vm_usage": "1.644822528 GB",
-  "error": null
+  "max_vm_usage": "3.11998464 GB",
+  "error": null,
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 1,
+        "edge_count": 0,
+        "primitive_fields": 2
+      },
+      {
+        "node_count": 1,
+        "edge_count": 0,
+        "primitive_fields": 2
+      },
+      {
+        "node_count": 1,
+        "edge_count": 0,
+        "primitive_fields": 2
+      }
+    ],
+    "variables": [
+      {
+        "name": "out",
+        "value_type": "Array<Number>",
+        "partial_ctx_graph": [
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 2
+          },
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 2
+          },
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 2
+          }
+        ]
+      }
+    ]
+  }
 }

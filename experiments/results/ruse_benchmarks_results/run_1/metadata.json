@@ -1,13 +1,13 @@
 {
-  "timestamp": 1759402559,
-  "pid": 317919,
+  "timestamp": 1759698144,
+  "pid": 814206,
   "sysinfo": {
     "name": "Debian GNU/Linux",
     "kernel": "5.10.0-30-amd64",
     "os": "11",
     "ram": 0,
     "cpu": "Intel(R) Xeon(R) Gold 6338 CPU @ 2.00GHz",
-    "cpu_fq": 821,
+    "cpu_fq": 1541,
     "cpu_core_count": 128
   },
   "config": {
@@ -24,8 +24,8 @@
     "bank_config": {
       "SubsumptionBank": {
         "hash_builder": {
-          "k0": 7419483011665467102,
-          "k1": 13705351649295468798
+          "k0": 14215991603968443681,
+          "k1": 1762205881577687367
         }
       }
     },

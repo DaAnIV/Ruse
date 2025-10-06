@@ -2,7 +2,7 @@
   "path": "../tasks/benchmarks/new_ruse/relations/user_names_connected.sy",
   "source": null,
   "category": "Full OOP:Without Side Effects",
-  "opcode_count": 1527,
+  "opcode_count": 1529,
   "string_literals": [
     " ",
     ", ",
@@ -16,7 +16,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 612349
+        "nanos": 594644
       },
       "statistics": {
         "Evaluated": 8,
@@ -30,7 +30,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 116298821
+        "nanos": 174026415
       },
       "statistics": {
         "Evaluated": 744,
@@ -44,11 +44,11 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 498490537
+        "nanos": 552549041
       },
       "statistics": {
         "Evaluated": 74067,
-        "BankSize": 2164,
+        "BankSize": 2157,
         "FoundContextCount": 77,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 3,
@@ -57,38 +57,102 @@
     },
     {
       "time": {
-        "secs": 3,
-        "nanos": 765217612
+        "secs": 2,
+        "nanos": 157219593
       },
       "statistics": {
-        "Evaluated": 1152240,
-        "BankSize": 317285,
+        "Evaluated": 516770,
+        "BankSize": 134197,
         "FoundContextCount": 0,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 4,
-        "MaxSize": 27
+        "MaxSize": 26
       }
     }
   ],
   "iteration_count": 4,
   "found": {
-    "found": "a.name + (\", \" + b.name)",
+    "found": "(a.name + \", \") + (\"\" + b.name)",
     "num_mutations": 0,
-    "solution_size": 7,
+    "solution_size": 9,
     "solution_depth": 4
   },
   "total_time": {
-    "secs": 4,
-    "nanos": 381124029
+    "secs": 2,
+    "nanos": 884995072
   },
   "total_statistics": {
-    "Evaluated": 1226307,
-    "BankSize": 319449,
+    "Evaluated": 590837,
+    "BankSize": 136354,
     "FoundContextCount": 77,
     "MaxMutatingOpcodes": 1,
     "MaxDepth": 4,
-    "MaxSize": 27
+    "MaxSize": 26
   },
-  "max_vm_usage": "2.649915392 GB",
-  "error": null
+  "max_vm_usage": "1.476100096 GB",
+  "error": null,
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 4,
+        "edge_count": 3,
+        "primitive_fields": 4
+      },
+      {
+        "node_count": 4,
+        "edge_count": 3,
+        "primitive_fields": 4
+      }
+    ],
+    "variables": [
+      {
+        "name": "a",
+        "value_type": "User",
+        "partial_ctx_graph": [
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 2
+          },
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 2
+          }
+        ]
+      },
+      {
+        "name": "b",
+        "value_type": "User",
+        "partial_ctx_graph": [
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 2
+          },
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 2
+          }
+        ]
+      },
+      {
+        "name": "c",
+        "value_type": "UserTuple",
+        "partial_ctx_graph": [
+          {
+            "node_count": 4,
+            "edge_count": 3,
+            "primitive_fields": 4
+          },
+          {
+            "node_count": 4,
+            "edge_count": 3,
+            "primitive_fields": 4
+          }
+        ]
+      }
+    ]
+  }
 }

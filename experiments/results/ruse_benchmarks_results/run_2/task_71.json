@@ -2,7 +2,7 @@
   "path": "../tasks/benchmarks/fromFrangel/sypet/sypet_10_scale.sy",
   "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/sypet/SyPet_10_scale.java",
   "category": "Full OOP:Without Side Effects",
-  "opcode_count": 2014,
+  "opcode_count": 2017,
   "string_literals": [
     " ",
     ""
@@ -15,7 +15,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 10381476
+        "nanos": 11162420
       },
       "statistics": {
         "Evaluated": 15,
@@ -29,11 +29,11 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 388118312
+        "nanos": 400538972
       },
       "statistics": {
         "Evaluated": 4005,
-        "BankSize": 643,
+        "BankSize": 632,
         "FoundContextCount": 12,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 2,
@@ -43,11 +43,11 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 218099176
+        "nanos": 667252479
       },
       "statistics": {
-        "Evaluated": 72489,
-        "BankSize": 11192,
+        "Evaluated": 100342,
+        "BankSize": 17943,
         "FoundContextCount": 5,
         "MaxMutatingOpcodes": 2,
         "MaxDepth": 3,
@@ -63,17 +63,61 @@
     "solution_depth": 3
   },
   "total_time": {
-    "secs": 0,
-    "nanos": 617009663
+    "secs": 1,
+    "nanos": 79397855
   },
   "total_statistics": {
-    "Evaluated": 76494,
-    "BankSize": 11835,
+    "Evaluated": 104347,
+    "BankSize": 18575,
     "FoundContextCount": 17,
     "MaxMutatingOpcodes": 2,
     "MaxDepth": 3,
     "MaxSize": 9
   },
-  "max_vm_usage": "39.026688 MB",
-  "error": null
+  "max_vm_usage": "599.77728 MB",
+  "error": null,
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 5,
+        "edge_count": 4,
+        "primitive_fields": 4
+      }
+    ],
+    "variables": [
+      {
+        "name": "rect",
+        "value_type": "Rect",
+        "partial_ctx_graph": [
+          {
+            "node_count": 5,
+            "edge_count": 4,
+            "primitive_fields": 4
+          }
+        ]
+      },
+      {
+        "name": "scaleX",
+        "value_type": "Number",
+        "partial_ctx_graph": [
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          }
+        ]
+      },
+      {
+        "name": "scaleY",
+        "value_type": "Number",
+        "partial_ctx_graph": [
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          }
+        ]
+      }
+    ]
+  }
 }

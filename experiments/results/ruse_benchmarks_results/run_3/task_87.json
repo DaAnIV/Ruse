@@ -15,7 +15,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 3060564
+        "nanos": 4461239
       },
       "statistics": {
         "Evaluated": 7,
@@ -29,7 +29,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 66026163
+        "nanos": 41013504
       },
       "statistics": {
         "Evaluated": 21,
@@ -43,10 +43,10 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 42325237
+        "nanos": 44667354
       },
       "statistics": {
-        "Evaluated": 42,
+        "Evaluated": 87,
         "BankSize": 8,
         "FoundContextCount": 5,
         "MaxMutatingOpcodes": 1,
@@ -57,23 +57,67 @@
   ],
   "iteration_count": 3,
   "found": {
-    "found": "graph3.inc_value(1), graph2.inc_value(1), graph1.inc_value(1)",
+    "found": "graph1.inc_value(1), graph2.inc_value(1), graph3.inc_value(1)",
     "num_mutations": 3,
     "solution_size": 10,
     "solution_depth": 3
   },
   "total_time": {
     "secs": 0,
-    "nanos": 111833644
+    "nanos": 90798205
   },
   "total_statistics": {
-    "Evaluated": 63,
+    "Evaluated": 108,
     "BankSize": 17,
     "FoundContextCount": 8,
     "MaxMutatingOpcodes": 1,
     "MaxDepth": 2,
     "MaxSize": 3
   },
-  "max_vm_usage": "36.089856 MB",
-  "error": null
+  "max_vm_usage": "29.851648 MB",
+  "error": null,
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 12,
+        "edge_count": 9,
+        "primitive_fields": 6
+      }
+    ],
+    "variables": [
+      {
+        "name": "graph1",
+        "value_type": "GraphNode",
+        "partial_ctx_graph": [
+          {
+            "node_count": 4,
+            "edge_count": 3,
+            "primitive_fields": 2
+          }
+        ]
+      },
+      {
+        "name": "graph2",
+        "value_type": "GraphNode",
+        "partial_ctx_graph": [
+          {
+            "node_count": 4,
+            "edge_count": 3,
+            "primitive_fields": 2
+          }
+        ]
+      },
+      {
+        "name": "graph3",
+        "value_type": "GraphNode",
+        "partial_ctx_graph": [
+          {
+            "node_count": 4,
+            "edge_count": 3,
+            "primitive_fields": 2
+          }
+        ]
+      }
+    ]
+  }
 }

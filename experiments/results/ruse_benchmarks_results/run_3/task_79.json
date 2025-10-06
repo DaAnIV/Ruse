@@ -2,7 +2,7 @@
   "path": "../tasks/benchmarks/new_ruse/binary_search_tree/binary_search_tree_get.sy",
   "source": null,
   "category": "Full OOP:Without Side Effects",
-  "opcode_count": 1181,
+  "opcode_count": 1182,
   "string_literals": [
     " ",
     ""
@@ -15,7 +15,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 466618
+        "nanos": 225826
       },
       "statistics": {
         "Evaluated": 5,
@@ -29,7 +29,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 105889692
+        "nanos": 90565594
       },
       "statistics": {
         "Evaluated": 271,
@@ -43,15 +43,15 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 34110474
+        "nanos": 83900706
       },
       "statistics": {
-        "Evaluated": 1009,
-        "BankSize": 76,
+        "Evaluated": 7032,
+        "BankSize": 376,
         "FoundContextCount": 2,
         "MaxMutatingOpcodes": 2,
         "MaxDepth": 3,
-        "MaxSize": 10
+        "MaxSize": 9
       }
     }
   ],
@@ -64,16 +64,48 @@
   },
   "total_time": {
     "secs": 0,
-    "nanos": 140790813
+    "nanos": 175310069
   },
   "total_statistics": {
-    "Evaluated": 1280,
-    "BankSize": 99,
+    "Evaluated": 7303,
+    "BankSize": 399,
     "FoundContextCount": 4,
     "MaxMutatingOpcodes": 2,
     "MaxDepth": 3,
-    "MaxSize": 10
+    "MaxSize": 9
   },
-  "max_vm_usage": "35.016704 MB",
-  "error": null
+  "max_vm_usage": "29.954048 MB",
+  "error": null,
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 2,
+        "edge_count": 2,
+        "primitive_fields": 7
+      },
+      {
+        "node_count": 2,
+        "edge_count": 2,
+        "primitive_fields": 7
+      }
+    ],
+    "variables": [
+      {
+        "name": "tree",
+        "value_type": "BinarySearchTreeNode",
+        "partial_ctx_graph": [
+          {
+            "node_count": 2,
+            "edge_count": 2,
+            "primitive_fields": 7
+          },
+          {
+            "node_count": 2,
+            "edge_count": 2,
+            "primitive_fields": 7
+          }
+        ]
+      }
+    ]
+  }
 }

@@ -15,7 +15,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 435950
+        "nanos": 678717
       },
       "statistics": {
         "Evaluated": 5,
@@ -29,7 +29,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 71893593
+        "nanos": 77681494
       },
       "statistics": {
         "Evaluated": 320,
@@ -43,37 +43,69 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 22437931
+        "nanos": 13207884
       },
       "statistics": {
-        "Evaluated": 2677,
-        "BankSize": 429,
+        "Evaluated": 761,
+        "BankSize": 228,
         "FoundContextCount": 2,
         "MaxMutatingOpcodes": 2,
         "MaxDepth": 3,
-        "MaxSize": 9
+        "MaxSize": 6
       }
     }
   ],
   "iteration_count": 3,
   "found": {
-    "found": "queue.slice(1).concat(queue.splice(0, 1))",
+    "found": "queue.concat(queue.splice(0, 1))",
     "num_mutations": 1,
-    "solution_size": 8,
+    "solution_size": 6,
     "solution_depth": 3
   },
   "total_time": {
     "secs": 0,
-    "nanos": 95203733
+    "nanos": 92364092
   },
   "total_statistics": {
-    "Evaluated": 2997,
-    "BankSize": 471,
+    "Evaluated": 1081,
+    "BankSize": 270,
     "FoundContextCount": 11,
     "MaxMutatingOpcodes": 2,
     "MaxDepth": 3,
-    "MaxSize": 9
+    "MaxSize": 6
   },
-  "max_vm_usage": "28.8768 MB",
-  "error": null
+  "max_vm_usage": "26.517504 MB",
+  "error": null,
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 1,
+        "edge_count": 0,
+        "primitive_fields": 5
+      },
+      {
+        "node_count": 1,
+        "edge_count": 0,
+        "primitive_fields": 5
+      }
+    ],
+    "variables": [
+      {
+        "name": "queue",
+        "value_type": "Array<Number>",
+        "partial_ctx_graph": [
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 5
+          },
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 5
+          }
+        ]
+      }
+    ]
+  }
 }

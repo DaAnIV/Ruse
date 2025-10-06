@@ -2,7 +2,7 @@
   "path": "../tasks/benchmarks/new_ruse/binary_search_tree/binary_search_tree_delete_two_children.sy",
   "source": null,
   "category": "Full OOP:With Side Effects",
-  "opcode_count": 16,
+  "opcode_count": 1183,
   "string_literals": [
     " ",
     ""
@@ -15,7 +15,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 6446411
+        "nanos": 7337927
       },
       "statistics": {
         "Evaluated": 6,
@@ -29,79 +29,123 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 80512973
+        "nanos": 182008659
       },
       "statistics": {
-        "Evaluated": 30,
-        "BankSize": 21,
-        "FoundContextCount": 1,
+        "Evaluated": 436,
+        "BankSize": 56,
+        "FoundContextCount": 11,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 2,
-        "MaxSize": 3
+        "MaxSize": 4
       }
     },
     {
       "time": {
-        "secs": 0,
-        "nanos": 100694386
+        "secs": 4,
+        "nanos": 793039463
       },
       "statistics": {
-        "Evaluated": 556,
-        "BankSize": 249,
-        "FoundContextCount": 43,
+        "Evaluated": 101346,
+        "BankSize": 12627,
+        "FoundContextCount": 3941,
         "MaxMutatingOpcodes": 2,
         "MaxDepth": 3,
-        "MaxSize": 7
+        "MaxSize": 11
       }
     },
     {
       "time": {
         "secs": 0,
-        "nanos": 634473059
+        "nanos": 0
       },
       "statistics": {
-        "Evaluated": 7780,
-        "BankSize": 3943,
-        "FoundContextCount": 615,
+        "Evaluated": 135589129,
+        "BankSize": 593537,
+        "FoundContextCount": 11,
         "MaxMutatingOpcodes": 3,
         "MaxDepth": 4,
-        "MaxSize": 10
-      }
-    },
-    {
-      "time": {
-        "secs": 1,
-        "nanos": 538542129
-      },
-      "statistics": {
-        "Evaluated": 16091,
-        "BankSize": 11547,
-        "FoundContextCount": 43,
-        "MaxMutatingOpcodes": 3,
-        "MaxDepth": 5,
-        "MaxSize": 11
+        "MaxSize": 21
       }
     }
   ],
-  "iteration_count": 5,
-  "found": {
-    "found": "node_to_delete.right.min_node().swap(node_to_delete).unlink_leaf()",
-    "num_mutations": 2,
-    "solution_size": 6,
-    "solution_depth": 5
-  },
+  "iteration_count": 4,
+  "found": null,
   "total_time": {
-    "secs": 2,
-    "nanos": 361133089
+    "secs": 3600,
+    "nanos": 2877192
   },
   "total_statistics": {
-    "Evaluated": 23871,
-    "BankSize": 15490,
-    "FoundContextCount": 658,
+    "Evaluated": 135690473,
+    "BankSize": 606164,
+    "FoundContextCount": 3952,
     "MaxMutatingOpcodes": 3,
-    "MaxDepth": 5,
-    "MaxSize": 11
+    "MaxDepth": 4,
+    "MaxSize": 21
   },
-  "max_vm_usage": "917.864448 MB",
-  "error": null
+  "max_vm_usage": "34.141478912 GB",
+  "error": "Timeout",
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 7,
+        "edge_count": 12,
+        "primitive_fields": 27
+      },
+      {
+        "node_count": 7,
+        "edge_count": 12,
+        "primitive_fields": 27
+      },
+      {
+        "node_count": 7,
+        "edge_count": 12,
+        "primitive_fields": 27
+      }
+    ],
+    "variables": [
+      {
+        "name": "node_to_delete",
+        "value_type": "BinarySearchTreeNode",
+        "partial_ctx_graph": [
+          {
+            "node_count": 7,
+            "edge_count": 12,
+            "primitive_fields": 27
+          },
+          {
+            "node_count": 7,
+            "edge_count": 12,
+            "primitive_fields": 27
+          },
+          {
+            "node_count": 7,
+            "edge_count": 12,
+            "primitive_fields": 27
+          }
+        ]
+      },
+      {
+        "name": "tree",
+        "value_type": "BinarySearchTreeNode",
+        "partial_ctx_graph": [
+          {
+            "node_count": 7,
+            "edge_count": 12,
+            "primitive_fields": 27
+          },
+          {
+            "node_count": 7,
+            "edge_count": 12,
+            "primitive_fields": 27
+          },
+          {
+            "node_count": 7,
+            "edge_count": 12,
+            "primitive_fields": 27
+          }
+        ]
+      }
+    ]
+  }
 }

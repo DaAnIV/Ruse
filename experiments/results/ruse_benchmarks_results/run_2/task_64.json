@@ -2,7 +2,7 @@
   "path": "../tasks/benchmarks/fromFrangel/sypet/sypet_06_solveLinear.sy",
   "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/sypet/SyPet_06_solveLinear.java",
   "category": "Full OOP:Without Side Effects",
-  "opcode_count": 2505,
+  "opcode_count": 2509,
   "string_literals": [
     " ",
     ""
@@ -15,7 +15,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 28031998
+        "nanos": 29163297
       },
       "statistics": {
         "Evaluated": 9,
@@ -29,7 +29,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 126000152
+        "nanos": 135740813
       },
       "statistics": {
         "Evaluated": 652,
@@ -43,29 +43,29 @@
     {
       "time": {
         "secs": 1,
-        "nanos": 179120719
+        "nanos": 174268455
       },
       "statistics": {
         "Evaluated": 59985,
-        "BankSize": 1493,
+        "BankSize": 1441,
         "FoundContextCount": 66,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 3,
-        "MaxSize": 12
+        "MaxSize": 11
       }
     },
     {
       "time": {
-        "secs": 1698,
-        "nanos": 48476763
+        "secs": 3014,
+        "nanos": 898416507
       },
       "statistics": {
-        "Evaluated": 449803911,
-        "BankSize": 664386,
+        "Evaluated": 452733944,
+        "BankSize": 664262,
         "FoundContextCount": 3033,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 4,
-        "MaxSize": 30
+        "MaxSize": 29
       }
     },
     {
@@ -74,12 +74,12 @@
         "nanos": 0
       },
       "statistics": {
-        "Evaluated": 620343,
-        "BankSize": 112287,
+        "Evaluated": 553577,
+        "BankSize": 99555,
         "FoundContextCount": 66,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 5,
-        "MaxSize": 30
+        "MaxSize": 29
       }
     }
   ],
@@ -87,16 +87,64 @@
   "found": null,
   "total_time": {
     "secs": 3600,
-    "nanos": 1263762
+    "nanos": 1963237
   },
   "total_statistics": {
-    "Evaluated": 450424254,
-    "BankSize": 776673,
+    "Evaluated": 453287521,
+    "BankSize": 763817,
     "FoundContextCount": 3099,
     "MaxMutatingOpcodes": 1,
     "MaxDepth": 5,
-    "MaxSize": 30
+    "MaxSize": 29
   },
-  "max_vm_usage": "12.60617728 GB",
-  "error": "Timeout"
+  "max_vm_usage": "9.569480704 GB",
+  "error": "Timeout",
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 5,
+        "edge_count": 3,
+        "primitive_fields": 6
+      },
+      {
+        "node_count": 6,
+        "edge_count": 4,
+        "primitive_fields": 12
+      }
+    ],
+    "variables": [
+      {
+        "name": "mat",
+        "value_type": "Array<Array<Number>>",
+        "partial_ctx_graph": [
+          {
+            "node_count": 3,
+            "edge_count": 2,
+            "primitive_fields": 4
+          },
+          {
+            "node_count": 4,
+            "edge_count": 3,
+            "primitive_fields": 9
+          }
+        ]
+      },
+      {
+        "name": "vec",
+        "value_type": "Array<Array<Number>>",
+        "partial_ctx_graph": [
+          {
+            "node_count": 2,
+            "edge_count": 1,
+            "primitive_fields": 2
+          },
+          {
+            "node_count": 2,
+            "edge_count": 1,
+            "primitive_fields": 3
+          }
+        ]
+      }
+    ]
+  }
 }

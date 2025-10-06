@@ -2,7 +2,7 @@
   "path": "../tasks/benchmarks/fromFrangel/sypet/sypet_01_invert.sy",
   "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/sypet/SyPet_01_invert.java",
   "category": "Full OOP:Without Side Effects",
-  "opcode_count": 2504,
+  "opcode_count": 2508,
   "string_literals": [
     " ",
     ""
@@ -15,7 +15,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 29320012
+        "nanos": 28123810
       },
       "statistics": {
         "Evaluated": 8,
@@ -29,7 +29,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 441807165
+        "nanos": 192364558
       },
       "statistics": {
         "Evaluated": 918,
@@ -43,11 +43,11 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 154420895
+        "nanos": 114157148
       },
       "statistics": {
-        "Evaluated": 45866,
-        "BankSize": 2100,
+        "Evaluated": 25900,
+        "BankSize": 1861,
         "FoundContextCount": 2,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 3,
@@ -64,16 +64,38 @@
   },
   "total_time": {
     "secs": 0,
-    "nanos": 625733349
+    "nanos": 334874569
   },
   "total_statistics": {
-    "Evaluated": 46784,
-    "BankSize": 2156,
+    "Evaluated": 26818,
+    "BankSize": 1917,
     "FoundContextCount": 9,
     "MaxMutatingOpcodes": 1,
     "MaxDepth": 3,
     "MaxSize": 13
   },
-  "max_vm_usage": "39.370752 MB",
-  "error": null
+  "max_vm_usage": "35.88096 MB",
+  "error": null,
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 4,
+        "edge_count": 3,
+        "primitive_fields": 8
+      }
+    ],
+    "variables": [
+      {
+        "name": "mat",
+        "value_type": "Matrix",
+        "partial_ctx_graph": [
+          {
+            "node_count": 4,
+            "edge_count": 3,
+            "primitive_fields": 8
+          }
+        ]
+      }
+    ]
+  }
 }

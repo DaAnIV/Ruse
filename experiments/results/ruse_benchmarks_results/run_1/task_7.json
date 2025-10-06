@@ -15,7 +15,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 465692
+        "nanos": 523402
       },
       "statistics": {
         "Evaluated": 5,
@@ -29,7 +29,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 85357238
+        "nanos": 73582431
       },
       "statistics": {
         "Evaluated": 315,
@@ -43,37 +43,69 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 18465212
+        "nanos": 13313313
       },
       "statistics": {
-        "Evaluated": 6840,
-        "BankSize": 585,
+        "Evaluated": 1414,
+        "BankSize": 99,
         "FoundContextCount": 2,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 3,
-        "MaxSize": 10
+        "MaxSize": 8
       }
     }
   ],
   "iteration_count": 3,
   "found": {
-    "found": "\" \".replaceAll(\"\", _arg_0).slice(0, _arg_0.lastIndexOf(\" \"))",
+    "found": "(_arg_0 + \" \").slice(0, _arg_0.lastIndexOf(\" \"))",
     "num_mutations": 0,
-    "solution_size": 9,
+    "solution_size": 8,
     "solution_depth": 3
   },
   "total_time": {
     "secs": 0,
-    "nanos": 104685234
+    "nanos": 87990672
   },
   "total_statistics": {
-    "Evaluated": 7155,
-    "BankSize": 619,
+    "Evaluated": 1729,
+    "BankSize": 133,
     "FoundContextCount": 4,
     "MaxMutatingOpcodes": 1,
     "MaxDepth": 3,
-    "MaxSize": 10
+    "MaxSize": 8
   },
-  "max_vm_usage": "28.438528 MB",
-  "error": null
+  "max_vm_usage": "29.196288 MB",
+  "error": null,
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 0,
+        "edge_count": 0,
+        "primitive_fields": 0
+      },
+      {
+        "node_count": 0,
+        "edge_count": 0,
+        "primitive_fields": 0
+      }
+    ],
+    "variables": [
+      {
+        "name": "_arg_0",
+        "value_type": "String",
+        "partial_ctx_graph": [
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          }
+        ]
+      }
+    ]
+  }
 }

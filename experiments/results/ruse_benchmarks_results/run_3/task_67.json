@@ -2,7 +2,7 @@
   "path": "../tasks/benchmarks/fromFrangel/sypet/sypet_02_getInnerProduct.sy",
   "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/sypet/SyPet_02_getInnerProduct.java",
   "category": "Full OOP:Without Side Effects",
-  "opcode_count": 2503,
+  "opcode_count": 2507,
   "string_literals": [
     " ",
     ""
@@ -15,7 +15,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 29767777
+        "nanos": 27477676
       },
       "statistics": {
         "Evaluated": 9,
@@ -29,11 +29,11 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 108312170
+        "nanos": 81262464
       },
       "statistics": {
         "Evaluated": 189,
-        "BankSize": 36,
+        "BankSize": 37,
         "FoundContextCount": 0,
         "MaxMutatingOpcodes": 0,
         "MaxDepth": 2,
@@ -43,23 +43,56 @@
   ],
   "iteration_count": 2,
   "found": {
-    "found": "vec1.dot(vec2)",
+    "found": "vec2.dot(vec1)",
     "num_mutations": 0,
     "solution_size": 3,
     "solution_depth": 2
   },
   "total_time": {
     "secs": 0,
-    "nanos": 138388553
+    "nanos": 109035385
   },
   "total_statistics": {
     "Evaluated": 198,
-    "BankSize": 45,
+    "BankSize": 46,
     "FoundContextCount": 4,
     "MaxMutatingOpcodes": 0,
     "MaxDepth": 2,
     "MaxSize": 3
   },
-  "max_vm_usage": "39.23968 MB",
-  "error": null
+  "max_vm_usage": "33.693696 MB",
+  "error": null,
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 6,
+        "edge_count": 4,
+        "primitive_fields": 10
+      }
+    ],
+    "variables": [
+      {
+        "name": "vec1",
+        "value_type": "Matrix",
+        "partial_ctx_graph": [
+          {
+            "node_count": 3,
+            "edge_count": 2,
+            "primitive_fields": 5
+          }
+        ]
+      },
+      {
+        "name": "vec2",
+        "value_type": "Matrix",
+        "partial_ctx_graph": [
+          {
+            "node_count": 3,
+            "edge_count": 2,
+            "primitive_fields": 5
+          }
+        ]
+      }
+    ]
+  }
 }

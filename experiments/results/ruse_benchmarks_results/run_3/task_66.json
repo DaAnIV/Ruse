@@ -2,7 +2,7 @@
   "path": "../tasks/benchmarks/fromFrangel/sypet/sypet_08_predict.sy",
   "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/sypet/SyPet_08_predict.java",
   "category": "Full OOP:Without Side Effects",
-  "opcode_count": 3717,
+  "opcode_count": 3723,
   "string_literals": [
     " ",
     ""
@@ -15,7 +15,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 426566
+        "nanos": 459213
       },
       "statistics": {
         "Evaluated": 6,
@@ -29,11 +29,11 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 102037753
+        "nanos": 97542817
       },
       "statistics": {
         "Evaluated": 349,
-        "BankSize": 41,
+        "BankSize": 43,
         "FoundContextCount": 4,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 2,
@@ -43,11 +43,11 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 115918980
+        "nanos": 132539622
       },
       "statistics": {
-        "Evaluated": 43124,
-        "BankSize": 1774,
+        "Evaluated": 49389,
+        "BankSize": 1742,
         "FoundContextCount": 4,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 3,
@@ -64,16 +64,64 @@
   },
   "total_time": {
     "secs": 0,
-    "nanos": 218576440
+    "nanos": 230831724
   },
   "total_statistics": {
-    "Evaluated": 43473,
-    "BankSize": 1815,
+    "Evaluated": 49738,
+    "BankSize": 1785,
     "FoundContextCount": 8,
     "MaxMutatingOpcodes": 1,
     "MaxDepth": 3,
     "MaxSize": 11
   },
-  "max_vm_usage": "37.031936 MB",
-  "error": null
+  "max_vm_usage": "33.312768 MB",
+  "error": null,
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 6,
+        "edge_count": 5,
+        "primitive_fields": 10
+      },
+      {
+        "node_count": 6,
+        "edge_count": 5,
+        "primitive_fields": 10
+      }
+    ],
+    "variables": [
+      {
+        "name": "data",
+        "value_type": "Array<Array<Number>>",
+        "partial_ctx_graph": [
+          {
+            "node_count": 6,
+            "edge_count": 5,
+            "primitive_fields": 10
+          },
+          {
+            "node_count": 6,
+            "edge_count": 5,
+            "primitive_fields": 10
+          }
+        ]
+      },
+      {
+        "name": "value",
+        "value_type": "Number",
+        "partial_ctx_graph": [
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          }
+        ]
+      }
+    ]
+  }
 }

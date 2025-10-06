@@ -15,7 +15,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 486554
+        "nanos": 424549
       },
       "statistics": {
         "Evaluated": 6,
@@ -29,11 +29,11 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 96757589
+        "nanos": 83239285
       },
       "statistics": {
         "Evaluated": 549,
-        "BankSize": 72,
+        "BankSize": 75,
         "FoundContextCount": 21,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 2,
@@ -43,13 +43,13 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 21018142
+        "nanos": 23141781
       },
       "statistics": {
-        "Evaluated": 4318,
-        "BankSize": 1216,
+        "Evaluated": 6375,
+        "BankSize": 1870,
         "FoundContextCount": 4,
-        "MaxMutatingOpcodes": 2,
+        "MaxMutatingOpcodes": 3,
         "MaxDepth": 3,
         "MaxSize": 9
       }
@@ -64,16 +64,79 @@
   },
   "total_time": {
     "secs": 0,
-    "nanos": 118722938
+    "nanos": 107291107
   },
   "total_statistics": {
-    "Evaluated": 4867,
-    "BankSize": 1288,
+    "Evaluated": 6924,
+    "BankSize": 1945,
     "FoundContextCount": 25,
-    "MaxMutatingOpcodes": 2,
+    "MaxMutatingOpcodes": 3,
     "MaxDepth": 3,
     "MaxSize": 9
   },
-  "max_vm_usage": "28.516352 MB",
-  "error": null
+  "max_vm_usage": "26.312704 MB",
+  "error": null,
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 1,
+        "edge_count": 0,
+        "primitive_fields": 5
+      },
+      {
+        "node_count": 1,
+        "edge_count": 0,
+        "primitive_fields": 5
+      },
+      {
+        "node_count": 1,
+        "edge_count": 0,
+        "primitive_fields": 5
+      }
+    ],
+    "variables": [
+      {
+        "name": "amount",
+        "value_type": "Number",
+        "partial_ctx_graph": [
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          }
+        ]
+      },
+      {
+        "name": "queue",
+        "value_type": "Array<String>",
+        "partial_ctx_graph": [
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 5
+          },
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 5
+          },
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 5
+          }
+        ]
+      }
+    ]
+  }
 }

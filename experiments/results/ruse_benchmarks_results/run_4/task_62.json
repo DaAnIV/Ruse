@@ -16,7 +16,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 1581396
+        "nanos": 526038
       },
       "statistics": {
         "Evaluated": 8,
@@ -30,7 +30,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 113826619
+        "nanos": 110569599
       },
       "statistics": {
         "Evaluated": 1196,
@@ -44,12 +44,12 @@
     {
       "time": {
         "secs": 10,
-        "nanos": 131566607
+        "nanos": 60697250
       },
       "statistics": {
-        "Evaluated": 1722542,
-        "BankSize": 71754,
-        "FoundContextCount": 5273,
+        "Evaluated": 1716476,
+        "BankSize": 71753,
+        "FoundContextCount": 5280,
         "MaxMutatingOpcodes": 3,
         "MaxDepth": 3,
         "MaxSize": 12
@@ -61,8 +61,8 @@
         "nanos": 0
       },
       "statistics": {
-        "Evaluated": 32164917,
-        "BankSize": 12494684,
+        "Evaluated": 32280511,
+        "BankSize": 12533943,
         "FoundContextCount": 43,
         "MaxMutatingOpcodes": 3,
         "MaxDepth": 4,
@@ -73,17 +73,121 @@
   "iteration_count": 4,
   "found": null,
   "total_time": {
-    "secs": 38,
-    "nanos": 1764814
+    "secs": 40,
+    "nanos": 938635
   },
   "total_statistics": {
-    "Evaluated": 33887429,
-    "BankSize": 12566430,
-    "FoundContextCount": 5316,
+    "Evaluated": 33996970,
+    "BankSize": 12605689,
+    "FoundContextCount": 5323,
     "MaxMutatingOpcodes": 3,
     "MaxDepth": 4,
     "MaxSize": 17
   },
-  "max_vm_usage": "107.489849344 GB",
-  "error": "OOM"
+  "max_vm_usage": "107.475550208 GB",
+  "error": "OOM",
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 2,
+        "edge_count": 0,
+        "primitive_fields": 4
+      },
+      {
+        "node_count": 2,
+        "edge_count": 0,
+        "primitive_fields": 5
+      },
+      {
+        "node_count": 2,
+        "edge_count": 0,
+        "primitive_fields": 6
+      },
+      {
+        "node_count": 2,
+        "edge_count": 0,
+        "primitive_fields": 6
+      }
+    ],
+    "variables": [
+      {
+        "name": "n",
+        "value_type": "Number",
+        "partial_ctx_graph": [
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          }
+        ]
+      },
+      {
+        "name": "nums",
+        "value_type": "Array<Number>",
+        "partial_ctx_graph": [
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 4
+          },
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 4
+          },
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 4
+          },
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 5
+          }
+        ]
+      },
+      {
+        "name": "runningSum",
+        "value_type": "Array<Number>",
+        "partial_ctx_graph": [
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 1
+          },
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 2
+          },
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 1
+          }
+        ]
+      }
+    ]
+  }
 }

@@ -17,7 +17,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 1143658
+        "nanos": 368148
       },
       "statistics": {
         "Evaluated": 7,
@@ -31,11 +31,11 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 89693571
+        "nanos": 103079161
       },
       "statistics": {
         "Evaluated": 783,
-        "BankSize": 76,
+        "BankSize": 89,
         "FoundContextCount": 4,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 2,
@@ -44,12 +44,12 @@
     },
     {
       "time": {
-        "secs": 0,
-        "nanos": 601988103
+        "secs": 1,
+        "nanos": 149226267
       },
       "statistics": {
-        "Evaluated": 551655,
-        "BankSize": 14668,
+        "Evaluated": 637829,
+        "BankSize": 14933,
         "FoundContextCount": 44,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 3,
@@ -58,38 +58,80 @@
     },
     {
       "time": {
-        "secs": 1,
-        "nanos": 85801386
+        "secs": 0,
+        "nanos": 809522259
       },
       "statistics": {
-        "Evaluated": 502463,
-        "BankSize": 26192,
+        "Evaluated": 397507,
+        "BankSize": 26058,
         "FoundContextCount": 4,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 4,
-        "MaxSize": 21
+        "MaxSize": 17
       }
     }
   ],
   "iteration_count": 4,
   "found": {
-    "found": "(\">\" + _arg_0.replaceAll(\">\", \"\")).slice(_arg_0.indexOf(\">\") - (1 + 1))",
+    "found": "_arg_0.replaceAll(\">\", _arg_0).slice(1, -1).slice((-1) - (1 + 1))",
     "num_mutations": 0,
-    "solution_size": 14,
+    "solution_size": 15,
     "solution_depth": 4
   },
   "total_time": {
-    "secs": 1,
-    "nanos": 779337175
+    "secs": 2,
+    "nanos": 62853784
   },
   "total_statistics": {
-    "Evaluated": 1054118,
-    "BankSize": 40860,
+    "Evaluated": 1035336,
+    "BankSize": 40991,
     "FoundContextCount": 48,
     "MaxMutatingOpcodes": 1,
     "MaxDepth": 4,
-    "MaxSize": 21
+    "MaxSize": 17
   },
-  "max_vm_usage": "536.027136 MB",
-  "error": null
+  "max_vm_usage": "425.340928 MB",
+  "error": null,
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 0,
+        "edge_count": 0,
+        "primitive_fields": 0
+      },
+      {
+        "node_count": 0,
+        "edge_count": 0,
+        "primitive_fields": 0
+      },
+      {
+        "node_count": 0,
+        "edge_count": 0,
+        "primitive_fields": 0
+      }
+    ],
+    "variables": [
+      {
+        "name": "_arg_0",
+        "value_type": "String",
+        "partial_ctx_graph": [
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          }
+        ]
+      }
+    ]
+  }
 }

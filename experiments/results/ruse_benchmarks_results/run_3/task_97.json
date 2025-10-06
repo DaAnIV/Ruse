@@ -1,8 +1,8 @@
 {
-  "path": "../tasks/benchmarks/new_ruse/simple/set_subtree.sy",
+  "path": "../tasks/benchmarks/new_ruse/overhead/graph_one_way_connected_2.sy",
   "source": null,
-  "category": "Full OOP:With Side Effects",
-  "opcode_count": 1180,
+  "category": "Full OOP:Without Side Effects",
+  "opcode_count": 1176,
   "string_literals": [
     " ",
     ""
@@ -15,11 +15,11 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 3173390
+        "nanos": 517474
       },
       "statistics": {
-        "Evaluated": 6,
-        "BankSize": 6,
+        "Evaluated": 7,
+        "BankSize": 7,
         "FoundContextCount": 4,
         "MaxMutatingOpcodes": 0,
         "MaxDepth": 1,
@@ -29,12 +29,12 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 103568822
+        "nanos": 191010292
       },
       "statistics": {
-        "Evaluated": 432,
-        "BankSize": 50,
-        "FoundContextCount": 10,
+        "Evaluated": 518,
+        "BankSize": 25,
+        "FoundContextCount": 3,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 2,
         "MaxSize": 4
@@ -43,37 +43,115 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 32179805
+        "nanos": 678198450
       },
       "statistics": {
-        "Evaluated": 789,
-        "BankSize": 127,
-        "FoundContextCount": 4,
+        "Evaluated": 17429,
+        "BankSize": 336,
+        "FoundContextCount": 54,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 3,
-        "MaxSize": 7
+        "MaxSize": 10
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 15512299
+      },
+      "statistics": {
+        "Evaluated": 3599,
+        "BankSize": 1020,
+        "FoundContextCount": 3,
+        "MaxMutatingOpcodes": 2,
+        "MaxDepth": 4,
+        "MaxSize": 11
       }
     }
   ],
-  "iteration_count": 3,
+  "iteration_count": 4,
   "found": {
-    "found": "tree1.right = tree2, tree2.inc_value()",
-    "num_mutations": 2,
-    "solution_size": 6,
-    "solution_depth": 3
+    "found": "(graph2.value + graph1.value) + graph3.value",
+    "num_mutations": 0,
+    "solution_size": 8,
+    "solution_depth": 4
   },
   "total_time": {
     "secs": 0,
-    "nanos": 139258330
+    "nanos": 885622258
   },
   "total_statistics": {
-    "Evaluated": 1221,
-    "BankSize": 177,
-    "FoundContextCount": 14,
-    "MaxMutatingOpcodes": 1,
-    "MaxDepth": 3,
-    "MaxSize": 7
+    "Evaluated": 21028,
+    "BankSize": 1356,
+    "FoundContextCount": 57,
+    "MaxMutatingOpcodes": 2,
+    "MaxDepth": 4,
+    "MaxSize": 11
   },
-  "max_vm_usage": "34.983936 MB",
-  "error": null
+  "max_vm_usage": "31.965184 MB",
+  "error": null,
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 6,
+        "edge_count": 5,
+        "primitive_fields": 3
+      },
+      {
+        "node_count": 6,
+        "edge_count": 5,
+        "primitive_fields": 3
+      }
+    ],
+    "variables": [
+      {
+        "name": "graph1",
+        "value_type": "GraphNode",
+        "partial_ctx_graph": [
+          {
+            "node_count": 4,
+            "edge_count": 3,
+            "primitive_fields": 2
+          },
+          {
+            "node_count": 4,
+            "edge_count": 3,
+            "primitive_fields": 2
+          }
+        ]
+      },
+      {
+        "name": "graph2",
+        "value_type": "GraphNode",
+        "partial_ctx_graph": [
+          {
+            "node_count": 2,
+            "edge_count": 1,
+            "primitive_fields": 1
+          },
+          {
+            "node_count": 2,
+            "edge_count": 1,
+            "primitive_fields": 1
+          }
+        ]
+      },
+      {
+        "name": "graph3",
+        "value_type": "GraphNode",
+        "partial_ctx_graph": [
+          {
+            "node_count": 6,
+            "edge_count": 5,
+            "primitive_fields": 3
+          },
+          {
+            "node_count": 6,
+            "edge_count": 5,
+            "primitive_fields": 3
+          }
+        ]
+      }
+    ]
+  }
 }

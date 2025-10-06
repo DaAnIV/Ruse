@@ -1,0 +1,143 @@
+{
+  "path": "../tasks/benchmarks/fromSobeq/may/probe/split-text-string-at-specific-charactermodified.sy",
+  "source": "https=//exceljet.net/formula/split-text-string-at-specific-character",
+  "category": "Primitive:Without Side Effects",
+  "opcode_count": 881,
+  "string_literals": [
+    " ",
+    "_",
+    ""
+  ],
+  "num_literals": [
+    0,
+    1
+  ],
+  "iterations": [
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 375238
+      },
+      "statistics": {
+        "Evaluated": 7,
+        "BankSize": 7,
+        "FoundContextCount": 4,
+        "MaxMutatingOpcodes": 0,
+        "MaxDepth": 1,
+        "MaxSize": 1
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 81339429
+      },
+      "statistics": {
+        "Evaluated": 771,
+        "BankSize": 70,
+        "FoundContextCount": 7,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 2,
+        "MaxSize": 4
+      }
+    },
+    {
+      "time": {
+        "secs": 0,
+        "nanos": 40067099
+      },
+      "statistics": {
+        "Evaluated": 21207,
+        "BankSize": 2843,
+        "FoundContextCount": 4,
+        "MaxMutatingOpcodes": 1,
+        "MaxDepth": 3,
+        "MaxSize": 9
+      }
+    }
+  ],
+  "iteration_count": 3,
+  "found": {
+    "found": "_arg_0.split(\"_\")[--_arg_1]",
+    "num_mutations": 1,
+    "solution_size": 6,
+    "solution_depth": 3
+  },
+  "total_time": {
+    "secs": 0,
+    "nanos": 122039870
+  },
+  "total_statistics": {
+    "Evaluated": 21978,
+    "BankSize": 2913,
+    "FoundContextCount": 11,
+    "MaxMutatingOpcodes": 1,
+    "MaxDepth": 3,
+    "MaxSize": 9
+  },
+  "max_vm_usage": "27.774976 MB",
+  "error": null,
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 0,
+        "edge_count": 0,
+        "primitive_fields": 0
+      },
+      {
+        "node_count": 0,
+        "edge_count": 0,
+        "primitive_fields": 0
+      },
+      {
+        "node_count": 0,
+        "edge_count": 0,
+        "primitive_fields": 0
+      }
+    ],
+    "variables": [
+      {
+        "name": "_arg_0",
+        "value_type": "String",
+        "partial_ctx_graph": [
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          }
+        ]
+      },
+      {
+        "name": "_arg_1",
+        "value_type": "Number",
+        "partial_ctx_graph": [
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          },
+          {
+            "node_count": 0,
+            "edge_count": 0,
+            "primitive_fields": 0
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -2,7 +2,7 @@
   "path": "../tasks/benchmarks/new_ruse/relations/user_names_connected.sy",
   "source": null,
   "category": "Full OOP:Without Side Effects",
-  "opcode_count": 1527,
+  "opcode_count": 1529,
   "string_literals": [
     " ",
     ", ",
@@ -16,7 +16,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 1663260
+        "nanos": 541441
       },
       "statistics": {
         "Evaluated": 8,
@@ -30,7 +30,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 127064489
+        "nanos": 124031741
       },
       "statistics": {
         "Evaluated": 744,
@@ -44,7 +44,7 @@
     {
       "time": {
         "secs": 0,
-        "nanos": 506420090
+        "nanos": 483999310
       },
       "statistics": {
         "Evaluated": 74067,
@@ -57,38 +57,102 @@
     },
     {
       "time": {
-        "secs": 4,
-        "nanos": 336034163
+        "secs": 1,
+        "nanos": 708964616
       },
       "statistics": {
-        "Evaluated": 1579019,
-        "BankSize": 445403,
+        "Evaluated": 584999,
+        "BankSize": 153898,
         "FoundContextCount": 0,
         "MaxMutatingOpcodes": 1,
         "MaxDepth": 4,
-        "MaxSize": 27
+        "MaxSize": 26
       }
     }
   ],
   "iteration_count": 4,
   "found": {
-    "found": "(a.name + \", \") + (b.name + \"\")",
+    "found": "(a.name + \", \"[0]) + (\" \" + b.name)",
     "num_mutations": 0,
-    "solution_size": 9,
+    "solution_size": 11,
     "solution_depth": 4
   },
   "total_time": {
-    "secs": 4,
-    "nanos": 971571007
+    "secs": 2,
+    "nanos": 318049974
   },
   "total_statistics": {
-    "Evaluated": 1653086,
-    "BankSize": 447573,
+    "Evaluated": 659066,
+    "BankSize": 156068,
     "FoundContextCount": 77,
     "MaxMutatingOpcodes": 1,
     "MaxDepth": 4,
-    "MaxSize": 27
+    "MaxSize": 26
   },
-  "max_vm_usage": "3.57023744 GB",
-  "error": null
+  "max_vm_usage": "1.71913216 GB",
+  "error": null,
+  "start_context": {
+    "graph_statistics": [
+      {
+        "node_count": 4,
+        "edge_count": 3,
+        "primitive_fields": 4
+      },
+      {
+        "node_count": 4,
+        "edge_count": 3,
+        "primitive_fields": 4
+      }
+    ],
+    "variables": [
+      {
+        "name": "a",
+        "value_type": "User",
+        "partial_ctx_graph": [
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 2
+          },
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 2
+          }
+        ]
+      },
+      {
+        "name": "b",
+        "value_type": "User",
+        "partial_ctx_graph": [
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 2
+          },
+          {
+            "node_count": 1,
+            "edge_count": 0,
+            "primitive_fields": 2
+          }
+        ]
+      },
+      {
+        "name": "c",
+        "value_type": "UserTuple",
+        "partial_ctx_graph": [
+          {
+            "node_count": 4,
+            "edge_count": 3,
+            "primitive_fields": 4
+          },
+          {
+            "node_count": 4,
+            "edge_count": 3,
+            "primitive_fields": 4
+          }
+        ]
+      }
+    ]
+  }
 }
