@@ -39,5 +39,6 @@ fi
 
 if [ "$EMBEDDING" = true ]; then
     echo "Running embedding benchmarks"
-    bash ./run_ruse_embedding_benchmarks.sh ${NAME}_embedding
+    bash ./run_ruse_embedding_wide_overhead.sh ${NAME}_wide_embedding
+    bash ./run_ruse_embedding_graph_overhead.sh ${NAME}_graph_embedding
 fi
