@@ -34,6 +34,4 @@ for i in {1..4}; do
         "${BENCHMARKS[@]}"
 done
 
-for i in {1..4}; do
-    python3 ../scripts/merge_results.py results/${NAME}_results/run_${i}
-done
+python3 ../scripts/merge_results.py --delete results/${NAME}_results/run_*

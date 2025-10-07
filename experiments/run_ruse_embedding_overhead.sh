@@ -1,6 +1,11 @@
 #!/bin/bash
 
-NAME=${1:-ruse_embedding_overhead};
+if [ "$#" -ne 1 ]; then
+    echo "Illegal number of parameters"
+    exit 1
+fi
+
+NAME=$1
 
 BENCHMARKS=(
     -b ../tasks/benchmarks/new_ruse/binary_search_tree/binary_search_tree_delete_two_children.sy
@@ -9,7 +14,7 @@ BENCHMARKS=(
     -b ../tasks/benchmarks/new_ruse/relations/graph.sy
     -b ../tasks/benchmarks/new_ruse/relations/user_names_aliasing.sy
     -b ../tasks/benchmarks/new_ruse/relations/user_names_connected.sy
-    -b ../tasks/benchmarks/new_ruse/relations/user_names.sy/
+    -b ../tasks/benchmarks/new_ruse/relations/user_names.sy
     -b ../tasks/benchmarks/new_ruse/simple/x_y_mut_inc.sy
     -b ../tasks/benchmarks/new_ruse/simple/set_subtree.sy
     -b ../tasks/benchmarks/new_ruse/simple/seq.sy
@@ -42,6 +47,4 @@ for i in {1..4}; do
         --embedding-overhead-csv results/${NAME}_results/embedding_overhead_${i}.csv
 done
 
-for i in {1..4}; do
-    python3 ../scripts/merge_results.py results/${NAME}_results/run_${i}
-done
+python3 ../scripts/merge_results.py --delete results/${NAME}_results/run_*
