@@ -139,27 +139,37 @@ impl ExprOpcode for AssignOp {
             return Err(());
         }
 
-        let res = match (&lhs.val(), &rhs.val()) {
-            (Value::Primitive(p), Value::Primitive(p2)) => match (p, p2) {
-                (PrimitiveValue::Number(lhs), PrimitiveValue::Number(rhs)) => {
-                    self.eval_assign_num(*lhs, *rhs)
+        let res = match (lhs.val(), rhs.val()) {
+            (Value::Primitive(p), Value::Primitive(p2)) => {
+                if lhs.loc.is_var() {
+                    // We don't allow assigning to primitive variables
+                    return Err(());
                 }
-                (PrimitiveValue::Bool(lhs), PrimitiveValue::Bool(rhs)) => {
-                    self.eval_assign_bool(*lhs, *rhs)
+                match (p, p2) {
+                    (PrimitiveValue::Number(lhs), PrimitiveValue::Number(rhs)) => {
+                        self.eval_assign_num(*lhs, *rhs)
+                    }
+                    (PrimitiveValue::Bool(lhs), PrimitiveValue::Bool(rhs)) => {
+                        self.eval_assign_bool(*lhs, *rhs)
+                    }
+                    (PrimitiveValue::String(lhs), PrimitiveValue::String(rhs)) => {
+                        self.eval_assign_str(lhs, rhs)
+                    }
+                    _ => Err(()),
                 }
-                (PrimitiveValue::String(lhs), PrimitiveValue::String(rhs)) => {
-                    self.eval_assign_str(lhs, rhs)
-                }
-                _ => return Err(()),
-            },
-            (Value::Null, Value::Object(obj_val)) => {
+            }
+            (Value::Null, rhs_val) => {
                 if self.op != ast::AssignOp::Assign {
                     return Err(());
                 }
-                
-                Ok(Value::Object(obj_val.clone()))
+
+                if rhs_val.is_null() {
+                    return Err(());
+                }
+
+                Ok(rhs_val.clone())
             }
-            _ => return Err(()),
+            _ => Err(()),
         }?;
 
         let mut loc = lhs.loc.clone();
