@@ -145,8 +145,7 @@ impl BenchmarkResult {
             .iter()
             .map(|ctx| GraphStatistics::from(ctx.as_ref()))
             .collect();
-        let partial_context_builder =
-            PartialContextBuilder::new(&syn_ctx.start_context);
+        let partial_context_builder = PartialContextBuilder::new(&syn_ctx.start_context);
         let variables = syn_ctx
             .variables()
             .keys()
@@ -249,6 +248,7 @@ struct Metadata<'a> {
     pid: u32,
     sysinfo: Sysinfo,
     config: &'a BenchmarkConfig,
+    benchmarks: &'a [PathBuf],
 }
 
 #[derive(Clone)]
@@ -264,7 +264,7 @@ impl<F> ResultsWriter<F>
 where
     F: Formatter + Sync + Send + Clone + 'static,
 {
-    fn from_path_with_formatter(path: &Path, config: &BenchmarkConfig, formatter: F) -> Self {
+    fn from_path_with_formatter(path: &Path, formatter: F) -> Self {
         let self_ = Self {
             results_dir: path.to_path_buf(),
             formatter: formatter,
@@ -272,17 +272,20 @@ where
 
         std::fs::create_dir(path).expect("Failed to create output dir");
 
-        let mut ser = self_.create_serializer("metadata.json");
+        self_
+    }
+
+    pub fn write_metadata(&self, benchmarks: &[std::path::PathBuf], config: &BenchmarkConfig) {
+        let mut ser = self.create_serializer("metadata.json");
         Metadata {
             timestamp: chrono::Utc::now().timestamp(),
             pid: std::process::id(),
             sysinfo: Sysinfo::new(),
             config: config,
+            benchmarks: benchmarks,
         }
         .serialize(&mut ser)
         .expect("Failed to write metadata");
-
-        self_
     }
 
     pub fn write_result(&self, result: &BenchmarkResult, i: usize) {
@@ -298,7 +301,7 @@ where
 }
 
 impl<'a> ResultsWriter<PrettyFormatter<'a>> {
-    pub fn from_path_pretty(path: &Path, config: &BenchmarkConfig) -> Self {
-        Self::from_path_with_formatter(path, config, PrettyFormatter::new())
+    pub fn from_path_pretty(path: &Path) -> Self {
+        Self::from_path_with_formatter(path, PrettyFormatter::new())
     }
 }

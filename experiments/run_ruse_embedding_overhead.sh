@@ -42,3 +42,6 @@ for i in {1..4}; do
         --embedding-overhead-csv results/${NAME}_results/embedding_overhead_${i}.csv
 done
 
+for i in {1..4}; do
+    python3 ../scripts/merge_results.py results/${NAME}_results/run_${i}
+done

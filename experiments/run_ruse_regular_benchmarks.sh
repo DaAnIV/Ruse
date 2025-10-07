@@ -1,5 +1,12 @@
 #!/bin/bash
 
+if [ "$#" -ne 1 ]; then
+    echo "Illegal number of parameters"
+    exit 1
+fi
+
+NAME=$1
+
 rm -rf results/${NAME}_results
 rm -rf results/${NAME}_log.jsonl
 
@@ -25,4 +32,8 @@ for i in {1..4}; do
         --max-sequence-size 3 \
         --max-task-mem 100GiB \
         "${BENCHMARKS[@]}"
+done
+
+for i in {1..4}; do
+    python3 ../scripts/merge_results.py results/${NAME}_results/run_${i}
 done

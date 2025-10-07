@@ -27,17 +27,17 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-if [ "$REGULAR" = true ]; then
-    echo "Running regular benchmarks"
-    bash ./run_regular_benchmarks_ruse.sh ${NAME}_regular_benchmarks_results
-fi
-
 if [ "$RELATIONS" = true ]; then
     echo "Running relations benchmarks"
-    bash ./run_relations_benchmarks_ruse.sh ${NAME}_relations_benchmarks_results
+    bash ./run_ruse_relations_benchmarks.sh ${NAME}_relations
+fi
+
+if [ "$REGULAR" = true ]; then
+    echo "Running regular benchmarks"
+    bash ./run_ruse_regular_benchmarks.sh ${NAME}_regular
 fi
 
 if [ "$EMBEDDING" = true ]; then
     echo "Running embedding benchmarks"
-    bash ./run_embedding_benchmarks_ruse.sh ${NAME}_embedding_benchmarks_results
+    bash ./run_ruse_embedding_benchmarks.sh ${NAME}_embedding
 fi

@@ -300,6 +300,30 @@ fn init_embedding_overhead_csv(csv_path: &Path) -> Result<(), String> {
     Ok(())
 }
 
+fn get_benchmarks_recursively(paths: &[std::path::PathBuf]) -> Result<Vec<std::path::PathBuf>, String> {
+    let mut all_benchmarks = Vec::new();
+    for benchmark in paths {
+        if !benchmark.exists() {
+            Err(format!("Path doesn't exist {}", benchmark.display()))?;
+        } else if benchmark.is_dir() {
+            for entry in walkdir::WalkDir::new(benchmark)
+                .into_iter()
+                .filter_map(Result::ok)
+                .filter(|e| {
+                    e.file_type().is_file()
+                        && e.path().extension().map(|s| s == "sy").unwrap_or(false)
+                })
+            {
+                all_benchmarks.push(entry.path().to_path_buf());
+            }
+        } else {
+            all_benchmarks.push(benchmark.clone());
+        }
+    }
+
+    Ok(all_benchmarks)
+}
+
 fn run_benchmarks(cli: &RunArgs) -> ExitCode {
     if cli.tokio_console {
         console_subscriber::init();
@@ -349,10 +373,21 @@ fn run_benchmarks(cli: &RunArgs) -> ExitCode {
         }
     };
 
+    let benchmarks = match get_benchmarks_recursively(&cli.benchmarks) {
+        Ok(paths) => paths,
+        Err(e) => {
+            error!(target: "ruse::runner", "Failed to get benchmarks: {}", e);
+            return ExitCode::FAILURE;
+        }
+    };
+
+    let results_writer = ResultsWriter::from_path_pretty(results_path.as_path());
+    results_writer.write_metadata(&benchmarks, &bench_config);
+
     runner::run_all_benchmarks(
-        &cli.benchmarks,
+        &benchmarks,
         &bench_config,
-        ResultsWriter::from_path_pretty(results_path.as_path(), &bench_config),
+        results_writer,
     );
 
     info!(target: "ruse::runner", "Results written to {:?}", results_path.as_path());

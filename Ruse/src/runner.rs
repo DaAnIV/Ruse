@@ -406,39 +406,14 @@ pub fn run_task<F: Formatter + Sync + Send + Clone + 'static>(
     Ok(receiver)
 }
 
-pub fn get_benchmarks_recursively(paths: &[std::path::PathBuf]) -> Vec<std::path::PathBuf> {
-    let mut all_benchmarks = Vec::new();
-    for benchmark in paths {
-        if !benchmark.exists() {
-            error!(target: "ruse::runner", "Path doesn't exist {}", benchmark.display());
-        } else if benchmark.is_dir() {
-            for entry in walkdir::WalkDir::new(benchmark)
-                .into_iter()
-                .filter_map(Result::ok)
-                .filter(|e| {
-                    e.file_type().is_file()
-                        && e.path().extension().map(|s| s == "sy").unwrap_or(false)
-                })
-            {
-                all_benchmarks.push(entry.path().to_path_buf());
-            }
-        } else {
-            all_benchmarks.push(benchmark.clone());
-        }
-    }
-
-    all_benchmarks
-}
-
 pub fn run_all_benchmarks<F: Formatter + Sync + Send + Clone + 'static>(
-    top_level_benchmark: &[std::path::PathBuf],
+    benchmarks: &[std::path::PathBuf],
     bench_config: &BenchmarkConfig,
     writer: ResultsWriter<F>,
 ) {
     let mut ctrlc = false;
     let ctrl_c_events = ctrl_channel().expect("Failed to create ctrl_c_events");
 
-    let benchmarks = get_benchmarks_recursively(top_level_benchmark);
     let total_benchmarks = benchmarks.len();
     for (i, benchmark) in benchmarks.into_iter().enumerate() {
         info!(target: "ruse::runner", "Starting benchmark {} [{}/{}]", benchmark.display(), i + 1, total_benchmarks);
