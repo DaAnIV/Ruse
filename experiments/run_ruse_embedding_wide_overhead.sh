@@ -8,19 +8,19 @@ fi
 NAME=$1
 
 BENCHMARKS=(
-    -b ../tasks/benchmarks/new_ruse/binary_search_tree/binary_search_tree_delete_two_children.sy
-    -b ../tasks/benchmarks/new_ruse/relations/graph_cycle.sy
-    -b ../tasks/benchmarks/new_ruse/relations/graph_one_way_connected.sy
-    -b ../tasks/benchmarks/new_ruse/relations/graph.sy
-    -b ../tasks/benchmarks/new_ruse/relations/user_names_aliasing.sy
-    -b ../tasks/benchmarks/new_ruse/relations/user_names_connected.sy
-    -b ../tasks/benchmarks/new_ruse/relations/user_names.sy
+    -b ../tasks/benchmarks/new_ruse/full_oop/binary_search_tree_delete_two_children.sy
+    -b ../tasks/benchmarks/new_ruse/full_oop/graph_cycle.sy
+    -b ../tasks/benchmarks/new_ruse/full_oop/graph_one_way_connected.sy
+    -b ../tasks/benchmarks/new_ruse/full_oop/graph.sy
+    -b ../tasks/benchmarks/new_ruse/full_oop/user_names_aliasing.sy
+    -b ../tasks/benchmarks/new_ruse/full_oop/user_names_connected.sy
+    -b ../tasks/benchmarks/new_ruse/full_oop/user_names.sy
+    -b ../tasks/benchmarks/new_ruse/full_oop/set_subtree.sy
+    -b ../tasks/benchmarks/new_ruse/full_oop/user_names_simple.sy
     -b ../tasks/benchmarks/new_ruse/simple/x_y_mut_inc.sy
-    -b ../tasks/benchmarks/new_ruse/simple/set_subtree.sy
     -b ../tasks/benchmarks/new_ruse/simple/seq.sy
     -b ../tasks/benchmarks/fromSobeq/may/sobeq-new/FirstAndLast.sy
     -b ../tasks/benchmarks/fromSobeq/may/FrAngel/IsAllPositive.sy
-    -b ../tasks/benchmarks/new_ruse/simple/user_names_simple.sy
     -b ../tasks/benchmarks/fromFrangel/other/abcd.sy
     -b ../tasks/benchmarks/fromFrangel/other/abc.sy
     -b ../tasks/benchmarks/fromFrangel/other/ab.sy
