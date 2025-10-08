@@ -8,7 +8,7 @@ fi
 NAME=$1
 
 BENCHMARKS=(
-    -b ../tasks/benchmarks/new_ruse/full_oop/binary_search_tree_delete_two_children.sy
+    -b ../tasks/benchmarks/new_ruse/full_oop/binary_search_tree_unlink_leaf.sy
     -b ../tasks/benchmarks/new_ruse/full_oop/graph_cycle.sy
     -b ../tasks/benchmarks/new_ruse/full_oop/graph_one_way_connected.sy
     -b ../tasks/benchmarks/new_ruse/full_oop/graph.sy
