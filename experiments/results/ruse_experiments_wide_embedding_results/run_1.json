@@ -1,0 +1,2592 @@
+{
+    "metadata": {
+        "timestamp": 1759937775,
+        "pid": 1370023,
+        "sysinfo": {
+            "name": "Debian GNU/Linux",
+            "kernel": "5.10.0-30-amd64",
+            "os": "11",
+            "ram": 0,
+            "cpu": "Intel(R) Xeon(R) Gold 6338 CPU @ 2.00GHz",
+            "cpu_fq": 804,
+            "cpu_core_count": 128
+        },
+        "config": {
+            "timeout": 7200,
+            "max_iterations": 6,
+            "multi_thread": true,
+            "max_mutations": 3,
+            "iteration_workers_count": 96,
+            "max_sequence_size": 3,
+            "benchmarks": [
+                "../tasks/benchmarks/new_ruse/full_oop/binary_search_tree_unlink_leaf.sy",
+                "../tasks/benchmarks/new_ruse/full_oop/graph_cycle.sy",
+                "../tasks/benchmarks/new_ruse/full_oop/graph_one_way_connected.sy",
+                "../tasks/benchmarks/new_ruse/full_oop/graph.sy",
+                "../tasks/benchmarks/new_ruse/full_oop/user_names_aliasing.sy",
+                "../tasks/benchmarks/new_ruse/full_oop/user_names_connected.sy",
+                "../tasks/benchmarks/new_ruse/full_oop/user_names.sy",
+                "../tasks/benchmarks/new_ruse/full_oop/set_subtree.sy",
+                "../tasks/benchmarks/new_ruse/full_oop/user_names_simple.sy",
+                "../tasks/benchmarks/new_ruse/simple/x_y_mut_inc.sy",
+                "../tasks/benchmarks/new_ruse/simple/seq.sy",
+                "../tasks/benchmarks/fromSobeq/may/sobeq-new/FirstAndLast.sy",
+                "../tasks/benchmarks/fromSobeq/may/FrAngel/IsAllPositive.sy",
+                "../tasks/benchmarks/fromFrangel/other/abcd.sy",
+                "../tasks/benchmarks/fromFrangel/other/abc.sy",
+                "../tasks/benchmarks/fromFrangel/other/ab.sy",
+                "../tasks/benchmarks/fromSobeq/must/sobeq-new/MoveFromAToB.sy",
+                "../tasks/benchmarks/fromSobeq/may/probe/count-total-words-in-a-cellmodified.sy",
+                "../tasks/benchmarks/fromSobeq/may/sobeq-new/NegativeIndex.sy"
+            ],
+            "max_task_mem": "100 GiB",
+            "bank_config": {
+                "SubsumptionBank": {
+                    "hash_builder": {
+                        "k0": 1871821500437028842,
+                        "k1": 11116140776935935269
+                    }
+                }
+            },
+            "fork": true,
+            "sleep": {
+                "secs": 5,
+                "nanos": 0
+            },
+            "embedding_overhead_csv": "results/ruse_experiments_wide_embedding_results/embedding_overhead_1.csv"
+        },
+        "benchmarks": [
+            "../tasks/benchmarks/new_ruse/full_oop/binary_search_tree_unlink_leaf.sy",
+            "../tasks/benchmarks/new_ruse/full_oop/graph_cycle.sy",
+            "../tasks/benchmarks/new_ruse/full_oop/graph_one_way_connected.sy",
+            "../tasks/benchmarks/new_ruse/full_oop/graph.sy",
+            "../tasks/benchmarks/new_ruse/full_oop/user_names_aliasing.sy",
+            "../tasks/benchmarks/new_ruse/full_oop/user_names_connected.sy",
+            "../tasks/benchmarks/new_ruse/full_oop/user_names.sy",
+            "../tasks/benchmarks/new_ruse/full_oop/set_subtree.sy",
+            "../tasks/benchmarks/new_ruse/full_oop/user_names_simple.sy",
+            "../tasks/benchmarks/new_ruse/simple/x_y_mut_inc.sy",
+            "../tasks/benchmarks/new_ruse/simple/seq.sy",
+            "../tasks/benchmarks/fromSobeq/may/sobeq-new/FirstAndLast.sy",
+            "../tasks/benchmarks/fromSobeq/may/FrAngel/IsAllPositive.sy",
+            "../tasks/benchmarks/fromFrangel/other/abcd.sy",
+            "../tasks/benchmarks/fromFrangel/other/abc.sy",
+            "../tasks/benchmarks/fromFrangel/other/ab.sy",
+            "../tasks/benchmarks/fromSobeq/must/sobeq-new/MoveFromAToB.sy",
+            "../tasks/benchmarks/fromSobeq/may/probe/count-total-words-in-a-cellmodified.sy",
+            "../tasks/benchmarks/fromSobeq/may/sobeq-new/NegativeIndex.sy"
+        ]
+    },
+    "tasks": [
+        {
+            "path": "../tasks/benchmarks/new_ruse/full_oop/graph_cycle.sy",
+            "source": null,
+            "category": "Full OOP:Without Side Effects",
+            "opcode_count": 1176,
+            "string_literals": [
+                " ",
+                ""
+            ],
+            "num_literals": [
+                0,
+                1
+            ],
+            "iterations": [
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 1434524
+                    },
+                    "statistics": {
+                        "Evaluated": 7,
+                        "BankSize": 7,
+                        "FoundContextCount": 2,
+                        "MaxMutatingOpcodes": 0,
+                        "MaxDepth": 1,
+                        "MaxSize": 1
+                    }
+                },
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 135674125
+                    },
+                    "statistics": {
+                        "Evaluated": 521,
+                        "BankSize": 29,
+                        "FoundContextCount": 3,
+                        "MaxMutatingOpcodes": 1,
+                        "MaxDepth": 2,
+                        "MaxSize": 4
+                    }
+                },
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 619659701
+                    },
+                    "statistics": {
+                        "Evaluated": 17497,
+                        "BankSize": 409,
+                        "FoundContextCount": 51,
+                        "MaxMutatingOpcodes": 1,
+                        "MaxDepth": 3,
+                        "MaxSize": 10
+                    }
+                },
+                {
+                    "time": {
+                        "secs": 41,
+                        "nanos": 696024791
+                    },
+                    "statistics": {
+                        "Evaluated": 1363,
+                        "BankSize": 361,
+                        "FoundContextCount": 3,
+                        "MaxMutatingOpcodes": 1,
+                        "MaxDepth": 4,
+                        "MaxSize": 11
+                    }
+                }
+            ],
+            "iteration_count": 4,
+            "found": {
+                "found": "graph2.value / ((1 + 1) / graph2.value)",
+                "num_mutations": 0,
+                "solution_size": 9,
+                "solution_depth": 4
+            },
+            "total_time": {
+                "secs": 42,
+                "nanos": 453200156
+            },
+            "total_statistics": {
+                "Evaluated": 18860,
+                "BankSize": 770,
+                "FoundContextCount": 54,
+                "MaxMutatingOpcodes": 1,
+                "MaxDepth": 4,
+                "MaxSize": 11
+            },
+            "max_vm_usage": "225.97632 MB",
+            "error": null,
+            "start_context": {
+                "graph_statistics": [
+                    {
+                        "node_count": 6,
+                        "edge_count": 6,
+                        "primitive_fields": 3
+                    }
+                ],
+                "variables": [
+                    {
+                        "name": "graph1",
+                        "value_type": "GraphNode",
+                        "partial_ctx_graph": [
+                            {
+                                "node_count": 6,
+                                "edge_count": 6,
+                                "primitive_fields": 3
+                            }
+                        ]
+                    },
+                    {
+                        "name": "graph2",
+                        "value_type": "GraphNode",
+                        "partial_ctx_graph": [
+                            {
+                                "node_count": 6,
+                                "edge_count": 6,
+                                "primitive_fields": 3
+                            }
+                        ]
+                    },
+                    {
+                        "name": "graph3",
+                        "value_type": "GraphNode",
+                        "partial_ctx_graph": [
+                            {
+                                "node_count": 6,
+                                "edge_count": 6,
+                                "primitive_fields": 3
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "path": "../tasks/benchmarks/new_ruse/full_oop/set_subtree.sy",
+            "source": null,
+            "category": "Full OOP:With Side Effects",
+            "opcode_count": 1181,
+            "string_literals": [
+                " ",
+                ""
+            ],
+            "num_literals": [
+                0,
+                1
+            ],
+            "iterations": [
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 3246257
+                    },
+                    "statistics": {
+                        "Evaluated": 6,
+                        "BankSize": 6,
+                        "FoundContextCount": 4,
+                        "MaxMutatingOpcodes": 0,
+                        "MaxDepth": 1,
+                        "MaxSize": 1
+                    }
+                },
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 103129328
+                    },
+                    "statistics": {
+                        "Evaluated": 432,
+                        "BankSize": 50,
+                        "FoundContextCount": 10,
+                        "MaxMutatingOpcodes": 1,
+                        "MaxDepth": 2,
+                        "MaxSize": 4
+                    }
+                },
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 646171052
+                    },
+                    "statistics": {
+                        "Evaluated": 4192,
+                        "BankSize": 506,
+                        "FoundContextCount": 4,
+                        "MaxMutatingOpcodes": 1,
+                        "MaxDepth": 3,
+                        "MaxSize": 9
+                    }
+                }
+            ],
+            "iteration_count": 3,
+            "found": {
+                "found": "tree1.right = tree2, tree2.inc_value()",
+                "num_mutations": 2,
+                "solution_size": 6,
+                "solution_depth": 3
+            },
+            "total_time": {
+                "secs": 0,
+                "nanos": 752864549
+            },
+            "total_statistics": {
+                "Evaluated": 4624,
+                "BankSize": 556,
+                "FoundContextCount": 14,
+                "MaxMutatingOpcodes": 1,
+                "MaxDepth": 3,
+                "MaxSize": 9
+            },
+            "max_vm_usage": "35.241984 MB",
+            "error": null,
+            "start_context": {
+                "graph_statistics": [
+                    {
+                        "node_count": 6,
+                        "edge_count": 4,
+                        "primitive_fields": 18
+                    }
+                ],
+                "variables": [
+                    {
+                        "name": "tree1",
+                        "value_type": "BinaryTree",
+                        "partial_ctx_graph": [
+                            {
+                                "node_count": 3,
+                                "edge_count": 2,
+                                "primitive_fields": 9
+                            }
+                        ]
+                    },
+                    {
+                        "name": "tree2",
+                        "value_type": "BinaryTree",
+                        "partial_ctx_graph": [
+                            {
+                                "node_count": 3,
+                                "edge_count": 2,
+                                "primitive_fields": 9
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "path": "../tasks/benchmarks/fromSobeq/may/FrAngel/IsAllPositive.sy",
+            "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/controlstructures/IsAllPositive.java",
+            "category": "Primitive Objects:With Side Effects",
+            "opcode_count": 879,
+            "string_literals": [
+                " ",
+                ""
+            ],
+            "num_literals": [
+                0,
+                1
+            ],
+            "iterations": [
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 409108
+                    },
+                    "statistics": {
+                        "Evaluated": 5,
+                        "BankSize": 5,
+                        "FoundContextCount": 2,
+                        "MaxMutatingOpcodes": 0,
+                        "MaxDepth": 1,
+                        "MaxSize": 1
+                    }
+                },
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 87230195
+                    },
+                    "statistics": {
+                        "Evaluated": 320,
+                        "BankSize": 41,
+                        "FoundContextCount": 9,
+                        "MaxMutatingOpcodes": 1,
+                        "MaxDepth": 2,
+                        "MaxSize": 4
+                    }
+                },
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 274799030
+                    },
+                    "statistics": {
+                        "Evaluated": 44497,
+                        "BankSize": 2998,
+                        "FoundContextCount": 131,
+                        "MaxMutatingOpcodes": 2,
+                        "MaxDepth": 3,
+                        "MaxSize": 11
+                    }
+                },
+                {
+                    "time": {
+                        "secs": 721,
+                        "nanos": 847320088
+                    },
+                    "statistics": {
+                        "Evaluated": 3704,
+                        "BankSize": 1565,
+                        "FoundContextCount": 9,
+                        "MaxMutatingOpcodes": 3,
+                        "MaxDepth": 4,
+                        "MaxSize": 11
+                    }
+                }
+            ],
+            "iteration_count": 4,
+            "found": {
+                "found": "0 < arr.sort((a, b)=>a - b).shift()",
+                "num_mutations": 2,
+                "solution_size": 5,
+                "solution_depth": 4
+            },
+            "total_time": {
+                "secs": 722,
+                "nanos": 210241725
+            },
+            "total_statistics": {
+                "Evaluated": 48201,
+                "BankSize": 4563,
+                "FoundContextCount": 140,
+                "MaxMutatingOpcodes": 3,
+                "MaxDepth": 4,
+                "MaxSize": 11
+            },
+            "max_vm_usage": "248.676352 MB",
+            "error": null,
+            "start_context": {
+                "graph_statistics": [
+                    {
+                        "node_count": 1,
+                        "edge_count": 0,
+                        "primitive_fields": 7
+                    },
+                    {
+                        "node_count": 1,
+                        "edge_count": 0,
+                        "primitive_fields": 7
+                    },
+                    {
+                        "node_count": 1,
+                        "edge_count": 0,
+                        "primitive_fields": 1
+                    }
+                ],
+                "variables": [
+                    {
+                        "name": "arr",
+                        "value_type": "Array<Number>",
+                        "partial_ctx_graph": [
+                            {
+                                "node_count": 1,
+                                "edge_count": 0,
+                                "primitive_fields": 7
+                            },
+                            {
+                                "node_count": 1,
+                                "edge_count": 0,
+                                "primitive_fields": 7
+                            },
+                            {
+                                "node_count": 1,
+                                "edge_count": 0,
+                                "primitive_fields": 1
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "path": "../tasks/benchmarks/fromFrangel/other/abcd.sy",
+            "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/other/ABCD.java",
+            "category": "Primitive:Without Side Effects",
+            "opcode_count": 882,
+            "string_literals": [
+                " ",
+                ""
+            ],
+            "num_literals": [
+                0,
+                1
+            ],
+            "iterations": [
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 531602
+                    },
+                    "statistics": {
+                        "Evaluated": 8,
+                        "BankSize": 8,
+                        "FoundContextCount": 6,
+                        "MaxMutatingOpcodes": 0,
+                        "MaxDepth": 1,
+                        "MaxSize": 1
+                    }
+                },
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 65625937
+                    },
+                    "statistics": {
+                        "Evaluated": 1136,
+                        "BankSize": 152,
+                        "FoundContextCount": 6,
+                        "MaxMutatingOpcodes": 0,
+                        "MaxDepth": 2,
+                        "MaxSize": 4
+                    }
+                },
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 418237846
+                    },
+                    "statistics": {
+                        "Evaluated": 7769,
+                        "BankSize": 1290,
+                        "FoundContextCount": 6,
+                        "MaxMutatingOpcodes": 0,
+                        "MaxDepth": 3,
+                        "MaxSize": 9
+                    }
+                }
+            ],
+            "iteration_count": 3,
+            "found": {
+                "found": "(a + b) + (c + d)",
+                "num_mutations": 0,
+                "solution_size": 7,
+                "solution_depth": 3
+            },
+            "total_time": {
+                "secs": 0,
+                "nanos": 484842222
+            },
+            "total_statistics": {
+                "Evaluated": 8905,
+                "BankSize": 1442,
+                "FoundContextCount": 12,
+                "MaxMutatingOpcodes": 0,
+                "MaxDepth": 3,
+                "MaxSize": 9
+            },
+            "max_vm_usage": "26.84928 MB",
+            "error": null,
+            "start_context": {
+                "graph_statistics": [
+                    {
+                        "node_count": 0,
+                        "edge_count": 0,
+                        "primitive_fields": 0
+                    }
+                ],
+                "variables": [
+                    {
+                        "name": "a",
+                        "value_type": "String",
+                        "partial_ctx_graph": [
+                            {
+                                "node_count": 0,
+                                "edge_count": 0,
+                                "primitive_fields": 0
+                            }
+                        ]
+                    },
+                    {
+                        "name": "b",
+                        "value_type": "String",
+                        "partial_ctx_graph": [
+                            {
+                                "node_count": 0,
+                                "edge_count": 0,
+                                "primitive_fields": 0
+                            }
+                        ]
+                    },
+                    {
+                        "name": "c",
+                        "value_type": "String",
+                        "partial_ctx_graph": [
+                            {
+                                "node_count": 0,
+                                "edge_count": 0,
+                                "primitive_fields": 0
+                            }
+                        ]
+                    },
+                    {
+                        "name": "d",
+                        "value_type": "String",
+                        "partial_ctx_graph": [
+                            {
+                                "node_count": 0,
+                                "edge_count": 0,
+                                "primitive_fields": 0
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "path": "../tasks/benchmarks/fromSobeq/may/probe/count-total-words-in-a-cellmodified.sy",
+            "source": "https=//exceljet.net/formula/count-total-words-in-a-cell",
+            "category": "Primitive:Without Side Effects",
+            "opcode_count": 879,
+            "string_literals": [
+                " ",
+                ""
+            ],
+            "num_literals": [
+                0,
+                1
+            ],
+            "iterations": [
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 463064
+                    },
+                    "statistics": {
+                        "Evaluated": 5,
+                        "BankSize": 5,
+                        "FoundContextCount": 2,
+                        "MaxMutatingOpcodes": 0,
+                        "MaxDepth": 1,
+                        "MaxSize": 1
+                    }
+                },
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 67874978
+                    },
+                    "statistics": {
+                        "Evaluated": 305,
+                        "BankSize": 26,
+                        "FoundContextCount": 0,
+                        "MaxMutatingOpcodes": 0,
+                        "MaxDepth": 2,
+                        "MaxSize": 4
+                    }
+                },
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 53372799
+                    },
+                    "statistics": {
+                        "Evaluated": 2468,
+                        "BankSize": 335,
+                        "FoundContextCount": 2,
+                        "MaxMutatingOpcodes": 0,
+                        "MaxDepth": 3,
+                        "MaxSize": 9
+                    }
+                }
+            ],
+            "iteration_count": 3,
+            "found": {
+                "found": "_arg_0.split(\" \").length",
+                "num_mutations": 0,
+                "solution_size": 4,
+                "solution_depth": 3
+            },
+            "total_time": {
+                "secs": 0,
+                "nanos": 122009952
+            },
+            "total_statistics": {
+                "Evaluated": 2773,
+                "BankSize": 361,
+                "FoundContextCount": 2,
+                "MaxMutatingOpcodes": 0,
+                "MaxDepth": 3,
+                "MaxSize": 9
+            },
+            "max_vm_usage": "28.942336 MB",
+            "error": null,
+            "start_context": {
+                "graph_statistics": [
+                    {
+                        "node_count": 0,
+                        "edge_count": 0,
+                        "primitive_fields": 0
+                    },
+                    {
+                        "node_count": 0,
+                        "edge_count": 0,
+                        "primitive_fields": 0
+                    },
+                    {
+                        "node_count": 0,
+                        "edge_count": 0,
+                        "primitive_fields": 0
+                    }
+                ],
+                "variables": [
+                    {
+                        "name": "_arg_0",
+                        "value_type": "String",
+                        "partial_ctx_graph": [
+                            {
+                                "node_count": 0,
+                                "edge_count": 0,
+                                "primitive_fields": 0
+                            },
+                            {
+                                "node_count": 0,
+                                "edge_count": 0,
+                                "primitive_fields": 0
+                            },
+                            {
+                                "node_count": 0,
+                                "edge_count": 0,
+                                "primitive_fields": 0
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "path": "../tasks/benchmarks/new_ruse/simple/seq.sy",
+            "source": null,
+            "category": "Primitive Objects:With Side Effects",
+            "opcode_count": 880,
+            "string_literals": [
+                " ",
+                ""
+            ],
+            "num_literals": [
+                0,
+                1
+            ],
+            "iterations": [
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 480692
+                    },
+                    "statistics": {
+                        "Evaluated": 6,
+                        "BankSize": 6,
+                        "FoundContextCount": 4,
+                        "MaxMutatingOpcodes": 0,
+                        "MaxDepth": 1,
+                        "MaxSize": 1
+                    }
+                },
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 67531407
+                    },
+                    "statistics": {
+                        "Evaluated": 499,
+                        "BankSize": 40,
+                        "FoundContextCount": 8,
+                        "MaxMutatingOpcodes": 1,
+                        "MaxDepth": 2,
+                        "MaxSize": 4
+                    }
+                },
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 92726096
+                    },
+                    "statistics": {
+                        "Evaluated": 4360,
+                        "BankSize": 1561,
+                        "FoundContextCount": 4,
+                        "MaxMutatingOpcodes": 2,
+                        "MaxDepth": 3,
+                        "MaxSize": 7
+                    }
+                }
+            ],
+            "iteration_count": 3,
+            "found": {
+                "found": "x.push(y), x",
+                "num_mutations": 1,
+                "solution_size": 5,
+                "solution_depth": 3
+            },
+            "total_time": {
+                "secs": 0,
+                "nanos": 161249428
+            },
+            "total_statistics": {
+                "Evaluated": 4859,
+                "BankSize": 1601,
+                "FoundContextCount": 12,
+                "MaxMutatingOpcodes": 2,
+                "MaxDepth": 3,
+                "MaxSize": 7
+            },
+            "max_vm_usage": "31.227904 MB",
+            "error": null,
+            "start_context": {
+                "graph_statistics": [
+                    {
+                        "node_count": 1,
+                        "edge_count": 0,
+                        "primitive_fields": 1
+                    },
+                    {
+                        "node_count": 1,
+                        "edge_count": 0,
+                        "primitive_fields": 1
+                    }
+                ],
+                "variables": [
+                    {
+                        "name": "x",
+                        "value_type": "Array<Number>",
+                        "partial_ctx_graph": [
+                            {
+                                "node_count": 1,
+                                "edge_count": 0,
+                                "primitive_fields": 1
+                            },
+                            {
+                                "node_count": 1,
+                                "edge_count": 0,
+                                "primitive_fields": 1
+                            }
+                        ]
+                    },
+                    {
+                        "name": "y",
+                        "value_type": "Number",
+                        "partial_ctx_graph": [
+                            {
+                                "node_count": 0,
+                                "edge_count": 0,
+                                "primitive_fields": 0
+                            },
+                            {
+                                "node_count": 0,
+                                "edge_count": 0,
+                                "primitive_fields": 0
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "path": "../tasks/benchmarks/fromFrangel/other/abc.sy",
+            "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/other/ABC.java",
+            "category": "Primitive:Without Side Effects",
+            "opcode_count": 881,
+            "string_literals": [
+                " ",
+                ""
+            ],
+            "num_literals": [
+                0,
+                1
+            ],
+            "iterations": [
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 534148
+                    },
+                    "statistics": {
+                        "Evaluated": 7,
+                        "BankSize": 7,
+                        "FoundContextCount": 5,
+                        "MaxMutatingOpcodes": 0,
+                        "MaxDepth": 1,
+                        "MaxSize": 1
+                    }
+                },
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 74792272
+                    },
+                    "statistics": {
+                        "Evaluated": 773,
+                        "BankSize": 101,
+                        "FoundContextCount": 3,
+                        "MaxMutatingOpcodes": 0,
+                        "MaxDepth": 2,
+                        "MaxSize": 4
+                    }
+                },
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 255394392
+                    },
+                    "statistics": {
+                        "Evaluated": 2159,
+                        "BankSize": 288,
+                        "FoundContextCount": 5,
+                        "MaxMutatingOpcodes": 0,
+                        "MaxDepth": 3,
+                        "MaxSize": 8
+                    }
+                }
+            ],
+            "iteration_count": 3,
+            "found": {
+                "found": "(a + b) + c",
+                "num_mutations": 0,
+                "solution_size": 5,
+                "solution_depth": 3
+            },
+            "total_time": {
+                "secs": 0,
+                "nanos": 331223797
+            },
+            "total_statistics": {
+                "Evaluated": 2932,
+                "BankSize": 389,
+                "FoundContextCount": 8,
+                "MaxMutatingOpcodes": 0,
+                "MaxDepth": 3,
+                "MaxSize": 8
+            },
+            "max_vm_usage": "26.84928 MB",
+            "error": null,
+            "start_context": {
+                "graph_statistics": [
+                    {
+                        "node_count": 0,
+                        "edge_count": 0,
+                        "primitive_fields": 0
+                    }
+                ],
+                "variables": [
+                    {
+                        "name": "a",
+                        "value_type": "String",
+                        "partial_ctx_graph": [
+                            {
+                                "node_count": 0,
+                                "edge_count": 0,
+                                "primitive_fields": 0
+                            }
+                        ]
+                    },
+                    {
+                        "name": "b",
+                        "value_type": "String",
+                        "partial_ctx_graph": [
+                            {
+                                "node_count": 0,
+                                "edge_count": 0,
+                                "primitive_fields": 0
+                            }
+                        ]
+                    },
+                    {
+                        "name": "c",
+                        "value_type": "String",
+                        "partial_ctx_graph": [
+                            {
+                                "node_count": 0,
+                                "edge_count": 0,
+                                "primitive_fields": 0
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "path": "../tasks/benchmarks/new_ruse/full_oop/user_names_aliasing.sy",
+            "source": null,
+            "category": "Full OOP:Without Side Effects",
+            "opcode_count": 1177,
+            "string_literals": [
+                " ",
+                ", ",
+                ""
+            ],
+            "num_literals": [
+                0,
+                1
+            ],
+            "iterations": [
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 981143
+                    },
+                    "statistics": {
+                        "Evaluated": 9,
+                        "BankSize": 7,
+                        "FoundContextCount": 4,
+                        "MaxMutatingOpcodes": 0,
+                        "MaxDepth": 1,
+                        "MaxSize": 1
+                    }
+                },
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 88608213
+                    },
+                    "statistics": {
+                        "Evaluated": 560,
+                        "BankSize": 34,
+                        "FoundContextCount": 0,
+                        "MaxMutatingOpcodes": 0,
+                        "MaxDepth": 2,
+                        "MaxSize": 4
+                    }
+                },
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 358941402
+                    },
+                    "statistics": {
+                        "Evaluated": 69557,
+                        "BankSize": 2159,
+                        "FoundContextCount": 76,
+                        "MaxMutatingOpcodes": 1,
+                        "MaxDepth": 3,
+                        "MaxSize": 13
+                    }
+                },
+                {
+                    "time": {
+                        "secs": 1838,
+                        "nanos": 242756571
+                    },
+                    "statistics": {
+                        "Evaluated": 793832,
+                        "BankSize": 212946,
+                        "FoundContextCount": 0,
+                        "MaxMutatingOpcodes": 1,
+                        "MaxDepth": 4,
+                        "MaxSize": 26
+                    }
+                }
+            ],
+            "iteration_count": 4,
+            "found": {
+                "found": "(a.name + \"\") + (\", \" + b.name)",
+                "num_mutations": 0,
+                "solution_size": 9,
+                "solution_depth": 4
+            },
+            "total_time": {
+                "secs": 1838,
+                "nanos": 691714235
+            },
+            "total_statistics": {
+                "Evaluated": 863389,
+                "BankSize": 215105,
+                "FoundContextCount": 76,
+                "MaxMutatingOpcodes": 1,
+                "MaxDepth": 4,
+                "MaxSize": 26
+            },
+            "max_vm_usage": "1.840406528 GB",
+            "error": null,
+            "start_context": {
+                "graph_statistics": [
+                    {
+                        "node_count": 2,
+                        "edge_count": 0,
+                        "primitive_fields": 4
+                    },
+                    {
+                        "node_count": 2,
+                        "edge_count": 0,
+                        "primitive_fields": 4
+                    }
+                ],
+                "variables": [
+                    {
+                        "name": "a",
+                        "value_type": "User",
+                        "partial_ctx_graph": [
+                            {
+                                "node_count": 1,
+                                "edge_count": 0,
+                                "primitive_fields": 2
+                            },
+                            {
+                                "node_count": 1,
+                                "edge_count": 0,
+                                "primitive_fields": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "a_1",
+                        "value_type": "User",
+                        "partial_ctx_graph": [
+                            {
+                                "node_count": 1,
+                                "edge_count": 0,
+                                "primitive_fields": 2
+                            },
+                            {
+                                "node_count": 1,
+                                "edge_count": 0,
+                                "primitive_fields": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "b",
+                        "value_type": "User",
+                        "partial_ctx_graph": [
+                            {
+                                "node_count": 1,
+                                "edge_count": 0,
+                                "primitive_fields": 2
+                            },
+                            {
+                                "node_count": 1,
+                                "edge_count": 0,
+                                "primitive_fields": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "b_1",
+                        "value_type": "User",
+                        "partial_ctx_graph": [
+                            {
+                                "node_count": 1,
+                                "edge_count": 0,
+                                "primitive_fields": 2
+                            },
+                            {
+                                "node_count": 1,
+                                "edge_count": 0,
+                                "primitive_fields": 2
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "path": "../tasks/benchmarks/new_ruse/full_oop/user_names.sy",
+            "source": null,
+            "category": "Full OOP:Without Side Effects",
+            "opcode_count": 1529,
+            "string_literals": [
+                " ",
+                ", ",
+                ""
+            ],
+            "num_literals": [
+                0,
+                1
+            ],
+            "iterations": [
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 532539
+                    },
+                    "statistics": {
+                        "Evaluated": 8,
+                        "BankSize": 8,
+                        "FoundContextCount": 5,
+                        "MaxMutatingOpcodes": 0,
+                        "MaxDepth": 1,
+                        "MaxSize": 1
+                    }
+                },
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 126480254
+                    },
+                    "statistics": {
+                        "Evaluated": 744,
+                        "BankSize": 34,
+                        "FoundContextCount": 0,
+                        "MaxMutatingOpcodes": 0,
+                        "MaxDepth": 2,
+                        "MaxSize": 4
+                    }
+                },
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 626891506
+                    },
+                    "statistics": {
+                        "Evaluated": 74067,
+                        "BankSize": 2157,
+                        "FoundContextCount": 78,
+                        "MaxMutatingOpcodes": 1,
+                        "MaxDepth": 3,
+                        "MaxSize": 13
+                    }
+                },
+                {
+                    "time": {
+                        "secs": 1574,
+                        "nanos": 429610485
+                    },
+                    "statistics": {
+                        "Evaluated": 1404654,
+                        "BankSize": 392428,
+                        "FoundContextCount": 0,
+                        "MaxMutatingOpcodes": 1,
+                        "MaxDepth": 4,
+                        "MaxSize": 26
+                    }
+                }
+            ],
+            "iteration_count": 4,
+            "found": {
+                "found": "(\"\" + a.name) + (\", \" + b.name)",
+                "num_mutations": 0,
+                "solution_size": 9,
+                "solution_depth": 4
+            },
+            "total_time": {
+                "secs": 1575,
+                "nanos": 183934182
+            },
+            "total_statistics": {
+                "Evaluated": 1478721,
+                "BankSize": 394585,
+                "FoundContextCount": 78,
+                "MaxMutatingOpcodes": 1,
+                "MaxDepth": 4,
+                "MaxSize": 26
+            },
+            "max_vm_usage": "3.01983744 GB",
+            "error": null,
+            "start_context": {
+                "graph_statistics": [
+                    {
+                        "node_count": 6,
+                        "edge_count": 3,
+                        "primitive_fields": 8
+                    },
+                    {
+                        "node_count": 6,
+                        "edge_count": 3,
+                        "primitive_fields": 8
+                    }
+                ],
+                "variables": [
+                    {
+                        "name": "a",
+                        "value_type": "User",
+                        "partial_ctx_graph": [
+                            {
+                                "node_count": 1,
+                                "edge_count": 0,
+                                "primitive_fields": 2
+                            },
+                            {
+                                "node_count": 1,
+                                "edge_count": 0,
+                                "primitive_fields": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "b",
+                        "value_type": "User",
+                        "partial_ctx_graph": [
+                            {
+                                "node_count": 1,
+                                "edge_count": 0,
+                                "primitive_fields": 2
+                            },
+                            {
+                                "node_count": 1,
+                                "edge_count": 0,
+                                "primitive_fields": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "c",
+                        "value_type": "UserTuple",
+                        "partial_ctx_graph": [
+                            {
+                                "node_count": 4,
+                                "edge_count": 3,
+                                "primitive_fields": 4
+                            },
+                            {
+                                "node_count": 4,
+                                "edge_count": 3,
+                                "primitive_fields": 4
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "path": "../tasks/benchmarks/new_ruse/simple/x_y_mut_inc.sy",
+            "source": null,
+            "category": "Primitive:With Side Effects",
+            "opcode_count": 880,
+            "string_literals": [
+                " ",
+                ""
+            ],
+            "num_literals": [
+                0,
+                1
+            ],
+            "iterations": [
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 440505
+                    },
+                    "statistics": {
+                        "Evaluated": 6,
+                        "BankSize": 6,
+                        "FoundContextCount": 4,
+                        "MaxMutatingOpcodes": 0,
+                        "MaxDepth": 1,
+                        "MaxSize": 1
+                    }
+                },
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 69739462
+                    },
+                    "statistics": {
+                        "Evaluated": 530,
+                        "BankSize": 44,
+                        "FoundContextCount": 4,
+                        "MaxMutatingOpcodes": 1,
+                        "MaxDepth": 2,
+                        "MaxSize": 4
+                    }
+                },
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 66624259
+                    },
+                    "statistics": {
+                        "Evaluated": 332,
+                        "BankSize": 131,
+                        "FoundContextCount": 4,
+                        "MaxMutatingOpcodes": 2,
+                        "MaxDepth": 3,
+                        "MaxSize": 6
+                    }
+                }
+            ],
+            "iteration_count": 3,
+            "found": {
+                "found": "(++x) + (++y)",
+                "num_mutations": 2,
+                "solution_size": 5,
+                "solution_depth": 3
+            },
+            "total_time": {
+                "secs": 0,
+                "nanos": 137184233
+            },
+            "total_statistics": {
+                "Evaluated": 862,
+                "BankSize": 175,
+                "FoundContextCount": 8,
+                "MaxMutatingOpcodes": 2,
+                "MaxDepth": 3,
+                "MaxSize": 6
+            },
+            "max_vm_usage": "26.84928 MB",
+            "error": null,
+            "start_context": {
+                "graph_statistics": [
+                    {
+                        "node_count": 0,
+                        "edge_count": 0,
+                        "primitive_fields": 0
+                    },
+                    {
+                        "node_count": 0,
+                        "edge_count": 0,
+                        "primitive_fields": 0
+                    }
+                ],
+                "variables": [
+                    {
+                        "name": "x",
+                        "value_type": "Number",
+                        "partial_ctx_graph": [
+                            {
+                                "node_count": 0,
+                                "edge_count": 0,
+                                "primitive_fields": 0
+                            },
+                            {
+                                "node_count": 0,
+                                "edge_count": 0,
+                                "primitive_fields": 0
+                            }
+                        ]
+                    },
+                    {
+                        "name": "y",
+                        "value_type": "Number",
+                        "partial_ctx_graph": [
+                            {
+                                "node_count": 0,
+                                "edge_count": 0,
+                                "primitive_fields": 0
+                            },
+                            {
+                                "node_count": 0,
+                                "edge_count": 0,
+                                "primitive_fields": 0
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "path": "../tasks/benchmarks/fromSobeq/may/sobeq-new/FirstAndLast.sy",
+            "source": "https://github.com/peleghila/sobeq/blob/main/benchmarks/may/sobeq-new/FirstAndLast.sy",
+            "category": "Primitive Objects:With Side Effects",
+            "opcode_count": 879,
+            "string_literals": [
+                " ",
+                ""
+            ],
+            "num_literals": [
+                0,
+                1
+            ],
+            "iterations": [
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 376926
+                    },
+                    "statistics": {
+                        "Evaluated": 5,
+                        "BankSize": 5,
+                        "FoundContextCount": 2,
+                        "MaxMutatingOpcodes": 0,
+                        "MaxDepth": 1,
+                        "MaxSize": 1
+                    }
+                },
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 91506345
+                    },
+                    "statistics": {
+                        "Evaluated": 320,
+                        "BankSize": 42,
+                        "FoundContextCount": 9,
+                        "MaxMutatingOpcodes": 1,
+                        "MaxDepth": 2,
+                        "MaxSize": 4
+                    }
+                },
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 198114844
+                    },
+                    "statistics": {
+                        "Evaluated": 49112,
+                        "BankSize": 2547,
+                        "FoundContextCount": 78,
+                        "MaxMutatingOpcodes": 2,
+                        "MaxDepth": 3,
+                        "MaxSize": 11
+                    }
+                },
+                {
+                    "time": {
+                        "secs": 683,
+                        "nanos": 460619018
+                    },
+                    "statistics": {
+                        "Evaluated": 44561,
+                        "BankSize": 13949,
+                        "FoundContextCount": 9,
+                        "MaxMutatingOpcodes": 3,
+                        "MaxDepth": 4,
+                        "MaxSize": 14
+                    }
+                }
+            ],
+            "iteration_count": 4,
+            "found": {
+                "found": "names.splice(1, 1).push(\"\"), names.join(\" \")",
+                "num_mutations": 1,
+                "solution_size": 10,
+                "solution_depth": 4
+            },
+            "total_time": {
+                "secs": 683,
+                "nanos": 751171598
+            },
+            "total_statistics": {
+                "Evaluated": 93673,
+                "BankSize": 16496,
+                "FoundContextCount": 87,
+                "MaxMutatingOpcodes": 3,
+                "MaxDepth": 4,
+                "MaxSize": 14
+            },
+            "max_vm_usage": "235.76576 MB",
+            "error": null,
+            "start_context": {
+                "graph_statistics": [
+                    {
+                        "node_count": 1,
+                        "edge_count": 0,
+                        "primitive_fields": 3
+                    },
+                    {
+                        "node_count": 1,
+                        "edge_count": 0,
+                        "primitive_fields": 3
+                    },
+                    {
+                        "node_count": 1,
+                        "edge_count": 0,
+                        "primitive_fields": 3
+                    }
+                ],
+                "variables": [
+                    {
+                        "name": "names",
+                        "value_type": "Array<String>",
+                        "partial_ctx_graph": [
+                            {
+                                "node_count": 1,
+                                "edge_count": 0,
+                                "primitive_fields": 3
+                            },
+                            {
+                                "node_count": 1,
+                                "edge_count": 0,
+                                "primitive_fields": 3
+                            },
+                            {
+                                "node_count": 1,
+                                "edge_count": 0,
+                                "primitive_fields": 3
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "path": "../tasks/benchmarks/fromSobeq/may/sobeq-new/NegativeIndex.sy",
+            "source": "https://github.com/peleghila/sobeq/blob/main/benchmarks/may/sobeq-new/NegativeIndex.sy",
+            "category": "Primitive:Without Side Effects",
+            "opcode_count": 880,
+            "string_literals": [
+                " ",
+                ""
+            ],
+            "num_literals": [
+                0,
+                1
+            ],
+            "iterations": [
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 378371
+                    },
+                    "statistics": {
+                        "Evaluated": 6,
+                        "BankSize": 6,
+                        "FoundContextCount": 4,
+                        "MaxMutatingOpcodes": 0,
+                        "MaxDepth": 1,
+                        "MaxSize": 1
+                    }
+                },
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 76328844
+                    },
+                    "statistics": {
+                        "Evaluated": 494,
+                        "BankSize": 45,
+                        "FoundContextCount": 0,
+                        "MaxMutatingOpcodes": 0,
+                        "MaxDepth": 2,
+                        "MaxSize": 4
+                    }
+                },
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 197677090
+                    },
+                    "statistics": {
+                        "Evaluated": 37755,
+                        "BankSize": 2805,
+                        "FoundContextCount": 4,
+                        "MaxMutatingOpcodes": 0,
+                        "MaxDepth": 3,
+                        "MaxSize": 11
+                    }
+                }
+            ],
+            "iteration_count": 3,
+            "found": {
+                "found": "str.indexOf(char) - str.length",
+                "num_mutations": 0,
+                "solution_size": 6,
+                "solution_depth": 3
+            },
+            "total_time": {
+                "secs": 0,
+                "nanos": 274742976
+            },
+            "total_statistics": {
+                "Evaluated": 38249,
+                "BankSize": 2850,
+                "FoundContextCount": 4,
+                "MaxMutatingOpcodes": 0,
+                "MaxDepth": 3,
+                "MaxSize": 11
+            },
+            "max_vm_usage": "28.942336 MB",
+            "error": null,
+            "start_context": {
+                "graph_statistics": [
+                    {
+                        "node_count": 0,
+                        "edge_count": 0,
+                        "primitive_fields": 0
+                    },
+                    {
+                        "node_count": 0,
+                        "edge_count": 0,
+                        "primitive_fields": 0
+                    }
+                ],
+                "variables": [
+                    {
+                        "name": "char",
+                        "value_type": "String",
+                        "partial_ctx_graph": [
+                            {
+                                "node_count": 0,
+                                "edge_count": 0,
+                                "primitive_fields": 0
+                            },
+                            {
+                                "node_count": 0,
+                                "edge_count": 0,
+                                "primitive_fields": 0
+                            }
+                        ]
+                    },
+                    {
+                        "name": "str",
+                        "value_type": "String",
+                        "partial_ctx_graph": [
+                            {
+                                "node_count": 0,
+                                "edge_count": 0,
+                                "primitive_fields": 0
+                            },
+                            {
+                                "node_count": 0,
+                                "edge_count": 0,
+                                "primitive_fields": 0
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "path": "../tasks/benchmarks/new_ruse/full_oop/binary_search_tree_unlink_leaf.sy",
+            "source": null,
+            "category": "Full OOP:With Side Effects",
+            "opcode_count": 1182,
+            "string_literals": [
+                " ",
+                ""
+            ],
+            "num_literals": [
+                0,
+                1
+            ],
+            "iterations": [
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 4498098
+                    },
+                    "statistics": {
+                        "Evaluated": 5,
+                        "BankSize": 5,
+                        "FoundContextCount": 2,
+                        "MaxMutatingOpcodes": 0,
+                        "MaxDepth": 1,
+                        "MaxSize": 1
+                    }
+                },
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 86927883
+                    },
+                    "statistics": {
+                        "Evaluated": 271,
+                        "BankSize": 21,
+                        "FoundContextCount": 2,
+                        "MaxMutatingOpcodes": 1,
+                        "MaxDepth": 2,
+                        "MaxSize": 4
+                    }
+                },
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 118382193
+                    },
+                    "statistics": {
+                        "Evaluated": 968,
+                        "BankSize": 80,
+                        "FoundContextCount": 2,
+                        "MaxMutatingOpcodes": 2,
+                        "MaxDepth": 3,
+                        "MaxSize": 9
+                    }
+                }
+            ],
+            "iteration_count": 3,
+            "found": {
+                "found": "tree.right.unlink_leaf()",
+                "num_mutations": 1,
+                "solution_size": 3,
+                "solution_depth": 3
+            },
+            "total_time": {
+                "secs": 0,
+                "nanos": 210138497
+            },
+            "total_statistics": {
+                "Evaluated": 1239,
+                "BankSize": 101,
+                "FoundContextCount": 4,
+                "MaxMutatingOpcodes": 2,
+                "MaxDepth": 3,
+                "MaxSize": 9
+            },
+            "max_vm_usage": "37.43744 MB",
+            "error": null,
+            "start_context": {
+                "graph_statistics": [
+                    {
+                        "node_count": 2,
+                        "edge_count": 2,
+                        "primitive_fields": 7
+                    }
+                ],
+                "variables": [
+                    {
+                        "name": "tree",
+                        "value_type": "BinarySearchTreeNode",
+                        "partial_ctx_graph": [
+                            {
+                                "node_count": 2,
+                                "edge_count": 2,
+                                "primitive_fields": 7
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "path": "../tasks/benchmarks/fromSobeq/must/sobeq-new/MoveFromAToB.sy",
+            "source": "https://github.com/peleghila/sobeq/blob/main/benchmarks/must/sobeq-new/MoveFromAToB.sy",
+            "category": "Primitive Objects:With Side Effects",
+            "opcode_count": 880,
+            "string_literals": [
+                " ",
+                ""
+            ],
+            "num_literals": [
+                0,
+                1
+            ],
+            "iterations": [
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 550054
+                    },
+                    "statistics": {
+                        "Evaluated": 6,
+                        "BankSize": 6,
+                        "FoundContextCount": 4,
+                        "MaxMutatingOpcodes": 0,
+                        "MaxDepth": 1,
+                        "MaxSize": 1
+                    }
+                },
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 76443639
+                    },
+                    "statistics": {
+                        "Evaluated": 463,
+                        "BankSize": 55,
+                        "FoundContextCount": 11,
+                        "MaxMutatingOpcodes": 1,
+                        "MaxDepth": 2,
+                        "MaxSize": 4
+                    }
+                },
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 140449449
+                    },
+                    "statistics": {
+                        "Evaluated": 3436,
+                        "BankSize": 971,
+                        "FoundContextCount": 4,
+                        "MaxMutatingOpcodes": 3,
+                        "MaxDepth": 3,
+                        "MaxSize": 8
+                    }
+                }
+            ],
+            "iteration_count": 3,
+            "found": {
+                "found": "b.push(a.pop())",
+                "num_mutations": 2,
+                "solution_size": 4,
+                "solution_depth": 3
+            },
+            "total_time": {
+                "secs": 0,
+                "nanos": 217808060
+            },
+            "total_statistics": {
+                "Evaluated": 3899,
+                "BankSize": 1026,
+                "FoundContextCount": 15,
+                "MaxMutatingOpcodes": 3,
+                "MaxDepth": 3,
+                "MaxSize": 8
+            },
+            "max_vm_usage": "29.073408 MB",
+            "error": null,
+            "start_context": {
+                "graph_statistics": [
+                    {
+                        "node_count": 2,
+                        "edge_count": 0,
+                        "primitive_fields": 3
+                    },
+                    {
+                        "node_count": 2,
+                        "edge_count": 0,
+                        "primitive_fields": 3
+                    }
+                ],
+                "variables": [
+                    {
+                        "name": "a",
+                        "value_type": "Array<String>",
+                        "partial_ctx_graph": [
+                            {
+                                "node_count": 1,
+                                "edge_count": 0,
+                                "primitive_fields": 3
+                            },
+                            {
+                                "node_count": 1,
+                                "edge_count": 0,
+                                "primitive_fields": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "b",
+                        "value_type": "Array<String>",
+                        "partial_ctx_graph": [
+                            {
+                                "node_count": 1,
+                                "edge_count": 0,
+                                "primitive_fields": 0
+                            },
+                            {
+                                "node_count": 1,
+                                "edge_count": 0,
+                                "primitive_fields": 1
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "path": "../tasks/benchmarks/new_ruse/full_oop/graph_one_way_connected.sy",
+            "source": null,
+            "category": "Full OOP:Without Side Effects",
+            "opcode_count": 1176,
+            "string_literals": [
+                " ",
+                ""
+            ],
+            "num_literals": [
+                0,
+                1
+            ],
+            "iterations": [
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 1148418
+                    },
+                    "statistics": {
+                        "Evaluated": 7,
+                        "BankSize": 7,
+                        "FoundContextCount": 4,
+                        "MaxMutatingOpcodes": 0,
+                        "MaxDepth": 1,
+                        "MaxSize": 1
+                    }
+                },
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 117933585
+                    },
+                    "statistics": {
+                        "Evaluated": 518,
+                        "BankSize": 24,
+                        "FoundContextCount": 3,
+                        "MaxMutatingOpcodes": 1,
+                        "MaxDepth": 2,
+                        "MaxSize": 4
+                    }
+                },
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 629933567
+                    },
+                    "statistics": {
+                        "Evaluated": 15852,
+                        "BankSize": 322,
+                        "FoundContextCount": 46,
+                        "MaxMutatingOpcodes": 1,
+                        "MaxDepth": 3,
+                        "MaxSize": 10
+                    }
+                },
+                {
+                    "time": {
+                        "secs": 32,
+                        "nanos": 216328744
+                    },
+                    "statistics": {
+                        "Evaluated": 1763,
+                        "BankSize": 445,
+                        "FoundContextCount": 3,
+                        "MaxMutatingOpcodes": 2,
+                        "MaxDepth": 4,
+                        "MaxSize": 12
+                    }
+                }
+            ],
+            "iteration_count": 4,
+            "found": {
+                "found": "(++graph1.value) / ((1 + 1) / graph2.value)",
+                "num_mutations": 1,
+                "solution_size": 10,
+                "solution_depth": 4
+            },
+            "total_time": {
+                "secs": 32,
+                "nanos": 965842574
+            },
+            "total_statistics": {
+                "Evaluated": 17615,
+                "BankSize": 767,
+                "FoundContextCount": 49,
+                "MaxMutatingOpcodes": 2,
+                "MaxDepth": 4,
+                "MaxSize": 12
+            },
+            "max_vm_usage": "192.90112 MB",
+            "error": null,
+            "start_context": {
+                "graph_statistics": [
+                    {
+                        "node_count": 8,
+                        "edge_count": 7,
+                        "primitive_fields": 4
+                    }
+                ],
+                "variables": [
+                    {
+                        "name": "graph1",
+                        "value_type": "GraphNode",
+                        "partial_ctx_graph": [
+                            {
+                                "node_count": 6,
+                                "edge_count": 5,
+                                "primitive_fields": 3
+                            }
+                        ]
+                    },
+                    {
+                        "name": "graph2",
+                        "value_type": "GraphNode",
+                        "partial_ctx_graph": [
+                            {
+                                "node_count": 4,
+                                "edge_count": 3,
+                                "primitive_fields": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "graph3",
+                        "value_type": "GraphNode",
+                        "partial_ctx_graph": [
+                            {
+                                "node_count": 8,
+                                "edge_count": 7,
+                                "primitive_fields": 4
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "path": "../tasks/benchmarks/new_ruse/full_oop/user_names_connected.sy",
+            "source": null,
+            "category": "Full OOP:Without Side Effects",
+            "opcode_count": 1529,
+            "string_literals": [
+                " ",
+                ", ",
+                ""
+            ],
+            "num_literals": [
+                0,
+                1
+            ],
+            "iterations": [
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 548840
+                    },
+                    "statistics": {
+                        "Evaluated": 8,
+                        "BankSize": 8,
+                        "FoundContextCount": 4,
+                        "MaxMutatingOpcodes": 0,
+                        "MaxDepth": 1,
+                        "MaxSize": 1
+                    }
+                },
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 127539472
+                    },
+                    "statistics": {
+                        "Evaluated": 744,
+                        "BankSize": 34,
+                        "FoundContextCount": 0,
+                        "MaxMutatingOpcodes": 0,
+                        "MaxDepth": 2,
+                        "MaxSize": 4
+                    }
+                },
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 698530714
+                    },
+                    "statistics": {
+                        "Evaluated": 74067,
+                        "BankSize": 2157,
+                        "FoundContextCount": 77,
+                        "MaxMutatingOpcodes": 1,
+                        "MaxDepth": 3,
+                        "MaxSize": 13
+                    }
+                },
+                {
+                    "time": {
+                        "secs": 1542,
+                        "nanos": 22279595
+                    },
+                    "statistics": {
+                        "Evaluated": 1145150,
+                        "BankSize": 317757,
+                        "FoundContextCount": 0,
+                        "MaxMutatingOpcodes": 1,
+                        "MaxDepth": 4,
+                        "MaxSize": 26
+                    }
+                }
+            ],
+            "iteration_count": 4,
+            "found": {
+                "found": "a.name + (\", \" + b.name)",
+                "num_mutations": 0,
+                "solution_size": 7,
+                "solution_depth": 4
+            },
+            "total_time": {
+                "secs": 1542,
+                "nanos": 849267016
+            },
+            "total_statistics": {
+                "Evaluated": 1219217,
+                "BankSize": 319914,
+                "FoundContextCount": 77,
+                "MaxMutatingOpcodes": 1,
+                "MaxDepth": 4,
+                "MaxSize": 26
+            },
+            "max_vm_usage": "2.512523264 GB",
+            "error": null,
+            "start_context": {
+                "graph_statistics": [
+                    {
+                        "node_count": 4,
+                        "edge_count": 3,
+                        "primitive_fields": 4
+                    },
+                    {
+                        "node_count": 4,
+                        "edge_count": 3,
+                        "primitive_fields": 4
+                    }
+                ],
+                "variables": [
+                    {
+                        "name": "a",
+                        "value_type": "User",
+                        "partial_ctx_graph": [
+                            {
+                                "node_count": 1,
+                                "edge_count": 0,
+                                "primitive_fields": 2
+                            },
+                            {
+                                "node_count": 1,
+                                "edge_count": 0,
+                                "primitive_fields": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "b",
+                        "value_type": "User",
+                        "partial_ctx_graph": [
+                            {
+                                "node_count": 1,
+                                "edge_count": 0,
+                                "primitive_fields": 2
+                            },
+                            {
+                                "node_count": 1,
+                                "edge_count": 0,
+                                "primitive_fields": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "c",
+                        "value_type": "UserTuple",
+                        "partial_ctx_graph": [
+                            {
+                                "node_count": 4,
+                                "edge_count": 3,
+                                "primitive_fields": 4
+                            },
+                            {
+                                "node_count": 4,
+                                "edge_count": 3,
+                                "primitive_fields": 4
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "path": "../tasks/benchmarks/new_ruse/full_oop/graph.sy",
+            "source": null,
+            "category": "Full OOP:Without Side Effects",
+            "opcode_count": 1176,
+            "string_literals": [
+                " ",
+                ""
+            ],
+            "num_literals": [
+                0,
+                1
+            ],
+            "iterations": [
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 515741
+                    },
+                    "statistics": {
+                        "Evaluated": 7,
+                        "BankSize": 7,
+                        "FoundContextCount": 5,
+                        "MaxMutatingOpcodes": 0,
+                        "MaxDepth": 1,
+                        "MaxSize": 1
+                    }
+                },
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 101367633
+                    },
+                    "statistics": {
+                        "Evaluated": 515,
+                        "BankSize": 25,
+                        "FoundContextCount": 3,
+                        "MaxMutatingOpcodes": 1,
+                        "MaxDepth": 2,
+                        "MaxSize": 4
+                    }
+                },
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 531670647
+                    },
+                    "statistics": {
+                        "Evaluated": 19845,
+                        "BankSize": 335,
+                        "FoundContextCount": 62,
+                        "MaxMutatingOpcodes": 1,
+                        "MaxDepth": 3,
+                        "MaxSize": 10
+                    }
+                },
+                {
+                    "time": {
+                        "secs": 35,
+                        "nanos": 14327068
+                    },
+                    "statistics": {
+                        "Evaluated": 1057,
+                        "BankSize": 198,
+                        "FoundContextCount": 3,
+                        "MaxMutatingOpcodes": 2,
+                        "MaxDepth": 4,
+                        "MaxSize": 12
+                    }
+                }
+            ],
+            "iteration_count": 4,
+            "found": {
+                "found": "(0 + graph2.value) + (graph2.value + graph2.value)",
+                "num_mutations": 0,
+                "solution_size": 10,
+                "solution_depth": 4
+            },
+            "total_time": {
+                "secs": 35,
+                "nanos": 648284712
+            },
+            "total_statistics": {
+                "Evaluated": 20902,
+                "BankSize": 533,
+                "FoundContextCount": 65,
+                "MaxMutatingOpcodes": 2,
+                "MaxDepth": 4,
+                "MaxSize": 12
+            },
+            "max_vm_usage": "191.197184 MB",
+            "error": null,
+            "start_context": {
+                "graph_statistics": [
+                    {
+                        "node_count": 12,
+                        "edge_count": 9,
+                        "primitive_fields": 6
+                    }
+                ],
+                "variables": [
+                    {
+                        "name": "graph1",
+                        "value_type": "GraphNode",
+                        "partial_ctx_graph": [
+                            {
+                                "node_count": 4,
+                                "edge_count": 3,
+                                "primitive_fields": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "graph2",
+                        "value_type": "GraphNode",
+                        "partial_ctx_graph": [
+                            {
+                                "node_count": 4,
+                                "edge_count": 3,
+                                "primitive_fields": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "graph3",
+                        "value_type": "GraphNode",
+                        "partial_ctx_graph": [
+                            {
+                                "node_count": 4,
+                                "edge_count": 3,
+                                "primitive_fields": 2
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "path": "../tasks/benchmarks/new_ruse/full_oop/user_names_simple.sy",
+            "source": null,
+            "category": "Full OOP:Without Side Effects",
+            "opcode_count": 1175,
+            "string_literals": [
+                " ",
+                ", ",
+                ""
+            ],
+            "num_literals": [
+                0,
+                1
+            ],
+            "iterations": [
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 496533
+                    },
+                    "statistics": {
+                        "Evaluated": 7,
+                        "BankSize": 7,
+                        "FoundContextCount": 4,
+                        "MaxMutatingOpcodes": 0,
+                        "MaxDepth": 1,
+                        "MaxSize": 1
+                    }
+                },
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 98576431
+                    },
+                    "statistics": {
+                        "Evaluated": 560,
+                        "BankSize": 34,
+                        "FoundContextCount": 0,
+                        "MaxMutatingOpcodes": 0,
+                        "MaxDepth": 2,
+                        "MaxSize": 4
+                    }
+                },
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 374452430
+                    },
+                    "statistics": {
+                        "Evaluated": 69483,
+                        "BankSize": 2156,
+                        "FoundContextCount": 76,
+                        "MaxMutatingOpcodes": 1,
+                        "MaxDepth": 3,
+                        "MaxSize": 13
+                    }
+                },
+                {
+                    "time": {
+                        "secs": 1598,
+                        "nanos": 191233925
+                    },
+                    "statistics": {
+                        "Evaluated": 1268598,
+                        "BankSize": 352918,
+                        "FoundContextCount": 0,
+                        "MaxMutatingOpcodes": 1,
+                        "MaxDepth": 4,
+                        "MaxSize": 27
+                    }
+                }
+            ],
+            "iteration_count": 4,
+            "found": {
+                "found": "a.name + (\", \" + b.name)",
+                "num_mutations": 0,
+                "solution_size": 7,
+                "solution_depth": 4
+            },
+            "total_time": {
+                "secs": 1598,
+                "nanos": 665175522
+            },
+            "total_statistics": {
+                "Evaluated": 1338081,
+                "BankSize": 355074,
+                "FoundContextCount": 76,
+                "MaxMutatingOpcodes": 1,
+                "MaxDepth": 4,
+                "MaxSize": 27
+            },
+            "max_vm_usage": "2.749382656 GB",
+            "error": null,
+            "start_context": {
+                "graph_statistics": [
+                    {
+                        "node_count": 2,
+                        "edge_count": 0,
+                        "primitive_fields": 4
+                    },
+                    {
+                        "node_count": 2,
+                        "edge_count": 0,
+                        "primitive_fields": 4
+                    }
+                ],
+                "variables": [
+                    {
+                        "name": "a",
+                        "value_type": "User",
+                        "partial_ctx_graph": [
+                            {
+                                "node_count": 1,
+                                "edge_count": 0,
+                                "primitive_fields": 2
+                            },
+                            {
+                                "node_count": 1,
+                                "edge_count": 0,
+                                "primitive_fields": 2
+                            }
+                        ]
+                    },
+                    {
+                        "name": "b",
+                        "value_type": "User",
+                        "partial_ctx_graph": [
+                            {
+                                "node_count": 1,
+                                "edge_count": 0,
+                                "primitive_fields": 2
+                            },
+                            {
+                                "node_count": 1,
+                                "edge_count": 0,
+                                "primitive_fields": 2
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "path": "../tasks/benchmarks/fromFrangel/other/ab.sy",
+            "source": "https://github.com/kensens/FrAngel/blob/master/src/frangel/benchmarks/other/AB.java",
+            "category": "Primitive:Without Side Effects",
+            "opcode_count": 880,
+            "string_literals": [
+                " ",
+                ""
+            ],
+            "num_literals": [
+                0,
+                1
+            ],
+            "iterations": [
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 538523
+                    },
+                    "statistics": {
+                        "Evaluated": 6,
+                        "BankSize": 6,
+                        "FoundContextCount": 4,
+                        "MaxMutatingOpcodes": 0,
+                        "MaxDepth": 1,
+                        "MaxSize": 1
+                    }
+                },
+                {
+                    "time": {
+                        "secs": 0,
+                        "nanos": 66185541
+                    },
+                    "statistics": {
+                        "Evaluated": 166,
+                        "BankSize": 30,
+                        "FoundContextCount": 0,
+                        "MaxMutatingOpcodes": 0,
+                        "MaxDepth": 2,
+                        "MaxSize": 3
+                    }
+                }
+            ],
+            "iteration_count": 2,
+            "found": {
+                "found": "a + b",
+                "num_mutations": 0,
+                "solution_size": 3,
+                "solution_depth": 2
+            },
+            "total_time": {
+                "secs": 0,
+                "nanos": 67113092
+            },
+            "total_statistics": {
+                "Evaluated": 172,
+                "BankSize": 36,
+                "FoundContextCount": 4,
+                "MaxMutatingOpcodes": 0,
+                "MaxDepth": 2,
+                "MaxSize": 3
+            },
+            "max_vm_usage": "26.84928 MB",
+            "error": null,
+            "start_context": {
+                "graph_statistics": [
+                    {
+                        "node_count": 0,
+                        "edge_count": 0,
+                        "primitive_fields": 0
+                    }
+                ],
+                "variables": [
+                    {
+                        "name": "a",
+                        "value_type": "String",
+                        "partial_ctx_graph": [
+                            {
+                                "node_count": 0,
+                                "edge_count": 0,
+                                "primitive_fields": 0
+                            }
+                        ]
+                    },
+                    {
+                        "name": "b",
+                        "value_type": "String",
+                        "partial_ctx_graph": [
+                            {
+                                "node_count": 0,
+                                "edge_count": 0,
+                                "primitive_fields": 0
+                            }
+                        ]
+                    }
+                ]
+            }
+        }
+    ]
+}
