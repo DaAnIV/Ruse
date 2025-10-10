@@ -65,6 +65,7 @@ serde_with = "*"
 walkdir = "*"
 wildmatch = "*"
 
+indexmap = { version = "*" }
 dashmap = { version = "*", features = ["raw-api"] }
 siphasher = { version = "*" }
 getrandom = { version = "*" }

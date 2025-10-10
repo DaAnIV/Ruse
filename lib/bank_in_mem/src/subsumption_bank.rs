@@ -1,15 +1,11 @@
-use std::{
-    collections::{hash_map::Entry, HashMap, HashSet},
-    hash::Hash,
-    sync::Arc,
-};
+use std::{hash::Hash, sync::Arc};
 
+use indexmap::{map::Entry, IndexMap, IndexSet};
 use itertools::Either;
 use ruse_object_graph::ValueType;
 
 use ruse_synthesizer::{
     bank::*,
-    bank_hasher::BankHasherBuilder,
     context::{ContextArray, ContextSubsetResult},
     prog::SubProgram,
     value_array::ValueArray,
@@ -74,17 +70,13 @@ fn subsumption_partial_cmp(a: &SubProgram, b: &SubProgram) -> Option<std::cmp::O
 }
 
 #[derive(Debug)]
-struct TripleSet{
-    sets: Vec<HashSet<Arc<SubProgram>, BankHasherBuilder>>,
-    hash_builder: BankHasherBuilder,
+struct TripleSet {
+    sets: Vec<IndexSet<Arc<SubProgram>>>,
 }
 
 impl TripleSet {
-    fn with_hasher(hash_builder: BankHasherBuilder) -> Self {
-        Self {
-            sets: Vec::new(),
-            hash_builder,
-        }
+    fn new() -> Self {
+        Self { sets: Vec::new() }
     }
 
     fn len(&self) -> usize {
@@ -99,21 +91,17 @@ impl TripleSet {
         self.sets.into_iter().flat_map(|set| set.into_iter())
     }
 
-    fn get_set_mut(
-        &mut self,
-        p: &Arc<SubProgram>,
-        ) -> Option<&mut HashSet<Arc<SubProgram>, BankHasherBuilder>> {
+    fn get_set_mut(&mut self, p: &Arc<SubProgram>) -> Option<&mut IndexSet<Arc<SubProgram>>> {
         self.sets.get_mut(p.size() as usize - 1)
     }
 
     fn get_or_create_set_for_prog(
         &mut self,
         p: &Arc<SubProgram>,
-    ) -> &mut HashSet<Arc<SubProgram>, BankHasherBuilder> {
+    ) -> &mut IndexSet<Arc<SubProgram>> {
         let size = p.size() as usize;
-        self.sets.resize_with(self.sets.len().max(size), || {
-            HashSet::with_hasher(self.hash_builder.clone())
-        });
+        self.sets
+            .resize_with(self.sets.len().max(size), || IndexSet::new());
 
         &mut self.sets[size - 1]
     }
@@ -133,15 +121,15 @@ impl TripleSet {
 
 #[derive(Debug)]
 pub struct SubsumptionProgramsMap {
-    map: HashMap<ProgOutput, Vec<Arc<SubProgram>>, BankHasherBuilder>,
+    map: IndexMap<ProgOutput, Vec<Arc<SubProgram>>>,
     set: TripleSet,
 }
 
 impl SubsumptionProgramsMap {
-    pub fn new_with_hasher(hash_builder: BankHasherBuilder) -> Self {
+    pub fn new() -> Self {
         Self {
-            map: HashMap::with_hasher(hash_builder),
-            set: TripleSet::with_hasher(hash_builder),
+            map: IndexMap::new(),
+            set: TripleSet::new(),
         }
     }
 
@@ -217,15 +205,13 @@ impl SubsumptionProgramsMap {
 
 #[derive(Debug)]
 pub struct SubsumptionTypeMap {
-    hash_builder: BankHasherBuilder,
-    maps: HashMap<ValueType, SubsumptionProgramsMap, BankHasherBuilder>,
+    maps: IndexMap<ValueType, SubsumptionProgramsMap>,
 }
 
 impl SubsumptionTypeMap {
-    pub fn new_with_hasher(hash_builder: BankHasherBuilder) -> Self {
+    pub fn new() -> Self {
         Self {
-            hash_builder,
-            maps: HashMap::with_hasher(hash_builder),
+            maps: IndexMap::new(),
         }
     }
 
@@ -233,7 +219,7 @@ impl SubsumptionTypeMap {
         let programs_map = self
             .maps
             .entry(p.out_type().clone())
-            .or_insert(SubsumptionProgramsMap::new_with_hasher(self.hash_builder));
+            .or_insert(SubsumptionProgramsMap::new());
         programs_map.insert(p)
     }
 
@@ -267,7 +253,7 @@ impl BankIterationBuilder for SubsumptionTypeMap {
     type BatchBuilderType = SubsumptionTypeMap;
 
     fn create_batch_builder(&self) -> Self::BatchBuilderType {
-        SubsumptionTypeMap::new_with_hasher(self.hash_builder)
+        SubsumptionTypeMap::new()
     }
 
     async fn add_batch(&mut self, batch: Self::BatchBuilderType) {
@@ -287,7 +273,6 @@ impl BankIterationBuilder for SubsumptionTypeMap {
 
 #[derive(Default)]
 pub struct SubsumptionProgBank {
-    hash_builder: BankHasherBuilder,
     iterations: Vec<SubsumptionTypeMap>,
 }
 
@@ -295,9 +280,8 @@ impl ProgBank for SubsumptionProgBank {
     type IterationBuilderType = SubsumptionTypeMap;
     type BankConfigType = SubsumptionBankConfig;
 
-    async fn new_with_config(config: Self::BankConfigType) -> Self {
+    async fn new_with_config(_config: Self::BankConfigType) -> Self {
         Self {
-            hash_builder: config.hash_builder,
             iterations: Vec::new(),
         }
     }
@@ -343,7 +327,7 @@ impl ProgBank for SubsumptionProgBank {
     }
 
     fn create_iteration_builder(&self) -> SubsumptionTypeMap {
-        SubsumptionTypeMap::new_with_hasher(self.hash_builder)
+        SubsumptionTypeMap::new()
     }
 
     async fn end_iteration(&mut self, iteration: Self::IterationBuilderType) {

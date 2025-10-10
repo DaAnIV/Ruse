@@ -7,6 +7,7 @@ edition = "2021"
 ruse_object_graph.workspace = true
 ruse_synthesizer.workspace = true
 
+indexmap.workspace = true
 clap.workspace = true
 
 anyhow.workspace = true

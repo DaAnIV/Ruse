@@ -2919,6 +2919,7 @@ dependencies = [
  "clap",
  "criterion",
  "getrandom 0.2.16",
+ "indexmap 1.9.3",
  "itertools 0.13.0",
  "rand",
  "ruse_object_graph",

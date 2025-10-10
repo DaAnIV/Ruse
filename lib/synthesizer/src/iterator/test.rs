@@ -2,17 +2,24 @@
 #[allow(dead_code)]
 pub mod iterator_test_helpers {
     use crate::{
-        bank::*, bank_hasher::BankHasherBuilder, context::{ContextArray, VariableMap}, iterator::{
+        bank::*,
+        context::{ContextArray, VariableMap},
+        iterator::{
             bank_iterator::bank_iterator, multi_programs_map_product::ProgramChildrenIterator,
             seq_triple_iterator::seq_triple_iterator,
-        }, pure, synthesizer_context::{EmptySynthesizerData, SynthesizerWorkerContext}, test::helpers::*
+        },
+        pure,
+        synthesizer_context::{EmptySynthesizerData, SynthesizerWorkerContext},
+        test::helpers::*,
     };
     use std::sync::Arc;
 
     use dashmap::DashMap;
     use itertools::Either;
     use ruse_object_graph::{
-        location::{LocValue, Location}, value::Value, vnum, GraphIdGenerator, Number
+        location::{LocValue, Location},
+        value::Value,
+        vnum, GraphIdGenerator, Number,
     };
 
     use crate::{
@@ -131,8 +138,7 @@ pub mod iterator_test_helpers {
         skip: Option<usize>,
         take: Option<usize>,
     ) -> Vec<Vec<Arc<SubProgram>>> {
-        let all_children =
-            Arc::new(DashMap::<usize, Vec<Arc<SubProgram>>, BankHasherBuilder>::default());
+        let all_children = Arc::new(DashMap::<usize, Vec<Arc<SubProgram>>>::default());
         let mut children_iterator = bank_iterator(bank, op.arg_types()).await;
         if let Some(skip_count) = skip {
             children_iterator.skip(skip_count).await;
@@ -159,7 +165,7 @@ pub mod iterator_test_helpers {
         }
         bank
     }
-    
+
     pub fn get_prog_for_bank(
         value: Value,
         syn_ctx: &SynthesizerContext,

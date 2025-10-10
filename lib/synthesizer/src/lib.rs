@@ -1,5 +1,4 @@
 pub mod bank;
-pub mod bank_hasher;
 pub mod context;
 pub mod partial_context;
 pub mod embedding;
