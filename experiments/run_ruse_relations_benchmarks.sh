@@ -26,4 +26,5 @@ BENCHMARKS=(
     --max-task-mem 100GiB \
     "${BENCHMARKS[@]}"
 
-python3 ../scripts/merge_results.py --delete results/${NAME}_results/run_*
+python3 ../scripts/merge_results.py --delete results/${NAME}_results/run
+
