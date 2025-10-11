@@ -1,5 +1,5 @@
 use std::{
-    hash::{BuildHasher, Hash, RandomState},
+    hash::{Hash, RandomState},
     sync::Arc,
 };
 
