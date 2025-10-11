@@ -1,4 +1,7 @@
-use std::{hash::Hash, sync::Arc};
+use std::{
+    hash::{BuildHasher, Hash, RandomState},
+    sync::Arc,
+};
 
 use indexmap::{map::Entry, IndexMap, IndexSet};
 use itertools::Either;
@@ -72,11 +75,15 @@ fn subsumption_partial_cmp(a: &SubProgram, b: &SubProgram) -> Option<std::cmp::O
 #[derive(Debug)]
 struct TripleSet {
     sets: Vec<IndexSet<Arc<SubProgram>>>,
+    hash_builder: RandomState,
 }
 
 impl TripleSet {
-    fn new() -> Self {
-        Self { sets: Vec::new() }
+    fn with_hasher(hash_builder: RandomState) -> Self {
+        Self {
+            sets: Vec::new(),
+            hash_builder,
+        }
     }
 
     fn len(&self) -> usize {
@@ -100,8 +107,9 @@ impl TripleSet {
         p: &Arc<SubProgram>,
     ) -> &mut IndexSet<Arc<SubProgram>> {
         let size = p.size() as usize;
-        self.sets
-            .resize_with(self.sets.len().max(size), || IndexSet::new());
+        self.sets.resize_with(self.sets.len().max(size), || {
+            IndexSet::with_hasher(self.hash_builder.clone())
+        });
 
         &mut self.sets[size - 1]
     }
@@ -126,10 +134,10 @@ pub struct SubsumptionProgramsMap {
 }
 
 impl SubsumptionProgramsMap {
-    pub fn new() -> Self {
+    pub fn with_hasher(hash_builder: RandomState) -> Self {
         Self {
-            map: IndexMap::new(),
-            set: TripleSet::new(),
+            map: IndexMap::with_hasher(hash_builder.clone()),
+            set: TripleSet::with_hasher(hash_builder.clone()),
         }
     }
 
@@ -209,17 +217,18 @@ pub struct SubsumptionTypeMap {
 }
 
 impl SubsumptionTypeMap {
-    pub fn new() -> Self {
+    pub fn with_hasher(hash_builder: RandomState) -> Self {
         Self {
-            maps: IndexMap::new(),
+            maps: IndexMap::with_hasher(hash_builder.clone()),
         }
     }
 
     pub(crate) fn insert_program(&mut self, p: Arc<SubProgram>) -> bool {
+        let hash_builder = self.maps.hasher().clone();
         let programs_map = self
             .maps
             .entry(p.out_type().clone())
-            .or_insert(SubsumptionProgramsMap::new());
+            .or_insert(SubsumptionProgramsMap::with_hasher(hash_builder));
         programs_map.insert(p)
     }
 
@@ -253,7 +262,7 @@ impl BankIterationBuilder for SubsumptionTypeMap {
     type BatchBuilderType = SubsumptionTypeMap;
 
     fn create_batch_builder(&self) -> Self::BatchBuilderType {
-        SubsumptionTypeMap::new()
+        SubsumptionTypeMap::with_hasher(self.maps.hasher().clone())
     }
 
     async fn add_batch(&mut self, batch: Self::BatchBuilderType) {
@@ -274,6 +283,7 @@ impl BankIterationBuilder for SubsumptionTypeMap {
 #[derive(Default)]
 pub struct SubsumptionProgBank {
     iterations: Vec<SubsumptionTypeMap>,
+    hash_builder: RandomState,
 }
 
 impl ProgBank for SubsumptionProgBank {
@@ -282,6 +292,7 @@ impl ProgBank for SubsumptionProgBank {
 
     async fn new_with_config(_config: Self::BankConfigType) -> Self {
         Self {
+            hash_builder: RandomState::new(),
             iterations: Vec::new(),
         }
     }
@@ -327,7 +338,7 @@ impl ProgBank for SubsumptionProgBank {
     }
 
     fn create_iteration_builder(&self) -> SubsumptionTypeMap {
-        SubsumptionTypeMap::new()
+        SubsumptionTypeMap::with_hasher(self.hash_builder.clone())
     }
 
     async fn end_iteration(&mut self, iteration: Self::IterationBuilderType) {

@@ -54,7 +54,7 @@ console-subscriber = "*"
 boa_engine.workspace = true
 
 [features]
-default = ["mimalloc"]
+default = ["mimalloc", "prune_graph_map"]
 mimalloc=["dep:mimalloc"]
 trace_evaluations=["ruse_synthesizer/trace_evaluations"]
 trace_embeddings=["ruse_synthesizer/trace_embeddings"]
