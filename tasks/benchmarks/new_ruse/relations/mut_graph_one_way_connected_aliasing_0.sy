@@ -1,0 +1,28 @@
+{
+    "version": 2,
+    "import": [
+      "../../../classes/ruse/graph.ts"
+    ],
+    "variables": {
+      "graph1": "*graph3.neighbors.0",
+      "graph2": "*graph1.neighbors.0",
+      "graph3": "GraphNode"
+    },
+    "intLiterals": [],
+    "examples": [
+      {
+        "input": {
+          "graph3": {
+            "@js": "new GraphNode(7, new GraphNode(5, new GraphNode(6, new GraphNode(7))))"
+          }
+        },
+        "predicate_js": "graph1.value == 6 && graph2.value == 7 && graph3.value == 8"
+      }
+    ],
+    "solution": {
+      "has_side_effects": "yes",
+      "expected": [
+        "graph3.inc_value(); graph1.inc_value(); graph2.inc_value()"
+      ]
+    }
+  }
