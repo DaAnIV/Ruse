@@ -245,6 +245,11 @@ impl GraphsMap {
         pointers: PointersMap,
     ) {
         let graph = Arc::make_mut(self.get_mut(&graph).unwrap());
+        for edge in pointers.values() {
+            if let Some(g) = edge.graph {
+                graph.inc_chained_graph_ref(g);
+            }
+        }
         let node = ObjectGraphNode::new(obj_type, fields, pointers);
         graph.add_node(id, node);
     }

@@ -150,7 +150,7 @@ impl ObjectGraph {
         node_a.insert_internal_edge(name.clone(), b);
     }
 
-    fn inc_chained_graph_ref(&mut self, graph: GraphIndex) {
+    pub(crate) fn inc_chained_graph_ref(&mut self, graph: GraphIndex) {
         if let Some(ref_count) = self.chained_graphs.get_mut(&graph) {
             ref_count.add_assign(1);
         } else {
@@ -158,7 +158,7 @@ impl ObjectGraph {
         }
     }
 
-    fn dec_chained_graph_ref(&mut self, graph: GraphIndex) {
+    pub(crate) fn dec_chained_graph_ref(&mut self, graph: GraphIndex) {
         debug_assert!(self.chained_graphs.contains_key(&graph));
         let delete: bool;
         {
