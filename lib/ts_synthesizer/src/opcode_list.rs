@@ -177,9 +177,9 @@ pub fn add_array_opcodes(opcodes: &mut OpcodesList, array_types: &[ValueType]) {
         opcodes.push(Arc::new(opcode::ArrayPushOp::new(t)));
         opcodes.push(Arc::new(opcode::ArrayPopOp::new(t)));
         opcodes.push(Arc::new(opcode::ArrayReverseOp::new(t)));
-        opcodes.push(Arc::new(opcode::ArraySortOp::new(t)));
         opcodes.push(Arc::new(opcode::ArrayShiftOp::new(t)));
         if t.is_primitive() {
+            opcodes.push(Arc::new(opcode::ArraySortOp::new(t)));
             opcodes.push(Arc::new(opcode::ArrayJoinOp::new(t, false)));
             opcodes.push(Arc::new(opcode::ArrayJoinOp::new(t, true)));
         }

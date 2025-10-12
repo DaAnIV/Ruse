@@ -772,10 +772,12 @@ impl SnythesisTask {
         if strings {
             add_str_opcodes(&mut composite_opcodes, &ALL_BIN_STR_OPCODES);
         }
+
         add_array_opcodes(
             &mut composite_opcodes,
             &[ValueType::Number, ValueType::String],
         );
+
         add_dom_opcodes(&mut composite_opcodes);
 
         add_set_opcodes(
@@ -783,14 +785,18 @@ impl SnythesisTask {
             &[ValueType::Number, ValueType::String],
         );
 
+        let object_value_types = classes
+            .classes_names()
+            .map(|x| ValueType::class_value_type(x.clone()))
+            .collect_vec();
+
+        add_array_opcodes(&mut composite_opcodes, &object_value_types);
+
         let mut value_types = vec![ValueType::Number, ValueType::String, ValueType::Null];
-        value_types.extend(
-            classes
-                .classes_names()
-                .map(|x| ValueType::class_value_type(x.clone())),
-        );
         value_types.push(ValueType::array_value_type(&ValueType::Number));
         value_types.push(ValueType::array_value_type(&ValueType::String));
+        value_types.extend(object_value_types.iter().map(|x| ValueType::array_value_type(x)));
+        value_types.extend(object_value_types.iter().cloned());
         value_types.push(ValueType::set_value_type(&ValueType::Number));
         value_types.push(ValueType::set_value_type(&ValueType::String));
         for size in 2..=max_seq_size {
