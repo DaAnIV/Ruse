@@ -1,0 +1,35 @@
+{
+  "version": 2,
+  "import": [
+    "../../../classes/ruse/graph.ts"
+  ],
+  "variables": {
+    "graph1": "GraphNode",
+    "graph2": "GraphNode"
+  },
+  "intLiterals": [],
+  "examples": [
+    {
+      "input": {
+        "graph1": {
+          "@js": "new GraphNode(60, new GraphNode(51))"
+        },
+        "graph2": {
+          "@js": [
+            "(() => {",
+            " let temp = new GraphNode(31, new GraphNode(22));",
+            " return new GraphNode(12, temp, temp.neighbors[0]);",
+            "})()"
+          ]
+        }
+      },
+      "predicate_js": "graph1.neighbors.length == 2 && graph2.neighbors.length == 0 && graph1.neighbors[1].value == graph2.value"
+    }
+  ],
+  "solution": {
+    "has_side_effects": "no",
+    "expected": [
+      "graph1.neighbors.push(graph2); graph2.neighbors.splice(0)"
+    ]
+  }
+}
