@@ -1,14 +1,14 @@
 {
     "metadata": {
-        "timestamp": 1759945942,
-        "pid": 1377307,
+        "timestamp": 1760280867,
+        "pid": 1603406,
         "sysinfo": {
             "name": "Debian GNU/Linux",
             "kernel": "5.10.0-30-amd64",
             "os": "11",
             "ram": 0,
             "cpu": "Intel(R) Xeon(R) Gold 6338 CPU @ 2.00GHz",
-            "cpu_fq": 802,
+            "cpu_fq": 801,
             "cpu_core_count": 128
         },
         "config": {
@@ -41,12 +41,7 @@
             ],
             "max_task_mem": "100 GiB",
             "bank_config": {
-                "SubsumptionBank": {
-                    "hash_builder": {
-                        "k0": 14815413633956234328,
-                        "k1": 7679914379549197849
-                    }
-                }
+                "SubsumptionBank": {}
             },
             "fork": true,
             "sleep": {
@@ -95,7 +90,7 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 1349183
+                        "nanos": 1558533
                     },
                     "statistics": {
                         "Evaluated": 7,
@@ -109,7 +104,7 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 124862610
+                        "nanos": 122225230
                     },
                     "statistics": {
                         "Evaluated": 521,
@@ -123,10 +118,10 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 633407366
+                        "nanos": 614431469
                     },
                     "statistics": {
-                        "Evaluated": 17457,
+                        "Evaluated": 17414,
                         "BankSize": 409,
                         "FoundContextCount": 51,
                         "MaxMutatingOpcodes": 1,
@@ -137,38 +132,38 @@
                 {
                     "time": {
                         "secs": 39,
-                        "nanos": 363096030
+                        "nanos": 245832284
                     },
                     "statistics": {
-                        "Evaluated": 1714,
-                        "BankSize": 549,
+                        "Evaluated": 967,
+                        "BankSize": 273,
                         "FoundContextCount": 3,
-                        "MaxMutatingOpcodes": 2,
+                        "MaxMutatingOpcodes": 1,
                         "MaxDepth": 4,
-                        "MaxSize": 12
+                        "MaxSize": 10
                     }
                 }
             ],
             "iteration_count": 4,
             "found": {
-                "found": "(0 + graph1.value) + (graph2.value + graph3.value)",
-                "num_mutations": 0,
-                "solution_size": 10,
+                "found": "\" \".split(\"\").length * (--graph3.value)",
+                "num_mutations": 1,
+                "solution_size": 8,
                 "solution_depth": 4
             },
             "total_time": {
-                "secs": 40,
-                "nanos": 123195984
+                "secs": 39,
+                "nanos": 984511951
             },
             "total_statistics": {
-                "Evaluated": 19171,
-                "BankSize": 958,
+                "Evaluated": 18381,
+                "BankSize": 682,
                 "FoundContextCount": 54,
-                "MaxMutatingOpcodes": 2,
+                "MaxMutatingOpcodes": 1,
                 "MaxDepth": 4,
-                "MaxSize": 12
+                "MaxSize": 10
             },
-            "max_vm_usage": "192.557056 MB",
+            "max_vm_usage": "192.26624 MB",
             "error": null,
             "start_context": {
                 "graph_statistics": [
@@ -232,7 +227,7 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 3883705
+                        "nanos": 4465367
                     },
                     "statistics": {
                         "Evaluated": 6,
@@ -246,7 +241,7 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 104989961
+                        "nanos": 111518331
                     },
                     "statistics": {
                         "Evaluated": 432,
@@ -260,11 +255,11 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 498303212
+                        "nanos": 452331769
                     },
                     "statistics": {
-                        "Evaluated": 2852,
-                        "BankSize": 330,
+                        "Evaluated": 4144,
+                        "BankSize": 451,
                         "FoundContextCount": 4,
                         "MaxMutatingOpcodes": 1,
                         "MaxDepth": 3,
@@ -281,17 +276,17 @@
             },
             "total_time": {
                 "secs": 0,
-                "nanos": 607461557
+                "nanos": 568676774
             },
             "total_statistics": {
-                "Evaluated": 3284,
-                "BankSize": 380,
+                "Evaluated": 4576,
+                "BankSize": 501,
                 "FoundContextCount": 14,
                 "MaxMutatingOpcodes": 1,
                 "MaxDepth": 3,
                 "MaxSize": 9
             },
-            "max_vm_usage": "36.708352 MB",
+            "max_vm_usage": "36.27008 MB",
             "error": null,
             "start_context": {
                 "graph_statistics": [
@@ -344,7 +339,7 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 613876
+                        "nanos": 1039777
                     },
                     "statistics": {
                         "Evaluated": 5,
@@ -358,7 +353,7 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 84861465
+                        "nanos": 62729408
                     },
                     "statistics": {
                         "Evaluated": 320,
@@ -372,11 +367,11 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 248853169
+                        "nanos": 222669399
                     },
                     "statistics": {
-                        "Evaluated": 44641,
-                        "BankSize": 2999,
+                        "Evaluated": 45040,
+                        "BankSize": 3059,
                         "FoundContextCount": 131,
                         "MaxMutatingOpcodes": 2,
                         "MaxDepth": 3,
@@ -385,14 +380,14 @@
                 },
                 {
                     "time": {
-                        "secs": 730,
-                        "nanos": 66333127
+                        "secs": 559,
+                        "nanos": 66321378
                     },
                     "statistics": {
-                        "Evaluated": 849,
-                        "BankSize": 362,
+                        "Evaluated": 3674,
+                        "BankSize": 1623,
                         "FoundContextCount": 9,
-                        "MaxMutatingOpcodes": 2,
+                        "MaxMutatingOpcodes": 3,
                         "MaxDepth": 4,
                         "MaxSize": 11
                     }
@@ -400,24 +395,24 @@
             ],
             "iteration_count": 4,
             "found": {
-                "found": "1 === arr.sort((a, b)=>a - b).shift()",
+                "found": "0 < arr.sort((a, b)=>a - b).shift()",
                 "num_mutations": 2,
                 "solution_size": 5,
                 "solution_depth": 4
             },
             "total_time": {
-                "secs": 730,
-                "nanos": 401352445
+                "secs": 559,
+                "nanos": 353330277
             },
             "total_statistics": {
-                "Evaluated": 45490,
-                "BankSize": 3361,
+                "Evaluated": 48714,
+                "BankSize": 4682,
                 "FoundContextCount": 140,
-                "MaxMutatingOpcodes": 2,
+                "MaxMutatingOpcodes": 3,
                 "MaxDepth": 4,
                 "MaxSize": 11
             },
-            "max_vm_usage": "203.976704 MB",
+            "max_vm_usage": "205.545472 MB",
             "error": null,
             "start_context": {
                 "graph_statistics": [
@@ -479,7 +474,7 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 440042
+                        "nanos": 1390092
                     },
                     "statistics": {
                         "Evaluated": 8,
@@ -493,12 +488,12 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 76016249
+                        "nanos": 72888932
                     },
                     "statistics": {
-                        "Evaluated": 1136,
-                        "BankSize": 171,
-                        "FoundContextCount": 6,
+                        "Evaluated": 1130,
+                        "BankSize": 127,
+                        "FoundContextCount": 5,
                         "MaxMutatingOpcodes": 0,
                         "MaxDepth": 2,
                         "MaxSize": 4
@@ -507,11 +502,11 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 584048268
+                        "nanos": 275036442
                     },
                     "statistics": {
-                        "Evaluated": 21323,
-                        "BankSize": 3328,
+                        "Evaluated": 2063,
+                        "BankSize": 246,
                         "FoundContextCount": 6,
                         "MaxMutatingOpcodes": 0,
                         "MaxDepth": 3,
@@ -528,17 +523,17 @@
             },
             "total_time": {
                 "secs": 0,
-                "nanos": 660840703
+                "nanos": 349846240
             },
             "total_statistics": {
-                "Evaluated": 22459,
-                "BankSize": 3499,
-                "FoundContextCount": 12,
+                "Evaluated": 3193,
+                "BankSize": 373,
+                "FoundContextCount": 11,
                 "MaxMutatingOpcodes": 0,
                 "MaxDepth": 3,
                 "MaxSize": 9
             },
-            "max_vm_usage": "28.54912 MB",
+            "max_vm_usage": "30.302208 MB",
             "error": null,
             "start_context": {
                 "graph_statistics": [
@@ -613,7 +608,7 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 481655
+                        "nanos": 420909
                     },
                     "statistics": {
                         "Evaluated": 5,
@@ -627,11 +622,11 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 81251182
+                        "nanos": 71589398
                     },
                     "statistics": {
                         "Evaluated": 305,
-                        "BankSize": 28,
+                        "BankSize": 26,
                         "FoundContextCount": 0,
                         "MaxMutatingOpcodes": 0,
                         "MaxDepth": 2,
@@ -641,11 +636,11 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 60140427
+                        "nanos": 54797120
                     },
                     "statistics": {
-                        "Evaluated": 3046,
-                        "BankSize": 495,
+                        "Evaluated": 2628,
+                        "BankSize": 323,
                         "FoundContextCount": 2,
                         "MaxMutatingOpcodes": 0,
                         "MaxDepth": 3,
@@ -662,17 +657,17 @@
             },
             "total_time": {
                 "secs": 0,
-                "nanos": 142097423
+                "nanos": 127346797
             },
             "total_statistics": {
-                "Evaluated": 3351,
-                "BankSize": 523,
+                "Evaluated": 2933,
+                "BankSize": 349,
                 "FoundContextCount": 2,
                 "MaxMutatingOpcodes": 0,
                 "MaxDepth": 3,
                 "MaxSize": 9
             },
-            "max_vm_usage": "28.553216 MB",
+            "max_vm_usage": "28.073984 MB",
             "error": null,
             "start_context": {
                 "graph_statistics": [
@@ -734,7 +729,7 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 462273
+                        "nanos": 501086
                     },
                     "statistics": {
                         "Evaluated": 6,
@@ -748,7 +743,7 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 86355586
+                        "nanos": 75373824
                     },
                     "statistics": {
                         "Evaluated": 499,
@@ -762,38 +757,38 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 99870576
+                        "nanos": 126399826
                     },
                     "statistics": {
-                        "Evaluated": 5256,
-                        "BankSize": 1683,
+                        "Evaluated": 12659,
+                        "BankSize": 2128,
                         "FoundContextCount": 4,
                         "MaxMutatingOpcodes": 2,
                         "MaxDepth": 3,
-                        "MaxSize": 7
+                        "MaxSize": 8
                     }
                 }
             ],
             "iteration_count": 3,
             "found": {
-                "found": "x.push(y), x",
+                "found": "1, x.push(y), x",
                 "num_mutations": 1,
-                "solution_size": 5,
+                "solution_size": 6,
                 "solution_depth": 3
             },
             "total_time": {
                 "secs": 0,
-                "nanos": 187209076
+                "nanos": 202656079
             },
             "total_statistics": {
-                "Evaluated": 5755,
-                "BankSize": 1723,
+                "Evaluated": 13158,
+                "BankSize": 2168,
                 "FoundContextCount": 12,
                 "MaxMutatingOpcodes": 2,
                 "MaxDepth": 3,
-                "MaxSize": 7
+                "MaxSize": 8
             },
-            "max_vm_usage": "28.684288 MB",
+            "max_vm_usage": "28.073984 MB",
             "error": null,
             "start_context": {
                 "graph_statistics": [
@@ -861,7 +856,7 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 431086
+                        "nanos": 520399
                     },
                     "statistics": {
                         "Evaluated": 7,
@@ -875,11 +870,11 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 79006809
+                        "nanos": 87708955
                     },
                     "statistics": {
                         "Evaluated": 773,
-                        "BankSize": 111,
+                        "BankSize": 98,
                         "FoundContextCount": 3,
                         "MaxMutatingOpcodes": 0,
                         "MaxDepth": 2,
@@ -889,11 +884,11 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 385431168
+                        "nanos": 238949481
                     },
                     "statistics": {
-                        "Evaluated": 3836,
-                        "BankSize": 595,
+                        "Evaluated": 6359,
+                        "BankSize": 1105,
                         "FoundContextCount": 5,
                         "MaxMutatingOpcodes": 0,
                         "MaxDepth": 3,
@@ -903,24 +898,24 @@
             ],
             "iteration_count": 3,
             "found": {
-                "found": "a + (b + c)",
+                "found": "(a + b) + c",
                 "num_mutations": 0,
                 "solution_size": 5,
                 "solution_depth": 3
             },
             "total_time": {
                 "secs": 0,
-                "nanos": 465426898
+                "nanos": 327721226
             },
             "total_statistics": {
-                "Evaluated": 4609,
-                "BankSize": 706,
+                "Evaluated": 7132,
+                "BankSize": 1203,
                 "FoundContextCount": 8,
                 "MaxMutatingOpcodes": 0,
                 "MaxDepth": 3,
                 "MaxSize": 9
             },
-            "max_vm_usage": "28.553216 MB",
+            "max_vm_usage": "30.031872 MB",
             "error": null,
             "start_context": {
                 "graph_statistics": [
@@ -985,7 +980,7 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 1742107
+                        "nanos": 1066541
                     },
                     "statistics": {
                         "Evaluated": 9,
@@ -999,7 +994,7 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 100501518
+                        "nanos": 91436831
                     },
                     "statistics": {
                         "Evaluated": 560,
@@ -1013,11 +1008,11 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 372226726
+                        "nanos": 367066827
                     },
                     "statistics": {
                         "Evaluated": 69557,
-                        "BankSize": 2153,
+                        "BankSize": 2150,
                         "FoundContextCount": 76,
                         "MaxMutatingOpcodes": 1,
                         "MaxDepth": 3,
@@ -1026,12 +1021,12 @@
                 },
                 {
                     "time": {
-                        "secs": 1615,
-                        "nanos": 41200254
+                        "secs": 1364,
+                        "nanos": 470081387
                     },
                     "statistics": {
-                        "Evaluated": 1253836,
-                        "BankSize": 347460,
+                        "Evaluated": 1709198,
+                        "BankSize": 478976,
                         "FoundContextCount": 0,
                         "MaxMutatingOpcodes": 1,
                         "MaxDepth": 4,
@@ -1041,24 +1036,24 @@
             ],
             "iteration_count": 4,
             "found": {
-                "found": "(a.name + \", \"[0]) + (\" \" + b.name)",
+                "found": "a.name + (\", \" + b.name)",
                 "num_mutations": 0,
-                "solution_size": 11,
+                "solution_size": 7,
                 "solution_depth": 4
             },
             "total_time": {
-                "secs": 1615,
-                "nanos": 516038879
+                "secs": 1364,
+                "nanos": 930063035
             },
             "total_statistics": {
-                "Evaluated": 1323393,
-                "BankSize": 349613,
+                "Evaluated": 1778755,
+                "BankSize": 481126,
                 "FoundContextCount": 76,
                 "MaxMutatingOpcodes": 1,
                 "MaxDepth": 4,
                 "MaxSize": 27
             },
-            "max_vm_usage": "2.654523392 GB",
+            "max_vm_usage": "3.660525568 GB",
             "error": null,
             "start_context": {
                 "graph_statistics": [
@@ -1159,7 +1154,7 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 1398373
+                        "nanos": 1359084
                     },
                     "statistics": {
                         "Evaluated": 8,
@@ -1173,7 +1168,7 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 127541218
+                        "nanos": 144472084
                     },
                     "statistics": {
                         "Evaluated": 744,
@@ -1187,11 +1182,11 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 673776407
+                        "nanos": 609263600
                     },
                     "statistics": {
                         "Evaluated": 74067,
-                        "BankSize": 2166,
+                        "BankSize": 2151,
                         "FoundContextCount": 78,
                         "MaxMutatingOpcodes": 1,
                         "MaxDepth": 3,
@@ -1200,39 +1195,39 @@
                 },
                 {
                     "time": {
-                        "secs": 1569,
-                        "nanos": 245253299
+                        "secs": 1432,
+                        "nanos": 707236791
                     },
                     "statistics": {
-                        "Evaluated": 657178,
-                        "BankSize": 175718,
+                        "Evaluated": 1773383,
+                        "BankSize": 500876,
                         "FoundContextCount": 0,
                         "MaxMutatingOpcodes": 1,
                         "MaxDepth": 4,
-                        "MaxSize": 26
+                        "MaxSize": 27
                     }
                 }
             ],
             "iteration_count": 4,
             "found": {
-                "found": "(\"\" + a.name) + (\", \" + b.name)",
+                "found": "a.name + (\", \" + b.name)",
                 "num_mutations": 0,
-                "solution_size": 9,
+                "solution_size": 7,
                 "solution_depth": 4
             },
             "total_time": {
-                "secs": 1570,
-                "nanos": 48295119
+                "secs": 1433,
+                "nanos": 462680351
             },
             "total_statistics": {
-                "Evaluated": 731245,
-                "BankSize": 177884,
+                "Evaluated": 1847450,
+                "BankSize": 503027,
                 "FoundContextCount": 78,
                 "MaxMutatingOpcodes": 1,
                 "MaxDepth": 4,
-                "MaxSize": 26
+                "MaxSize": 27
             },
-            "max_vm_usage": "1.610801152 GB",
+            "max_vm_usage": "3.801321472 GB",
             "error": null,
             "start_context": {
                 "graph_statistics": [
@@ -1316,7 +1311,7 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 397632
+                        "nanos": 1820282
                     },
                     "statistics": {
                         "Evaluated": 6,
@@ -1330,11 +1325,11 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 64450289
+                        "nanos": 70312520
                     },
                     "statistics": {
                         "Evaluated": 530,
-                        "BankSize": 44,
+                        "BankSize": 42,
                         "FoundContextCount": 4,
                         "MaxMutatingOpcodes": 1,
                         "MaxDepth": 2,
@@ -1344,11 +1339,11 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 71378870
+                        "nanos": 70094190
                     },
                     "statistics": {
-                        "Evaluated": 1977,
-                        "BankSize": 772,
+                        "Evaluated": 2141,
+                        "BankSize": 798,
                         "FoundContextCount": 4,
                         "MaxMutatingOpcodes": 2,
                         "MaxDepth": 3,
@@ -1365,17 +1360,17 @@
             },
             "total_time": {
                 "secs": 0,
-                "nanos": 136983184
+                "nanos": 142560340
             },
             "total_statistics": {
-                "Evaluated": 2507,
-                "BankSize": 816,
+                "Evaluated": 2671,
+                "BankSize": 840,
                 "FoundContextCount": 8,
                 "MaxMutatingOpcodes": 2,
                 "MaxDepth": 3,
                 "MaxSize": 7
             },
-            "max_vm_usage": "30.650368 MB",
+            "max_vm_usage": "30.171136 MB",
             "error": null,
             "start_context": {
                 "graph_statistics": [
@@ -1443,7 +1438,7 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 370977
+                        "nanos": 634899
                     },
                     "statistics": {
                         "Evaluated": 5,
@@ -1457,7 +1452,7 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 71668971
+                        "nanos": 90788569
                     },
                     "statistics": {
                         "Evaluated": 320,
@@ -1471,11 +1466,11 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 261266423
+                        "nanos": 172716720
                     },
                     "statistics": {
-                        "Evaluated": 49264,
-                        "BankSize": 2566,
+                        "Evaluated": 49532,
+                        "BankSize": 2528,
                         "FoundContextCount": 78,
                         "MaxMutatingOpcodes": 2,
                         "MaxDepth": 3,
@@ -1484,12 +1479,12 @@
                 },
                 {
                     "time": {
-                        "secs": 708,
-                        "nanos": 678737751
+                        "secs": 625,
+                        "nanos": 491731057
                     },
                     "statistics": {
-                        "Evaluated": 47130,
-                        "BankSize": 15233,
+                        "Evaluated": 47521,
+                        "BankSize": 15136,
                         "FoundContextCount": 9,
                         "MaxMutatingOpcodes": 3,
                         "MaxDepth": 4,
@@ -1505,18 +1500,18 @@
                 "solution_depth": 4
             },
             "total_time": {
-                "secs": 709,
-                "nanos": 12563921
+                "secs": 625,
+                "nanos": 756479282
             },
             "total_statistics": {
-                "Evaluated": 96394,
-                "BankSize": 17799,
+                "Evaluated": 97053,
+                "BankSize": 17664,
                 "FoundContextCount": 87,
                 "MaxMutatingOpcodes": 3,
                 "MaxDepth": 4,
                 "MaxSize": 15
             },
-            "max_vm_usage": "273.666048 MB",
+            "max_vm_usage": "238.596096 MB",
             "error": null,
             "start_context": {
                 "graph_statistics": [
@@ -1578,7 +1573,7 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 466147
+                        "nanos": 1362476
                     },
                     "statistics": {
                         "Evaluated": 6,
@@ -1592,11 +1587,11 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 75667236
+                        "nanos": 62834084
                     },
                     "statistics": {
                         "Evaluated": 494,
-                        "BankSize": 45,
+                        "BankSize": 43,
                         "FoundContextCount": 0,
                         "MaxMutatingOpcodes": 0,
                         "MaxDepth": 2,
@@ -1606,11 +1601,11 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 145354582
+                        "nanos": 169939437
                     },
                     "statistics": {
-                        "Evaluated": 22078,
-                        "BankSize": 1827,
+                        "Evaluated": 25492,
+                        "BankSize": 1790,
                         "FoundContextCount": 4,
                         "MaxMutatingOpcodes": 0,
                         "MaxDepth": 3,
@@ -1627,17 +1622,17 @@
             },
             "total_time": {
                 "secs": 0,
-                "nanos": 221807746
+                "nanos": 234508724
             },
             "total_statistics": {
-                "Evaluated": 22572,
-                "BankSize": 1872,
+                "Evaluated": 25986,
+                "BankSize": 1833,
                 "FoundContextCount": 4,
                 "MaxMutatingOpcodes": 0,
                 "MaxDepth": 3,
                 "MaxSize": 10
             },
-            "max_vm_usage": "28.553216 MB",
+            "max_vm_usage": "30.04416 MB",
             "error": null,
             "start_context": {
                 "graph_statistics": [
@@ -1705,7 +1700,7 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 4504622
+                        "nanos": 4570749
                     },
                     "statistics": {
                         "Evaluated": 5,
@@ -1719,7 +1714,7 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 105862462
+                        "nanos": 89747148
                     },
                     "statistics": {
                         "Evaluated": 271,
@@ -1733,15 +1728,15 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 125525379
+                        "nanos": 114052368
                     },
                     "statistics": {
-                        "Evaluated": 670,
-                        "BankSize": 58,
+                        "Evaluated": 182,
+                        "BankSize": 24,
                         "FoundContextCount": 2,
-                        "MaxMutatingOpcodes": 2,
+                        "MaxMutatingOpcodes": 1,
                         "MaxDepth": 3,
-                        "MaxSize": 9
+                        "MaxSize": 5
                     }
                 }
             ],
@@ -1754,17 +1749,17 @@
             },
             "total_time": {
                 "secs": 0,
-                "nanos": 236261373
+                "nanos": 208720435
             },
             "total_statistics": {
-                "Evaluated": 941,
-                "BankSize": 79,
+                "Evaluated": 453,
+                "BankSize": 45,
                 "FoundContextCount": 4,
-                "MaxMutatingOpcodes": 2,
+                "MaxMutatingOpcodes": 1,
                 "MaxDepth": 3,
-                "MaxSize": 9
+                "MaxSize": 5
             },
-            "max_vm_usage": "37.060608 MB",
+            "max_vm_usage": "35.00032 MB",
             "error": null,
             "start_context": {
                 "graph_statistics": [
@@ -1806,7 +1801,7 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 548166
+                        "nanos": 613245
                     },
                     "statistics": {
                         "Evaluated": 6,
@@ -1820,7 +1815,7 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 88046780
+                        "nanos": 78531056
                     },
                     "statistics": {
                         "Evaluated": 463,
@@ -1834,15 +1829,15 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 142526364
+                        "nanos": 166017358
                     },
                     "statistics": {
-                        "Evaluated": 2188,
-                        "BankSize": 538,
+                        "Evaluated": 6525,
+                        "BankSize": 2012,
                         "FoundContextCount": 4,
-                        "MaxMutatingOpcodes": 2,
+                        "MaxMutatingOpcodes": 3,
                         "MaxDepth": 3,
-                        "MaxSize": 8
+                        "MaxSize": 9
                     }
                 }
             ],
@@ -1855,17 +1850,17 @@
             },
             "total_time": {
                 "secs": 0,
-                "nanos": 231559713
+                "nanos": 246433138
             },
             "total_statistics": {
-                "Evaluated": 2651,
-                "BankSize": 593,
+                "Evaluated": 6988,
+                "BankSize": 2067,
                 "FoundContextCount": 15,
-                "MaxMutatingOpcodes": 2,
+                "MaxMutatingOpcodes": 3,
                 "MaxDepth": 3,
-                "MaxSize": 8
+                "MaxSize": 9
             },
-            "max_vm_usage": "30.773248 MB",
+            "max_vm_usage": "28.069888 MB",
             "error": null,
             "start_context": {
                 "graph_statistics": [
@@ -1933,7 +1928,7 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 1033818
+                        "nanos": 1125977
                     },
                     "statistics": {
                         "Evaluated": 7,
@@ -1947,11 +1942,11 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 114376217
+                        "nanos": 113014529
                     },
                     "statistics": {
                         "Evaluated": 518,
-                        "BankSize": 23,
+                        "BankSize": 24,
                         "FoundContextCount": 3,
                         "MaxMutatingOpcodes": 1,
                         "MaxDepth": 2,
@@ -1961,11 +1956,11 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 561504840
+                        "nanos": 650091912
                     },
                     "statistics": {
-                        "Evaluated": 14289,
-                        "BankSize": 310,
+                        "Evaluated": 15832,
+                        "BankSize": 321,
                         "FoundContextCount": 46,
                         "MaxMutatingOpcodes": 1,
                         "MaxDepth": 3,
@@ -1974,39 +1969,39 @@
                 },
                 {
                     "time": {
-                        "secs": 30,
-                        "nanos": 647029261
+                        "secs": 32,
+                        "nanos": 680494549
                     },
                     "statistics": {
-                        "Evaluated": 678,
-                        "BankSize": 68,
+                        "Evaluated": 718,
+                        "BankSize": 115,
                         "FoundContextCount": 3,
-                        "MaxMutatingOpcodes": 1,
+                        "MaxMutatingOpcodes": 2,
                         "MaxDepth": 4,
-                        "MaxSize": 12
+                        "MaxSize": 10
                     }
                 }
             ],
             "iteration_count": 4,
             "found": {
-                "found": "(++graph1.value) * \" \".split(\"\").length",
-                "num_mutations": 1,
+                "found": "(graph2.value + graph3.value) + graph1.value",
+                "num_mutations": 0,
                 "solution_size": 8,
                 "solution_depth": 4
             },
             "total_time": {
-                "secs": 31,
-                "nanos": 324350593
+                "secs": 33,
+                "nanos": 445082507
             },
             "total_statistics": {
-                "Evaluated": 14967,
-                "BankSize": 378,
+                "Evaluated": 16550,
+                "BankSize": 436,
                 "FoundContextCount": 49,
-                "MaxMutatingOpcodes": 1,
+                "MaxMutatingOpcodes": 2,
                 "MaxDepth": 4,
-                "MaxSize": 12
+                "MaxSize": 10
             },
-            "max_vm_usage": "196.755456 MB",
+            "max_vm_usage": "236.818432 MB",
             "error": null,
             "start_context": {
                 "graph_statistics": [
@@ -2071,7 +2066,7 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 1394901
+                        "nanos": 1415747
                     },
                     "statistics": {
                         "Evaluated": 8,
@@ -2085,7 +2080,7 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 127501884
+                        "nanos": 128881040
                     },
                     "statistics": {
                         "Evaluated": 744,
@@ -2099,11 +2094,11 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 678895864
+                        "nanos": 686597217
                     },
                     "statistics": {
                         "Evaluated": 74067,
-                        "BankSize": 2166,
+                        "BankSize": 2151,
                         "FoundContextCount": 77,
                         "MaxMutatingOpcodes": 1,
                         "MaxDepth": 3,
@@ -2112,12 +2107,12 @@
                 },
                 {
                     "time": {
-                        "secs": 1575,
-                        "nanos": 778753935
+                        "secs": 1616,
+                        "nanos": 827135214
                     },
                     "statistics": {
-                        "Evaluated": 813081,
-                        "BankSize": 221184,
+                        "Evaluated": 790078,
+                        "BankSize": 213943,
                         "FoundContextCount": 0,
                         "MaxMutatingOpcodes": 1,
                         "MaxDepth": 4,
@@ -2127,24 +2122,24 @@
             ],
             "iteration_count": 4,
             "found": {
-                "found": "(a.name + \"\") + (\", \" + b.name)",
+                "found": "(a.name + \", \") + (\"\" + b.name)",
                 "num_mutations": 0,
                 "solution_size": 9,
                 "solution_depth": 4
             },
             "total_time": {
-                "secs": 1576,
-                "nanos": 586957828
+                "secs": 1617,
+                "nanos": 644432287
             },
             "total_statistics": {
-                "Evaluated": 887148,
-                "BankSize": 223350,
+                "Evaluated": 864145,
+                "BankSize": 216094,
                 "FoundContextCount": 77,
                 "MaxMutatingOpcodes": 1,
                 "MaxDepth": 4,
                 "MaxSize": 26
             },
-            "max_vm_usage": "1.85700352 GB",
+            "max_vm_usage": "1.858105344 GB",
             "error": null,
             "start_context": {
                 "graph_statistics": [
@@ -2228,7 +2223,7 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 1080314
+                        "nanos": 1084448
                     },
                     "statistics": {
                         "Evaluated": 7,
@@ -2242,7 +2237,7 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 90865108
+                        "nanos": 102888485
                     },
                     "statistics": {
                         "Evaluated": 515,
@@ -2256,11 +2251,11 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 532718792
+                        "nanos": 533117016
                     },
                     "statistics": {
-                        "Evaluated": 19850,
-                        "BankSize": 333,
+                        "Evaluated": 19830,
+                        "BankSize": 332,
                         "FoundContextCount": 62,
                         "MaxMutatingOpcodes": 1,
                         "MaxDepth": 3,
@@ -2269,39 +2264,39 @@
                 },
                 {
                     "time": {
-                        "secs": 35,
-                        "nanos": 793545189
+                        "secs": 30,
+                        "nanos": 693387454
                     },
                     "statistics": {
-                        "Evaluated": 1278,
-                        "BankSize": 275,
+                        "Evaluated": 967,
+                        "BankSize": 149,
                         "FoundContextCount": 3,
                         "MaxMutatingOpcodes": 2,
                         "MaxDepth": 4,
-                        "MaxSize": 12
+                        "MaxSize": 11
                     }
                 }
             ],
             "iteration_count": 4,
             "found": {
-                "found": "\" \".split(\"\").length * (1 + graph1.value)",
-                "num_mutations": 0,
+                "found": "(++graph3.value) + (graph1.value + graph1.value)",
+                "num_mutations": 1,
                 "solution_size": 9,
                 "solution_depth": 4
             },
             "total_time": {
-                "secs": 36,
-                "nanos": 418618040
+                "secs": 31,
+                "nanos": 330794208
             },
             "total_statistics": {
-                "Evaluated": 21128,
-                "BankSize": 608,
+                "Evaluated": 20797,
+                "BankSize": 481,
                 "FoundContextCount": 65,
                 "MaxMutatingOpcodes": 2,
                 "MaxDepth": 4,
-                "MaxSize": 12
+                "MaxSize": 11
             },
-            "max_vm_usage": "192.57344 MB",
+            "max_vm_usage": "196.395008 MB",
             "error": null,
             "start_context": {
                 "graph_statistics": [
@@ -2366,7 +2361,7 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 1358487
+                        "nanos": 1197096
                     },
                     "statistics": {
                         "Evaluated": 7,
@@ -2380,7 +2375,7 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 87212036
+                        "nanos": 97231408
                     },
                     "statistics": {
                         "Evaluated": 560,
@@ -2394,11 +2389,11 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 367539559
+                        "nanos": 329740993
                     },
                     "statistics": {
                         "Evaluated": 69483,
-                        "BankSize": 2165,
+                        "BankSize": 2150,
                         "FoundContextCount": 76,
                         "MaxMutatingOpcodes": 1,
                         "MaxDepth": 3,
@@ -2407,12 +2402,12 @@
                 },
                 {
                     "time": {
-                        "secs": 1679,
-                        "nanos": 523834344
+                        "secs": 1306,
+                        "nanos": 591822644
                     },
                     "statistics": {
-                        "Evaluated": 417772,
-                        "BankSize": 105384,
+                        "Evaluated": 1040688,
+                        "BankSize": 286144,
                         "FoundContextCount": 0,
                         "MaxMutatingOpcodes": 1,
                         "MaxDepth": 4,
@@ -2422,24 +2417,24 @@
             ],
             "iteration_count": 4,
             "found": {
-                "found": "(\"\" + a.name) + (\", \" + b.name)",
+                "found": "a.name + (\", \" + b.name)",
                 "num_mutations": 0,
-                "solution_size": 9,
+                "solution_size": 7,
                 "solution_depth": 4
             },
             "total_time": {
-                "secs": 1679,
-                "nanos": 980290516
+                "secs": 1307,
+                "nanos": 20460447
             },
             "total_statistics": {
-                "Evaluated": 487255,
-                "BankSize": 107549,
+                "Evaluated": 1110171,
+                "BankSize": 288294,
                 "FoundContextCount": 76,
                 "MaxMutatingOpcodes": 1,
                 "MaxDepth": 4,
                 "MaxSize": 26
             },
-            "max_vm_usage": "409.092096 MB",
+            "max_vm_usage": "2.376835072 GB",
             "error": null,
             "start_context": {
                 "graph_statistics": [
@@ -2507,7 +2502,7 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 472028
+                        "nanos": 1168024
                     },
                     "statistics": {
                         "Evaluated": 6,
@@ -2521,11 +2516,11 @@
                 {
                     "time": {
                         "secs": 0,
-                        "nanos": 73550855
+                        "nanos": 68708726
                     },
                     "statistics": {
-                        "Evaluated": 94,
-                        "BankSize": 17,
+                        "Evaluated": 154,
+                        "BankSize": 27,
                         "FoundContextCount": 0,
                         "MaxMutatingOpcodes": 0,
                         "MaxDepth": 2,
@@ -2542,17 +2537,17 @@
             },
             "total_time": {
                 "secs": 0,
-                "nanos": 74339669
+                "nanos": 70178548
             },
             "total_statistics": {
-                "Evaluated": 100,
-                "BankSize": 23,
+                "Evaluated": 160,
+                "BankSize": 33,
                 "FoundContextCount": 4,
                 "MaxMutatingOpcodes": 0,
                 "MaxDepth": 2,
                 "MaxSize": 3
             },
-            "max_vm_usage": "28.54912 MB",
+            "max_vm_usage": "30.302208 MB",
             "error": null,
             "start_context": {
                 "graph_statistics": [
