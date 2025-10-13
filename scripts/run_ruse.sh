@@ -70,11 +70,6 @@ kill_background_jobs() {
 trap kill_background_jobs INT
 
 if [ "$UPLOAD_RUN" = true ]; then
-    # Start MongoDB
-    $HOME/mongodb/bin/mongod --dbpath $HOME/mongodb/data --port 27017 --bind_ip 127.0.0.1 --logpath $HOME/mongodb/logs/mongod.log --logappend&
-
-    sleep 1
-
     cd ${SCRIPT_DIR}/../log_viewer
     ./process_run.sh ${LOG_FILE_ABS_PATH} ${OUTPUT_DIR_ABS_PATH}
     cd -

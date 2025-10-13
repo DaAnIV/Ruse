@@ -23,7 +23,7 @@
           ]
         }
       },
-      "predicate_js": "graph1.neighbors.length == 2 && graph2.neighbors.length == 0 && graph1.neighbors[1].value == graph2.value"
+      "predicate_js": "graph1.neighbors.length == 2 && graph2.neighbors.length == 0 && graph1.neighbors[1].value == 12"
     }
   ],
   "solution": {
