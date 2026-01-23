@@ -79,3 +79,6 @@ release_trace_max_level_debug=["tracing/release_max_level_debug",
                               "ruse_bank_in_mem/release_trace_max_level_debug"]
 
 js_predicate_code = ["ruse_task_parser/js_predicate_code"]
+
+check_location_equality_via_graphs = ["ruse_object_graph/check_location_equality_via_graphs"]
+simple_location_equality_check = ["ruse_object_graph/simple_location_checking"]

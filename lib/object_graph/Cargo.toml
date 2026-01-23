@@ -31,6 +31,8 @@ default = ["generators"]
 generators = ["dep:petgraph", "dep:petgraph-gen"]
 release_trace_max_level_info = ["tracing/release_max_level_info"]
 release_trace_max_level_debug = ["tracing/release_max_level_debug"]
+simple_location_checking = []
+check_location_equality_via_graphs = ["simple_location_checking"]
 
 [[bench]]
 name = "benches"

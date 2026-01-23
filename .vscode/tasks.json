@@ -16,7 +16,27 @@
         {
             "label": "build release",
             "type": "shell",
-            "command": "$HOME/.cargo/bin/cargo build --profile release --features release_trace_max_level_debug",
+            "command": "$HOME/.cargo/bin/cargo build --profile release --features check_location_equality_via_graphs",
+			"problemMatcher": "$rustc",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+        },
+        {
+            "label": "build release with simple location equality checks",
+            "type": "shell",
+            "command": "$HOME/.cargo/bin/cargo build --profile release --features simple_location_checking",
+			"problemMatcher": "$rustc",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+        },
+        {
+            "label": "build release without location eqaulity checks",
+            "type": "shell",
+            "command": "$HOME/.cargo/bin/cargo build --profile release",
 			"problemMatcher": "$rustc",
 			"group": {
 				"kind": "build",

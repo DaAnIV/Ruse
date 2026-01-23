@@ -1,9 +1,10 @@
 use crate::{
-    graph_equality::{self, NodeMatcherMap},
     graph_map_value::*,
     value::Value,
     Attributes, FieldName, GraphIndex, GraphsMap, NodeIndex, RootName,
 };
+#[cfg(feature = "check_location_equality_via_graphs")]
+use crate::graph_equality::{self, NodeMatcherMap};
 use std::{fmt::Debug, fmt::Display, hash::Hash};
 
 #[derive(Debug, Clone)]
@@ -85,7 +86,8 @@ impl Location {
             _ => None,
         }
     }
-
+    
+    #[cfg(feature = "check_location_equality_via_graphs")]
     fn get_node_id(&self, graphs_map: &GraphsMap) -> Option<(GraphIndex, NodeIndex)> {
         match self {
             Location::Root(l) => Some(
@@ -106,6 +108,35 @@ impl Location {
 }
 
 impl Location {
+    #[cfg(feature = "check_location_equality_via_graphs")]
+    fn check_location_equality_via_graphs(
+        &self,
+        self_graphs_map: &GraphsMap,
+        other: &Self,
+        other_graphs_map: &GraphsMap) -> bool {
+            let self_node = self.get_node_id(self_graphs_map).unwrap();
+            let other_node = other.get_node_id(other_graphs_map).unwrap();
+
+            let mut equal_nodes = NodeMatcherMap::new();
+            equal_nodes.insert(self_node, other_node);
+            return graph_equality::equal_graphs_by_root_names_with_map(
+                self_graphs_map,
+                other_graphs_map,
+                self_graphs_map.common_roots(&other_graphs_map),
+                &mut equal_nodes,
+            );
+    }
+
+    #[cfg(all(not(feature = "check_location_equality_via_graphs"), feature = "simple_location_checking"))]
+    fn check_location_equality_via_graphs(
+        &self,
+        _self_graphs_map: &GraphsMap,
+        _other: &Self,
+        _other_graphs_map: &GraphsMap) -> bool {
+            false
+    }
+
+    #[cfg(feature = "simple_location_checking")]
     fn eq(
         &self,
         self_graphs_map: &GraphsMap,
@@ -142,17 +173,22 @@ impl Location {
             };
         }
 
-        let self_node = self.get_node_id(self_graphs_map).unwrap();
-        let other_node = other.get_node_id(other_graphs_map).unwrap();
-
-        let mut equal_nodes = NodeMatcherMap::new();
-        equal_nodes.insert(self_node, other_node);
-        return graph_equality::equal_graphs_by_root_names_with_map(
+        self.check_location_equality_via_graphs(
             self_graphs_map,
+            other,
             other_graphs_map,
-            self_graphs_map.common_roots(&other_graphs_map),
-            &mut equal_nodes,
-        );
+        )
+    }
+
+    #[cfg(not(feature = "simple_location_checking"))]
+    fn eq(
+        &self,
+        _self_graphs_map: &GraphsMap,
+        _other: &Self,
+        _other_graphs_map: &GraphsMap,
+        _is_primitive: bool,
+    ) -> bool {
+        false
     }
 }
 

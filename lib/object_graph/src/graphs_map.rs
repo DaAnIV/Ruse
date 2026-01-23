@@ -208,6 +208,7 @@ impl GraphsMap {
         Some(root_names.iter())
     }
 
+    #[allow(dead_code)]
     pub(crate) fn common_roots<'a>(
         &'a self,
         other_graphs_map: &'a GraphsMap,
